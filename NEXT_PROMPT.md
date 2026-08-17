@@ -1,8 +1,8 @@
 # Shaurya — Next-Session Prompt
 
-**Prepared:** 2026-08-17  
-**Use on return:** 2026-08-18  
-**Repository:** private `ayyararyan/Shaurya`  
+**Prepared:** 2026-08-17
+**Use on return:** 2026-08-18
+**Repository:** private `ayyararyan/Shaurya`
 **Canonical status ledger:** `TASKS.md`
 
 ## Mandatory restart context
