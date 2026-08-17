@@ -14,46 +14,44 @@
 4. Current state: design phase complete; INF-01 repository creation complete; no package or
    module code harvested yet. The next formal artifact is `MODULE_SPEC.md`.
 
-## Aryan's first five questions
+## Do not re-ask settled questions
 
-Ask these one at a time. Record each answer in `TASKS.md` and, where it changes model meaning or
-acceptance criteria, in `MODULE_SPEC.md`. Do not bundle them into one broad approval request.
+Aryan has already answered the substance of the five questions previously drafted here. The
+documents are the answers:
 
-### Q1 — What must the frozen module specification guarantee?
+1. `MODULE_SPEC.md` guarantees come from D1–D15, the full stable-ID task ledger, and the canonical
+   working contract. Do not ask Aryan to restate them.
+2. Contract semantics are already specified by CON-01–CON-09 plus the timing, identification,
+   proxy, risk, replay, and artifact decisions throughout D7–D15.
+3. There is no owner choice between a research, paper, or live "MVP". The full frozen module is
+   required; evidence levels may rise component by component, but internal sequencing never
+   rewrites completion scope.
+4. D5/MIG-01 already require Market Making to consume Shaurya. MIG-02 recommends VOLARB as the
+   first broader migration, while O5 is deliberately deferred until each old strategy is touched.
+5. D12 already decided that the raw tape is recorded. DAT-09 asks only how much, and explicitly
+   waits for measured packet rates and capacity before Aryan makes that sizing choice.
 
-Beyond restating D1–D15, what properties must `MODULE_SPEC.md` make non-negotiable for Aryan:
-economic/statistical object definitions, causality and timing, identification limits, safety
-boundaries, required outputs, robustness checks, and the evidence level required for completion?
+At session start, do not interview Aryan. Convert the recorded decisions into formal artifacts and
+work. Ask only if implementation exposes a genuinely new meaning-changing choice not answered by
+the ledger.
 
-### Q2 — What semantics must the shared contracts preserve?
+## First five actions on return
 
-For the canonical tape, ledger, surface frame, config, instrument identity, run manifest, and
-opportunity/finding record, which meanings and distinctions must remain visible to a researcher
-and strategy author? In particular: observed versus derived/estimated/proxy/unidentified,
-exchange versus receive versus decision time, data-quality flags, invalidation, and causal
-availability.
-
-### Q3 — What should count as Shaurya's first meaningful release outcome?
-
-This does **not** reduce the full frozen scope. It decides the first externally meaningful release
-gate: research-ready discovery and deterministic replay, end-to-end paper/shadow execution, or
-live-order readiness after all safety gates. What capability should Aryan be able to use before
-the first version is called meaningful?
-
-### Q4 — Which existing strategy should be the first real consumer and acceptance test?
-
-Choose the first migration target that proves Shaurya is genuinely plug-and-play rather than a
-Market-Making-shaped extraction. Candidates include Market Making (the only broker-verified path),
-VOLARB (the richest source of harvested Python research components), or another named strategy.
-The choice determines the first real compatibility and migration acceptance tests; it does not
-decide the fate of every old strategy.
-
-### Q5 — What initial market-data coverage and retention does Aryan want?
-
-After presenting measured packet rates and storage scenarios, decide the first capture universe,
-depth tiers, and retention policy for DAT-09: 5-level chain-wide, 20-level narrow core, 200-level
-traded instrument, rolling raw-tape duration, permanent golden days, and permanent derived
-features. Do not ask for a final storage choice before the live measurement evidence exists.
+1. **Decision-completeness audit.** Map D1–D15 and every non-dropped task into a requirement
+   inventory; identify contradictions or genuinely missing meanings without asking Aryan to repeat
+   settled answers.
+2. **Draft `MODULE_SPEC.md`.** Formalise objective, object/identification ledger, architecture,
+   contracts, component requirements, timing/causality, safety gates, outputs, robustness,
+   acceptance tests, exclusions, deferred items, and completion criteria using stable IDs.
+3. **Create requirements traceability and artifact contracts.** Every frozen task gets a row with
+   code/test/output targets; define schemas and semantic invariants for required artifacts before
+   implementation.
+4. **Write the implementation plan.** Resolve dependency order, harvesting sources, engineering
+   work packages, parity gates, and end-to-end acceptance checkpoints. Internal phases must retain
+   the full external completion requirement.
+5. **Prepare the forward-only data bootstrap.** Specify and, where prerequisites permit, implement
+   the read-only DAT-01/02 measurement path needed to observe packet rates, concurrent capacity,
+   and storage load. Present evidence before returning DAT-09 to Aryan for a sizing decision.
 
 ## Engineering calls already delegated to OpenClaw
 
@@ -86,8 +84,8 @@ meaning, risk, outputs, or the frozen scope.
 7. No live-order path is enabled merely because the chain passes. Live readiness remains gated by
    the full EXE/RSK/NAT requirements and explicit per-session human authorisation.
 
-## After the five questions
+## After the first five actions
 
-Hold the open idea-browsing session. New capability becomes a new stable task ID; it does not
-silently widen an existing task. Then draft `MODULE_SPEC.md` and the implementation plan from the
-recorded answers and the engineering calls above.
+Report the decision-completeness audit and draft artifacts plainly. Raise only genuine unresolved
+choices. Then hold the open idea-browsing session; any new capability becomes a new stable task ID
+and does not silently widen an existing task.
