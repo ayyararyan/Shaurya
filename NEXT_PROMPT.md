@@ -1,59 +1,85 @@
 # Shaurya — Next-Session Prompt
 
-**Prepared:** 2026-08-17, last updated 2026-08-19 ~00:35 IST
-**Use on return:** 2026-08-19 (session was reset immediately after this update)
+**Prepared:** 2026-08-17, last updated 2026-08-19 ~01:16 IST
+**Use on return:** 2026-08-19, including the market-open window from 09:15 IST
 **Repository:** private `ayyararyan/Shaurya`
 **Canonical status ledger:** `TASKS.md`
 
-## START HERE — the one thing this session is for
+## START HERE — session was reset 2026-08-19 ~01:16 IST with two agents still running
 
-**The SIG claim ledger.** The first research report landed 2026-08-19 ~00:37 IST at
-`research/sig-feature-research-2026-08-19.md` (in the OpenClaw workspace, not this repo) and has
-been reviewed and corrected in place; read its "Corrections and status" preamble first. Round 2 of
-the discussion was held the same night and produced **D21** (Shaurya is a maker, never a taker)
-and **D22** (the claim ledger is a pre-registered hypothesis set) — both in `TASKS.md` and
-`docs/module-spec/SIG.md`.
+**Do these three checks before anything else.**
 
-**A second research agent is running**, commissioned by Aryan once D21 settled the maker question,
-because the first report was written for a directional taker and its targets invert for a maker.
-It is writing `research/sig-maker-research-2026-08-19.md` — market-making theory, queue dynamics
-and fill probability without order IDs, adverse-selection measurement, options-specific making,
-the non-co-located maker problem, NSE maker economics including the severe STT asymmetry on option
-sales, and which of the first report's twelve stories survive the inversion.
+### 1. The maker research report — this is what the next conversation is for
+
+`sig_maker_research` was commissioned once **D21** settled that Shaurya quotes and never crosses.
+The first research report was written for a directional taker, so its targets invert for a maker;
+this second report exists to say what a maker should actually do. It writes to
+`research/sig-maker-research-2026-08-19.md` in the OpenClaw workspace (not this repo).
 
 - task name: `sig_maker_research`
 - run ID: `be2aa0f5-8b0c-4409-b8a5-a47a2653b3d7`
 - session key: `agent:main:subagent:5a5747e9-1d95-4154-8bda-5b5cd0747cc8`
 
-On return: check whether it has finished, read it, verify its citations rather than trusting them
-(the first report ran roughly a one-in-seven citation error rate), and then continue the
-story-by-story debate with Aryan. **The debate is the work; the ledger is its output.** Do not
-start writing claims into the ledger from the first report alone — the maker report is expected to
-change which stories matter and what their targets are.
+It covers quoting theory derived rather than name-dropped, fill probability and queue dynamics
+under **D23**, adverse-selection measurement, options-specific making across a shared surface, the
+non-co-located maker problem (with explicit permission to conclude no edge exists in some regimes),
+NSE maker economics including the STT asymmetry on option sales, and which of the first report's
+twelve stories survive the inversion. A mid-flight correction was sent to it carrying D23; confirm
+that landed in its section 2.
 
-Under D22 the ledger is claim-level with stable IDs, each claim recording mechanism, resolved
-citations, capture path from our own feed, confirming test, falsifying test, and CON-06
-identification status. Where it lives and what the ID scheme looks like are engineering calls; that
-it binds SIG-19's trial log is not.
+**When it arrives: read it, verify its citations rather than trusting them** — the first report ran
+roughly a one-in-seven citation error rate — **then resume the story-by-story debate with Aryan.**
+The debate is the work; the claim ledger (D22) is its output. Do not start writing ledger claims
+from the taker report alone.
+
+### 2. The DAT-14 build
+
+`shaurya_dat14_trade_signing` was implementing capture-path trade-direction classification per
+**D24**, committing to this clone. Check whether it finished and whether its commits are on
+`origin/main`; verify its claims independently rather than accepting its report, and re-check the
+ledger row it wrote for an honest evidence level.
+
+- task name: `shaurya_dat14_trade_signing`
+- run ID: `abf57826-54b5-4fc5-a563-0d9520d8ce61`
+- session key: `agent:main:subagent:cab7a4b6-3730-4aa9-8cdc-26c0d8795945`
+
+### 3. Today's market-hours work — Aryan's explicit instruction
+
+**When the market opens today (2026-08-19), five DAT items need live runs.** Aryan named DAT-15 as
+joining the existing list and said both the new items are to be tested and then patched in
+accordingly.
+
+- **DAT-11** — bisect the exact 20-level per-message instrument ceiling within the measured 52-206
+  band.
+- **DAT-12** — does reconnecting a socket reset the first-message-only limit, or is the cap on the
+  account?
+- **DAT-13** — is the 200-level packet skew a real throttle or just liquidity? Rerun with
+  comparably liquid instruments.
+- **DAT-14** — live-verify the capture-path classifier against a real session. Tonight's acceptance
+  is at best dry-run on retained tape; the Live verified level requires market hours.
+- **DAT-15** — measure the cross-channel alignment error: how stale the depth quote is when a print
+  lands, how often that staleness would flip a classification, and how it varies by instrument,
+  depth tier and time of day. **This bounds the reliability of every signed-flow feature
+  downstream**, so it is a measured distribution and flip-rate, never an assumption.
+
+Probes for DAT-11/12/13 are already written and tested. DAT-14/15 depend on what the build agent
+landed.
 
 ## Mandatory restart context
 
 1. Load and follow `OPENCLAW_WORKING_INSTRUCTIONS_REVISED.md` for the new session.
 2. Read `README.md` and the entire `TASKS.md` before discussing or changing scope.
-3. Treat D1–D20 and the frozen 13-component list as binding. Do not reopen settled design
+3. Treat D1–D24 and the frozen 13-component list as binding. Do not reopen settled design
    choices merely because a different implementation would be easier.
 4. Before editing the repository, `git fetch` and compare `HEAD` against `origin/main` — more
    than one process has committed to this clone concurrently before.
-5. **Current state as of 2026-08-19 ~00:35 IST**, superseding the 2026-08-17 line that said no
+5. **Current state as of 2026-08-19 ~01:16 IST**, superseding the 2026-08-17 line that said no
    code had been harvested: real code exists and is pushed. `origin/main` is at the commit
    recorded below. CON contracts, INF packaging, the full DAT component, and the SUR eSSVI
    surface stack are implemented, with 89 tests, strict mypy clean, ruff clean. Per-component
    specs live in `docs/module-spec/*.md`; `MODULE_SPEC.md` is the index over them.
-6. **Owed to Aryan and needing market hours, not a reset session:** DAT-11 (bisect the exact
-   20-level per-message ceiling within 52–206), DAT-12 (does reconnecting reset the
-   first-message-only limit, or is the cap on the account), DAT-13 (is the 200-level packet skew
-   a real throttle or just liquidity). All three probes are written and tested; only the live
-   runs are outstanding.
+6. **Market-hours work is listed in START HERE section 3** — DAT-11 through DAT-15. Do not
+   attempt any of it outside 09:15–15:30 IST; it is not a reset-session activity.
 
 ## SIG discussion — round 1 held 2026-08-19, now waiting on commissioned research
 
