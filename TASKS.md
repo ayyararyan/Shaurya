@@ -511,6 +511,59 @@ blocked until each old strategy is decided individually, when it is next touched
     directly measured live (only documented from the spec), 20-level ~7.7–8.4 packets/s at
     332 B, 200-level ~8.1–8.4 packets/s at 3,212 B. This is still raw input, not a sizing
     decision — Aryan's call remains open.
+- **2026-08-18, later still — DAT-09 concurrent-connection cap measured live. Major correction
+  to `GCP_SCALING.md` §3's working assumption.** Aryan asked to settle this empirically before
+  close. Diagnostic script `scripts/dat09_concurrency_probe.py` (not a production path —
+  read-only, no orders) subscribed real NIFTY instruments across three independent live tests
+  in the closing 25 minutes of today's session:
+  1. **206 instruments (204 near-ATM options across two expiries + 2 futures) on one 20-level
+     socket**, sent as 5 batched `RequestCode 23` messages (50/50/50/50/6, back-to-back, no
+     delay) — the exact pattern DAT-02's existing code already uses. Result: only the **first**
+     message's 50 instruments (indices 0–49) ever received a packet (45/50 — the other 5 look
+     like genuine illiquidity, not a delivery failure); **every one of the other 156
+     instruments across batches 2–5, including both NIFTY futures, received zero packets in
+     40 seconds**, despite the socket, connection, and heartbeats staying completely healthy
+     (1 connection, 3/3 heartbeats, zero reconnects, zero errors — 10,108 rows still flowed
+     from the 45 instruments that did work, so this is not a dead socket).
+  2. **Retest, ruling out "those 50 are just illiquid":** the exact 52 instruments from the
+     dead batch (including both futures — the most liquid instruments in the whole universe,
+     each individually measured earlier today at 8+ packets/s), resubscribed **alone as the
+     only/first message** on a fresh socket. Result: 48/52 received data immediately. Proves
+     it is not about which instruments — it's about **subscription-message order**.
+  3. **Pacing test, ruling out "just needs a delay between messages":** batch 1 (50) + batch 2
+     (the same 50 that failed above) sent as two separate messages on one socket with a
+     deliberate **1-second pause** between them. Result: batch 1 → 49/50, batch 2 → **0/50,
+     unchanged**. Pacing does not fix it.
+  - **Conclusion, three-for-three consistent:** for the 20-level endpoint, **only the first
+    `RequestCode 23` subscription message sent on a socket ever delivers data** — a second (or
+    third, etc.) message on the same already-subscribed socket is accepted (no error, no
+    disconnect) but silently produces nothing. The effective concurrent-instrument cap per
+    20-level socket is therefore **~50 (one message's worth), not the documented "5,000
+    instruments per socket."** `GCP_SCALING.md`'s explicit assumption ("Multiple subscription
+    messages can share one socket") is **wrong as tested** and needs correcting before any
+    instrument-count/storage math is trusted.
+  - **200-level behaves differently, evidence from the same session:** 5 different instruments
+    (2 futures + 3 option strikes) sent as 5 separate single-instrument messages, 50ms apart,
+    on one 200-level socket — **all 5 received at least one packet**, though volume was
+    heavily skewed toward the first (332 packets vs 2 each for the other four in 40s). So
+    200-level does accept more than one subscription message per socket, unlike 20-level, but
+    whether that skew reflects genuine per-instrument liquidity or a softer throttle on
+    later-subscribed instruments is **not yet disentangled** — needs a same-liquidity control
+    test (e.g. several front-month futures across indices, not option strikes of unknown
+    relative liquidity).
+  - **Not yet tested, the natural next step:** whether sending **one single message with more
+    than 50 instruments** (bypassing the batching loop entirely) works for 20-level — this
+    would distinguish "the protocol hard-caps at ~50 no matter how you ask" from "only the
+    first message this specific client code sends is honored, regardless of size." Ran out of
+    trading-hours window to test this today (all three tests above completed in the closing
+    ~20 minutes of the session).
+  - **Practical implication if the ~50/socket-first-message-only finding holds:** covering
+    `GCP_SCALING.md`'s proposed ~4,150-instrument 20-level universe would need roughly
+    **80+ separate socket connections** (or one giant single message, if that turns out to
+    work), not the handful implied by "5 connections × 5,000 instruments." This materially
+    changes the DAT infrastructure design and should be treated as **provisional but
+    high-confidence** (three consistent live results, not one) until independently
+    re-confirmed, ideally on a different day/instrument set.
 
 ---
 
