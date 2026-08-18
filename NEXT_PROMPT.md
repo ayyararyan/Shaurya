@@ -14,6 +14,18 @@
 4. Current state: design phase complete; INF-01 repository creation complete; no package or
    module code harvested yet. The next formal artifact is `MODULE_SPEC.md`.
 
+## Queued discussion — SIG / feature engineering (OPEN, not yet held)
+
+Added 2026-08-18 ~23:58 IST from Aryan on Telegram, mid-session, right before he reset the main
+session. Explicit instruction: hold a **detailed discussion on SIG (signal research) and feature
+engineering** in a future session — not a quick Q&A round like SUR/CON, a real discussion. This
+was queued while DAT and SUR builds were running in parallel in the background (DAT directly in
+`/Users/maheit/Documents/Shaurya`, SUR in an isolated worktree) — check `TASKS.md` and recent
+commit history for whether those finished and what they built before starting this discussion, so
+it's grounded in what actually landed rather than what was planned. See `SIG.md` for the existing
+spec (SIG-01–SIG-20 last recorded) before framing questions — this is a discussion to sharpen or
+extend that spec, not to re-derive it from scratch.
+
 ## Queued debate — resolved, see D19
 
 Added 2026-08-18 ~16:23 IST from Aryan's voice-captured thought, debated live on Telegram the
