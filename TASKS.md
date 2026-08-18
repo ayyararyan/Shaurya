@@ -210,7 +210,7 @@ does not substitute for DAT-02 here.
 | ID | Task | Harvest from | Depends on | Status |
 |---|---|---|---|---|
 | DAT-01 | **Reconcile the two Dhan clients into one.** Two independent implementations exist; diff them, choose the canonical one, document what the loser did differently and why it was dropped | `Mushin_Gamma/src/mushin_gamma/dhan_io.py` (13K) and `Shoshin/src/dhan_client.py` (8.4K) | — | **Tested 2026-08-18** — Mushin won as structural base; Shoshin retry/pacing/normalisation merged; exact reconciliation in `docs/DAT_01_RECONCILIATION.md`; Dhan execution methods excluded under D7 |
-| DAT-02 | Dhan live streaming: ticks and depth, reconnect, heartbeat, sequence-gap detection. **Elevated priority** (decided 2026-08-17 — see priority note above; this is the only source of tick-level data for VOL-02, so collection needs to start now, not once the rest of DAT is built out) | `Mushin_Gamma/src/mushin_gamma/feed.py`, `Still_Water/src/engine/data_feed.py` | DAT-01 | **Dry-run verified 2026-08-18 overall; 20-level subpath Live verified.** Standard Full + 20-level parsing, reconnect/resubscribe, heartbeat, source-sequence-gap detector, reconnect-boundary gaps, metrics, and per-enabled-channel acceptance are implemented/tested. Live run `sha-20260818T055709.463701Z-ea8228c8` verified 20-level depth + heartbeat; standard tick/5-level live verification is blocked because the staged access token expired 2026-08-12 and that endpoint closes code 1006 |
+| DAT-02 | Dhan live streaming: ticks and depth, reconnect, heartbeat, sequence-gap detection. **Elevated priority** (decided 2026-08-17 — see priority note above; this is the only source of tick-level data for VOL-02, so collection needs to start now, not once the rest of DAT is built out) | `Mushin_Gamma/src/mushin_gamma/feed.py`, `Still_Water/src/engine/data_feed.py` | DAT-01 | **Live verified 2026-08-18 — both required channels.** Standard Full (ticks + 5-level) and 20-level parsing, reconnect/resubscribe, heartbeat, source-sequence-gap detector, reconnect-boundary gaps, metrics, and per-enabled-channel acceptance are implemented/tested. Live run `sha-20260818T055709.463701Z-ea8228c8` verified 20-level depth + heartbeat first; after the access token was refreshed, live run `sha-20260818T090544.387358Z-8d9c80fc` verified standard (tick/5-level) + 20-level together in one session, `acceptance.missing_channels: []`, zero reconnects |
 | DAT-03 | Historical fetch and local storage against a stable on-disk schema. **Bars/coarser granularity only — no tick-level history available from any broker API** (noted 2026-08-17, see priority note above) | `VOLARB/voltaire/src/data/{historical_fetcher,storage}.py`, `Shoshin/src/data_downloader.py` | CON-01 | Not started |
 | DAT-04 | Option-chain fetch and validation | `VOLARB/voltaire/src/data/{option_chain_fetcher,validation}.py` (11K validation) | CON-05 | Not started |
 | DAT-05 | Tape recording (append-only) and **deterministic** replay — same tape format consumed by live, backtest, and research. **Full order-book depth, multiple price levels — confirmed 2026-08-17, not BBO/top-of-book only** (BKT-03 execution realism needs it, and Market Making's existing tape already captures this) | Market Making `monday_v1/{snapshot_tape,surface_replay}.py` | CON-01, CON-08 | **Not started as the full task.** The explicitly authorised DAT-05-lite append-only writer is **Live verified 2026-08-18** (232-row, 20-level tape; hash and sequence continuity verified); deterministic replay remains unimplemented and out of this run's scope |
@@ -403,12 +403,13 @@ tree at `700`/`600`; the module adopts that pattern from day one (INF-05).
 | `MODULE_SPEC.md` | Not started — blocked on the component list |
 | Repository | **Created 2026-08-17** — private `ayyararyan/Shaurya`; canonical design artifacts pushed on `main` |
 | Code harvested | Dhan clients reconciled from Mushin_Gamma + Shoshin; feed patterns generalized from Mushin_Gamma + Still_Water into the standalone `shaurya` package |
-| Tasks in progress | None. DAT-02 standard tick/5-level live verification is blocked on a refreshed Dhan access token; the tested implementation and live 20-level path are preserved |
+| Tasks in progress | None. DAT-01/DAT-02 and their minimal CON-01/CON-05/CON-08 support are fully live-verified for the authorised scope; DAT-05 (deterministic replay) and the remaining CON tasks are still not started |
 
-**Immediate next action:** replace the expired staged Dhan access token, then run the existing
-30-second mixed standard-Full + 20-level capture acceptance command and live-verify tick/5-level
-rows. DAT-09 remains Aryan's decision after evidence collection; NIFTY-Aug2026-FUT was a test
-instrument only and is not a capture-universe/depth/retention decision.
+**Immediate next action:** DAT-02's authorised scope is closed out. Next is either DAT-09
+sizing (needs Aryan — evidence from both live runs is now available in the work log below) or
+moving to the next component in build order (SUR/GRK/VOL harvest, or DAT-03/04/05/06/07
+depending on Aryan's priority). NIFTY-Aug2026-FUT was a test instrument only in both runs and
+is not a capture-universe/depth/retention decision.
 
 **O4 is resolved (D7) — `EXE` is unblocked.** `EXE-07` and `EXE-08` are dropped; `EXE-01`
 through `EXE-06` can proceed once `CON` lands. **O5 remains open by design** — `MIG` stays
@@ -432,9 +433,46 @@ blocked until each old strategy is decided individually, when it is next touched
   **DAT-09 inputs only, not a sizing recommendation or decision**. Four earlier diagnostic runs
   remain preserved and explicitly invalidated after acceptance/lifecycle/measurement defects
   were found and fixed.
-- **Live blocker:** the staged Dhan JWT expired 2026-08-12. The 20-level endpoint still served
-  data, but the standard tick/5-level endpoint closed code 1006 immediately after subscription;
-  therefore the full DAT-02 live claim remains withheld pending a refreshed token.
+- **Live blocker (resolved same day):** the staged Dhan JWT expired 2026-08-12. The 20-level
+  endpoint still served data, but the standard tick/5-level endpoint closed code 1006
+  immediately after subscription; therefore the full DAT-02 live claim was withheld pending a
+  refreshed token.
+- **2026-08-18, later — token refresh and full DAT-02 live verification.** Aryan supplied a
+  fresh Dhan JWT; the credential file at `Market Making/dhan_credentials.env` (both the local
+  staged cache and the Drive canonical copy) was updated in place, mode kept at 600, value
+  never echoed to any log or committed file. The Drive-staged `Shoshin/security_id_list.csv`
+  master turned out to be stale (no NSE row for `security_id 58072`); the run instead pulled
+  Dhan's own live public compact master (`https://images.dhan.co/api-data/api-scrip-master.csv`,
+  the same source `dhanhq`'s SDK points at) into `data/api-scrip-master.csv` (gitignored, not
+  committed — it's a same-day public reference file, not a secret). That confirmed
+  `security_id 58072` → `NIFTY-Aug2026-FUT`, NSE FNO, expiry 2026-08-25, matching the earlier
+  run exactly.
+  - Rerun: `shaurya-dhan-capture` with both channels enabled (no `--no-standard`/`--no-depth20`),
+    45s duration. Result: `status: completed`, `acceptance.missing_channels: []` for both
+    required channels, 1 connection each, 4/4 heartbeats OK on each channel, zero reconnect
+    attempts, zero reconnect errors. 419 total rows (depth20: 362 source packets/86 ws messages;
+    standard: 57 source packets/57 ws messages). Combined rate 9.31 packets/s
+    (depth20 8.04/s, standard 1.27/s over the same 45s window). Standard message sizes ranged
+    12–162 bytes (mixed packet subtypes: ticker/quote/full/depth5/open-interest all arrived in
+    one window); depth20 stayed flat at 332 bytes as before.
+  - **Quality counters, checked against source, not just reported:** `source_sequence_unavailable`
+    was 419/419 (100%) — verified in `dhan_stream.py`'s `SequenceGapDetector` docstring and code:
+    "Current Dhan v2 packet layouts expose no source sequence" on any channel, so this is the
+    protocol's actual shape, not a parser defect; gap detection instead relies on reconnect
+    boundaries and the tape writer's own receive-side sequence (which stayed continuous).
+    `exchange_timestamp_missing` (363/419) is the same story at the packet level: only ticker,
+    quote and full packets (response codes 2/4/8) carry an exchange timestamp field at all in
+    Dhan's wire format — depth5/depth20/open-interest/previous-close/market-status packets
+    structurally don't, confirmed by reading `parse_standard_packet`/`parse_deep_packets`
+    directly. `crossed_book: 1` and `partial_book: 2` are small, live-market-plausible counts
+    (e.g. a book snapshot caught mid-update just after connect), not repeated/systemic. All
+    17 existing tests still pass unchanged.
+  - Pytest run: `17 passed` after the rerun, unchanged from the DAT-01/DAT-02 build itself —
+    confirms the token/master-file change didn't touch or break any tested code path.
+  - **DAT-09 evidence, still not a decision:** two independent live measurements now exist for
+    one instrument — 20-level alone (7.7–8.2 packets/s, 332 B/packet) and standard+20-level
+    together (9.3 packets/s combined, standard adds ~1.3 packets/s at 12–162 B/packet,
+    variable by subtype). Sizing, universe and retention are still Aryan's call.
 
 ---
 
