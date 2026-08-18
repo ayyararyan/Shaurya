@@ -21,6 +21,8 @@ from .instruments import (
     ExchangeSegment,
     InstrumentId,
     InstrumentKind,
+    KotakInstrumentMapping,
+    KotakInstrumentMaster,
     OptionType,
 )
 from .ledger import BookState, LedgerEventType, LedgerRow, OrderSide
@@ -45,6 +47,8 @@ __all__ = [
     "IST",
     "InstrumentId",
     "InstrumentKind",
+    "KotakInstrumentMapping",
+    "KotakInstrumentMaster",
     "LedgerEventType",
     "LedgerRow",
     "LimitComparison",

@@ -14,7 +14,11 @@ from typing import Literal, Self, cast
 from pydantic import model_validator
 
 from shaurya.contracts.base import ContractModel
-from shaurya.contracts.instruments import DhanInstrumentMapping, DhanInstrumentMaster
+from shaurya.contracts.instruments import (
+    DhanInstrumentMapping,
+    DhanInstrumentMaster,
+    KotakInstrumentMapping,
+)
 from shaurya.contracts.timing import IST
 
 DHAN_COMPACT_MASTER_URL = "https://images.dhan.co/api-data/api-scrip-master.csv"
@@ -177,6 +181,42 @@ class DhanInstrumentIndex:
             raise KeyError(f"unmapped Dhan security_id {security_id}") from exc
 
     def by_instrument_id(self, instrument_id: str) -> DhanInstrumentMapping:
+        try:
+            return self._by_instrument_id[instrument_id]
+        except KeyError as exc:
+            raise KeyError(f"unmapped canonical instrument_id {instrument_id}") from exc
+
+
+class KotakInstrumentIndex:
+    """Bidirectional same-day lookup over canonical CON-05 Kotak routing mappings."""
+
+    def __init__(
+        self, mappings: Iterable[KotakInstrumentMapping], *, trading_date: date
+    ) -> None:
+        values = tuple(mappings)
+        if not values:
+            raise ValueError("Kotak instrument mapping index cannot be empty")
+        if any(mapping.as_of_date != trading_date for mapping in values):
+            raise ValueError("Kotak instrument mapping is stale for the requested trading date")
+        self.trading_date = trading_date
+        self._by_token: dict[str, KotakInstrumentMapping] = {}
+        self._by_instrument_id: dict[str, KotakInstrumentMapping] = {}
+        for mapping in values:
+            canonical = mapping.instrument.canonical
+            if mapping.instrument_token in self._by_token:
+                raise ValueError(f"duplicate Kotak instrument_token {mapping.instrument_token}")
+            if canonical in self._by_instrument_id:
+                raise ValueError(f"duplicate canonical instrument_id {canonical}")
+            self._by_token[mapping.instrument_token] = mapping
+            self._by_instrument_id[canonical] = mapping
+
+    def by_instrument_token(self, instrument_token: str) -> KotakInstrumentMapping:
+        try:
+            return self._by_token[str(instrument_token)]
+        except KeyError as exc:
+            raise KeyError(f"unmapped Kotak instrument_token {instrument_token}") from exc
+
+    def by_instrument_id(self, instrument_id: str) -> KotakInstrumentMapping:
         try:
             return self._by_instrument_id[instrument_id]
         except KeyError as exc:

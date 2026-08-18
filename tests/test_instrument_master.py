@@ -7,10 +7,12 @@ from pathlib import Path
 
 import pytest
 
+from shaurya.contracts.instruments import InstrumentKind, KotakInstrumentMaster, OptionType
 from shaurya.data.instrument_master import (
     DailyInstrumentMasterStore,
     DhanDailyInstrumentMaster,
     DhanInstrumentIndex,
+    KotakInstrumentIndex,
 )
 
 
@@ -85,3 +87,27 @@ def test_master_rejects_stale_mapping_and_partial_or_tampered_cache(tmp_path: Pa
     partial.paths(trading_date)[0].write_bytes(_master_payload())
     with pytest.raises(ValueError, match="partial"):
         partial.refresh(trading_date)
+
+
+def test_kotak_routing_master_maps_to_same_canonical_identity_and_daily_index(
+    tmp_path: Path,
+) -> None:
+    master_path = tmp_path / "kotak_nse_fo.csv"
+    master_path.write_text(
+        "pSymbol,pSymbolName,pTrdSymbol,pScripRefKey,pInstType,pOptionType,"
+        "pExpiryDate,dStrikePrice;\n"
+        "58072,NIFTY,NIFTY26AUGFUT,NIFTY25AUG26FUT,FUTIDX,XX,1472135400,-1\n"
+        "45106,NIFTY,NIFTY2681824400CE,NIFTY18AUG2624400.00CE,OPTIDX,CE,"
+        "1471530600,2440000\n",
+        encoding="utf-8",
+    )
+    trading_date = date(2026, 8, 19)
+    master = KotakInstrumentMaster(master_path, as_of_date=trading_date)
+    option = master.find_by_instrument_token("45106")
+    assert option.instrument.kind is InstrumentKind.OPTION
+    assert option.instrument.option_type is OptionType.CALL
+    assert str(option.instrument.strike) == "24400"
+    assert option.instrument.canonical == "NSE:NSE_FNO:NIFTY:option:2026-08-18:24400:CE"
+    index = KotakInstrumentIndex(master.mappings(), trading_date=trading_date)
+    assert index.by_instrument_token("45106") == option
+    assert index.by_instrument_id(option.instrument.canonical) == option

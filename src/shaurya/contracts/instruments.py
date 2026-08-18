@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -87,6 +88,24 @@ class DhanInstrumentMapping:
             raise ValueError("mapping segment must match internal instrument segment")
         if not self.trading_symbol:
             raise ValueError("trading_symbol is required")
+
+
+@dataclass(frozen=True, slots=True)
+class KotakInstrumentMapping:
+    """Date-stamped Kotak routing identity for the same broker-neutral instrument."""
+
+    instrument: InstrumentId
+    instrument_token: str
+    exchange_segment: str
+    trading_symbol: str
+    as_of_date: date
+    source: str
+
+    def __post_init__(self) -> None:
+        if not self.instrument_token.strip():
+            raise ValueError("Kotak instrument_token is required")
+        if not self.exchange_segment.strip() or not self.trading_symbol.strip():
+            raise ValueError("Kotak exchange segment and trading symbol are required")
 
 
 def _date(raw: str) -> date | None:
@@ -217,3 +236,108 @@ class DhanInstrumentMaster:
             if mapping.security_id == wanted:
                 return mapping
         raise KeyError(f"Dhan security_id {wanted} was not found in {self.path}")
+
+
+def _kotak_expiry(row: dict[str, str]) -> date | None:
+    raw = row.get("pExpiryDate", "").strip()
+    for pattern in ("%d%b%Y", "%d-%b-%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(raw, pattern).date()
+        except ValueError:
+            pass
+    reference = row.get("pScripRefKey", "").strip().upper()
+    match = re.search(r"(\d{1,2})([A-Z]{3})(\d{2})", reference)
+    if match:
+        day, month, year = match.groups()
+        try:
+            return datetime.strptime(f"{int(day):02d}{month}20{year}", "%d%b%Y").date()
+        except ValueError:
+            return None
+    return None
+
+
+def _kotak_strike(row: dict[str, str]) -> Decimal | None:
+    for key in ("dStrikePrice", "dStrikePrice;"):
+        raw = row.get(key, "").strip()
+        if raw in {"", "-1"}:
+            continue
+        value = Decimal(raw)
+        while value >= Decimal("100000"):
+            value /= Decimal("100")
+        return value if value > 0 else None
+    return None
+
+
+class KotakInstrumentMaster:
+    """Parser for Kotak Neo's NSE F&O scrip master; identity is routing-only under D18."""
+
+    REQUIRED_COLUMNS = frozenset(
+        {"pSymbol", "pSymbolName", "pTrdSymbol", "pInstType", "pOptionType"}
+    )
+
+    def __init__(
+        self,
+        path: Path,
+        *,
+        as_of_date: date | None = None,
+        exchange_segment: str = "nse_fo",
+    ) -> None:
+        self.path = path
+        self.as_of_date = as_of_date or date.fromtimestamp(path.stat().st_mtime)
+        self.exchange_segment = exchange_segment
+
+    def mappings(self) -> Iterator[KotakInstrumentMapping]:
+        with self.path.open(newline="", encoding="utf-8-sig") as handle:
+            reader = csv.DictReader(handle)
+            missing = self.REQUIRED_COLUMNS.difference(reader.fieldnames or ())
+            if missing:
+                raise ValueError(f"Kotak master is missing columns: {sorted(missing)}")
+            for row in reader:
+                instrument_type = row.get("pInstType", "").strip().upper()
+                if instrument_type not in {"FUTIDX", "OPTIDX"}:
+                    continue
+                expiry = _kotak_expiry(row)
+                if expiry is None:
+                    continue
+                kind = (
+                    InstrumentKind.OPTION
+                    if instrument_type == "OPTIDX"
+                    else InstrumentKind.FUTURE
+                )
+                option_raw = row.get("pOptionType", "").strip().upper()
+                option_type = (
+                    OptionType(option_raw)
+                    if kind is InstrumentKind.OPTION and option_raw in {"CE", "PE"}
+                    else None
+                )
+                strike = _kotak_strike(row) if kind is InstrumentKind.OPTION else None
+                if kind is InstrumentKind.OPTION and (strike is None or option_type is None):
+                    continue
+                token = row.get("pSymbol", "").strip()
+                trading_symbol = row.get("pTrdSymbol", "").strip()
+                if not token or not trading_symbol:
+                    continue
+                instrument = InstrumentId(
+                    exchange="NSE",
+                    segment=ExchangeSegment.NSE_FNO,
+                    underlying=row.get("pSymbolName", "").strip(),
+                    kind=kind,
+                    expiry=expiry,
+                    strike=strike,
+                    option_type=option_type,
+                )
+                yield KotakInstrumentMapping(
+                    instrument=instrument,
+                    instrument_token=token,
+                    exchange_segment=self.exchange_segment,
+                    trading_symbol=trading_symbol,
+                    as_of_date=self.as_of_date,
+                    source=str(self.path),
+                )
+
+    def find_by_instrument_token(self, instrument_token: str) -> KotakInstrumentMapping:
+        wanted = str(instrument_token)
+        for mapping in self.mappings():
+            if mapping.instrument_token == wanted:
+                return mapping
+        raise KeyError(f"Kotak instrument_token {wanted} was not found in {self.path}")
