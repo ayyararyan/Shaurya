@@ -8,13 +8,16 @@ import json
 import os
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from shaurya.contracts.artifacts import ArtifactManifest
 from shaurya.contracts.instruments import DhanInstrumentMaster
+from shaurya.contracts.timing import IST
 from shaurya.data.dhan_client import DhanCredentials
 from shaurya.data.dhan_stream import DhanLiveStream, DhanStreamConfig, StreamMetrics
+from shaurya.data.quality import CollectorQualityAudit, write_quality_audit
 from shaurya.data.tape import JsonlTapeWriter
 
 
@@ -137,6 +140,10 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     metrics_path = manifest.run_dir / f"capture_metrics_{manifest.run_id}.json"
     _exclusive_json(metrics_path, snapshot)
     manifest.register_existing(metrics_path, kind="capture_metrics")
+    audit = CollectorQualityAudit.from_metrics(
+        str(manifest.run_id), metrics, recorded_at=datetime.now(IST)
+    )
+    write_quality_audit(manifest, audit)
     if stream_error:
         manifest.invalidate(f"stream failed: {type(stream_error).__name__}")
         return 2, {**snapshot, "run_dir": str(manifest.run_dir), "status": "invalidated"}

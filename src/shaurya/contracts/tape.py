@@ -75,6 +75,7 @@ class TapeRow:
     exchange_segment: str
     receive_ts: datetime
     raw_message_size_bytes: int
+    connection_id: str = "primary"
     exchange_ts: datetime | None = None
     source_sequence: int | None = None
     update_side: str | None = None
@@ -95,6 +96,8 @@ class TapeRow:
             raise ValueError("instrument identities are required")
         if self.raw_message_size_bytes < 0:
             raise ValueError("raw_message_size_bytes must be non-negative")
+        if not self.connection_id.strip():
+            raise ValueError("connection_id is required")
         if self.source_sequence is not None and self.source_sequence < 0:
             raise ValueError("source_sequence must be non-negative")
         if self.update_side not in {None, "bid", "ask", "both"}:
@@ -130,6 +133,7 @@ class TapeRow:
             "exchange_ts": self.exchange_ts.isoformat() if self.exchange_ts else None,
             "receive_ts": self.receive_ts.isoformat(),
             "raw_message_size_bytes": self.raw_message_size_bytes,
+            "connection_id": self.connection_id,
             "update_side": self.update_side,
             "last_price": self.last_price,
             "last_quantity": self.last_quantity,
@@ -165,6 +169,7 @@ class TapeRow:
             exchange_ts=datetime.fromisoformat(exchange_raw) if exchange_raw else None,
             receive_ts=datetime.fromisoformat(str(value["receive_ts"])),
             raw_message_size_bytes=int(value["raw_message_size_bytes"]),
+            connection_id=str(value.get("connection_id", "primary")),
             update_side=value.get("update_side"),
             last_price=(
                 float(value["last_price"]) if value.get("last_price") is not None else None

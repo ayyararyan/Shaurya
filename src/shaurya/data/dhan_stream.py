@@ -398,6 +398,7 @@ class DhanStreamConfig:
     reconnect_max_seconds: float = 30.0
     open_timeout_seconds: float = 10.0
     stale_quote_after_seconds: float = 5.0
+    depth20_instruments_per_socket_limit: int = 50
 
     def __post_init__(self) -> None:
         if (
@@ -416,6 +417,8 @@ class DhanStreamConfig:
         )
         if min(positive) <= 0:
             raise ValueError("stream timeouts and reconnect delays must be positive")
+        if self.depth20_instruments_per_socket_limit < 1:
+            raise ValueError("depth20 instrument limit must be positive")
 
 
 ConnectFactory = Callable[..., AbstractAsyncContextManager[Any]]
@@ -437,6 +440,8 @@ class DhanLiveStream:
         config: DhanStreamConfig | None = None,
         metrics: StreamMetrics | None = None,
         connect_factory: ConnectFactory | None = None,
+        connection_id: str = "primary",
+        next_receive_sequence: Callable[[], int] | None = None,
     ) -> None:
         self.credentials = credentials
         self.instruments = tuple(instruments)
@@ -446,6 +451,9 @@ class DhanLiveStream:
         self.run_id = run_id
         self.config = config or DhanStreamConfig()
         self.metrics = metrics or StreamMetrics()
+        if not connection_id.strip():
+            raise ValueError("connection_id is required")
+        self.connection_id = connection_id
         if connect_factory is None:
             from websockets.asyncio.client import connect
 
@@ -456,6 +464,7 @@ class DhanLiveStream:
             for mapping in self.instruments
         }
         self._receive_sequence = 0
+        self._external_next_receive_sequence = next_receive_sequence
         self._epochs: dict[str, int] = defaultdict(int)
         self._ever_connected: dict[str, bool] = defaultdict(bool)
         self._pending_flags: dict[str, set[QualityFlag]] = defaultdict(set)
@@ -482,6 +491,12 @@ class DhanLiveStream:
             ]
             if not deep:
                 raise ValueError("20-level depth requires an NSE_EQ or NSE_FNO instrument")
+            limit = self.config.depth20_instruments_per_socket_limit
+            if len(deep) > limit:
+                raise ValueError(
+                    "20-level depth permits one subscription message per socket; "
+                    f"configured safe limit={limit}, eligible instruments={len(deep)}"
+                )
             channels.append("depth20")
         if self.config.enable_200_level_depth:
             deep200 = [
@@ -662,13 +677,14 @@ class DhanLiveStream:
             {"ExchangeSegment": mapping.exchange_segment.value, "SecurityId": mapping.security_id}
             for mapping in deep_instruments
         ]
-        for start in range(0, len(items), 50):
-            batch = items[start : start + 50]
-            await websocket.send(
-                json.dumps(
-                    {"RequestCode": 23, "InstrumentCount": len(batch), "InstrumentList": batch}
-                )
+        # Live tests on 2026-08-18 showed that a second message on the same socket is silently
+        # ignored. Each stream therefore sends exactly one message; larger universes are split
+        # across DhanDepth20CapturePool sockets.
+        await websocket.send(
+            json.dumps(
+                {"RequestCode": 23, "InstrumentCount": len(items), "InstrumentList": items}
             )
+        )
 
     async def _heartbeat_loop(self, websocket: Any, channel: str) -> None:
         while True:
@@ -758,6 +774,8 @@ class DhanLiveStream:
         return flags
 
     def _next_sequence(self) -> int:
+        if self._external_next_receive_sequence is not None:
+            return self._external_next_receive_sequence()
         self._receive_sequence += 1
         return self._receive_sequence
 
@@ -788,6 +806,7 @@ class DhanLiveStream:
             exchange_ts=packet.exchange_timestamp,
             receive_ts=received_at,
             raw_message_size_bytes=packet.raw_size,
+            connection_id=self.connection_id,
             update_side="both" if packet.bids and packet.asks else None,
             last_price=packet.last_price,
             last_quantity=packet.last_quantity,
@@ -847,6 +866,7 @@ class DhanLiveStream:
             exchange_ts=None,
             receive_ts=received_at,
             raw_message_size_bytes=packet.raw_size,
+            connection_id=self.connection_id,
             update_side=packet.side,
             last_price=latest.last_price if latest else None,
             cumulative_volume=latest.cumulative_volume if latest else None,

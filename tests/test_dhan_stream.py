@@ -183,6 +183,27 @@ async def test_depth200_subscribe_uses_flat_message_not_instrument_list() -> Non
     assert payload_20["InstrumentList"] == [{"ExchangeSegment": "NSE_FNO", "SecurityId": "58072"}]
 
 
+@pytest.mark.asyncio
+async def test_depth20_sends_exactly_one_subscription_message() -> None:
+    class RecordingSocket:
+        def __init__(self) -> None:
+            self.sent: list[str] = []
+
+        async def send(self, value: str) -> None:
+            self.sent.append(value)
+
+    stream = DhanLiveStream(
+        DhanCredentials("client", "token"),
+        [_mapping()],
+        lambda row: None,
+        run_id="sha-20260818T053000.000000Z-1234abcd",
+    )
+    socket = RecordingSocket()
+    await stream._subscribe(socket, "depth20")
+    assert len(socket.sent) == 1
+    assert json.loads(socket.sent[0])["InstrumentCount"] == 1
+
+
 def test_depth200_url_is_the_full_depth_endpoint() -> None:
     stream = DhanLiveStream(
         DhanCredentials("client", "token"),
