@@ -78,3 +78,39 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 - **DAT-12:** determine whether reconnect resets the first-message-only behaviour.
 - **DAT-13:** resolve the 200-level liquidity-versus-throttle skew.
 - **DAT-09:** derive the exact depth bands and connection-count plan only after those measurements; retention is already permanently settled.
+
+## Trade-direction classification at capture (D24)
+
+Decided 2026-08-19. Buy/sell classification of observed prints happens **on the capture path**, as
+packets arrive, and is written into the tape row.
+
+**Why at capture rather than offline.** The capture-time sign is the causally honest label under
+CON-07: it uses exactly the quote state the live path held. A sign computed later from the
+assembled tape can align a trade with a better-matched quote than the live decision ever had, which
+is lookahead. It is also required in real time by any maker logic that reacts to signed flow, and it
+satisfies SIG-20's bounded-state forward-pass requirement by construction.
+
+**Signing at capture never replaces raw retention.** The tape row carries all of: last traded price,
+last traded quantity, the cumulative-volume increment, the prevailing best bid and ask actually used
+for the classification, the relevant receive timestamps, the inferred side, and a **classifier
+version stamp**. The classifier may therefore be revised and recomputed offline, and the revised
+sign compared against the capture-time one. Storing only the sign would make the classification rule
+an irreversible capture-time commitment — the same failure D12 refused for the tape itself. The
+choice among quote rule, tick rule and successors is one of D20's swept axes and must remain open.
+
+**Two limitations are encoded, not smoothed over.**
+
+1. *Cross-channel alignment.* Prints arrive on the Quote/Full channel; depth arrives on the separate
+   20- and 200-level channels with independent packet clocks. "The quote prevailing before this
+   trade" therefore needs an explicit, versioned, tested definition, and the error it introduces is
+   measured from retained tape by DAT-15 rather than assumed small.
+2. *Coalesced prints.* Dhan reports cumulative volume plus only the **last** traded price and
+   quantity. When the volume increment exceeds the last traded quantity, several prints were
+   collapsed into one packet and the inferred side applies only to the last observed print. The row
+   carries a coalesced flag with the increment and last quantity, so downstream signed-flow measures
+   can exclude or explicitly model those intervals instead of attributing one sign to unseen volume.
+
+**Downstream consumers.** SIG-03's signed-flow features and SIG-14's Hasbrouck decomposition consume
+the capture-time sign together with its version stamp. D23's queue-ahead bounds depend on separating
+trades from cancellations at a level, which is exactly what the signed, flagged print record makes
+possible.
