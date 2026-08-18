@@ -5,6 +5,12 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### INF-02 — typing marker for downstream consumers
+
+- Added the `py.typed` marker and packaged it, so strategies that pin Shaurya receive the
+  module's real type information instead of `Any`. Verified by installing the built wheel into
+  a clean environment and type-checking a consumer against it.
+
 ### SUR-01, SUR-02, SUR-05, SUR-06, SUR-07, and SUR-08 — eSSVI surfaces
 
 - Added one module-facing surface interface over CON-01 tape input and CON-03 frame output.
