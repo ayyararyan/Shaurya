@@ -11,8 +11,9 @@ Make “data leads, strategy follows” operational (D8): construct a taxonomy-c
 | Canonical book, trades, quotes, OI, and timestamps | Observed | Consumed from retained DAT tape with quality flags. |
 | Registered features | Deterministically derived unless explicitly labelled otherwise | Each declares taxonomy cell, causal timestamp, construction, and category. |
 | VOL regime, surface variables, dealer exposures, fitted impact | Estimated | Inherit model/version/uncertainty; never presented as observed. |
-| Queue-position-dependent fill target | Estimated/proxy | Consumes EXE-09/10; true rank is unidentified. |
-| Individual order identity, true queue rank, per-order lifetime, cancellation attribution | Unidentified | Aggregated depth has no order IDs (SIG-07). Never silently proxied. |
+| Queue-position-dependent fill target | Estimated, with reported bounds | Consumes EXE-09/10. Bounded rather than unidentified under D23; bounds propagate into every fill-conditional result. |
+| Individual order identity, per-order lifetime, cancellation position in queue, hidden/iceberg quantity | Unidentified | Aggregated depth has no order IDs (SIG-07). Never silently proxied. |
+| Own queue-ahead and queue-conditional arrival/cancel/trade intensities | Estimated, with reported bounds | Partially identified from price-time priority, level deltas, order counts and observed trades (D23). Bound width is measured, not assumed. |
 | Statistical finding | Estimated/inferential | Carries search-grid size, dependence-aware uncertainty, effective sample size, and trial history. |
 | Tradeable candidate | Estimated finding that passed an economic scenario gate | Still not realised P&L or live evidence. |
 
@@ -50,6 +51,33 @@ majority of derivatives turnover is co-located is structurally adverse. What mak
 for a non-co-located participant is an open empirical question, addressed by the commissioned
 maker research rather than assumed either way.
 
+## Queue priority is partially identified, not unidentified (D23)
+
+Corrected 2026-08-19. SIG-07 previously treated "true queue position" as a single unidentified
+object. That conflated two different objects with different identification status.
+
+**Own queue-ahead is bounded, not unidentified.** NSE index F&O matches on price-time priority, so
+at placement a resting order's queue-ahead equals the displayed quantity at that price. Trades at
+that price decrement it exactly from the front and are observable from last price, last quantity
+and cumulative volume. Cancellations at the level are observable in aggregate — the level delta net
+of additions and trades — but their position relative to our own order is not, which produces a hard
+upper and lower bound plus a point estimate under an explicit cancellation-position model.
+
+**Intensities are estimable.** Arrival, cancellation and trade intensities conditional on queue size
+— the actual inputs to the queue-reactive fill model consumed by EXE-09 — follow from level-by-level
+deltas. That literature was built for aggregated Level-2 data and never required order IDs. Order
+counts per level further give average order size and tighten the add/cancel decomposition.
+
+**Still unidentified, unchanged:** the position of a cancellation within the queue; individual order
+identity and per-order lifetime; and hidden or iceberg quantity, which corrupts queue-ahead directly
+and is invisible at any depth tier.
+
+**The binding limit is packet coalescing, and it is measurable.** At roughly eight packets per
+second, several events net into a single observed delta and the decomposition is under-determined
+within that interval. Bound width is therefore an empirical quantity EXE-10 measures and reports,
+not a constant asserted in advance. EXE-10's CON-06 label is accordingly estimated with reported
+bounds, not an unqualified proxy, and those bounds propagate into every fill-conditional result.
+
 ## The claim ledger is pre-registered (D22)
 
 The SIG research agenda is decomposed to claim level with stable IDs, each claim recording its
@@ -84,7 +112,7 @@ before the sweep begins, never by inspecting outcomes.
 | REQ-SIG-04 | Implement price-path features, consuming rather than duplicating VOL estimators, including returns, RV, variance ratio, microprice tilt, spreads, Kyle lambda, and Amihud. | SIG-04 | TBD path feature module | Lag/support/unit tests; feature frame |
 | REQ-SIG-05 | Implement cross-asset features for underlying-to-option flow, index relationships, futures/spot basis and lead-lag, and cross-impact. | SIG-05 | TBD cross-asset module | Identity/alignment/lead-lag tests |
 | REQ-SIG-06 | Implement options features for surface shape/velocity, term structure, dealer exposures, delta-space flow, and OI change. | SIG-06 | TBD options feature module | Surface/Greek alignment tests |
-| REQ-SIG-07 | Encode the Dhan order-level identification boundary and forbid silent proxies for order identity, true rank, lifetime, or cancellation attribution. | SIG-07 | TBD registry constraints/docs | Schema rejection and boundary tests; identification ledger |
+| REQ-SIG-07 | Encode the Dhan order-level identification boundary and forbid silent proxies for order identity, per-order lifetime, cancellation position within the queue, or hidden quantity. Own queue-ahead and queue-conditional intensities are excluded from this boundary: under D23 they are partially identified and carried as estimates with measured bounds, not as unidentified quantities. | SIG-07, D23 | TBD registry constraints/docs | Schema rejection and boundary tests; identification ledger |
 | REQ-SIG-08 | Maintain separate target families, led by the maker-side pair under D21: censored hazard/intensity fill probability and ANL-derived markout conditional on fill, with price regression retained as a quote-placement input rather than the objective. | SIG-08, D15, D21 | TBD target registry | Target-family and provenance tests; target catalog |
 | REQ-SIG-09 | Construct strictly lagged labels; separate contemporaneous impact from prediction and ban targets deterministic in current features. | SIG-09, CON-07 | TBD labels module | Leakage and deterministic-target rejection tests |
 | REQ-SIG-10 | Cluster/PCA correlated features before selection and compute importance at cluster, not individual collinear-feature, level. | SIG-10, D11 | TBD redundancy module | Synthetic-collinearity tests; cluster artifact |
