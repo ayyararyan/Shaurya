@@ -1,18 +1,58 @@
 # Shaurya — Next-Session Prompt
 
-**Prepared:** 2026-08-17
-**Use on return:** 2026-08-18
+**Prepared:** 2026-08-17, last updated 2026-08-19 ~00:35 IST
+**Use on return:** 2026-08-19 (session was reset immediately after this update)
 **Repository:** private `ayyararyan/Shaurya`
 **Canonical status ledger:** `TASKS.md`
+
+## START HERE — the one thing this session is for
+
+**Aryan's explicit instruction, given 2026-08-19 ~00:32 IST just before resetting the session:
+the next conversation is the discussion of the SIG research agent's results, once that agent
+has finished properly.**
+
+A single `sessions_spawn` research agent, `sig_feature_research`, was started 2026-08-19
+~00:22 IST and was still running at reset. Before anything else:
+
+1. Check whether it has completed — `subagents(action=list)`, or read its session via
+   `sessions_list` / `sessions_history` if the completion event was lost across the reset.
+2. If it is still running, say so and wait. Do not start a replacement agent, do not
+   summarise a partial result, and do not begin SIG design work in the meantime.
+3. When the report is in, read it in full and open the discussion from it.
+
+Identifiers, so the agent can be found after the reset:
+
+- task name: `sig_feature_research`
+- run ID: `1293b783-d7a3-439f-833b-3332a83c7269`
+- session key: `agent:main:subagent:d44d2f48-ca86-47a6-a2cb-5e7bc798e765`
+
+**No SIG design decision is taken until that report has been read and discussed — this is a hard
+sequencing gate set by Aryan, not a preference.** The report's job is to narrow the plausible
+range of sampling clocks, pooling coordinates, horizons, and feature families from theory and
+prior evidence *before* any sweep, so that D20's swept axes stay a defensible search space
+rather than an unbounded one that multiple-testing control correctly annihilates. Read D20 in
+`TASKS.md` and the "Measurement design is empirical" section of `docs/module-spec/SIG.md`
+first, then `SIG.md` in full, so the discussion sharpens SIG-01–SIG-20 rather than re-deriving
+them.
 
 ## Mandatory restart context
 
 1. Load and follow `OPENCLAW_WORKING_INSTRUCTIONS_REVISED.md` for the new session.
 2. Read `README.md` and the entire `TASKS.md` before discussing or changing scope.
-3. Treat D1–D15 and the frozen 13-component list as binding. Do not reopen settled design
+3. Treat D1–D20 and the frozen 13-component list as binding. Do not reopen settled design
    choices merely because a different implementation would be easier.
-4. Current state: design phase complete; INF-01 repository creation complete; no package or
-   module code harvested yet. The next formal artifact is `MODULE_SPEC.md`.
+4. Before editing the repository, `git fetch` and compare `HEAD` against `origin/main` — more
+   than one process has committed to this clone concurrently before.
+5. **Current state as of 2026-08-19 ~00:35 IST**, superseding the 2026-08-17 line that said no
+   code had been harvested: real code exists and is pushed. `origin/main` is at the commit
+   recorded below. CON contracts, INF packaging, the full DAT component, and the SUR eSSVI
+   surface stack are implemented, with 89 tests, strict mypy clean, ruff clean. Per-component
+   specs live in `docs/module-spec/*.md`; `MODULE_SPEC.md` is the index over them.
+6. **Owed to Aryan and needing market hours, not a reset session:** DAT-11 (bisect the exact
+   20-level per-message ceiling within 52–206), DAT-12 (does reconnecting reset the
+   first-message-only limit, or is the cap on the account), DAT-13 (is the 200-level packet skew
+   a real throttle or just liquidity). All three probes are written and tested; only the live
+   runs are outstanding.
 
 ## SIG discussion — round 1 held 2026-08-19, now waiting on commissioned research
 

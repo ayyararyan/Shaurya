@@ -5,11 +5,30 @@ to strategies that pin the package.
 
 ## Unreleased
 
-### INF-02 — typing marker for downstream consumers
+### DAT-03, DAT-04, DAT-05, DAT-06, DAT-07, DAT-09, and DAT-11-13 — storage, replay, quality, identity, capacity
 
-- Added the `py.typed` marker and packaged it, so strategies that pin Shaurya receive the
-  module's real type information instead of `Any`. Verified by installing the built wheel into
-  a clean environment and type-checking a consumer against it.
+- Added historical bar fetch and local storage: Dhan minute and daily responses normalize into a
+  strict versioned observed-bar schema on a stable on-disk layout. Bars only; no broker API
+  offers tick-level history, so the tick tape is accumulated forward through DAT-02/DAT-05
+  (D16). Tested.
+- Added option-chain fetch and validation. Every security ID, underlying, expiry, strike, and
+  side is checked against the same-date canonical Dhan master; unknown or mismatched IDs,
+  crossed quotes, and non-IST timestamps fail closed rather than passing through. Tested.
+- Added append-only tape recording and deterministic replay over the shared CON-01 format, so
+  live, backtest, and research consume one tape. Dry-run verified against 21,279 existing live
+  rows; no new live capture was performed for this acceptance.
+- Added data-quality counters — crossed book, stale quote, invalid depth, sequence gap — written
+  to a versioned derived audit artifact by the capture CLI, present even when zero rather than
+  silently absent. Dry-run verified on synthetic faults.
+- Added the per-broker instrument-master loader and mapping layer with daily refresh, since
+  broker tokens are only guaranteed stable within a trading day. Tested.
+- Added multi-socket capture planning for DAT-09 under the measured one-subscription-message-per-
+  socket constraint and the permanent-retention decision. Tested.
+- Added capacity, reconnect, and depth-skew probes (DAT-11/12/13): a binary search for the exact
+  20-level per-message instrument ceiling within the measured 52-206 band, a reconnect test for
+  whether the first-message limit is per socket or per account, and a same-liquidity control for
+  the 200-level packet skew. Implemented and tested; all three require market hours and remain
+  pending live verification, with their answers explicitly unmeasured rather than assumed.
 
 ### SUR-01, SUR-02, SUR-05, SUR-06, SUR-07, and SUR-08 — eSSVI surfaces
 
@@ -21,6 +40,28 @@ to strategies that pin the package.
   fail-closed gate that prevents raw tick-synchronous fits from serving quoting consumers.
 - Dry-run acceptance uses realistic synthetic option BBOs; live/historical DAT replay
   integration remains pending and is not represented as live verified.
+- SUR-03 (SVI) and SUR-04 (SABR) remain deliberately blocked under D8 pending a concrete
+  strategy need.
+
+### INF-02 and INF-04 — typing marker and reproducible test invocation
+
+- Added the `py.typed` marker and packaged it explicitly, so strategies that pin Shaurya (D5)
+  receive the module's real type information instead of `Any`. Verified by installing the built
+  wheel into a clean environment and type-checking a consumer against it.
+- Fixed test collection depending on how the suite was invoked. Two test modules import from
+  `scripts/`, which resolved under `python -m pytest` but not under the `pytest` console script;
+  the repository root is now declared on pytest's path. Both invocations collect and pass.
+
+### Specification
+
+- Recorded D20: SIG's sampling clock, pooling coordinate, and prediction-horizon set are
+  empirical questions resolved by measurement rather than specification constants. Each becomes a
+  swept axis in SIG-19's trial log and is counted in SIG-12's multiple-testing grid. No package
+  behaviour changes; SIG remains unimplemented.
+
+### Test suite
+
+- 54 tests before this session, 89 after. Strict mypy and ruff lint remain clean.
 
 ## v0.1.0 — 2026-08-18
 
