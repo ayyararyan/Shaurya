@@ -11,20 +11,39 @@
 the next conversation is the discussion of the SIG research agent's results, once that agent
 has finished properly.**
 
-A single `sessions_spawn` research agent, `sig_feature_research`, was started 2026-08-19
-~00:22 IST and was still running at reset. Before anything else:
+**THE REPORT HAS LANDED.** The `sig_feature_research` agent completed 2026-08-19 ~00:34 IST
+(runtime 12m37s). Do not spawn a replacement. Read the report in full, then open the
+discussion from it:
 
-1. Check whether it has completed — `subagents(action=list)`, or read its session via
-   `sessions_list` / `sessions_history` if the completion event was lost across the reset.
-2. If it is still running, say so and wait. Do not start a replacement agent, do not
-   summarise a partial result, and do not begin SIG design work in the meantime.
-3. When the report is in, read it in full and open the discussion from it.
+- **Report:** `/Users/maheit/.openclaw/workspace/research/sig-feature-research-2026-08-19.md`
+  (7,460 words; 58 numbered sources; 20 candidate stories grouped by horizon, each with
+  mechanism, observable, confirming test and falsifying test)
+- Agent identifiers, for the record: task `sig_feature_research`, run
+  `1293b783-d7a3-439f-833b-3332a83c7269`, session
+  `agent:main:subagent:d44d2f48-ca86-47a6-a2cb-5e7bc798e765`
 
-Identifiers, so the agent can be found after the reset:
+**Verification performed 2026-08-19 before handing it to Aryan.** Structure and counts check
+out independently: 20 story headings (A1–A4, B1–B4, C1–C4, D1–D5, E1–E3), 58 bibliography
+entries, §6 gives concrete narrowing on clocks, pooling coordinates and a staged falsification
+protocol — i.e. it answers the question D20 commissioned it to answer.
 
-- task name: `sig_feature_research`
-- run ID: `1293b783-d7a3-439f-833b-3332a83c7269`
-- session key: `agent:main:subagent:d44d2f48-ca86-47a6-a2cb-5e7bc798e765`
+**One defect found, not yet fixed: the bibliography needs a citation audit.** Fourteen entries
+were spot-checked against Crossref; twelve resolved correctly, two did not:
+
+- **Entry 33** ("Camilleri and Green (2015), The Impact of the Pre-Open Call Auction on the
+  Price Discovery Process in India, *RIBF* 35, 121–134") — the DOI belongs to an unrelated
+  paper (Verheyden et al., "Towards a new framework on efficient markets"), and no paper of
+  that title/venue is findable. Likely a garbled rendering of Camilleri and Green's real
+  NSE call-auction work.
+- **Entry 34** ("Kumar, Sarin and Shastri (2005), The Impact of Futures and Options Expiration
+  on the Underlying Stocks: Evidence from India, *JFM* 25(11), 1045–1065") — journal, volume
+  and pages are right; author and title are wrong. The real paper at that location is
+  **Vipul (2005), "Futures and options expiration-day effects: The Indian evidence."**
+
+Sampled error rate ~14%, concentrated in the India-specific entries — which is exactly where
+the report's marginal value lies. **Before any citation is relied on for a design decision,
+resolve it.** The report's *arguments* stand on their own; its *references* need checking one
+by one.
 
 **No SIG design decision is taken until that report has been read and discussed — this is a hard
 sequencing gate set by Aryan, not a preference.** The report's job is to narrow the plausible
