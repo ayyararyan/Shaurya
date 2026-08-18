@@ -41,6 +41,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-root", type=Path, default=Path("artifacts/dhan-live"))
     parser.add_argument("--no-standard", action="store_true")
     parser.add_argument("--no-depth20", action="store_true")
+    parser.add_argument(
+        "--enable-depth200",
+        action="store_true",
+        help="DAT-10: opt-in 200-level deep book. Dhan allows exactly one instrument per "
+        "subscription on this endpoint, which --security-id already satisfies.",
+    )
     parser.add_argument("--heartbeat-interval-seconds", type=float, default=10.0)
     parser.add_argument("--heartbeat-timeout-seconds", type=float, default=5.0)
     return parser
@@ -52,6 +58,8 @@ def _required_channels(config: DhanStreamConfig) -> set[str]:
         required.add("standard")
     if config.enable_20_level_depth:
         required.add("depth20")
+    if config.enable_200_level_depth:
+        required.add("depth200")
     return required
 
 
@@ -71,6 +79,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     config = DhanStreamConfig(
         enable_standard_feed=not args.no_standard,
         enable_20_level_depth=not args.no_depth20,
+        enable_200_level_depth=args.enable_depth200,
         heartbeat_interval_seconds=args.heartbeat_interval_seconds,
         heartbeat_timeout_seconds=args.heartbeat_timeout_seconds,
     )
@@ -114,6 +123,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             "test_configuration": {
                 "standard_full_5_level": not args.no_standard,
                 "depth20": not args.no_depth20,
+                "depth200": args.enable_depth200,
                 "duration_seconds_requested": args.duration_seconds,
                 "dat09_decision": False,
             },

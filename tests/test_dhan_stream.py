@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -118,6 +119,19 @@ def test_deep_parser_handles_bid_and_ask_packets_in_one_message() -> None:
     assert parsed[1].raw_size == 332
 
 
+def test_deep_parser_handles_200_level_packets() -> None:
+    parsed = parse_deep_packets(_deep_message(41, levels=200), depth_levels=200)
+    assert len(parsed) == 1
+    assert isinstance(parsed[0], ParsedDeepPacket)
+    assert len(parsed[0].levels) == 200
+    assert parsed[0].raw_size == DEEP_HEADER.size + 200 * DEEP_LEVEL.size
+
+
+def test_deep_parser_rejects_unsupported_depth_levels() -> None:
+    with pytest.raises(ValueError):
+        parse_deep_packets(_deep_message(41), depth_levels=5)
+
+
 def test_sequence_gap_detector_distinguishes_missing_duplicate_regression_and_gap() -> None:
     detector = SequenceGapDetector()
     assert detector.observe("key", None) == {QualityFlag.SOURCE_SEQUENCE_UNAVAILABLE}
@@ -131,8 +145,110 @@ def test_sequence_gap_detector_distinguishes_missing_duplicate_regression_and_ga
 def test_capture_acceptance_requires_every_enabled_channel() -> None:
     both = DhanStreamConfig(enable_standard_feed=True, enable_20_level_depth=True)
     depth_only = DhanStreamConfig(enable_standard_feed=False, enable_20_level_depth=True)
+    depth200_only = DhanStreamConfig(
+        enable_standard_feed=False, enable_20_level_depth=False, enable_200_level_depth=True
+    )
     assert _required_channels(both) == {"standard", "depth20"}
     assert _required_channels(depth_only) == {"depth20"}
+    assert _required_channels(depth200_only) == {"depth200"}
+
+
+@pytest.mark.asyncio
+async def test_depth200_subscribe_uses_flat_message_not_instrument_list() -> None:
+    # Regression: the 200-level endpoint silently drops the batched InstrumentList shape
+    # (connection + heartbeats stay healthy, zero packets ever arrive) — confirmed live
+    # 2026-08-18 and against Dhan's own fulldepth.FullDepth.subscribe_instruments reference.
+    class RecordingSocket:
+        def __init__(self) -> None:
+            self.sent: list[str] = []
+
+        async def send(self, value: str) -> None:
+            self.sent.append(value)
+
+    stream = DhanLiveStream(
+        DhanCredentials("client", "token"),
+        [_mapping()],
+        lambda row: None,
+        run_id="sha-20260818T053000.000000Z-1234abcd",
+    )
+    socket = RecordingSocket()
+    await stream._subscribe(socket, "depth200")
+    assert len(socket.sent) == 1
+    payload = json.loads(socket.sent[0])
+    assert payload == {"RequestCode": 23, "ExchangeSegment": "NSE_FNO", "SecurityId": "58072"}
+
+    socket_20 = RecordingSocket()
+    await stream._subscribe(socket_20, "depth20")
+    payload_20 = json.loads(socket_20.sent[0])
+    assert payload_20["InstrumentList"] == [{"ExchangeSegment": "NSE_FNO", "SecurityId": "58072"}]
+
+
+def test_depth200_url_is_the_full_depth_endpoint() -> None:
+    stream = DhanLiveStream(
+        DhanCredentials("client", "token"),
+        [_mapping()],
+        lambda row: None,
+        run_id="sha-20260818T053000.000000Z-1234abcd",
+    )
+    assert stream._url("depth200").startswith(DhanLiveStream.DEPTH200_URL)
+    assert stream._url("depth20").startswith(DhanLiveStream.DEPTH20_URL)
+
+
+@pytest.mark.asyncio
+async def test_depth200_rejects_more_than_one_instrument() -> None:
+    second = DhanInstrumentMapping(
+        instrument=InstrumentId(
+            exchange="NSE",
+            segment=ExchangeSegment.NSE_FNO,
+            underlying="BANKNIFTY",
+            kind=InstrumentKind.FUTURE,
+            expiry=date(2026, 8, 25),
+        ),
+        security_id="99999",
+        exchange_segment=ExchangeSegment.NSE_FNO,
+        trading_symbol="BANKNIFTY-Aug2026-FUT",
+        lot_size=15,
+        tick_size_paise=Decimal("10"),
+        as_of_date=date(2026, 8, 18),
+        source="fixture",
+    )
+    stream = DhanLiveStream(
+        DhanCredentials("client", "token"),
+        [_mapping(), second],
+        lambda row: None,
+        run_id="sha-20260818T053000.000000Z-1234abcd",
+        config=DhanStreamConfig(
+            enable_standard_feed=False, enable_20_level_depth=False, enable_200_level_depth=True
+        ),
+    )
+    with pytest.raises(ValueError, match="exactly one instrument"):
+        await stream.run()
+
+
+def test_depth20_and_depth200_books_do_not_collide_for_the_same_instrument() -> None:
+    rows = []
+    stream = DhanLiveStream(
+        DhanCredentials("client", "token"),
+        [_mapping()],
+        rows.append,
+        run_id="sha-20260818T053000.000000Z-1234abcd",
+    )
+    stream._epochs["depth20"] = 1
+    stream._epochs["depth200"] = 1
+    bid20, ask20 = parse_deep_packets(_deep_message(41) + _deep_message(51))
+    bid200, ask200 = parse_deep_packets(
+        _deep_message(41, levels=200) + _deep_message(51, levels=200), depth_levels=200
+    )
+    stream._emit_deep(bid20, stream_time(), channel="depth20")
+    stream._emit_deep(ask20, stream_time(), channel="depth20")
+    stream._emit_deep(bid200, stream_time(), channel="depth200")
+    stream._emit_deep(ask200, stream_time(), channel="depth200")
+    depth20_row = rows[1]
+    depth200_row = rows[3]
+    assert depth20_row.event_type == "depth20"
+    assert len(depth20_row.bids) == 20
+    assert depth200_row.event_type == "depth200"
+    assert len(depth200_row.bids) == 200
 
 
 def test_metrics_rate_uses_explicit_capture_window() -> None:
@@ -202,8 +318,8 @@ def test_bid_then_ask_side_packets_emit_partial_then_complete_book() -> None:
     )
     stream._epochs["depth20"] = 1
     bid, ask = parse_deep_packets(_deep_message(41) + _deep_message(51))
-    stream._emit_deep(bid, stream_time())
-    stream._emit_deep(ask, stream_time())
+    stream._emit_deep(bid, stream_time(), channel="depth20")
+    stream._emit_deep(ask, stream_time(), channel="depth20")
     assert QualityFlag.PARTIAL_BOOK in rows[0].quality_flags
     assert len(rows[1].bids) == 20
     assert len(rows[1].asks) == 20

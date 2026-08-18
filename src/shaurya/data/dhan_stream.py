@@ -1,4 +1,9 @@
-"""DAT-02: supervised Dhan tick, 5-level, and 20-level live market-data streams."""
+"""DAT-02/DAT-10: supervised Dhan tick, 5-level, 20-level, and 200-level live market-data
+streams. The 20-level and 200-level deep-book wire formats are identical (same 12-byte
+header, same 16-byte-per-level layout, same response codes 41/51) per TASKS.md §7.1 — they
+differ only in endpoint URL, subscription batching (200-level allows exactly one instrument
+per subscription message), and the depth cap itself.
+"""
 
 from __future__ import annotations
 
@@ -216,8 +221,10 @@ def parse_deep_packets(
 ) -> list[ParsedDeepPacket | ParsedDisconnect]:
     """Parse every side packet in a single deep-feed WebSocket message."""
 
-    if depth_levels != 20:
-        raise ValueError("DAT-02 supports 20-level depth; 200-level parsing belongs to DAT-10")
+    if depth_levels not in (20, 200):
+        raise ValueError(
+            "Dhan deep-feed parsing only supports depth_levels of 20 (DAT-02) or 200 (DAT-10)"
+        )
     results: list[ParsedDeepPacket | ParsedDisconnect] = []
     offset = 0
     while offset < len(data):
@@ -384,6 +391,7 @@ class StreamMetrics:
 class DhanStreamConfig:
     enable_standard_feed: bool = True
     enable_20_level_depth: bool = True
+    enable_200_level_depth: bool = False
     heartbeat_interval_seconds: float = 10.0
     heartbeat_timeout_seconds: float = 5.0
     reconnect_initial_seconds: float = 0.5
@@ -391,7 +399,11 @@ class DhanStreamConfig:
     open_timeout_seconds: float = 10.0
 
     def __post_init__(self) -> None:
-        if not self.enable_standard_feed and not self.enable_20_level_depth:
+        if (
+            not self.enable_standard_feed
+            and not self.enable_20_level_depth
+            and not self.enable_200_level_depth
+        ):
             raise ValueError("at least one Dhan stream channel must be enabled")
         positive = (
             self.heartbeat_interval_seconds,
@@ -410,6 +422,7 @@ ConnectFactory = Callable[..., AbstractAsyncContextManager[Any]]
 class DhanLiveStream:
     STANDARD_URL = "wss://api-feed.dhan.co"
     DEPTH20_URL = "wss://depth-api-feed.dhan.co/twentydepth"
+    DEPTH200_URL = "wss://full-depth-api.dhan.co/"
     FATAL_REASONS = {806, 807, 808, 809}
 
     def __init__(
@@ -444,7 +457,11 @@ class DhanLiveStream:
         self._epochs: dict[str, int] = defaultdict(int)
         self._ever_connected: dict[str, bool] = defaultdict(bool)
         self._pending_flags: dict[str, set[QualityFlag]] = defaultdict(set)
-        self._books: dict[tuple[int, int], dict[str, tuple[DepthLevel, ...]]] = defaultdict(dict)
+        # Keyed by (channel, segment, security_id): depth20 and depth200 books for the same
+        # instrument are tracked independently so a reconnect on one never clears the other.
+        self._books: dict[tuple[str, int, int], dict[str, tuple[DepthLevel, ...]]] = defaultdict(
+            dict
+        )
         self._latest_standard: dict[tuple[int, int], ParsedMarketPacket] = {}
         self._last_exchange_ts: dict[tuple[str, int, int], datetime] = {}
         self._sequence_detector = SequenceGapDetector()
@@ -463,6 +480,22 @@ class DhanLiveStream:
             if not deep:
                 raise ValueError("20-level depth requires an NSE_EQ or NSE_FNO instrument")
             channels.append("depth20")
+        if self.config.enable_200_level_depth:
+            deep200 = [
+                mapping
+                for mapping in self.instruments
+                if mapping.exchange_segment
+                in {ExchangeSegment.NSE_EQ, ExchangeSegment.NSE_FNO}
+            ]
+            if not deep200:
+                raise ValueError("200-level depth requires an NSE_EQ or NSE_FNO instrument")
+            if len(deep200) > 1:
+                raise ValueError(
+                    "200-level depth allows exactly one instrument per subscription "
+                    "(Dhan batching rule, TASKS.md §7.1) — got "
+                    f"{len(deep200)} eligible instruments"
+                )
+            channels.append("depth200")
         tasks = [asyncio.create_task(self._supervise(channel)) for channel in channels]
         try:
             done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
@@ -518,7 +551,12 @@ class DhanLiveStream:
                 delay = min(delay * 2.0, self.config.reconnect_max_seconds)
 
     def _url(self, channel: str) -> str:
-        base = self.STANDARD_URL if channel == "standard" else self.DEPTH20_URL
+        if channel == "standard":
+            base = self.STANDARD_URL
+        elif channel == "depth20":
+            base = self.DEPTH20_URL
+        else:
+            base = self.DEPTH200_URL
         version = "?version=2&" if channel == "standard" else "?"
         # This authenticated URL must never be logged or placed in an exception message.
         return (
@@ -544,8 +582,9 @@ class DhanLiveStream:
                     {QualityFlag.RECONNECTED, QualityFlag.CONNECTION_GAP}
                 )
                 self._sequence_detector.reset(f"{channel}:")
-                if channel == "depth20":
-                    self._books.clear()
+                if channel in {"depth20", "depth200"}:
+                    for key in [key for key in self._books if key[0] == channel]:
+                        del self._books[key]
             receive_task = asyncio.create_task(self._receive_loop(websocket, channel))
             heartbeat_task = asyncio.create_task(self._heartbeat_loop(websocket, channel))
             child_tasks = {receive_task, heartbeat_task}
@@ -589,13 +628,31 @@ class DhanLiveStream:
                     )
                 )
             return
-        items = [
-            {
-                "ExchangeSegment": mapping.exchange_segment.value,
-                "SecurityId": mapping.security_id,
-            }
+        deep_instruments = [
+            mapping
             for mapping in self.instruments
             if mapping.exchange_segment in {ExchangeSegment.NSE_EQ, ExchangeSegment.NSE_FNO}
+        ]
+        if channel == "depth200":
+            # The 200-level endpoint does NOT use the InstrumentList batch envelope — it takes
+            # one flat {RequestCode, ExchangeSegment, SecurityId} message per instrument.
+            # Confirmed against Dhan's own reference implementation (dhanhq.fulldepth.FullDepth
+            # .subscribe_instruments); the InstrumentList shape silently produces zero packets
+            # on this endpoint even though the connection and heartbeats stay healthy.
+            mapping = deep_instruments[0]
+            await websocket.send(
+                json.dumps(
+                    {
+                        "RequestCode": 23,
+                        "ExchangeSegment": mapping.exchange_segment.value,
+                        "SecurityId": mapping.security_id,
+                    }
+                )
+            )
+            return
+        items = [
+            {"ExchangeSegment": mapping.exchange_segment.value, "SecurityId": mapping.security_id}
+            for mapping in deep_instruments
         ]
         for start in range(0, len(items), 50):
             batch = items[start : start + 50]
@@ -633,11 +690,12 @@ class DhanLiveStream:
                     continue
                 self._emit_standard(standard_packet, received_at)
             else:
-                for deep_packet in parse_deep_packets(message):
+                depth_levels = 200 if channel == "depth200" else 20
+                for deep_packet in parse_deep_packets(message, depth_levels=depth_levels):
                     self.metrics.record_source_packet(channel, deep_packet.raw_size)
                     if isinstance(deep_packet, ParsedDisconnect):
                         self._raise_disconnect(channel, deep_packet)
-                    self._emit_deep(deep_packet, received_at)
+                    self._emit_deep(deep_packet, received_at, channel=channel)
 
     @classmethod
     def _raise_disconnect(cls, channel: str, packet: ParsedDisconnect) -> NoReturn:
@@ -734,15 +792,16 @@ class DhanLiveStream:
         self.sink(row)
         self.metrics.record_row(row)
 
-    def _emit_deep(self, packet: ParsedDeepPacket, received_at: datetime) -> None:
+    def _emit_deep(self, packet: ParsedDeepPacket, received_at: datetime, *, channel: str) -> None:
         mapping = self._mapping(packet.exchange_segment_code, packet.security_id)
-        key = (packet.exchange_segment_code, packet.security_id)
-        self._books[key][packet.side] = packet.levels
-        bids = self._books[key].get("bid", ())
-        asks = self._books[key].get("ask", ())
-        latest = self._latest_standard.get(key)
+        book_key = (channel, packet.exchange_segment_code, packet.security_id)
+        latest_key = (packet.exchange_segment_code, packet.security_id)
+        self._books[book_key][packet.side] = packet.levels
+        bids = self._books[book_key].get("bid", ())
+        asks = self._books[book_key].get("ask", ())
+        latest = self._latest_standard.get(latest_key)
         flags = self._flags(
-            "depth20",
+            channel,
             packet.exchange_segment_code,
             packet.security_id,
             packet.source_sequence,
@@ -754,9 +813,9 @@ class DhanLiveStream:
             run_id=self.run_id,
             receive_sequence=self._next_sequence(),
             source_sequence=packet.source_sequence,
-            connection_epoch=self._epochs["depth20"],
+            connection_epoch=self._epochs[channel],
             source="dhan",
-            event_type="depth20",
+            event_type=channel,
             instrument_id=mapping.instrument.canonical,
             broker_security_id=mapping.security_id,
             exchange_segment=mapping.exchange_segment.value,

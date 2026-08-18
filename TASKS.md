@@ -217,8 +217,8 @@ does not substitute for DAT-02 here.
 | DAT-06 | Data-quality counters: crossed book, stale quote, invalid depth, gap count — surfaced, not silently dropped | Market Making `surface_collector_audit_<run_id>.jsonl` | DAT-02 | Not started |
 | DAT-07 | Instrument-master loader per broker, plus the mapping layer. **Daily refresh cadence** (decided 2026-08-17 — broker tokens, Kotak and Dhan `security_id`, are only guaranteed stable within a trading day, so refresh must happen every day whenever the module is in use, not just periodically/at-startup) | `Market Making/api-scrip-master.csv`, `Shoshin/security_id_list.csv` | CON-05 | Not started |
 | DAT-08 | Kotak market-data path in C++ (WebSocket + depth), required alongside Dhan — the module receives from both (D7) | Market Making `native/src/shaurya_kotak_ws_*.cpp`, `shaurya_kotak_depth.cpp` (tested) | NAT-01 | Not started |
-| DAT-09 | **Capture universe, depth tier, and retention window.** D12 settled *that* the raw tape is recorded; this task settles *how much*. Three inputs, in dependency order: (i) **measured packet rate per instrument per depth tier** — only one live session can establish it, and every storage figure in §7.1 is provisional until then; (ii) **measured concurrent-instrument cap** per depth tier, which the client library's batching rule implies but does not prove; (iii) **universe and retention tiers.** Proposed shape: 200-level on the single traded instrument, 20-level on a narrow core (index, futures, ATM±10 on the front two expiries), 5-level chain-wide; rolling raw tape for 60–90 days, plus a permanently retained "golden set" of curated days (high-vol, low-vol, expiry, event, one week per month) as the fixed benchmark `SIG-18` runs against forever, plus derived features kept permanently | New | DAT-02, DAT-05 | **Open — sizing decision with Aryan; unblocked in principle by D12** |
-| DAT-10 | **200-level deep-book capture.** Separate endpoint (`wss://full-depth-api.dhan.co/`), one instrument per subscription message, ~6.4 KB per book update. A genuinely rare research asset — full visible book on the traded instrument — and cheap at ~45 GB/year for one instrument. Kept as its own task because the endpoint, subscription semantics, and packet parser differ from both `DAT-02` and the 20-level feed | `DhanHQ-py` `fulldepth.py` (reference implementation) | DAT-02, CON-01 | Not started |
+| DAT-09 | **Capture universe, depth tier, and retention window.** D12 settled *that* the raw tape is recorded; this task settles *how much*. Three inputs, in dependency order: (i) **measured packet rate per instrument per depth tier** — only one live session can establish it, and every storage figure in §7.1 is provisional until then; (ii) **measured concurrent-instrument cap** per depth tier, which the client library's batching rule implies but does not prove; (iii) **universe and retention tiers.** Proposed shape: 200-level on the single traded instrument, 20-level on a narrow core (index, futures, ATM±10 on the front two expiries), 5-level chain-wide; rolling raw tape for 60–90 days, plus a permanently retained "golden set" of curated days (high-vol, low-vol, expiry, event, one week per month) as the fixed benchmark `SIG-18` runs against forever, plus derived features kept permanently | New | DAT-02, DAT-05 | **Open — sizing decision with Aryan; unblocked in principle by D12. Live packet-rate evidence now exists for all three depth tiers on one instrument (NIFTY-Aug2026-FUT) — see work log — still not a sizing decision** |
+| DAT-10 | **200-level deep-book capture.** Separate endpoint (`wss://full-depth-api.dhan.co/`), one instrument per subscription message, ~6.4 KB per book update. A genuinely rare research asset — full visible book on the traded instrument — and cheap at ~45 GB/year for one instrument. Kept as its own task because the endpoint, subscription semantics, and packet parser differ from both `DAT-02` and the 20-level feed | `DhanHQ-py` `fulldepth.py` (reference implementation) | DAT-02, CON-01 | **Live verified 2026-08-18.** Live run `sha-20260818T092355.175225Z-d181b3ff`, NIFTY-Aug2026-FUT: 366 rows in 45s (8.1/s, 8.4/s active span), 3,212 bytes/packet exactly matching the documented layout, full 200 bid + 200 ask levels confirmed independently in the written tape (not just the run summary), one connection, 4/4 heartbeats, zero reconnects. One real bug found and fixed en route: the 200-level endpoint silently drops the batched `InstrumentList` subscription shape reused from DAT-02's 20-level path (connection + heartbeats stay healthy, zero packets ever arrive) — it needs a flat `{RequestCode, ExchangeSegment, SecurityId}` message instead, confirmed against `dhanhq.fulldepth.FullDepth`. Regression test added (`test_depth200_subscribe_uses_flat_message_not_instrument_list`) |
 
 ### EXE — Execution & brokers
 
@@ -403,13 +403,13 @@ tree at `700`/`600`; the module adopts that pattern from day one (INF-05).
 | `MODULE_SPEC.md` | Not started — blocked on the component list |
 | Repository | **Created 2026-08-17** — private `ayyararyan/Shaurya`; canonical design artifacts pushed on `main` |
 | Code harvested | Dhan clients reconciled from Mushin_Gamma + Shoshin; feed patterns generalized from Mushin_Gamma + Still_Water into the standalone `shaurya` package |
-| Tasks in progress | None. DAT-01/DAT-02 and their minimal CON-01/CON-05/CON-08 support are fully live-verified for the authorised scope; DAT-05 (deterministic replay) and the remaining CON tasks are still not started |
+| Tasks in progress | None. DAT-01/DAT-02/DAT-10 and their minimal CON-01/CON-05/CON-08 support are fully live-verified for the authorised scope; DAT-05 (deterministic replay) and the remaining CON/DAT tasks (DAT-03/04/06/07/08) are still not started |
 
-**Immediate next action:** DAT-02's authorised scope is closed out. Next is either DAT-09
-sizing (needs Aryan — evidence from both live runs is now available in the work log below) or
-moving to the next component in build order (SUR/GRK/VOL harvest, or DAT-03/04/05/06/07
-depending on Aryan's priority). NIFTY-Aug2026-FUT was a test instrument only in both runs and
-is not a capture-universe/depth/retention decision.
+**Immediate next action:** DAT-01/DAT-02/DAT-10's authorised scope is closed out. Next is
+either DAT-09 sizing (needs Aryan — live evidence at all three depth tiers is now available
+in the work log below) or moving to the next component in build order (SUR/GRK/VOL harvest,
+or DAT-03/04/05/06/07 depending on Aryan's priority). NIFTY-Aug2026-FUT was a test instrument
+only in every run so far and is not a capture-universe/depth/retention decision.
 
 **O4 is resolved (D7) — `EXE` is unblocked.** `EXE-07` and `EXE-08` are dropped; `EXE-01`
 through `EXE-06` can proceed once `CON` lands. **O5 remains open by design** — `MIG` stays
@@ -473,6 +473,44 @@ blocked until each old strategy is decided individually, when it is next touched
     one instrument — 20-level alone (7.7–8.2 packets/s, 332 B/packet) and standard+20-level
     together (9.3 packets/s combined, standard adds ~1.3 packets/s at 12–162 B/packet,
     variable by subtype). Sizing, universe and retention are still Aryan's call.
+- **2026-08-18, later still — DAT-10 (200-level deep book) built and live-verified.**
+  Aryan asked to check the 200-level tier specifically (one instrument per subscription,
+  full depth on that instrument) while the market was still open. Extended `dhan_stream.py`
+  generically rather than writing a separate module: `parse_deep_packets` already accepted a
+  `depth_levels` parameter, so 20-level and 200-level share one parser (identical wire format
+  per TASKS.md §7.1 — only the endpoint URL, subscription batching, and depth cap differ).
+  Added `DhanStreamConfig.enable_200_level_depth`, the `DEPTH200_URL` endpoint, a single-
+  instrument guard in `run()` (raises if more than one instrument is passed with 200-level
+  enabled, matching the documented batching rule), and re-keyed the in-memory book cache by
+  `(channel, segment, security_id)` instead of `(segment, security_id)` so depth20 and
+  depth200 can run on the same instrument simultaneously without one reconnect clearing the
+  other's book — required for DAT-09's proposed design of running both tiers on the traded
+  instrument at once. CLI got an opt-in `--enable-depth200` flag.
+  - **Bug found and fixed before it produced misleading evidence:** the first live attempt
+    connected cleanly and heartbeat successfully (4/4 ok) but received **zero data packets**
+    for the full 45-second window — not a crash, just silent data loss, the kind of failure
+    that's easy to miss if you only check "did it connect." Root-caused by reading Dhan's own
+    reference client (`dhanhq.fulldepth.FullDepth.subscribe_instruments`, installed in the
+    venv): the 200-level endpoint does not use DAT-02's `{RequestCode, InstrumentCount,
+    InstrumentList}` batch envelope at all — it wants a flat `{RequestCode, ExchangeSegment,
+    SecurityId}` message. Fixed in `_subscribe`, with a regression test
+    (`test_depth200_subscribe_uses_flat_message_not_instrument_list`) added so this can't
+    silently regress.
+  - **Live evidence after the fix**, run `sha-20260818T092355.175225Z-d181b3ff`,
+    NIFTY-Aug2026-FUT: **366 packets in 45.001s (8.13 packets/s full window, 8.37/s active
+    span), exactly 3,212 bytes per packet** (matches the documented 200-level layout exactly),
+    1,175,592 raw bytes total, one connection, 4/4 heartbeats, zero reconnects. Verified
+    independently in the written tape file, not just the run summary: the last complete-book
+    row carries genuinely **200 bid levels and 200 ask levels**, sane top-of-book
+    (`bid 24241.1 × 195 qty` / `ask 24243.9 × 390 qty`, non-crossed). Quality flags
+    (`exchange_timestamp_missing`, `source_sequence_unavailable` both 366/366; `partial_book`
+    just the first startup row) are the same already-explained protocol characteristics as
+    DAT-02, not new defects. All 23 tests pass (22 → 23 with the new regression test), strict
+    mypy and Ruff clean.
+  - **DAT-09 now has evidence at all three depth tiers on one instrument**: 5-level not yet
+    directly measured live (only documented from the spec), 20-level ~7.7–8.4 packets/s at
+    332 B, 200-level ~8.1–8.4 packets/s at 3,212 B. This is still raw input, not a sizing
+    decision — Aryan's call remains open.
 
 ---
 
