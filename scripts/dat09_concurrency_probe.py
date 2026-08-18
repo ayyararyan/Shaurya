@@ -51,7 +51,7 @@ from shaurya.data.tape import JsonlTapeWriter
 
 REPO = Path(__file__).resolve().parents[1]
 MASTER = REPO / "data" / "api-scrip-master.csv"
-CRED_PATH = Path("/Users/maheit/.cache/openclaw/gdrive/My Drive/Market Making/dhan_credentials.env")
+CRED_PATH = Path("/Users/maheit/Documents/Market-Making-Secrets/dhan.env")
 DURATION_SECONDS = 40.0
 
 
