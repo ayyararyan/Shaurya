@@ -74,8 +74,8 @@ Stated so far by Aryan, plus the obvious dependencies each one implies.
   surface-to-Greeks handoff, surface age / staleness semantics
 
 ### 3.2 Market data
-- **Dhan** live streaming (ticks, depth, option chain) — primary
-- **Kotak** market data (WebSocket + depth) — also required, not just Dhan (D7, 2026-08-17)
+- **Dhan** live streaming (ticks, depth, option chain) — the sole data-receive source
+  (D7, amended 2026-08-18 by D18: Kotak dropped from data, order-placement only)
 - Historical fetch + local storage with a stable on-disk schema
 - Snapshot tape recording and deterministic replay
 
@@ -115,7 +115,7 @@ And, outside Dhandho, the most mature code of all — the Market Making repo at
 |---|---|---|
 | Kotak session load + REST gateway (C++) | `native/include/shaurya_kotak_session.hpp`, `native/src/shaurya_native.cpp` | **Live-verified read-only against the real broker** |
 | Kotak broker adapter (C++) | `native/src/shaurya_kotak_broker_adapter.cpp` | Implemented, paper-tested only |
-| Kotak market-data WebSocket + depth (C++) | `native/src/shaurya_kotak_ws_*.cpp`, `shaurya_kotak_depth.cpp` | Implemented + tested |
+| Kotak market-data WebSocket + depth (C++) | `native/src/shaurya_kotak_ws_*.cpp`, `shaurya_kotak_depth.cpp` | Implemented + tested — **not harvested into Shaurya** (D18, 2026-08-18: module data ingestion is Dhan-only, Kotak is order-placement only) |
 | Order-lifecycle runtime, paper fills, ledger (C++) | `native/src/shaurya_{runtime,paper,ledger}.cpp` | Tested (91 C++ tests) |
 | Surface estimation / smoothing / dashboard (Python) | `monday_v1/surface_*.py` | Dry-run + saved-tape verified |
 | Kotak Neo client (Python) | `monday_v1/kotak_neo.py` | Live-verified |
@@ -236,7 +236,8 @@ renamed **Market Making**; the live engine is **C++**, for speed; the module is 
 and Market Making is refactored to consume it; the name collision is resolved by rename (both
 executed); construction does not begin until the component list is agreed; and broker scope is
 Dhan-plus-Kotak for data but **Kotak-only for order placement**, routed through a dedicated
-latency-sensitive C++ path.
+latency-sensitive C++ path. **Amended 2026-08-18 (D18):** Kotak dropped as a data-receive
+source — market-data ingestion is **Dhan-only**; Kotak remains the sole order-placement broker.
 
 **Still open — one question:** migration ambition (all six old strategies, or leave some frozen
 as history) — deliberately deferred, to be decided per strategy when it is next touched.
