@@ -22,6 +22,7 @@ class QualityFlag(StrEnum):
     EXCHANGE_TIME_REGRESSION = "exchange_time_regression"
     PARTIAL_BOOK = "partial_book"
     CROSSED_BOOK = "crossed_book"
+    STALE_QUOTE = "stale_quote"
     INVALID_DEPTH = "invalid_depth"
 
 

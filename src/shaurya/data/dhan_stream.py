@@ -397,6 +397,7 @@ class DhanStreamConfig:
     reconnect_initial_seconds: float = 0.5
     reconnect_max_seconds: float = 30.0
     open_timeout_seconds: float = 10.0
+    stale_quote_after_seconds: float = 5.0
 
     def __post_init__(self) -> None:
         if (
@@ -411,6 +412,7 @@ class DhanStreamConfig:
             self.reconnect_initial_seconds,
             self.reconnect_max_seconds,
             self.open_timeout_seconds,
+            self.stale_quote_after_seconds,
         )
         if min(positive) <= 0:
             raise ValueError("stream timeouts and reconnect delays must be positive")
@@ -463,6 +465,7 @@ class DhanLiveStream:
             dict
         )
         self._latest_standard: dict[tuple[int, int], ParsedMarketPacket] = {}
+        self._book_side_received_at: dict[tuple[str, int, int, str], datetime] = {}
         self._last_exchange_ts: dict[tuple[str, int, int], datetime] = {}
         self._sequence_detector = SequenceGapDetector()
 
@@ -583,8 +586,13 @@ class DhanLiveStream:
                 )
                 self._sequence_detector.reset(f"{channel}:")
                 if channel in {"depth20", "depth200"}:
-                    for key in [key for key in self._books if key[0] == channel]:
-                        del self._books[key]
+                    for book_key in [key for key in self._books if key[0] == channel]:
+                        del self._books[book_key]
+                    side_time_keys = [
+                        key for key in self._book_side_received_at if key[0] == channel
+                    ]
+                    for side_time_key in side_time_keys:
+                        del self._book_side_received_at[side_time_key]
             receive_task = asyncio.create_task(self._receive_loop(websocket, channel))
             heartbeat_task = asyncio.create_task(self._heartbeat_loop(websocket, channel))
             child_tasks = {receive_task, heartbeat_task}
@@ -797,6 +805,13 @@ class DhanLiveStream:
         book_key = (channel, packet.exchange_segment_code, packet.security_id)
         latest_key = (packet.exchange_segment_code, packet.security_id)
         self._books[book_key][packet.side] = packet.levels
+        side_time_key = (
+            channel,
+            packet.exchange_segment_code,
+            packet.security_id,
+            packet.side,
+        )
+        self._book_side_received_at[side_time_key] = received_at
         bids = self._books[book_key].get("bid", ())
         asks = self._books[book_key].get("ask", ())
         latest = self._latest_standard.get(latest_key)
@@ -809,6 +824,16 @@ class DhanLiveStream:
             bids,
             asks,
         )
+        other_side = "ask" if packet.side == "bid" else "bid"
+        other_side_time = self._book_side_received_at.get(
+            (channel, packet.exchange_segment_code, packet.security_id, other_side)
+        )
+        if (
+            other_side_time is not None
+            and (received_at - other_side_time).total_seconds()
+            > self.config.stale_quote_after_seconds
+        ):
+            flags.add(QualityFlag.STALE_QUOTE)
         row = TapeRow(
             run_id=self.run_id,
             receive_sequence=self._next_sequence(),
