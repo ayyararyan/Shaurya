@@ -14,39 +14,14 @@
 4. Current state: design phase complete; INF-01 repository creation complete; no package or
    module code harvested yet. The next formal artifact is `MODULE_SPEC.md`.
 
-## Queued debate — open, not settled, do not resolve solo
+## Queued debate — resolved, see D19
 
-Added 2026-08-18 ~16:23 IST, sourced verbatim from Aryan's voice-captured thought at
-`~/Documents/OpenClaw/thoughts/2026-08-18.md` (16:20 IST entry, `Action status: unreviewed`).
-Aryan asked explicitly to record this and debate it live after the next session reset — do
-**not** silently decide it, fold it into an existing task, or start implementing against it
-before that conversation happens.
-
-Raw thought, as captured:
-
-> In the Shaurya engineering stack, because volatility surfaces are being implemented, build a
-> live dashboard so the surfaces can be seen in real time.
->
-> Surface construction can be computationally heavy and may not finish fast enough unless the
-> code is deliberately optimized; the surface path therefore needs latency-sensitive engineering,
-> not merely a batch/research implementation.
-
-Why this is a genuine open question, not just an addition to `ANL-03` (dashboard/read-only
-server) or `SUR-01` (surface interface): `SUR-07` already established that a raw surface takes
-~3s to compute and that quoting must consume a temporally smoothed surface, never a
-tick-synchronous raw frame — so there is an existing precedent that surface-fitting speed is a
-known constraint, not a new discovery. What's actually undecided is:
-
-1. Does "live" here mean a dashboard refreshed on `SUR-07`'s existing smoothed-surface cadence
-   (an `ANL-03` scope question), or does it mean surface *fitting itself* needs to be
-   latency-engineered — e.g. a C++ fitting path, not just Python research code (a `SUR`
-   component-scope question, and arguably a new stable task, not a widening of `SUR-01`)?
-2. If the latter, does that change `SUR`'s placement in the build order (currently step 3,
-   "mostly harvest from VOLARB... no dependency on broker decisions") or its language split
-   (Python-only today; NAT is the only component currently scoped for the live/C++ path)?
-3. Per this project's own rule (see below, "any new capability becomes a new stable task ID"),
-   this likely wants a new `SUR-0X` and/or `ANL-0X` row once scoped, not a silent edit to
-   `SUR-01`/`ANL-03`'s existing text.
+Added 2026-08-18 ~16:23 IST from Aryan's voice-captured thought, debated live on Telegram the
+same evening, and closed as **D19** in `TASKS.md`'s decisions log. Asked directly whether "live"
+meant a dashboard on `SUR`'s existing fit/smoothing cadence, or a hard latency requirement on the
+fit itself feeding quoting. Aryan: **"It's only about watching, no worries."** `ANL-03` already
+covers this (it harvests Market Making's `monday_v1/surface_dashboard.py`/`surface_server.py`);
+no new task, no change to `SUR`'s Python-only research-fit scope. See D19 for the full record.
 
 ## Do not re-ask settled questions
 

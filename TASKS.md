@@ -52,6 +52,7 @@ Decisions taken 2026-08-17 by voice. These are binding.
 | D16 | Historical tape source for tick-level `VOL` estimators — audit correction | **Confirmed 2026-08-18 by Aryan, resolving a contradiction found in that day's decision-completeness audit.** `DAT-03` genuinely cannot provide tick-level data (bars/coarser only, by its own definition) — so the historical tape `VOL-02`'s kernel/bipower estimators need has to be **built by accumulating `DAT-02`'s live stream, recorded via `DAT-05`**, not sourced from `DAT-03`. `VOL-02`'s task note previously claimed the opposite; corrected below. Testing is gated on enough live tape having accumulated, not on a fixed prerequisite task completing. |
 | D17 | Kite — fully dead, including instrument identity | **Confirmed 2026-08-18 by Aryan.** Kite carries no scope anywhere in the module. `CON-05` previously still listed a Kite `instrument_token` mapping as outstanding work — a leftover from before `D7`/`EXE-08` dropped Kite for execution, never scrubbed from `CON-05`. Removed; `CON-05` now scopes to Dhan and Kotak only. |
 | D18 | Kotak — data feed dropped, order-placement only | **Decided 2026-08-18 by Aryan, amending `D7`.** The module does not receive Kotak market data. Kotak's role is **order placement only** (place/cancel/modify/status/fills/margin) — never a data-receive source. `DAT-08` (Kotak market-data C++ path) is **dropped** as a direct consequence. This also resolves the audit gap flagged 2026-08-18 about missing Kotak storage sizing: since Kotak was never a data source in the corrected scope, no Kotak-side capture/storage sizing is needed, and the Dhan-only figures already in §7/§7.1 and `DAT-09` were correct by construction, not by oversight. |
+| D19 | Live surface dashboard — watching only, closes the queued debate | **Decided 2026-08-18 by Aryan (Telegram, 16:29 IST), resolving the voice thought queued earlier the same day in `NEXT_PROMPT.md`.** Asked directly whether "live" meant a dashboard on whatever cadence the surface fit naturally produces, or a hard latency requirement on the fit itself feeding quoting — Aryan: **"It's only about watching, no worries."** This is squarely `ANL-03` scope (dashboard/read-only server, already harvesting Market Making's `monday_v1/surface_dashboard.py` and `surface_server.py`), refreshed on whatever cadence `SUR-01`'s eSSVI fit and `SUR-07`'s smoothing already produce (~3s raw, smoothed for quoting) — nothing new to build in `SUR`. `SUR.md`'s line that Python remains authoritative for research surface fitting, with any live-order-path implementation separately designated, stands unchanged. **No new `SUR-0X` or `ANL-0X` task created** — `ANL-03` already covers this; its dependency `CON-03` is satisfied (tested 2026-08-18). |
 
 ### 1.1 Renames executed 2026-08-17
 
@@ -336,7 +337,7 @@ market impact is declared rather than modelled.
 |---|---|---|---|---|
 | ANL-01 | **P&L attribution and markout analysis — built once here, consumed twice** (decided 2026-08-17). Markout is fundamentally a ledger-derived measurement off `CON-02`, so it lives in `ANL` and `SIG-08` consumes it for adverse-selection measurement rather than reimplementing it — same pattern as `EXE-09`. **P&L must be decomposed, not reported gross:** delta, gamma, vega and theta P&L, spread capture, adverse selection, and fees. An undecomposed number says you made money without saying whether you were paid for liquidity or run over | Market Making `monday_v1/live_pnl_stats.py`, `replay_cumulative_pnl.py`, `analysis-runs/` | CON-02, GRK-02 | Not started |
 | ANL-02 | Reporting: per-run summary, per-day summary | `Shoshin/src/{report,analysis}.py`, `Market Making/analyze_day.py` | ANL-01 | Not started |
-| ANL-03 | Dashboard and read-only server | Market Making `monday_v1/{surface_dashboard,surface_server}.py`, `Still_Water/dashboard/` | CON-03 | Not started |
+| ANL-03 | Dashboard and read-only server, including real-time surface visualization (D19 — watching only, on `SUR`'s existing fit/smoothing cadence, no latency-engineered fit path) | Market Making `monday_v1/{surface_dashboard,surface_server}.py`, `Still_Water/dashboard/` | CON-03 | Not started |
 | ANL-04 | Notifications and alerts | `Shoshin/src/notifier.py`, `Still_Water/src/engine/notifications.py` | — | Not started |
 
 ### NAT — Native live engine
@@ -429,6 +430,13 @@ blocked until each old strategy is decided individually, when it is next touched
 
 ### 6.1 Work log
 
+- **2026-08-18 — D19, live surface dashboard debate closed.** Aryan's voice thought (queued
+  ~16:23 IST in `NEXT_PROMPT.md`, not resolved solo per his instruction) asked whether a live
+  surface dashboard implies latency-engineering the surface fit itself. Debated live on
+  Telegram: asked directly whether this was about watching or about quoting; Aryan answered
+  "It's only about watching, no worries." Recorded as D19 — confirms `ANL-03` already covers
+  this at `SUR`'s existing cadence, no new task, no change to `SUR`'s Python-only research-fit
+  scope.
 - **2026-08-18 — DAT-01 / minimal CON-01, CON-05, CON-08 / DAT-02 / DAT-05-lite.** Built an
   installable Python package; reconciled the two Dhan clients; added versioned tape and
   instrument contracts, permission-restricted run manifests, supervised standard + 20-level
