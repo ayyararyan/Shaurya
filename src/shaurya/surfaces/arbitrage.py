@@ -35,6 +35,7 @@ class ArbitrageViolation:
 
 @dataclass(frozen=True, slots=True)
 class ArbitrageReport:
+    calendar_required: bool
     butterfly_checked_points: int
     calendar_checked_points: int
     min_butterfly_density_factor: float | None
@@ -43,11 +44,13 @@ class ArbitrageReport:
 
     @property
     def passed(self) -> bool:
-        return not self.violations and self.butterfly_checked_points > 0
+        calendar_covered = not self.calendar_required or self.calendar_checked_points > 0
+        return not self.violations and self.butterfly_checked_points > 0 and calendar_covered
 
     def to_dict(self) -> dict[str, object]:
         return {
             "passed": self.passed,
+            "calendar_required": self.calendar_required,
             "butterfly_checked_points": self.butterfly_checked_points,
             "calendar_checked_points": self.calendar_checked_points,
             "min_butterfly_density_factor": self.min_butterfly_density_factor,
@@ -131,6 +134,7 @@ def check_arbitrage(
                 )
 
     return ArbitrageReport(
+        calendar_required=len(maturities) > 1,
         butterfly_checked_points=len(butterfly_values),
         calendar_checked_points=len(calendar_values),
         min_butterfly_density_factor=min(butterfly_values, default=None),

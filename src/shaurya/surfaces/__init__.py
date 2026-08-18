@@ -7,11 +7,16 @@ from .base import (
     SurfaceUse,
     VolatilitySurface,
 )
+from .essvi import ESSVISlice, ESSVISurface, InsufficientSurfaceData, SurfaceCalibrationError
 
 __all__ = [
     "EvaluationStatus",
+    "ESSVISlice",
+    "ESSVISurface",
+    "InsufficientSurfaceData",
     "SurfaceEvaluation",
     "SurfaceFitRequest",
     "SurfaceUse",
+    "SurfaceCalibrationError",
     "VolatilitySurface",
 ]
