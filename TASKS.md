@@ -8,6 +8,11 @@ commit messages. If a task is not in this file it is not being worked on.
 **Owner:** Aryan Ayyar
 **Location:** `Google Drive/My Drive/Dhandho/shaurya/`
 
+**Next substantive step (updated 2026-08-18):** `MODULE_SPEC.md` and all 13 per-component
+specifications under `docs/module-spec/` are drafted, with every non-dropped task mapped to one
+stable `REQ-*` row. Review/freeze this specification set, then continue implementation in the
+recorded dependency order without reopening D1–D18.
+
 ---
 
 ## 0. How to use this file
@@ -406,18 +411,16 @@ tree at `700`/`600`; the module adopts that pattern from day one (INF-05).
 | Decisions | D1–D18 taken. **D3 satisfied — component list agreed.** O1, O2, O3, O4, O6 resolved. **O5 still open (deliberately deferred). `DAT-09`'s packet-rate, 20-level concurrent-cap, and retention inputs are closed as of 2026-08-18; only the exact per-message ceiling and universe/band-width sizing (DAT-11/DAT-13, and the connection-count math they feed) remain, tracked as their own small task rows rather than left open-ended.** D16–D18 (2026-08-18) closed the three findings from that day's decision-completeness audit: `VOL-02`'s data-source note corrected, Kite dropped from `CON-05`, Kotak dropped as a data source (`DAT-08` dropped). |
 | Renames | Done and verified — GitHub `→ Market-Making`, Drive `→ Valour` |
 | Component list | **Agreed and frozen 2026-08-17 (D15). 13 components: INF, CON, SUR, GRK, VOL, DAT, EXE, SIG, RSK, BKT, ANL, NAT, MIG.** |
-| `MODULE_SPEC.md` | Not started — blocked on the component list |
+| `MODULE_SPEC.md` | **Drafted 2026-08-18** — root index plus 13 per-component specifications under `docs/module-spec/`; all 107 non-dropped task IDs mapped exactly once to stable `REQ-*` rows with code/test/output targets |
 | Repository | **Created 2026-08-17** — private `ayyararyan/Shaurya`; canonical design artifacts pushed on `main` |
 | Code harvested | Dhan clients reconciled from Mushin_Gamma + Shoshin; feed patterns generalized from Mushin_Gamma + Still_Water into the standalone `shaurya` package |
 | Tasks in progress | None. DAT-01/DAT-02/DAT-10 and their minimal CON-01/CON-05/CON-08 support are fully live-verified for the authorised scope; `DAT-08` is dropped (D18); DAT-09's core measurement questions are closed, with DAT-11/DAT-12/DAT-13 tracking the three remaining small follow-ups; DAT-05 (deterministic replay) and the remaining CON/DAT tasks (DAT-03/04/06/07) are still not started |
 
-**Immediate next action:** DAT-01/DAT-02/DAT-10's authorised scope is closed out, and DAT-09's
-measurement phase is closed (packet rate, 20-level concurrent-cap, retention all settled
-2026-08-18). What's left is either the small DAT-11/12/13 follow-ups (exact ceiling, reconnect
-behaviour, 200-level liquidity control), the capture-universe band-width decision that now has
-to be re-derived against the real ~50-100/socket ceiling instead of the assumed 5,000, or
-moving to the next component in build order (SUR/GRK/VOL harvest, or DAT-03/04/05/06/07
-depending on Aryan's priority). NIFTY-Aug2026-FUT was a test instrument only in every run so
+**Immediate next action:** Review/freeze `MODULE_SPEC.md` and the 13 linked component
+specifications, then continue implementation in the recorded dependency order. The first live
+DAT follow-up remains DAT-11's 2026-08-19 bisection of the exact 20-level ceiling within the
+measured 52-worked/206-failed band; DAT-12 and DAT-13 retain the reconnect and 200-level
+liquidity-vs-throttle questions. NIFTY-Aug2026-FUT was a test instrument only in every run so
 far and is not a capture-universe/depth/retention decision.
 
 **O4 is resolved (D7) — `EXE` is unblocked.** `EXE-07` and `EXE-08` are dropped; `EXE-01`
