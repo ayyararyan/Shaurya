@@ -1,69 +1,72 @@
 # Shaurya — Next-Session Prompt
 
-**Prepared:** 2026-08-17, last updated 2026-08-19 ~01:16 IST
+**Prepared:** 2026-08-17, last updated 2026-08-19 ~01:40 IST
 **Use on return:** 2026-08-19, including the market-open window from 09:15 IST
 **Repository:** private `ayyararyan/Shaurya`
 **Canonical status ledger:** `TASKS.md`
 
-## START HERE — session was reset 2026-08-19 ~01:16 IST with two agents still running
+## START HERE — both commissioned agents have landed and been verified
 
-**Do these three checks before anything else.**
+Nothing is outstanding from the 2026-08-19 ~01:16 IST reset. Both `sig_maker_research` and
+`shaurya_dat14_trade_signing` finished, and both were checked independently rather than accepted.
+**The open work is the story-by-story SIG debate and the market-hours DAT runs in section 3.**
 
 ### 1. The maker research report — this is what the next conversation is for
 
-`sig_maker_research` was commissioned once **D21** settled that Shaurya quotes and never crosses.
-The first research report was written for a directional taker, so its targets invert for a maker;
-this second report exists to say what a maker should actually do. It writes to
-`research/sig-maker-research-2026-08-19.md` in the OpenClaw workspace (not this repo).
+`research/sig-maker-research-2026-08-19.md` (OpenClaw workspace, not this repo). 9,235 words.
+Commissioned once **D21** settled that Shaurya quotes and never crosses.
 
-- task name: `sig_maker_research`
-- run ID: `be2aa0f5-8b0c-4409-b8a5-a47a2653b3d7`
-- session key: `agent:main:subagent:5a5747e9-1d95-4154-8bda-5b5cd0747cc8`
+**Verified 2026-08-19:** 23 of 23 peer-reviewed citations resolve correctly against Crossref with
+matching author, title, venue, volume and pages — against roughly a one-in-seven error rate in the
+first, taker-framed report. Every India-specific fact was checked against the primary circulars
+(STT rates from 2026-04-01, transaction charges FA/73061, lot sizes FAOP/70616, the expiry-day
+move, the weekly rationalisation, the 50.22% colocation share). The cost arithmetic was
+re-derived by hand and reproduces. One unresolved caveat: the report claims to have corrected an
+erroneous author list, but that correction is not documented in its body.
 
-It covers quoting theory derived rather than name-dropped, fill probability and queue dynamics
-under **D23**, adverse-selection measurement, options-specific making across a shared surface, the
-non-co-located maker problem (with explicit permission to conclude no edge exists in some regimes),
-NSE maker economics including the STT asymmetry on option sales, and which of the first report's
-twelve stories survive the inversion. A mid-flight correction was sent to it carrying D23; confirm
-that landed in its section 2.
+Governing conclusion, stated as an inference from market structure and not a measurement:
+**presume one-tick at-touch quoting in the liquid NIFTY complex has no viable edge for a
+non-colocated retail-feed maker**, overturnable only by fill-conditioned, latency-realistic
+evidence. Structural output is **MK-01 – MK-13**, preregistered in four tiers, with **MK-05 as an
+explicit kill test** on the liquid contracts before any control-model work is justified.
 
-**When it arrives: read it, verify its citations rather than trusting them** — the first report ran
-roughly a one-in-seven citation error rate — **then resume the story-by-story debate with Aryan.**
-The debate is the work; the claim ledger (D22) is its output. Do not start writing ledger claims
-from the taker report alone.
+It corrected an error of mine that must not propagate: STT and transaction charges are
+*percentages of premium*, so they **do** scale down with option price — a ₹5 option round trip
+costs ~0.24 ticks against ~0.95 ticks at ₹20. Cheap OTM options are not disqualified by tax.
 
-### 2. The DAT-14 build
+**Next action: resume the story-by-story debate with Aryan.** The debate is the work; the
+claim ledger (**D22**) is its output. Do not write ledger claims from the taker report alone, and
+resolve each citation as its claim is reached.
 
-`shaurya_dat14_trade_signing` was implementing capture-path trade-direction classification per
-**D24**, committing to this clone. Check whether it finished and whether its commits are on
-`origin/main`; verify its claims independently rather than accepting its report, and re-check the
-ledger row it wrote for an honest evidence level.
+### 2. The DAT-14 build — landed, independently verified
 
-- task name: `shaurya_dat14_trade_signing`
-- run ID: `abf57826-54b5-4fc5-a563-0d9520d8ce61`
-- session key: `agent:main:subagent:cab7a4b6-3730-4aa9-8cdc-26c0d8795945`
+Pushed as `4855778` + `9f96380`; `origin/main` and local HEAD match, tree clean.
 
-### 3. Today's market-hours work — Aryan's explicit instruction
+**Reproduced from scratch, not accepted:** replaying all five retained tapes through the
+classifier gives exactly 21,279 rows and 12 positive-volume print intervals — 3 buy, 8 sell,
+1 unclassified, 1 degraded, 5 coalesced — matching the agent's report line for line. Gates
+re-run independently: 100 tests under both pytest entry points, strict mypy clean on 30 files,
+ruff clean. The `1.0.0` tapes still parse under schema `1.1.0`, which the replay itself proves.
 
-**When the market opens today (2026-08-19), five DAT items need live runs.** Aryan named DAT-15 as
-joining the existing list and said both the new items are to be tested and then patched in
-accordingly.
+The rule is real: quote rule against the midpoint in decimal arithmetic, tick-rule fallback only
+at mid, and explicit degraded `UNCLASSIFIED` for a missing, crossed or stale quote rather than a
+silent forward-fill. Alignment never looks forward (`quote.state_receive_ts <= print.receive_ts`),
+and a connection gap or reconnect discards the quote state instead of carrying it across.
 
-- **DAT-11** — bisect the exact 20-level per-message instrument ceiling within the measured 52-206
-  band.
-- **DAT-12** — does reconnecting a socket reset the first-message-only limit, or is the cap on the
-  account?
-- **DAT-13** — is the 200-level packet skew a real throttle or just liquidity? Rerun with
-  comparably liquid instruments.
-- **DAT-14** — live-verify the capture-path classifier against a real session. Tonight's acceptance
-  is at best dry-run on retained tape; the Live verified level requires market hours.
-- **DAT-15** — measure the cross-channel alignment error: how stale the depth quote is when a print
-  lands, how often that staleness would flip a classification, and how it varies by instrument,
-  depth tier and time of day. **This bounds the reliability of every signed-flow feature
-  downstream**, so it is a measured distribution and flip-rate, never an assumption.
+**Three findings from the verification that the next session should carry forward:**
 
-Probes for DAT-11/12/13 are already written and tested. DAT-14/15 depend on what the build agent
-landed.
+- **Classification requires a simultaneous depth subscription on the same instrument.** The
+  alignment rule deliberately excludes the book bundled with the print itself — correct, since
+  that book may already reflect the trade — so the prevailing quote can only come from the
+  depth20/depth200 channels. A Quote/Full-only capture classifies nothing. That couples DAT-14
+  directly to **DAT-11**'s per-socket instrument ceiling: signing trades costs depth capacity.
+- **The evidence base is 12 prints from one instrument in one ~7-minute tape.** The rule is
+  well unit-tested, but only the quote-rule path was exercised against real data; the tick-rule
+  fallback has never fired outside tests. Treat the dry-run level as genuinely thin.
+- **Early coalescing numbers, anecdote not measurement (n=12):** the signed last print covers
+  only **63%** of traded volume — 2,210 of 3,510 units — so 37% carries no attributable sign.
+  Quote ages at classification ran 58–427 ms against the 1 s freshness bound. Both numbers are
+  exactly what **DAT-15** exists to measure properly.
 
 ## Mandatory restart context
 
@@ -76,12 +79,12 @@ landed.
 5. **Current state as of 2026-08-19 ~01:16 IST**, superseding the 2026-08-17 line that said no
    code had been harvested: real code exists and is pushed. `origin/main` is at the commit
    recorded below. CON contracts, INF packaging, the full DAT component, and the SUR eSSVI
-   surface stack are implemented, with 89 tests, strict mypy clean, ruff clean. Per-component
+   surface stack are implemented, with 100 tests, strict mypy clean on 30 files, ruff clean. Per-component
    specs live in `docs/module-spec/*.md`; `MODULE_SPEC.md` is the index over them.
 6. **Market-hours work is listed in START HERE section 3** — DAT-11 through DAT-15. Do not
    attempt any of it outside 09:15–15:30 IST; it is not a reset-session activity.
 
-## SIG discussion — round 1 held 2026-08-19, now waiting on commissioned research
+## SIG discussion — round 1 held 2026-08-19; both commissioned reports have landed
 
 Held on Telegram ~00:05–00:25 IST. Three framing questions were put: sampling clock, pooling
 coordinate, and prediction-horizon set. Aryan's answer to all three was the same — **we do not
@@ -99,8 +102,11 @@ would falsify it. Aryan's own worked example of the shape: options can be traded
 volatility arbitrage, or by predicting the forward and hence the option's fair value some seconds
 ahead — which of those is real is a data question, not a modelling preference.
 
-On return: read that report first, then resume the SIG discussion from it. Do not re-derive
-`SIG-01`–`SIG-20`; this is sharpening and narrowing, not redesign.
+**Both reports are now in and verified — see START HERE section 1.** The taker report
+(`research/sig-feature-research-2026-08-19.md`) carries four inline corrections and a standing
+citation-reliability warning; the maker report supersedes its framing under **D21**. Resume the
+story-by-story debate from the maker report. Do not re-derive `SIG-01`–`SIG-20`; this is
+sharpening and narrowing, not redesign.
 
 ## Queued debate — resolved, see D19
 
@@ -132,7 +138,11 @@ At session start, do not interview Aryan. Convert the recorded decisions into fo
 work. Ask only if implementation exposes a genuinely new meaning-changing choice not answered by
 the ledger.
 
-## First five actions on return
+## First five actions on return — ALL COMPLETED, retained as history
+
+These were written on 2026-08-17 and are done: `MODULE_SPEC.md` and the per-component specs in
+`docs/module-spec/` exist, the traceability ledger is `TASKS.md`, and the DAT-01/02 read-only
+bootstrap is live-verified. Do not re-run them. The live work is START HERE section 3.
 
 1. **Decision-completeness audit.** Map D1–D15 and every non-dropped task into a requirement
    inventory; identify contradictions or genuinely missing meanings without asking Aryan to repeat
