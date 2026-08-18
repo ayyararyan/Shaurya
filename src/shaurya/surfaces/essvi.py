@@ -318,6 +318,7 @@ class ESSVISurface(VolatilitySurface):
     _instrument_scope: tuple[str, ...]
     _fit_metrics: dict[str, object]
     _policy: SurfaceInterpolationPolicy = SurfaceInterpolationPolicy()
+    _temporally_smoothed: bool = False
 
     @staticmethod
     def total_variance(
@@ -808,7 +809,7 @@ class ESSVISurface(VolatilitySurface):
 
     @property
     def is_temporally_smoothed(self) -> bool:
-        return False
+        return self._temporally_smoothed
 
     @property
     def slices(self) -> tuple[ESSVISlice, ...]:

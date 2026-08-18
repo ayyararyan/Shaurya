@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 
 import pytest
 
 from shaurya.contracts.tape import DepthLevel, TapeRow
 from shaurya.contracts.timing import IST
-from shaurya.surfaces.base import EvaluationStatus, SurfaceFitRequest
+from shaurya.surfaces.base import EvaluationStatus, SurfaceFitRequest, SurfaceUse
 from shaurya.surfaces.essvi import (
     ESSVISurface,
     InsufficientSurfaceData,
     black76_price,
 )
+from shaurya.surfaces.state import ESSVITemporalSmoother, staleness_measurement
 
 VALUATION = datetime(2026, 8, 18, 10, 0, tzinfo=IST)
 EXPIRIES = {
@@ -180,3 +182,57 @@ def test_fit_fails_explicitly_when_any_requested_slice_lacks_support() -> None:
     rows = tuple(row for row in _synthetic_chain() if ":2026-09-24:" not in row.instrument_id)
     with pytest.raises(InsufficientSurfaceData, match="2026-09-24=0"):
         ESSVISurface.fit(_request(rows=rows))
+
+
+def test_temporal_smoother_requires_two_frames_and_preserves_arbitrage() -> None:
+    first = ESSVISurface.fit(_request())
+    later_rows = tuple(
+        replace(
+            row,
+            receive_ts=row.receive_ts + timedelta(seconds=5),
+            receive_sequence=row.receive_sequence + 100,
+        )
+        for row in _synthetic_chain(theta_shift=0.0001)
+    )
+    second = ESSVISurface.fit(
+        SurfaceFitRequest(
+            tape_rows=later_rows,
+            valuation_timestamp=VALUATION + timedelta(seconds=5),
+            forward_by_expiry=FORWARDS,
+            expiry_timestamp_by_expiry=EXPIRIES,
+            risk_free_rate=0.05,
+            previous_surface=first,
+        )
+    )
+    smoother = ESSVITemporalSmoother(half_life_seconds=10.0)
+    first_output = smoother.update(first)
+    assert not first_output.is_temporally_smoothed
+    with pytest.raises(ValueError, match="temporally smoothed"):
+        first_output.assert_ready_for(SurfaceUse.QUOTING)
+
+    smoothed = smoother.update(second)
+    assert smoothed.is_temporally_smoothed
+    assert smoothed.arb_check().passed
+    for first_slice, second_slice, smoothed_slice in zip(
+        first.slices, second.slices, smoothed.slices, strict=True
+    ):
+        assert min(first_slice.theta, second_slice.theta) <= smoothed_slice.theta
+        assert smoothed_slice.theta <= max(first_slice.theta, second_slice.theta)
+
+    diagnostics = _diagnostics(smoothed)
+    assert diagnostics["smoothing"]["component_count"] == 2
+    assert diagnostics["smoothing"]["arbitrage_rechecked"] is True
+    frame = smoothed.to_frame(
+        run_id="sha-20260818T043000.000000Z-synthetic",
+        surface_id="nifty-smoothed",
+        decision_timestamp=VALUATION + timedelta(seconds=10),
+        staleness_threshold_seconds=30.0,
+        use=SurfaceUse.QUOTING,
+    )
+    assert not frame.is_stale
+
+
+def test_staleness_boundary_is_entirely_caller_supplied() -> None:
+    assert staleness_measurement(age_seconds=3.0, threshold_seconds=3.0) is False
+    assert staleness_measurement(age_seconds=3.0001, threshold_seconds=3.0) is True
+    assert staleness_measurement(age_seconds=3.0, threshold_seconds=10.0) is False

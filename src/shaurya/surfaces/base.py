@@ -25,6 +25,7 @@ class EvaluationStatus(StrEnum):
     FITTED = "fitted"
     INTERPOLATED = "interpolated"
     EXTRAPOLATED = "extrapolated"
+    SMOOTHED = "smoothed"
     DATA_INSUFFICIENT = "data_insufficient"
 
 
