@@ -14,17 +14,26 @@
 4. Current state: design phase complete; INF-01 repository creation complete; no package or
    module code harvested yet. The next formal artifact is `MODULE_SPEC.md`.
 
-## Queued discussion — SIG / feature engineering (OPEN, not yet held)
+## SIG discussion — round 1 held 2026-08-19, now waiting on commissioned research
 
-Added 2026-08-18 ~23:58 IST from Aryan on Telegram, mid-session, right before he reset the main
-session. Explicit instruction: hold a **detailed discussion on SIG (signal research) and feature
-engineering** in a future session — not a quick Q&A round like SUR/CON, a real discussion. This
-was queued while DAT and SUR builds were running in parallel in the background (DAT directly in
-`/Users/maheit/Documents/Shaurya`, SUR in an isolated worktree) — check `TASKS.md` and recent
-commit history for whether those finished and what they built before starting this discussion, so
-it's grounded in what actually landed rather than what was planned. See `SIG.md` for the existing
-spec (SIG-01–SIG-20 last recorded) before framing questions — this is a discussion to sharpen or
-extend that spec, not to re-derive it from scratch.
+Held on Telegram ~00:05–00:25 IST. Three framing questions were put: sampling clock, pooling
+coordinate, and prediction-horizon set. Aryan's answer to all three was the same — **we do not
+know, and only the data can tell us** — recorded as **D20** in `TASKS.md` and written into
+`docs/module-spec/SIG.md` under "Measurement design is empirical". All three become swept axes in
+`SIG-19`'s trial log and are counted in `SIG-12`'s grid.
+
+**Aryan's instruction, binding on the next session:** no further SIG design decision is taken
+until a commissioned literature review lands. A single `sessions_spawn` research agent
+(`sig_feature_research`) was started 2026-08-19 ~00:22 IST once the DAT and SUR builds finished,
+briefed to survey what actually moves NSE index futures and options — weighted heavily toward
+Indian market structure, organised by horizon, reading across viewpoints rather than one school,
+and for each candidate story stating what the data would have to show for it to be true and what
+would falsify it. Aryan's own worked example of the shape: options can be traded through
+volatility arbitrage, or by predicting the forward and hence the option's fair value some seconds
+ahead — which of those is real is a data question, not a modelling preference.
+
+On return: read that report first, then resume the SIG discussion from it. Do not re-derive
+`SIG-01`–`SIG-20`; this is sharpening and narrowing, not redesign.
 
 ## Queued debate — resolved, see D19
 

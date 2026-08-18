@@ -24,6 +24,21 @@ Make “data leads, strategy follows” operational (D8): construct a taxonomy-c
 - Feature computation supports bounded-state forward streaming for the permanent feature tier. Permanent raw retention (D12/DAT-09) makes later recomputation possible where the tape contains the information.
 - Black-box models are diagnostic yardsticks for the residual information gap, not promotable strategies (D11).
 
+## Measurement design is empirical (D20)
+
+The sampling clock (event / calendar / volume time), the pooling coordinate (instrument identity
+versus a stationary delta-moneyness x tenor coordinate), and the prediction horizon set are **not
+specification constants**. Decided 2026-08-19: they are empirical questions resolved by
+measurement, and the answer is permitted to change as more tape accumulates. D12's raw event-time
+tape is the maximal-information capture choice, so none of the three is foreclosed at collection
+time.
+
+Consequently each is an explicit swept axis in the SIG-19 trial log and is counted in SIG-12's
+multiple-testing grid; none may be silently fixed by an implementation. Because an unbounded sweep
+over clock x pooling x horizon x feature set is correctly annihilated by Romano-Wolf and deflated
+Sharpe, the plausible ranges of the three axes must be narrowed from theory and prior evidence
+before the sweep begins, never by inspecting outcomes.
+
 ## Requirements and traceability
 
 | Requirement | Normative statement | TASKS.md trace | Code target | Test / output target |
@@ -39,14 +54,14 @@ Make “data leads, strategy follows” operational (D8): construct a taxonomy-c
 | REQ-SIG-09 | Construct strictly lagged labels; separate contemporaneous impact from prediction and ban targets deterministic in current features. | SIG-09, CON-07 | TBD labels module | Leakage and deterministic-target rejection tests |
 | REQ-SIG-10 | Cluster/PCA correlated features before selection and compute importance at cluster, not individual collinear-feature, level. | SIG-10, D11 | TBD redundancy module | Synthetic-collinearity tests; cluster artifact |
 | REQ-SIG-11 | Use HAC/Newey–West with lag at least overlap, non-overlapping resampling, and stationary block bootstrap; report effective sample size with every t-statistic. | SIG-11 | TBD inference module | Coverage/calibration fixtures; inference report |
-| REQ-SIG-12 | Control multiple testing over the full recorded search grid using Romano–Wolf or Hansen SPA. | SIG-12 | TBD multiple-testing module | Null-grid calibration tests; adjusted finding record |
+| REQ-SIG-12 | Control multiple testing over the full recorded search grid using Romano–Wolf or Hansen SPA; the grid includes the sampling-clock, pooling-coordinate, and horizon axes (D20), not features alone. | SIG-12, D20 | TBD multiple-testing module | Null-grid calibration tests; adjusted finding record |
 | REQ-SIG-13 | Run stability selection inside purged/embargoed walk-forward CV, report per-cluster/window frequency, and use knockoffs as confirmation. | SIG-13, D11 | TBD selection module | Purge/embargo/FDR tests; selection-frequency artifact |
 | REQ-SIG-14 | Decompose contemporaneous and predictive effects with a Hasbrouck VAR, impulse responses, and permanent/transitory impact. | SIG-14 | TBD impact module | Simulated-VAR recovery tests; decomposition report |
 | REQ-SIG-15 | Evaluate OOS R² against no-change, compare forecasts with Diebold–Mariano/Giacomini–White, and report Hansen's Model Confidence Set. | SIG-15, D11 | TBD evaluation module | Known-ranking/equal-model tests; MCS report |
 | REQ-SIG-16 | Condition every result on VOL's HMM regime and downgrade regime-unstable signs to regime indicators. | SIG-16 | TBD regime evaluation | Regime-slice/sign-stability tests |
 | REQ-SIG-17 | Promote a finding only when predicted edge clears half-spread, fees, and adverse selection under EXE-09. | SIG-17 | TBD economic gate | Boundary/cost/fill-model tests; promotion decision |
 | REQ-SIG-18 | Measure the OOS gap between raw-book and engineered-feature models and diagnose residuals by time, regime, and raw-book slices; unexplained gaps create missing-feature tickets. | SIG-18, D11, D12 | TBD coverage module | Golden-tape residual-gap report and ticket output |
-| REQ-SIG-19 | Log every tested configuration and report a performance distribution using combinatorially purged CV and deflated Sharpe. | SIG-19 | TBD trial registry | Append-only/completeness tests; trial log |
+| REQ-SIG-19 | Log every tested configuration — including sampling clock, pooling coordinate, and horizon (D20) — and report a performance distribution using combinatorially purged CV and deflated Sharpe. | SIG-19, D20 | TBD trial registry | Append-only/completeness tests; trial log |
 | REQ-SIG-20 | Require each permanent-tier feature to be computable in one bounded-state forward pass without future data or same-day refit. | SIG-20, DAT-09 | TBD streaming feature API | Streaming/batch parity, bounded-state, leakage tests |
 
 ## Outputs and acceptance tests
