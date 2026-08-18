@@ -10,7 +10,7 @@ import pytest
 from shaurya.contracts.artifacts import ArtifactManifest, RunId
 from shaurya.contracts.instruments import DhanInstrumentMaster, InstrumentKind
 from shaurya.contracts.tape import DepthLevel, QualityFlag, TapeRow
-from shaurya.data.tape import JsonlTapeWriter
+from shaurya.data.tape import JsonlTapeReader, JsonlTapeWriter, TapeIntegrityError
 
 
 def _row(run_id: str) -> TapeRow:
@@ -97,3 +97,50 @@ def test_invalidation_appends_without_removing_the_tape(tmp_path: Path) -> None:
     last = json.loads(manifest.path.read_text().splitlines()[-1])
     assert last["event_type"] == "run_invalidated"
     assert last["status"] == "invalidated"
+
+
+def test_deterministic_replay_preserves_rows_order_and_quality(tmp_path: Path) -> None:
+    run_id = RunId("sha-20260818T053000.000000Z-feedface")
+    manifest = ArtifactManifest.create(tmp_path, run_id)
+    first = _row(str(run_id))
+    second_payload = first.to_dict()
+    second_payload["receive_sequence"] = 2
+    second_payload["update_side"] = "ask"
+    second_payload["quality_flags"] = [QualityFlag.CROSSED_BOOK]
+    second = TapeRow.from_dict(second_payload)
+    with JsonlTapeWriter(manifest, fsync_every=1) as writer:
+        writer.write(first)
+        writer.write(second)
+
+    replayed: list[TapeRow] = []
+    count = JsonlTapeReader(writer.path, expected_run_id=str(run_id)).replay(replayed.append)
+    assert count == 2
+    assert replayed == [first, second]
+    assert replayed[1].quality_flags == (QualityFlag.CROSSED_BOOK,)
+
+
+def test_replay_rejects_sequence_gap_before_delivering_later_row(tmp_path: Path) -> None:
+    run_id = "sha-20260818T053000.000000Z-feedface"
+    first = _row(run_id).to_dict()
+    third = dict(first, receive_sequence=3)
+    path = tmp_path / "tape.jsonl"
+    path.write_text(json.dumps(first) + "\n" + json.dumps(third) + "\n", encoding="utf-8")
+    delivered: list[TapeRow] = []
+    with pytest.raises(TapeIntegrityError, match="sequence gap"):
+        JsonlTapeReader(path, expected_run_id=run_id).replay(delivered.append)
+    assert [row.receive_sequence for row in delivered] == [1]
+
+
+def test_replay_rejects_mixed_run_ids_and_blank_rows(tmp_path: Path) -> None:
+    first = _row("sha-20260818T053000.000000Z-feedface").to_dict()
+    second = _row("sha-20260818T053000.000000Z-deadbeef").to_dict()
+    second["receive_sequence"] = 2
+    mixed = tmp_path / "mixed.jsonl"
+    mixed.write_text(json.dumps(first) + "\n" + json.dumps(second) + "\n", encoding="utf-8")
+    with pytest.raises(TapeIntegrityError, match="run_id changed"):
+        list(JsonlTapeReader(mixed).rows())
+
+    blank = tmp_path / "blank.jsonl"
+    blank.write_text(json.dumps(first) + "\n\n", encoding="utf-8")
+    with pytest.raises(TapeIntegrityError, match="blank tape row"):
+        list(JsonlTapeReader(blank).rows())
