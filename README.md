@@ -183,7 +183,8 @@ expensive — a silent scope reduction here breaks every strategy downstream, no
 
 ## 7. Roadmap
 
-Sequenced so that the earliest steps make later steps cheaper. Nothing here is authorised yet.
+Sequenced so that the earliest steps make later steps cheaper. This is architectural context;
+authorisation and live implementation status are recorded only in `TASKS.md`.
 
 **Phase 0 — decide and freeze**
 Resolve the open questions in §9, write `MODULE_SPEC.md` with stable requirement IDs, freeze scope.
@@ -247,5 +248,5 @@ Full decision log, reasoning, and the executed renames are in
 
 ## 10. Status
 
-Status lives in [`TASKS.md`](TASKS.md), not here. In summary: design note and task ledger
-written, component list still provisional, nothing implemented, nothing authorised.
+Status lives only in [`TASKS.md`](TASKS.md). This README intentionally carries no parallel
+task-status summary.

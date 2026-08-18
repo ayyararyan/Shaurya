@@ -146,14 +146,14 @@ downstream has to be reworked.
 
 | ID | Task | Harvest from | Depends on | Status |
 |---|---|---|---|---|
-| CON-01 | Snapshot/tape row schema: BBO, depth, timestamps, quality flags | Market Making `surface_snapshots_<run_id>.csv` schema, `monday_v1/snapshot_tape.py` | — | Not started |
+| CON-01 | Snapshot/tape row schema: BBO, depth, timestamps, quality flags | Market Making `surface_snapshots_<run_id>.csv` schema, `monday_v1/snapshot_tape.py` | — | **Live verified 2026-08-18** — versioned Python contract carried 20-level BBO/depth, receive/exchange timestamps, source/receive sequences, and explicit quality flags in authoritative live run `sha-20260818T055709.463701Z-ea8228c8` |
 | CON-02 | Ledger row schema: placement, execution, cancel/reject, cycle P&L, order role, quote price, order age, book state, K, break-even spread, fill price | Market Making master CSV ledger definition, `native/src/shaurya_ledger.cpp` | — | Not started |
 | CON-03 | Surface frame schema: parameters, fit diagnostics, surface age, staleness flag | Market Making `monday_v1/surface_region.py` | — | Not started |
 | CON-04 | Config schema: one format, consumed by both Python and C++ | Market Making `tomorrow.example.json`, `Still_Water/config/runtime_profile.json` | — | Not started |
-| CON-05 | **Instrument identity.** Dhan `security_id`, Kotak token, Kite `instrument_token` are three different ID systems for the same contract. Define one internal instrument representation plus per-broker mapping | `Shoshin/security_id_list.csv`, Market Making `nifty_futures_token.txt`, `Market Making/api-scrip-master.csv` | — | Not started |
+| CON-05 | **Instrument identity.** Dhan `security_id`, Kotak token, Kite `instrument_token` are three different ID systems for the same contract. Define one internal instrument representation plus per-broker mapping | `Shoshin/security_id_list.csv`, Market Making `nifty_futures_token.txt`, `Market Making/api-scrip-master.csv` | — | **Implemented 2026-08-18 for the authorised Dhan/DAT minimum; Dhan slice Live verified. Full task incomplete:** broker-neutral identity + date-stamped Dhan `security_id` mapping loaded the staged reference master and mapped live NIFTY-Aug2026-FUT packets; Kotak/Kite mappings remain not implemented |
 | CON-06 | Object-category labelling convention: observed / derived / estimated / scenario / proxy / unidentified, carried in artifacts | Working contract §7.1 | — | Not started |
 | CON-07 | Time convention: exchange timestamp vs receive timestamp vs decision timestamp; IST throughout; explicit causality rule | Market Making `surface_live.py` (`as_of` causality) | — | Not started |
-| CON-08 | Run-ID and artifact-manifest convention: append-only, unique per run, invalidated runs preserved and marked | Market Making `surface_run_manifest_<run_id>.json` | — | Not started |
+| CON-08 | Run-ID and artifact-manifest convention: append-only, unique per run, invalidated runs preserved and marked | Market Making `surface_run_manifest_<run_id>.json` | — | **Live verified 2026-08-18** — unique sortable run ID, permission-restricted append-only JSONL manifest, artifact hashes, completion/invalidation events; failed diagnostic runs preserved and authoritative run hash-verified |
 | CON-09 | **Opportunity/finding schema (D8).** A record of what the data shows, independent of any strategy or ledger entry: window, statistic, magnitude, confidence/significance, object-category label. Exists upstream of any strategy decision — the artifact that lets data lead and strategy follow | New | CON-06, CON-07 | Not started |
 
 ### SUR — Volatility surfaces
@@ -209,11 +209,11 @@ does not substitute for DAT-02 here.
 
 | ID | Task | Harvest from | Depends on | Status |
 |---|---|---|---|---|
-| DAT-01 | **Reconcile the two Dhan clients into one.** Two independent implementations exist; diff them, choose the canonical one, document what the loser did differently and why it was dropped | `Mushin_Gamma/src/mushin_gamma/dhan_io.py` (13K) and `Shoshin/src/dhan_client.py` (8.4K) | — | Not started |
-| DAT-02 | Dhan live streaming: ticks and depth, reconnect, heartbeat, sequence-gap detection. **Elevated priority** (decided 2026-08-17 — see priority note above; this is the only source of tick-level data for VOL-02, so collection needs to start now, not once the rest of DAT is built out) | `Mushin_Gamma/src/mushin_gamma/feed.py`, `Still_Water/src/engine/data_feed.py` | DAT-01 | Not started |
+| DAT-01 | **Reconcile the two Dhan clients into one.** Two independent implementations exist; diff them, choose the canonical one, document what the loser did differently and why it was dropped | `Mushin_Gamma/src/mushin_gamma/dhan_io.py` (13K) and `Shoshin/src/dhan_client.py` (8.4K) | — | **Tested 2026-08-18** — Mushin won as structural base; Shoshin retry/pacing/normalisation merged; exact reconciliation in `docs/DAT_01_RECONCILIATION.md`; Dhan execution methods excluded under D7 |
+| DAT-02 | Dhan live streaming: ticks and depth, reconnect, heartbeat, sequence-gap detection. **Elevated priority** (decided 2026-08-17 — see priority note above; this is the only source of tick-level data for VOL-02, so collection needs to start now, not once the rest of DAT is built out) | `Mushin_Gamma/src/mushin_gamma/feed.py`, `Still_Water/src/engine/data_feed.py` | DAT-01 | **Dry-run verified 2026-08-18 overall; 20-level subpath Live verified.** Standard Full + 20-level parsing, reconnect/resubscribe, heartbeat, source-sequence-gap detector, reconnect-boundary gaps, metrics, and per-enabled-channel acceptance are implemented/tested. Live run `sha-20260818T055709.463701Z-ea8228c8` verified 20-level depth + heartbeat; standard tick/5-level live verification is blocked because the staged access token expired 2026-08-12 and that endpoint closes code 1006 |
 | DAT-03 | Historical fetch and local storage against a stable on-disk schema. **Bars/coarser granularity only — no tick-level history available from any broker API** (noted 2026-08-17, see priority note above) | `VOLARB/voltaire/src/data/{historical_fetcher,storage}.py`, `Shoshin/src/data_downloader.py` | CON-01 | Not started |
 | DAT-04 | Option-chain fetch and validation | `VOLARB/voltaire/src/data/{option_chain_fetcher,validation}.py` (11K validation) | CON-05 | Not started |
-| DAT-05 | Tape recording (append-only) and **deterministic** replay — same tape format consumed by live, backtest, and research. **Full order-book depth, multiple price levels — confirmed 2026-08-17, not BBO/top-of-book only** (BKT-03 execution realism needs it, and Market Making's existing tape already captures this) | Market Making `monday_v1/{snapshot_tape,surface_replay}.py` | CON-01, CON-08 | Not started |
+| DAT-05 | Tape recording (append-only) and **deterministic** replay — same tape format consumed by live, backtest, and research. **Full order-book depth, multiple price levels — confirmed 2026-08-17, not BBO/top-of-book only** (BKT-03 execution realism needs it, and Market Making's existing tape already captures this) | Market Making `monday_v1/{snapshot_tape,surface_replay}.py` | CON-01, CON-08 | **Not started as the full task.** The explicitly authorised DAT-05-lite append-only writer is **Live verified 2026-08-18** (232-row, 20-level tape; hash and sequence continuity verified); deterministic replay remains unimplemented and out of this run's scope |
 | DAT-06 | Data-quality counters: crossed book, stale quote, invalid depth, gap count — surfaced, not silently dropped | Market Making `surface_collector_audit_<run_id>.jsonl` | DAT-02 | Not started |
 | DAT-07 | Instrument-master loader per broker, plus the mapping layer. **Daily refresh cadence** (decided 2026-08-17 — broker tokens, Kotak and Dhan `security_id`, are only guaranteed stable within a trading day, so refresh must happen every day whenever the module is in use, not just periodically/at-startup) | `Market Making/api-scrip-master.csv`, `Shoshin/security_id_list.csv` | CON-05 | Not started |
 | DAT-08 | Kotak market-data path in C++ (WebSocket + depth), required alongside Dhan — the module receives from both (D7) | Market Making `native/src/shaurya_kotak_ws_*.cpp`, `shaurya_kotak_depth.cpp` (tested) | NAT-01 | Not started |
@@ -402,17 +402,39 @@ tree at `700`/`600`; the module adopts that pattern from day one (INF-05).
 | Component list | **Agreed and frozen 2026-08-17 (D15). 13 components: INF, CON, SUR, GRK, VOL, DAT, EXE, SIG, RSK, BKT, ANL, NAT, MIG.** |
 | `MODULE_SPEC.md` | Not started — blocked on the component list |
 | Repository | **Created 2026-08-17** — private `ayyararyan/Shaurya`; canonical design artifacts pushed on `main` |
-| Code harvested | None |
-| Tasks in progress | None |
+| Code harvested | Dhan clients reconciled from Mushin_Gamma + Shoshin; feed patterns generalized from Mushin_Gamma + Still_Water into the standalone `shaurya` package |
+| Tasks in progress | None. DAT-02 standard tick/5-level live verification is blocked on a refreshed Dhan access token; the tested implementation and live 20-level path are preserved |
 
-**Immediate next action:** D3 is satisfied — the component list is agreed. The next step is
-`MODULE_SPEC.md` and an implementation plan, then `INF-02`/`INF-03`. Aryan's stated agenda for 2026-08-18
-is (i) how implementation actually starts now that the decisions are made, and (ii) an open
-idea-browsing session.
+**Immediate next action:** replace the expired staged Dhan access token, then run the existing
+30-second mixed standard-Full + 20-level capture acceptance command and live-verify tick/5-level
+rows. DAT-09 remains Aryan's decision after evidence collection; NIFTY-Aug2026-FUT was a test
+instrument only and is not a capture-universe/depth/retention decision.
 
 **O4 is resolved (D7) — `EXE` is unblocked.** `EXE-07` and `EXE-08` are dropped; `EXE-01`
 through `EXE-06` can proceed once `CON` lands. **O5 remains open by design** — `MIG` stays
 blocked until each old strategy is decided individually, when it is next touched.
+
+### 6.1 Work log
+
+- **2026-08-18 — DAT-01 / minimal CON-01, CON-05, CON-08 / DAT-02 / DAT-05-lite.** Built an
+  installable Python package; reconciled the two Dhan clients; added versioned tape and
+  instrument contracts, permission-restricted run manifests, supervised standard + 20-level
+  WebSockets, reconnect/resubscribe, application heartbeat, explicit sequence-gap semantics,
+  capture metrics, and an append-only JSONL writer. Verification: 17 pytest tests, strict mypy,
+  Ruff, wheel + sdist build, clean-wheel install, staged-master mapping check, and a zero-match
+  credential-value scan.
+- **Authoritative live evidence:** run `sha-20260818T055709.463701Z-ea8228c8`, test instrument
+  NIFTY-Aug2026-FUT (`security_id=58072`), 232 separate 20-level side packets in 30.001 seconds
+  (**7.733 packets/s** full capture window; 8.238 packets/s active packet span), 332 bytes each,
+  116 bid + 116 ask, one connection, two successful heartbeats, zero reconnects, zero crossed or
+  invalid books. Tape: 232 continuous receive sequences, SHA-256
+  `54357820155bbda1ed1ccc214a6ea056d1cb08a2bc9dce3015d408c7629b43b3`. These are raw
+  **DAT-09 inputs only, not a sizing recommendation or decision**. Four earlier diagnostic runs
+  remain preserved and explicitly invalidated after acceptance/lifecycle/measurement defects
+  were found and fixed.
+- **Live blocker:** the staged Dhan JWT expired 2026-08-12. The 20-level endpoint still served
+  data, but the standard tick/5-level endpoint closed code 1006 immediately after subscription;
+  therefore the full DAT-02 live claim remains withheld pending a refreshed token.
 
 ---
 
