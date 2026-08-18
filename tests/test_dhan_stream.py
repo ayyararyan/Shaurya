@@ -28,6 +28,7 @@ from shaurya.data.dhan_stream import (
     DhanStreamConfig,
     HeartbeatTimeout,
     ParsedDeepPacket,
+    ParsedMarketPacket,
     SequenceGapDetector,
     StreamMetrics,
     parse_deep_packets,
@@ -346,6 +347,51 @@ def test_bid_then_ask_side_packets_emit_partial_then_complete_book() -> None:
     assert len(rows[1].asks) == 20
     assert QualityFlag.PARTIAL_BOOK not in rows[1].quality_flags
     assert QualityFlag.EXCHANGE_TIMESTAMP_MISSING in rows[1].quality_flags
+
+
+def test_live_emit_path_writes_trade_classification_fields() -> None:
+    rows = []
+    stream = DhanLiveStream(
+        DhanCredentials("client", "token"),
+        [_mapping()],
+        rows.append,
+        run_id="sha-20260818T053000.000000Z-1234abcd",
+    )
+    stream._epochs["standard"] = 1
+    stream._epochs["depth20"] = 1
+    bid, ask = parse_deep_packets(_deep_message(41) + _deep_message(51))
+    now = stream_time()
+    stream._emit_deep(bid, now, channel="depth20")
+    stream._emit_deep(ask, now, channel="depth20")
+    baseline = ParsedMarketPacket(
+        response_code=8,
+        event_type="full",
+        exchange_segment_code=2,
+        security_id=58072,
+        raw_size=STANDARD_STRUCTS[8].size,
+        last_price=25000.0,
+        last_quantity=65,
+        cumulative_volume=1000,
+    )
+    stream._emit_standard(baseline, now)
+    stream._emit_standard(
+        ParsedMarketPacket(
+            response_code=8,
+            event_type="full",
+            exchange_segment_code=2,
+            security_id=58072,
+            raw_size=STANDARD_STRUCTS[8].size,
+            last_price=25000.5,
+            last_quantity=65,
+            cumulative_volume=1065,
+        ),
+        now,
+    )
+    classified = rows[-1]
+    assert classified.trade_side == "buy"
+    assert classified.trade_quote_channel == "depth20"
+    assert classified.cumulative_volume_increment == 65
+    assert classified.trade_classifier_version == "quote-mid-tick-v1"
 
 
 @pytest.mark.asyncio

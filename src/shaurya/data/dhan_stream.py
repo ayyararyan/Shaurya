@@ -23,6 +23,7 @@ from typing import Any, NoReturn
 from shaurya.contracts.instruments import DhanInstrumentMapping, ExchangeSegment
 from shaurya.contracts.tape import DepthLevel, QualityFlag, TapeRow
 from shaurya.data.dhan_client import DhanCredentials
+from shaurya.data.trade_direction import CaptureTradeDirectionClassifier
 
 
 class DhanProtocolError(RuntimeError):
@@ -398,6 +399,7 @@ class DhanStreamConfig:
     reconnect_max_seconds: float = 30.0
     open_timeout_seconds: float = 10.0
     stale_quote_after_seconds: float = 5.0
+    trade_quote_freshness_seconds: float = 1.0
     depth20_instruments_per_socket_limit: int = 50
 
     def __post_init__(self) -> None:
@@ -414,6 +416,7 @@ class DhanStreamConfig:
             self.reconnect_max_seconds,
             self.open_timeout_seconds,
             self.stale_quote_after_seconds,
+            self.trade_quote_freshness_seconds,
         )
         if min(positive) <= 0:
             raise ValueError("stream timeouts and reconnect delays must be positive")
@@ -442,6 +445,7 @@ class DhanLiveStream:
         connect_factory: ConnectFactory | None = None,
         connection_id: str = "primary",
         next_receive_sequence: Callable[[], int] | None = None,
+        trade_direction_classifier: CaptureTradeDirectionClassifier | None = None,
     ) -> None:
         self.credentials = credentials
         self.instruments = tuple(instruments)
@@ -465,6 +469,12 @@ class DhanLiveStream:
         }
         self._receive_sequence = 0
         self._external_next_receive_sequence = next_receive_sequence
+        self._trade_direction_classifier = (
+            trade_direction_classifier
+            or CaptureTradeDirectionClassifier(
+                quote_freshness_seconds=self.config.trade_quote_freshness_seconds
+            )
+        )
         self._epochs: dict[str, int] = defaultdict(int)
         self._ever_connected: dict[str, bool] = defaultdict(bool)
         self._pending_flags: dict[str, set[QualityFlag]] = defaultdict(set)
@@ -816,8 +826,9 @@ class DhanLiveStream:
             asks=packet.asks,
             quality_flags=tuple(flags),
         )
-        self.sink(row)
-        self.metrics.record_row(row)
+        classified_row = self._trade_direction_classifier.process(row)
+        self.sink(classified_row)
+        self.metrics.record_row(classified_row)
 
     def _emit_deep(self, packet: ParsedDeepPacket, received_at: datetime, *, channel: str) -> None:
         mapping = self._mapping(packet.exchange_segment_code, packet.security_id)
@@ -875,5 +886,6 @@ class DhanLiveStream:
             asks=asks,
             quality_flags=tuple(flags),
         )
-        self.sink(row)
-        self.metrics.record_row(row)
+        classified_row = self._trade_direction_classifier.process(row)
+        self.sink(classified_row)
+        self.metrics.record_row(classified_row)

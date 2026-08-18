@@ -27,7 +27,7 @@ from .instruments import (
 )
 from .ledger import BookState, LedgerEventType, LedgerRow, OrderSide
 from .surface import FitDiagnostic, SurfaceFrame, SurfaceParameter
-from .tape import DepthLevel, QualityFlag, TapeRow
+from .tape import DepthLevel, QualityFlag, TapeRow, TradeSide
 from .timing import IST, CausalTimestamps
 
 __all__ = [
@@ -65,4 +65,5 @@ __all__ = [
     "SurfaceFrame",
     "SurfaceParameter",
     "TapeRow",
+    "TradeSide",
 ]

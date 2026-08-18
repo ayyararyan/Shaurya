@@ -44,6 +44,19 @@ def test_tape_row_round_trip_preserves_depth_and_quality() -> None:
     assert restored.best_ask is None
 
 
+def test_legacy_v1_tape_row_still_parses_after_trade_schema_bump() -> None:
+    payload = _row("sha-20260818T053000.000000Z-1234abcd").to_dict()
+    payload["schema_version"] = "1.0.0"
+    for field_name in tuple(payload):
+        if field_name.startswith("trade_") or field_name == "cumulative_volume_increment":
+            del payload[field_name]
+    restored = TapeRow.from_dict(payload)
+    assert restored.receive_sequence == 1
+    assert restored.trade_side is None
+    assert restored.cumulative_volume_increment is None
+    assert restored.to_dict()["schema_version"] == "1.1.0"
+
+
 def test_instrument_master_maps_dhan_id_to_broker_neutral_identity(tmp_path: Path) -> None:
     master = tmp_path / "security_id_list.csv"
     master.write_text(

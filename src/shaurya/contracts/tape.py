@@ -24,6 +24,14 @@ class QualityFlag(StrEnum):
     CROSSED_BOOK = "crossed_book"
     STALE_QUOTE = "stale_quote"
     INVALID_DEPTH = "invalid_depth"
+    TRADE_CLASSIFICATION_DEGRADED = "trade_classification_degraded"
+    COALESCED_PRINT = "coalesced_print"
+
+
+class TradeSide(StrEnum):
+    BUY = "buy"
+    SELL = "sell"
+    UNCLASSIFIED = "unclassified"
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,7 +71,8 @@ class TapeRow:
     side caused this row; ``bids`` and ``asks`` carry the latest state known at receipt time.
     """
 
-    SCHEMA_VERSION: ClassVar[str] = "1.0.0"
+    SCHEMA_VERSION: ClassVar[str] = "1.1.0"
+    LEGACY_SCHEMA_VERSIONS: ClassVar[frozenset[str]] = frozenset({"1.0.0"})
 
     run_id: str
     receive_sequence: int
@@ -82,7 +91,22 @@ class TapeRow:
     last_price: float | None = None
     last_quantity: int | None = None
     cumulative_volume: int | None = None
+    cumulative_volume_increment: int | None = None
     open_interest: int | None = None
+    trade_quote_bid: float | None = None
+    trade_quote_ask: float | None = None
+    trade_quote_channel: str | None = None
+    trade_quote_bid_receive_ts: datetime | None = None
+    trade_quote_ask_receive_ts: datetime | None = None
+    trade_quote_receive_ts: datetime | None = None
+    trade_quote_age_ms: float | None = None
+    trade_quote_freshness_bound_ms: float | None = None
+    trade_side: TradeSide | None = None
+    trade_classifier_version: str | None = None
+    trade_alignment_version: str | None = None
+    trade_classification_degraded: bool | None = None
+    trade_classification_reason: str | None = None
+    trade_coalesced: bool | None = None
     bids: tuple[DepthLevel, ...] = field(default_factory=tuple)
     asks: tuple[DepthLevel, ...] = field(default_factory=tuple)
     quality_flags: tuple[QualityFlag, ...] = field(default_factory=tuple)
@@ -104,6 +128,52 @@ class TapeRow:
             raise ValueError("update_side must be bid, ask, both, or None")
         _aware(self.receive_ts, "receive_ts")
         _aware(self.exchange_ts, "exchange_ts")
+        _aware(self.trade_quote_bid_receive_ts, "trade_quote_bid_receive_ts")
+        _aware(self.trade_quote_ask_receive_ts, "trade_quote_ask_receive_ts")
+        _aware(self.trade_quote_receive_ts, "trade_quote_receive_ts")
+        if self.cumulative_volume_increment is not None and self.cumulative_volume_increment <= 0:
+            raise ValueError("cumulative_volume_increment must be positive when present")
+        if self.trade_quote_age_ms is not None and self.trade_quote_age_ms < 0:
+            raise ValueError("trade_quote_age_ms must be non-negative")
+        if (
+            self.trade_quote_freshness_bound_ms is not None
+            and self.trade_quote_freshness_bound_ms <= 0
+        ):
+            raise ValueError("trade_quote_freshness_bound_ms must be positive")
+        if self.trade_quote_channel not in {None, "depth20", "depth200"}:
+            raise ValueError("trade_quote_channel must be depth20, depth200, or None")
+        if self.trade_side is not None:
+            required = (
+                self.cumulative_volume_increment,
+                self.trade_quote_freshness_bound_ms,
+                self.trade_classifier_version,
+                self.trade_alignment_version,
+                self.trade_classification_degraded,
+                self.trade_classification_reason,
+                self.trade_coalesced,
+            )
+            if any(value is None for value in required):
+                raise ValueError("classified trade rows require all classification metadata")
+            if self.event_type not in {"quote", "full"}:
+                raise ValueError("trade classification is only valid on quote/full print rows")
+        quote_values = (
+            self.trade_quote_bid,
+            self.trade_quote_ask,
+            self.trade_quote_bid_receive_ts,
+            self.trade_quote_ask_receive_ts,
+            self.trade_quote_receive_ts,
+            self.trade_quote_age_ms,
+            self.trade_quote_channel,
+        )
+        if any(value is not None for value in quote_values) and not all(
+            value is not None for value in quote_values
+        ):
+            raise ValueError("classification quote fields must be all present or all absent")
+        if (
+            self.trade_quote_receive_ts is not None
+            and self.trade_quote_receive_ts > self.receive_ts
+        ):
+            raise ValueError("classification quote cannot be received after the print")
         object.__setattr__(
             self,
             "quality_flags",
@@ -138,7 +208,32 @@ class TapeRow:
             "last_price": self.last_price,
             "last_quantity": self.last_quantity,
             "cumulative_volume": self.cumulative_volume,
+            "cumulative_volume_increment": self.cumulative_volume_increment,
             "open_interest": self.open_interest,
+            "trade_quote_bid": self.trade_quote_bid,
+            "trade_quote_ask": self.trade_quote_ask,
+            "trade_quote_channel": self.trade_quote_channel,
+            "trade_quote_bid_receive_ts": (
+                self.trade_quote_bid_receive_ts.isoformat()
+                if self.trade_quote_bid_receive_ts
+                else None
+            ),
+            "trade_quote_ask_receive_ts": (
+                self.trade_quote_ask_receive_ts.isoformat()
+                if self.trade_quote_ask_receive_ts
+                else None
+            ),
+            "trade_quote_receive_ts": (
+                self.trade_quote_receive_ts.isoformat() if self.trade_quote_receive_ts else None
+            ),
+            "trade_quote_age_ms": self.trade_quote_age_ms,
+            "trade_quote_freshness_bound_ms": self.trade_quote_freshness_bound_ms,
+            "trade_side": str(self.trade_side) if self.trade_side else None,
+            "trade_classifier_version": self.trade_classifier_version,
+            "trade_alignment_version": self.trade_alignment_version,
+            "trade_classification_degraded": self.trade_classification_degraded,
+            "trade_classification_reason": self.trade_classification_reason,
+            "trade_coalesced": self.trade_coalesced,
             "best_bid": self.best_bid,
             "best_ask": self.best_ask,
             "bids": [level.to_dict() for level in self.bids],
@@ -149,9 +244,12 @@ class TapeRow:
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> TapeRow:
         version = value.get("schema_version")
-        if version != cls.SCHEMA_VERSION:
+        if version != cls.SCHEMA_VERSION and version not in cls.LEGACY_SCHEMA_VERSIONS:
             raise ValueError(f"unsupported tape schema version: {version!r}")
         exchange_raw = value.get("exchange_ts")
+        quote_bid_ts = value.get("trade_quote_bid_receive_ts")
+        quote_ask_ts = value.get("trade_quote_ask_receive_ts")
+        quote_ts = value.get("trade_quote_receive_ts")
         return cls(
             run_id=str(value["run_id"]),
             receive_sequence=int(value["receive_sequence"]),
@@ -182,9 +280,50 @@ class TapeRow:
                 if value.get("cumulative_volume") is not None
                 else None
             ),
+            cumulative_volume_increment=(
+                int(value["cumulative_volume_increment"])
+                if value.get("cumulative_volume_increment") is not None
+                else None
+            ),
             open_interest=(
                 int(value["open_interest"]) if value.get("open_interest") is not None else None
             ),
+            trade_quote_bid=(
+                float(value["trade_quote_bid"])
+                if value.get("trade_quote_bid") is not None
+                else None
+            ),
+            trade_quote_ask=(
+                float(value["trade_quote_ask"])
+                if value.get("trade_quote_ask") is not None
+                else None
+            ),
+            trade_quote_channel=value.get("trade_quote_channel"),
+            trade_quote_bid_receive_ts=(
+                datetime.fromisoformat(str(quote_bid_ts)) if quote_bid_ts else None
+            ),
+            trade_quote_ask_receive_ts=(
+                datetime.fromisoformat(str(quote_ask_ts)) if quote_ask_ts else None
+            ),
+            trade_quote_receive_ts=datetime.fromisoformat(str(quote_ts)) if quote_ts else None,
+            trade_quote_age_ms=(
+                float(value["trade_quote_age_ms"])
+                if value.get("trade_quote_age_ms") is not None
+                else None
+            ),
+            trade_quote_freshness_bound_ms=(
+                float(value["trade_quote_freshness_bound_ms"])
+                if value.get("trade_quote_freshness_bound_ms") is not None
+                else None
+            ),
+            trade_side=(
+                TradeSide(value["trade_side"]) if value.get("trade_side") is not None else None
+            ),
+            trade_classifier_version=value.get("trade_classifier_version"),
+            trade_alignment_version=value.get("trade_alignment_version"),
+            trade_classification_degraded=value.get("trade_classification_degraded"),
+            trade_classification_reason=value.get("trade_classification_reason"),
+            trade_coalesced=value.get("trade_coalesced"),
             bids=tuple(DepthLevel.from_dict(item) for item in value.get("bids", [])),
             asks=tuple(DepthLevel.from_dict(item) for item in value.get("asks", [])),
             quality_flags=tuple(QualityFlag(item) for item in value.get("quality_flags", [])),

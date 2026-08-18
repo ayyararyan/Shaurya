@@ -12,10 +12,18 @@ from .instrument_master import (
 from .option_chain import ValidatedOptionChain, fetch_and_validate_option_chain
 from .quality import CollectorQualityAudit
 from .tape import JsonlTapeReader, JsonlTapeWriter
+from .trade_direction import (
+    TRADE_ALIGNMENT_VERSION,
+    TRADE_CLASSIFIER_VERSION,
+    CaptureTradeDirectionClassifier,
+    TradeClassification,
+    classify_trade,
+)
 
 __all__ = [
     "BarInterval",
     "CaptureUniversePlan",
+    "CaptureTradeDirectionClassifier",
     "CollectorQualityAudit",
     "DailyInstrumentMasterStore",
     "DhanClient",
@@ -28,7 +36,11 @@ __all__ = [
     "JsonlTapeReader",
     "JsonlTapeWriter",
     "KotakInstrumentIndex",
+    "TRADE_ALIGNMENT_VERSION",
+    "TRADE_CLASSIFIER_VERSION",
+    "TradeClassification",
     "ValidatedOptionChain",
     "fetch_and_validate_option_chain",
     "fetch_historical_bars",
+    "classify_trade",
 ]

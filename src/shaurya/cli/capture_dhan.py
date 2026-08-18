@@ -52,6 +52,12 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--heartbeat-interval-seconds", type=float, default=10.0)
     parser.add_argument("--heartbeat-timeout-seconds", type=float, default=5.0)
+    parser.add_argument(
+        "--trade-quote-freshness-seconds",
+        type=float,
+        default=1.0,
+        help="Maximum age of the older BBO leg eligible for DAT-14 classification.",
+    )
     return parser
 
 
@@ -85,6 +91,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         enable_200_level_depth=args.enable_depth200,
         heartbeat_interval_seconds=args.heartbeat_interval_seconds,
         heartbeat_timeout_seconds=args.heartbeat_timeout_seconds,
+        trade_quote_freshness_seconds=args.trade_quote_freshness_seconds,
     )
     stream = DhanLiveStream(
         credentials,
