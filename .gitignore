@@ -1,8 +1,9 @@
 .DS_Store
-.env
+*.env
 .env.*
 !.env.example
 *.pem
+*.ppk
 *.key
 *.token
 *.log
@@ -16,5 +17,11 @@ build/
 dist/
 *.egg-info/
 artifacts/
+run/
 runs/
+state/
+logs/
 /data/
+*.jsonl
+*.csv
+*.parquet

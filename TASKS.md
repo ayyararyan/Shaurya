@@ -138,14 +138,14 @@ approach for every task is *harvest, reconcile, test, generalise* — not write 
 | ID | Task | Harvest from | Depends on | Status |
 |---|---|---|---|---|
 | INF-01 | Create the standalone repository `shaurya`, holding `python/` and `native/`. **GitHub: `ayyararyan/Shaurya`, private** (D9) | — | — | **Implemented 2026-08-17** — private GitHub repository created from the canonical `README.md` and `TASKS.md`; package/build skeletons remain separately tracked by INF-02/03 |
-| INF-02 | Python package skeleton: `pyproject.toml`, `shaurya` package, lint/type config. Must be **installable** — strategies pin a version (D5) | `VOLARB/voltaire`, `Shoshin` (`pyproject.toml`, `uv.lock`) | INF-01 | Not started |
+| INF-02 | Python package skeleton: `pyproject.toml`, `shaurya` package, lint/type config. Must be **installable** — strategies pin a version (D5) | `VOLARB/voltaire`, `Shoshin` (`pyproject.toml`, `uv.lock`) | INF-01 | **Tested 2026-08-18** — retained the existing setuptools package plus strict mypy/Ruff configuration after harvest (current VOLARB is requirements-only; Shoshin's `pyproject.toml` only configures pytest); clean editable and clean-wheel installs both imported matching version `0.1.0` |
 | INF-03 | C++ build skeleton: CMake, `shaurya::` namespace, compiler flags. Must export a **consumable CMake target**, not just build in place (D5) | Market Making `native/` | INF-01 | Not started |
 | INF-04 | Test harness both sides: pytest + the C++ test-runner pattern already in use | Market Making `native/src/*_tests.cpp`, `VOLARB/voltaire/tests/` | INF-02, INF-03 | Not started |
-| INF-05 | Secret-handling policy: config carries a credential *handle*, never a value; secrets live outside the tree at `700`/`600` | Market Making secrets pattern (`~/Documents/Market-Making-Secrets`) | — | Not started |
-| INF-06 | Relocate loose credential files currently sitting inside strategy trees (see §5) | — | INF-05 | Not started |
-| INF-07 | `.gitignore` audit: no `.env`, `.pem`, tokens, run state, logs, or data ever tracked | Market Making (already correct) | INF-01 | Not started |
+| INF-05 | Secret-handling policy: config carries a credential *handle*, never a value; secrets live outside the tree at `700`/`600` | Market Making secrets pattern (`~/Documents/Market-Making-Secrets`) | — | **Tested 2026-08-18** — `docs/SECRETS.md` fixes the external-handle/`700`/`600` policy; CON-04 rejects raw credential fields; the harvested Market-Making-Secrets directory/file modes were verified as `700`/`600` without reading values |
+| INF-06 | Relocate loose credential files currently sitting inside strategy trees (see §5) | — | INF-05 | **Blocked 2026-08-18** — all 9 listed files were inventoried without reading values: 8 still exist in Drive, but the exact external destination naming/location is not specified, so originals and reader code were left untouched rather than guessing; the ninth (`Market Making/dhan_credentials.env`) is absent and already represented by the pre-existing external `Market-Making-Secrets/dhan.env` mirror. Per-file reader evidence is in `docs/SECRETS.md` |
+| INF-07 | `.gitignore` audit: no `.env`, `.pem`, tokens, run state, logs, or data ever tracked | Market Making (already correct) | INF-01 | **Tested 2026-08-18** — Shaurya ignore rules hardened; 0 current/history tracked credential/run/log/generated-data paths and 0 strong secret signatures; Market Making also 0. Drive spot-check found 1 already-tracked data file in Still Water (`data/lstm_dataset.parquet`), reported but not force-removed |
 | INF-08 | Resolve the `Shaurya` name collision across GitHub and Drive | — | — | **Done 2026-08-17** — see §1.1 |
-| INF-09 | Release discipline: semantic versioning, `CHANGELOG.md`, tagged releases. Required because D5 makes strategies pin a module version | Market Making `MODEL_CHANGELOG.md` | INF-01 | Not started |
+| INF-09 | Release discipline: semantic versioning, `CHANGELOG.md`, tagged releases. Required because D5 makes strategies pin a module version | Market Making `MODEL_CHANGELOG.md` | INF-01 | **Tested 2026-08-18** — `CHANGELOG.md`, package `0.1.0`, `__version__`, and release tag `v0.1.0` agree; automated metadata test added. `0.1.0` is the first pre-1.0 minor release because installable/live-data foundations exist while most frozen components remain unimplemented |
 | INF-10 | Enforce one-way dependency direction: a CI check that the module never imports from any strategy (D5) | — | INF-04 | Not started |
 
 ### CON — Contracts
@@ -415,7 +415,7 @@ tree at `700`/`600`; the module adopts that pattern from day one (INF-05).
 | `MODULE_SPEC.md` | **Drafted 2026-08-18** — root index plus 13 per-component specifications under `docs/module-spec/`; all 107 non-dropped task IDs mapped exactly once to stable `REQ-*` rows with code/test/output targets |
 | Repository | **Created 2026-08-17** — private `ayyararyan/Shaurya`; canonical design artifacts pushed on `main` |
 | Code harvested | Dhan clients reconciled from Mushin_Gamma + Shoshin; feed patterns generalized from Mushin_Gamma + Still_Water into the standalone `shaurya` package |
-| Tasks in progress | None. CON-02/03/04/06/07/09 are tested; CON-01/08 and the Dhan slice of CON-05 retain their live evidence, while CON-05's Kotak mapping remains incomplete. DAT-01/DAT-02/DAT-10 are live-verified; `DAT-08` is dropped (D18); DAT-09's core measurement questions are closed, with DAT-11/DAT-12/DAT-13 tracking the three remaining small follow-ups; DAT-05 deterministic replay and DAT-03/04/06/07 remain not started |
+| Tasks in progress | None. INF-02/05/07/09 are tested; INF-06 is blocked on exact approved destinations for 8 Drive-hosted files. CON-02/03/04/06/07/09 are tested; CON-01/08 and the Dhan slice of CON-05 retain their live evidence, while CON-05's Kotak mapping remains incomplete. DAT-01/DAT-02/DAT-10 are live-verified; `DAT-08` is dropped (D18); DAT-09's core measurement questions are closed, with DAT-11/DAT-12/DAT-13 tracking the three remaining small follow-ups; DAT-05 deterministic replay and DAT-03/04/06/07 remain not started |
 
 **Immediate next action:** Review/freeze `MODULE_SPEC.md` and the 13 linked component
 specifications, then continue implementation in the recorded dependency order. The first live
@@ -609,6 +609,20 @@ blocked until each old strategy is decided individually, when it is next touched
   future-information rejection and four golden-fixture round trips; strict mypy passed all
   **18 source files**; repository-wide Ruff passed. Native config/ledger/surface consumers
   remain forward work under INF-03/NAT/EXE-05, not part of this Python-contract run.
+- **2026-08-18 — INF-02/05/06/07/09.** Reconciled 2 packaging references: VOLARB currently
+  has 0 `pyproject.toml`/`uv.lock` files and Shoshin's 2 files add pytest/lock metadata but no
+  stronger package, lint, or type convention, so Shaurya retained setuptools plus strict mypy
+  and Ruff. Verified 1 clean editable install, 1 clean wheel build/install, and 3 matching
+  `0.1.0` version sources (`pyproject.toml`, `shaurya.__version__`, `CHANGELOG.md`). Added the
+  external-handle/`700`/`600` policy and audited all 9 INF-06 files without reading values:
+  8 exist but remain unmoved because 0 exact external destinations are approved; the 1 absent
+  Market Making Drive file is already represented by the pre-existing external `dhan.env`
+  mirror. Hardened 11 ignore-pattern classes; Shaurya had 0 current/history tracked
+  credential/run/log/generated-data paths and 0 strong secret-signature matches, Market Making
+  had 0, and the 2 safely staged strategy Git indexes exposed 1 pre-existing Still Water data
+  violation (`data/lstm_dataset.parquet`) and 0 Seshin Zen violations. Verification: **54/54
+  pytest tests passed**, strict mypy passed all **18 source files**, and repository-wide Ruff
+  passed. Release `v0.1.0` records the first installable pre-1.0 foundation.
 
 ---
 
