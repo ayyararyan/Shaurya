@@ -5,6 +5,8 @@
 **Owner:** Aryan Ayyar
 **Task ledger:** [`TASKS.md`](TASKS.md) — the single source of truth for status. This file
 explains *what* and *why*; `TASKS.md` tracks *what is done*.
+**GCP scaling plan:** [`GCP_SCALING.md`](GCP_SCALING.md) — design note for using the Shunya GCP
+credit grant to scale `DAT`/`SIG`/`BKT`/`ANL` to the index-F&O universe (2026-08-18).
 
 > **Naming (decided 2026-08-17).** "Shaurya" is the name of **this module**, and nothing else.
 > The options market-making strategy that previously carried the name is now called
