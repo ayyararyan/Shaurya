@@ -213,6 +213,13 @@ def test_temporal_smoother_requires_two_frames_and_preserves_arbitrage() -> None
     smoothed = smoother.update(second)
     assert smoothed.is_temporally_smoothed
     assert smoothed.arb_check().passed
+    assert (
+        smoothed.evaluate(
+            log_moneyness=0.0,
+            maturity_years=smoothed.slices[0].maturity_years,
+        ).status
+        is EvaluationStatus.SMOOTHED
+    )
     for first_slice, second_slice, smoothed_slice in zip(
         first.slices, second.slices, smoothed.slices, strict=True
     ):

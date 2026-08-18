@@ -3,6 +3,19 @@
 Shaurya uses semantic versioning. Each release records the implementation evidence relevant
 to strategies that pin the package.
 
+## Unreleased
+
+### SUR-01, SUR-02, SUR-05, SUR-06, SUR-07, and SUR-08 — eSSVI surfaces
+
+- Added one module-facing surface interface over CON-01 tape input and CON-03 frame output.
+- Added synchronized multi-expiry eSSVI calibration with butterfly and calendar constraints,
+  independent arbitrage checks, weighted fit/residual/stability diagnostics, and explicit
+  strike/maturity support policy.
+- Added arbitrage-rechecked temporal smoothing, caller-supplied staleness thresholds, and a
+  fail-closed gate that prevents raw tick-synchronous fits from serving quoting consumers.
+- Dry-run acceptance uses realistic synthetic option BBOs; live/historical DAT replay
+  integration remains pending and is not represented as live verified.
+
 ## v0.1.0 — 2026-08-18
 
 The first release is `0.1.0`: Shaurya is already an installable dependency with live-verified

@@ -196,7 +196,9 @@ class ESSVITemporalSmoother:
             _instrument_scope=raw_surface.instrument_scope,
             _fit_metrics=source_metrics,
             _policy=raw_surface._policy,
-            _temporally_smoothed=True,
+            _temporally_smoothed=(
+                len(self._history) >= 2 and fallback_alpha < (1.0 - 1e-9)
+            ),
         )
 
     @staticmethod

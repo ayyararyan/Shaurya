@@ -69,11 +69,13 @@ dropped into the module and is immediately available to every strategy, past and
 Stated so far by Aryan, plus the obvious dependencies each one implies.
 
 ### 3.1 Volatility surfaces
-- **eSSVI** — arbitrage-free extended SSVI parameterisation
-- **SABR**
-- **SVI** (raw / natural / jump-wings)
+- **eSSVI** — joint constrained extended SSVI parameterisation, built now
+- **SABR** — blocked until a concrete data-led need (SUR-04/D8)
+- **SVI** (raw / natural / jump-wings) — blocked on the same gate (SUR-03/D8)
 - Shared: no-arbitrage checks (butterfly, calendar), fitting diagnostics, interpolation,
   surface-to-Greeks handoff, surface age / staleness semantics
+
+Implementation details and the DAT handoff are in [`docs/SURFACES.md`](docs/SURFACES.md).
 
 ### 3.2 Market data
 - **Dhan** live streaming (ticks, depth, option chain) — the sole data-receive source
@@ -196,8 +198,9 @@ Define the shared schemas first: snapshot tape, ledger row, surface frame, confi
 handle. Everything downstream depends on these being stable.
 
 **Phase 2 — Python core**
-Harvest eSSVI, Greeks, realised vol, risk, backtest from VOLARB. Add tests. Then add SVI and
-SABR alongside eSSVI behind one common surface interface.
+Harvest eSSVI, Greeks, realised vol, risk, and backtest from VOLARB, with tests. SVI and SABR
+remain stable blocked tasks and are added behind the surface interface only after D8's concrete
+data-led-need gate is cleared.
 
 **Phase 3 — data layer**
 Reconcile the two Dhan clients into one. Historical fetch, storage, tape recording,

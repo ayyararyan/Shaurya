@@ -510,7 +510,10 @@ class ESSVISurface(VolatilitySurface):
                 observation.log_moneyness
             )
             residual_rows.append((observation, observation.total_variance - fitted))
-        weighted_mean = sum(item.weight * item.total_variance for item, _ in residual_rows)
+        weight_sum = sum(item.weight for item, _ in residual_rows)
+        weighted_mean = (
+            sum(item.weight * item.total_variance for item, _ in residual_rows) / weight_sum
+        )
         weighted_sse = sum(item.weight * residual**2 for item, residual in residual_rows)
         weighted_sst = sum(
             item.weight * ((item.total_variance - weighted_mean) ** 2)
@@ -633,7 +636,11 @@ class ESSVISurface(VolatilitySurface):
             return SurfaceEvaluation(
                 variance,
                 math.sqrt(variance / maturity_years),
-                EvaluationStatus.FITTED,
+                (
+                    EvaluationStatus.SMOOTHED
+                    if self._temporally_smoothed
+                    else EvaluationStatus.FITTED
+                ),
             )
 
         outside_maturity_support = (
@@ -668,7 +675,11 @@ class ESSVISurface(VolatilitySurface):
             return SurfaceEvaluation(
                 variance,
                 math.sqrt(variance / maturity_years),
-                EvaluationStatus.INTERPOLATED,
+                (
+                    EvaluationStatus.SMOOTHED
+                    if self._temporally_smoothed
+                    else EvaluationStatus.INTERPOLATED
+                ),
             )
         return SurfaceEvaluation(
             None,

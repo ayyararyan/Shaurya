@@ -27,14 +27,14 @@ No surface fit identifies an unobserved true volatility process. Sparse or unsup
 
 | Requirement | Normative statement | TASKS.md trace | Code target | Test / output target |
 |---|---|---|---|---|
-| REQ-SUR-01 | Define one interface exposing `fit`, `evaluate`, `params`, `diagnostics`, and `arb_check`. | SUR-01 | TBD `src/shaurya/surfaces/base.py` | Interface conformance suite |
-| REQ-SUR-02 | Port eSSVI behind the common interface with preserved tests. | SUR-02 | TBD `src/shaurya/surfaces/essvi.py` | Port/regression/golden-fit tests; surface frame |
+| REQ-SUR-01 | Define one interface exposing `fit`, `evaluate`, `params`, `diagnostics`, and `arb_check`. | SUR-01 | `src/shaurya/surfaces/base.py` | Interface conformance suite |
+| REQ-SUR-02 | Port eSSVI behind the common interface with preserved tests. | SUR-02 | `src/shaurya/surfaces/essvi.py` | Port/regression/golden-fit tests; surface frame |
 | REQ-SUR-03 | When a data-shown need exists, implement raw, natural, and jump-wings SVI with conversions. | SUR-03, D8 | Deferred `src/shaurya/surfaces/svi.py` | Conversion/property/fit tests |
 | REQ-SUR-04 | When a data-shown need exists, implement SABR using the Hagan expansion and document its low-strike/long-maturity arbitrage limitation. | SUR-04, D8 | Deferred `src/shaurya/surfaces/sabr.py` | Reference-value and limitation tests |
-| REQ-SUR-05 | Check butterfly non-negative implied density and calendar non-decreasing total variance. | SUR-05 | TBD `src/shaurya/surfaces/arbitrage.py` | Known-valid/invalid property fixtures; arb report |
-| REQ-SUR-06 | Report weighted R², residuals by moneyness bucket, and parameter stability across consecutive frames. | SUR-06 | TBD diagnostics module | Diagnostic fixture and surface report |
-| REQ-SUR-07 | Expose surface age and staleness as measurements; let each strategy supply its threshold; require smoothed rather than tick-synchronous raw surfaces for quoting. | SUR-07, CON-07 | TBD surface state module | Age/threshold/causality tests; staleness fields |
-| REQ-SUR-08 | Declare and test strike/maturity interpolation and extrapolation rather than inheriting fitter defaults. | SUR-08 | TBD interpolation policy | Boundary/support tests; policy metadata |
+| REQ-SUR-05 | Check butterfly non-negative implied density and calendar non-decreasing total variance. | SUR-05 | `src/shaurya/surfaces/arbitrage.py` | Known-valid/invalid property fixtures; arb report |
+| REQ-SUR-06 | Report weighted R², residuals by moneyness bucket, and parameter stability across consecutive frames. | SUR-06 | `src/shaurya/surfaces/essvi.py` | Diagnostic fixture and surface report |
+| REQ-SUR-07 | Expose surface age and staleness as measurements; let each strategy supply its threshold; require smoothed rather than tick-synchronous raw surfaces for quoting. | SUR-07, CON-07 | `src/shaurya/surfaces/state.py` | Age/threshold/causality tests; staleness fields |
+| REQ-SUR-08 | Declare and test strike/maturity interpolation and extrapolation rather than inheriting fitter defaults. | SUR-08 | `src/shaurya/surfaces/interpolation.py` | Boundary/support tests; policy metadata |
 
 ## Outputs and acceptance tests
 
