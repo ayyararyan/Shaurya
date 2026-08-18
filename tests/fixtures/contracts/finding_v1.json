@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0.0",
+  "finding_id": "finding-1",
+  "run_id": "sha-20260818T040000.000000Z-1234abcd",
+  "subject": "NIFTY front-expiry variance risk premium",
+  "window": {
+    "start_timestamp": "2026-08-18T09:30:00+05:30",
+    "end_timestamp": "2026-08-18T09:30:01+05:30"
+  },
+  "timing": {
+    "exchange_timestamp": "2026-08-18T09:30:00+05:30",
+    "receive_timestamp": "2026-08-18T09:30:01+05:30",
+    "decision_timestamp": "2026-08-18T09:30:02+05:30",
+    "source_timestamps": []
+  },
+  "statistic_name": "mean_difference",
+  "statistic_value": "1.75",
+  "magnitude": "1.75",
+  "magnitude_unit": "volatility_points",
+  "uncertainty": {
+    "standard_error": null,
+    "p_value": "0.02",
+    "confidence_level": "0.95",
+    "confidence_interval": ["0.40", "3.10"]
+  },
+  "search_context": {
+    "tests_evaluated": 24,
+    "adjustment_method": "Romano-Wolf",
+    "trial_log_id": "trial-log-1"
+  },
+  "object_label": {
+    "object_name": "variance_risk_premium",
+    "category": "derived",
+    "source": "realised and implied volatility measurements",
+    "construction": null,
+    "assumptions": [],
+    "limitations": []
+  }
+}

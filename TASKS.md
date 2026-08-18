@@ -155,14 +155,14 @@ downstream has to be reworked.
 | ID | Task | Harvest from | Depends on | Status |
 |---|---|---|---|---|
 | CON-01 | Snapshot/tape row schema: BBO, depth, timestamps, quality flags | Market Making `surface_snapshots_<run_id>.csv` schema, `monday_v1/snapshot_tape.py` | — | **Live verified 2026-08-18** — versioned Python contract carried 20-level BBO/depth, receive/exchange timestamps, source/receive sequences, and explicit quality flags in authoritative live run `sha-20260818T055709.463701Z-ea8228c8` |
-| CON-02 | Ledger row schema: placement, execution, cancel/reject, cycle P&L, order role, quote price, order age, book state, K, break-even spread, fill price | Market Making master CSV ledger definition, `native/src/shaurya_ledger.cpp` | — | Not started |
-| CON-03 | Surface frame schema: parameters, fit diagnostics, surface age, staleness flag | Market Making `monday_v1/surface_region.py` | — | Not started |
-| CON-04 | Config schema: one format, consumed by both Python and C++ | Market Making `tomorrow.example.json`, `Still_Water/config/runtime_profile.json` | — | Not started |
+| CON-02 | Ledger row schema: placement, execution, cancel/reject, cycle P&L, order role, quote price, order age, book state, K, break-even spread, fill price | Market Making master CSV ledger definition, `native/src/shaurya_ledger.cpp` | — | **Tested 2026-08-18** — broker-neutral versioned row reconciles the Python/C++ master-ledger lifecycle and rejects event rows missing placement, execution, cancel/reject, or cycle-P&L fields |
+| CON-03 | Surface frame schema: parameters, fit diagnostics, surface age, staleness flag | Market Making `monday_v1/surface_region.py` | — | **Tested 2026-08-18** — model-agnostic versioned frame carries named parameters/diagnostics, exact age, caller-supplied staleness threshold, consistent flag, causal timing, and category labels |
+| CON-04 | Config schema: one format, consumed by both Python and C++ | Market Making `tomorrow.example.json`, `Still_Water/config/runtime_profile.json` | — | **Tested 2026-08-18** — strict versioned JSON/Pydantic root carries external credential handles and caller-supplied unit-explicit risk limits; committed golden fixture is the forward C++ acceptance input for INF-03/NAT |
 | CON-05 | **Instrument identity.** Dhan `security_id` and Kotak token are two different ID systems for the same contract (Kite dropped entirely — D17, 2026-08-18). Define one internal instrument representation plus per-broker mapping | `Shoshin/security_id_list.csv`, Market Making `nifty_futures_token.txt`, `Market Making/api-scrip-master.csv` | — | **Implemented 2026-08-18 for the authorised Dhan/DAT minimum; Dhan slice Live verified. Full task incomplete:** broker-neutral identity + date-stamped Dhan `security_id` mapping loaded the staged reference master and mapped live NIFTY-Aug2026-FUT packets; **Kotak mapping (needed for order routing, not data — D18) remains not implemented** |
-| CON-06 | Object-category labelling convention: observed / derived / estimated / scenario / proxy / unidentified, carried in artifacts | Working contract §7.1 | — | Not started |
-| CON-07 | Time convention: exchange timestamp vs receive timestamp vs decision timestamp; IST throughout; explicit causality rule | Market Making `surface_live.py` (`as_of` causality) | — | Not started |
+| CON-06 | Object-category labelling convention: observed / derived / estimated / scenario / proxy / unidentified, carried in artifacts | Working contract §7.1 | — | **Tested 2026-08-18** — exact six-value enum plus serializable provenance/assumption/limitation label is carried by ledger, surface, and finding artifacts and rejects unknown categories |
+| CON-07 | Time convention: exchange timestamp vs receive timestamp vs decision timestamp; IST throughout; explicit causality rule | Market Making `surface_live.py` (`as_of` causality) | — | **Tested 2026-08-18** — shared IST timing contract distinguishes exchange/receive/decision/additional-source timestamps and rejects any consumed time later than the decision timestamp |
 | CON-08 | Run-ID and artifact-manifest convention: append-only, unique per run, invalidated runs preserved and marked | Market Making `surface_run_manifest_<run_id>.json` | — | **Live verified 2026-08-18** — unique sortable run ID, permission-restricted append-only JSONL manifest, artifact hashes, completion/invalidation events; failed diagnostic runs preserved and authoritative run hash-verified |
-| CON-09 | **Opportunity/finding schema (D8).** A record of what the data shows, independent of any strategy or ledger entry: window, statistic, magnitude, confidence/significance, object-category label. Exists upstream of any strategy decision — the artifact that lets data lead and strategy follow | New | CON-06, CON-07 | Not started |
+| CON-09 | **Opportunity/finding schema (D8).** A record of what the data shows, independent of any strategy or ledger entry: window, statistic, magnitude, confidence/significance, object-category label. Exists upstream of any strategy decision — the artifact that lets data lead and strategy follow | New | CON-06, CON-07 | **Tested 2026-08-18** — versioned strategy-independent finding carries causal window, statistic, magnitude/unit, explicit uncertainty, search-grid context, and object label; future-window leakage is rejected |
 
 ### SUR — Volatility surfaces
 
@@ -414,7 +414,7 @@ tree at `700`/`600`; the module adopts that pattern from day one (INF-05).
 | `MODULE_SPEC.md` | **Drafted 2026-08-18** — root index plus 13 per-component specifications under `docs/module-spec/`; all 107 non-dropped task IDs mapped exactly once to stable `REQ-*` rows with code/test/output targets |
 | Repository | **Created 2026-08-17** — private `ayyararyan/Shaurya`; canonical design artifacts pushed on `main` |
 | Code harvested | Dhan clients reconciled from Mushin_Gamma + Shoshin; feed patterns generalized from Mushin_Gamma + Still_Water into the standalone `shaurya` package |
-| Tasks in progress | None. DAT-01/DAT-02/DAT-10 and their minimal CON-01/CON-05/CON-08 support are fully live-verified for the authorised scope; `DAT-08` is dropped (D18); DAT-09's core measurement questions are closed, with DAT-11/DAT-12/DAT-13 tracking the three remaining small follow-ups; DAT-05 (deterministic replay) and the remaining CON/DAT tasks (DAT-03/04/06/07) are still not started |
+| Tasks in progress | None. CON-02/03/04/06/07/09 are tested; CON-01/08 and the Dhan slice of CON-05 retain their live evidence, while CON-05's Kotak mapping remains incomplete. DAT-01/DAT-02/DAT-10 are live-verified; `DAT-08` is dropped (D18); DAT-09's core measurement questions are closed, with DAT-11/DAT-12/DAT-13 tracking the three remaining small follow-ups; DAT-05 deterministic replay and DAT-03/04/06/07 remain not started |
 
 **Immediate next action:** Review/freeze `MODULE_SPEC.md` and the 13 linked component
 specifications, then continue implementation in the recorded dependency order. The first live
@@ -590,6 +590,17 @@ blocked until each old strategy is decided individually, when it is next touched
     exact per-message ceiling (bisect between 52 and 206), whether a fresh reconnect can be
     used to issue a "second" subscription (i.e. cycling the socket instead of re-sending on
     the same one), and the 200-level skew-vs-throttle question noted above.
+- **2026-08-18 — CON-02/03/04/06/07/09.** Built six versioned Python/Pydantic contracts,
+  shared exact object-category and IST causality types, four committed cross-language JSON
+  fixtures, and field-level documentation. Harvested CON-02 from Market Making
+  `monday_v1/ledger.py` plus `native/{include,src}/shaurya_ledger.*`; CON-03/07 from
+  `monday_v1/surface_region.py` and `surface_live.py`; CON-04 from Market Making
+  `monday_v1/tomorrow.example.json` plus the safely staged Still_Water
+  `production_engine/config/runtime_profile.json`; CON-06 from working-contract §7.1; CON-09
+  from D8/REQ-CON-09. Verification: **52/52 pytest tests passed**, including explicit
+  future-information rejection and four golden-fixture round trips; strict mypy passed all
+  **18 source files**; repository-wide Ruff passed. Native config/ledger/surface consumers
+  remain forward work under INF-03/NAT/EXE-05, not part of this Python-contract run.
 
 ---
 

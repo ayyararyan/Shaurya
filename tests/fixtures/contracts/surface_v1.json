@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "sha-20260818T040000.000000Z-1234abcd",
+  "surface_id": "nifty-front-expiry",
+  "model_name": "eSSVI",
+  "instrument_scope": ["NSE:NSE_FNO:NIFTY"],
+  "timing": {
+    "exchange_timestamp": "2026-08-18T09:30:00+05:30",
+    "receive_timestamp": "2026-08-18T09:30:01+05:30",
+    "decision_timestamp": "2026-08-18T09:30:02+05:30",
+    "source_timestamps": []
+  },
+  "surface_timestamp": "2026-08-18T09:30:00+05:30",
+  "parameters": [
+    {"name": "theta", "value": "0.04"},
+    {"name": "rho", "value": "-0.35"}
+  ],
+  "diagnostics": [
+    {"name": "weighted_r_squared", "value": 0.992, "unit": null},
+    {"name": "fit_status", "value": "converged", "unit": null}
+  ],
+  "surface_age_seconds": "2",
+  "staleness_threshold_seconds": "5",
+  "is_stale": false,
+  "object_labels": [
+    {
+      "object_name": "parameters",
+      "category": "estimated",
+      "source": "surface fit",
+      "construction": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "object_name": "diagnostics",
+      "category": "derived",
+      "source": "surface fit residuals",
+      "construction": null,
+      "assumptions": [],
+      "limitations": []
+    }
+  ]
+}

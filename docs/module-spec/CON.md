@@ -36,14 +36,14 @@ Labels must survive serialization and downstream transformations. An estimated o
 | Requirement | Normative statement | TASKS.md trace | Code target | Test / output target |
 |---|---|---|---|---|
 | REQ-CON-01 | Version a snapshot/tape schema containing BBO, full configured depth, timestamps, sequences where available, and explicit quality flags. | CON-01 | `src/shaurya/contracts/tape.py` | Round-trip/schema/version tests; canonical tape row |
-| REQ-CON-02 | Version an append-only ledger schema covering placement, execution, cancel/reject, cycle P&L, order role, quote/fill prices, age, book state, K, and break-even spread. | CON-02 | TBD `contracts/ledger` in Python/C++ | Cross-language round trip; canonical ledger row |
-| REQ-CON-03 | Version a surface-frame schema carrying parameters, fit diagnostics, age, and staleness. | CON-03 | TBD `contracts/surface` in Python/C++ | Schema/version/round-trip tests; surface frame |
-| REQ-CON-04 | Define one config format consumed by Python and C++, including credential handles and shared limit definitions. | CON-04 | TBD `contracts/config` | Same fixtures accepted/rejected by both languages |
+| REQ-CON-02 | Version an append-only ledger schema covering placement, execution, cancel/reject, cycle P&L, order role, quote/fill prices, age, book state, K, and break-even spread. | CON-02 | `src/shaurya/contracts/ledger.py`; future C++ consumer under EXE-05/NAT | Schema/version/event validation and golden-fixture round trip; canonical ledger row |
+| REQ-CON-03 | Version a surface-frame schema carrying parameters, fit diagnostics, age, and staleness. | CON-03 | `src/shaurya/contracts/surface.py`; future C++ consumer under NAT | Schema/version/age/staleness validation and golden-fixture round trip; surface frame |
+| REQ-CON-04 | Define one config format consumed by Python and C++, including credential handles and shared limit definitions. | CON-04 | `src/shaurya/contracts/config.py`; future C++ parser under INF-03/NAT | Python accepts/rejects committed golden fixture; same fixture reserved for C++ parity |
 | REQ-CON-05 | Define one internal instrument identity with date-stamped Dhan `security_id` and Kotak order-routing token mappings; exclude Kite. | CON-05, D17, D18 | `src/shaurya/contracts/instruments.py`; TBD Kotak mapping | Dhan/Kotak mapping fixtures; unmapped-ID failure artifact |
-| REQ-CON-06 | Carry object-category labels through every applicable artifact and transformation. | CON-06 | TBD shared enum/schema field | Label-preservation and invalid-label tests |
-| REQ-CON-07 | Distinguish exchange, receive, and decision timestamps; use IST and reject future-information consumption. | CON-07 | TBD time contract | Causality boundary and timezone tests |
+| REQ-CON-06 | Carry object-category labels through every applicable artifact and transformation. | CON-06 | `src/shaurya/contracts/categories.py`; fields in ledger/surface/finding contracts | Label-preservation and invalid-label tests |
+| REQ-CON-07 | Distinguish exchange, receive, and decision timestamps; use IST and reject future-information consumption. | CON-07 | `src/shaurya/contracts/timing.py`; composed into ledger/surface/finding contracts | Causality-violation and timezone tests |
 | REQ-CON-08 | Issue unique sortable run IDs and append-only manifests with hashes, lifecycle events, and preserved invalidation state. | CON-08 | `src/shaurya/contracts/artifacts.py` | Collision, append-only, hash, invalidation tests; run manifest |
-| REQ-CON-09 | Define a strategy-independent finding record containing window, statistic, magnitude, uncertainty, search context, and object-category label. | CON-09, D8 | TBD `contracts/findings` | Schema/causality/label tests; finding artifact |
+| REQ-CON-09 | Define a strategy-independent finding record containing window, statistic, magnitude, uncertainty, search context, and object-category label. | CON-09, D8 | `src/shaurya/contracts/findings.py` | Schema/causality/label and golden-fixture tests; finding artifact |
 
 ## Outputs and acceptance tests
 
@@ -63,4 +63,5 @@ Labels must survive serialization and downstream transformations. An estimated o
 ## Deferred items
 
 - Kotak identity mapping remains incomplete under CON-05.
-- CON-02/03/04/06/07/09 remain to be implemented. Their semantics are not deferred.
+- C++ consumers of the committed ledger, surface, and config golden fixtures remain forward
+  implementation under INF-03/NAT/EXE-05; the Python contracts and shared JSON shapes are tested.

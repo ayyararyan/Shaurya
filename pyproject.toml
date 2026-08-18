@@ -11,6 +11,7 @@ requires-python = ">=3.11"
 dependencies = [
   "dhanhq>=2.2,<3",
   "pandas>=2.2,<4",
+  "pydantic>=2.10,<3",
   "websockets>=15,<18",
 ]
 
