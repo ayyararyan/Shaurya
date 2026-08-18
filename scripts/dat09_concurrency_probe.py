@@ -1,210 +1,398 @@
-"""DAT-09 diagnostic: measure Dhan's real concurrent-subscription cap per depth tier.
+"""Read-only live probes for DAT-11, DAT-12, and DAT-13.
 
-Not a production capture path — a one-off empirical probe. TASKS.md's DAT-09 needs the real
-concurrent-instrument cap per tier, which the documented "50/1 instruments per message"
-batching rule implies but does not prove (see GCP_SCALING.md §3). This script:
-
-  1. 20-level: subscribes ~200+ real NIFTY instruments (two near expiries, near-ATM strikes,
-     plus front/next futures) on one socket via DhanLiveStream (which already batches 50 per
-     message), and checks via the written tape which of the subscribed security_ids actually
-     received at least one packet in the capture window.
-  2. 200-level: subscribes several *different* single instruments on one socket via sequential
-     flat subscribe messages (bypassing DhanLiveStream's one-instrument guard, which is correct
-     for production but blocks this specific question) and tallies packets per security_id to
-     see whether more than one instrument's book actually arrives on that socket.
-
-Read-only market data only. Never place, modify, or cancel an order.
+The probe requires an explicit credential handle and dated master path at invocation. It never
+contains a default credential location, places orders, or logs an authenticated URL.
 """
 
 from __future__ import annotations
 
+import argparse
 import asyncio
-import contextlib
-import csv
 import json
-import sys
+import os
 import time
-from collections import Counter, defaultdict
-from datetime import date
-from decimal import Decimal
+from collections import Counter
+from collections.abc import Awaitable, Callable, Iterable, Sequence
+from contextlib import AbstractAsyncContextManager
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Protocol
 
-from websockets.asyncio.client import connect
-
-from shaurya.contracts.artifacts import ArtifactManifest
-from shaurya.contracts.instruments import (
-    DhanInstrumentMapping,
-    ExchangeSegment,
-    InstrumentId,
-    InstrumentKind,
-    OptionType,
-)
+from shaurya.contracts.instruments import DhanInstrumentMapping, DhanInstrumentMaster
 from shaurya.data.dhan_client import DhanCredentials
-from shaurya.data.dhan_stream import (
-    DhanLiveStream,
-    DhanStreamConfig,
-    ParsedDisconnect,
-    StreamMetrics,
-    parse_deep_packets,
-)
-from shaurya.data.tape import JsonlTapeWriter
+from shaurya.data.dhan_stream import ParsedDeepPacket, parse_deep_packets
 
-REPO = Path(__file__).resolve().parents[1]
-MASTER = REPO / "data" / "api-scrip-master.csv"
-CRED_PATH = Path("/Users/maheit/Documents/Market-Making-Secrets/dhan.env")
-DURATION_SECONDS = 40.0
+DEPTH20_URL = "wss://depth-api-feed.dhan.co/twentydepth"
+DEPTH200_URL = "wss://full-depth-api.dhan.co/"
 
 
-def _mapping(row: dict, symbol: str) -> DhanInstrumentMapping:
-    kind = (
-        InstrumentKind.OPTION if row["SEM_INSTRUMENT_NAME"] == "OPTIDX" else InstrumentKind.FUTURE
+class ProbeSocket(Protocol):
+    async def send(self, message: str) -> None: ...
+
+    async def recv(self) -> bytes | str: ...
+
+
+ConnectFactory = Callable[..., AbstractAsyncContextManager[ProbeSocket]]
+
+
+@dataclass(frozen=True, slots=True)
+class ProbeObservation:
+    requested_count: int
+    packet_counts: dict[str, int]
+    control_security_ids: tuple[str, ...]
+    elapsed_seconds: float
+
+    def __post_init__(self) -> None:
+        if self.requested_count < 1 or self.elapsed_seconds <= 0:
+            raise ValueError("probe count and duration must be positive")
+        if not self.control_security_ids:
+            raise ValueError("probe requires at least one liquid control")
+
+    @property
+    def accepted(self) -> bool:
+        return bool(self.control_security_ids) and all(
+            self.packet_counts.get(security_id, 0) > 0
+            for security_id in self.control_security_ids
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "requested_count": self.requested_count,
+            "packet_counts": self.packet_counts,
+            "control_security_ids": list(self.control_security_ids),
+            "elapsed_seconds": self.elapsed_seconds,
+            "accepted": self.accepted,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class CeilingSearchResult:
+    known_working: int
+    known_failing: int
+    exact_ceiling: int
+    observations: tuple[ProbeObservation, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "known_working": self.known_working,
+            "known_failing": self.known_failing,
+            "exact_ceiling": self.exact_ceiling,
+            "observations": [observation.to_dict() for observation in self.observations],
+        }
+
+
+ProbeCount = Callable[[int], Awaitable[ProbeObservation]]
+
+
+async def bisect_twenty_level_ceiling(
+    probe: ProbeCount,
+    *,
+    known_working: int = 52,
+    known_failing: int = 206,
+) -> CeilingSearchResult:
+    """Find the largest accepted count under the measured monotone working/failing bracket."""
+
+    if known_working < 1 or known_failing <= known_working:
+        raise ValueError("invalid working/failing ceiling bracket")
+    low = known_working
+    high = known_failing
+    observations: list[ProbeObservation] = []
+    while high - low > 1:
+        candidate = (low + high) // 2
+        observation = await probe(candidate)
+        if observation.requested_count != candidate:
+            raise ValueError("ceiling probe returned an observation for the wrong count")
+        observations.append(observation)
+        if observation.accepted:
+            low = candidate
+        else:
+            high = candidate
+    return CeilingSearchResult(
+        known_working=known_working,
+        known_failing=known_failing,
+        exact_ceiling=low,
+        observations=tuple(observations),
     )
-    option_type = OptionType(row["SEM_OPTION_TYPE"]) if kind is InstrumentKind.OPTION else None
-    strike = Decimal(row["SEM_STRIKE_PRICE"]) if kind is InstrumentKind.OPTION else None
-    expiry = date.fromisoformat(row["SEM_EXPIRY_DATE"].split(" ")[0])
-    instrument = InstrumentId(
-        exchange="NSE",
-        segment=ExchangeSegment.NSE_FNO,
-        underlying=symbol,
-        kind=kind,
-        expiry=expiry,
-        strike=strike,
-        option_type=option_type,
-    )
-    return DhanInstrumentMapping(
-        instrument=instrument,
-        security_id=row["SEM_SMST_SECURITY_ID"],
-        exchange_segment=ExchangeSegment.NSE_FNO,
-        trading_symbol=row["SEM_TRADING_SYMBOL"],
-        lot_size=int(float(row["SEM_LOT_UNITS"])) if row["SEM_LOT_UNITS"] else None,
-        tick_size_paise=Decimal(row["SEM_TICK_SIZE"]) if row["SEM_TICK_SIZE"] else None,
-        as_of_date=date.today(),
-        source=str(MASTER),
-    )
 
 
-def build_nifty_universe() -> list[DhanInstrumentMapping]:
-    rows = list(csv.DictReader(MASTER.open(encoding="utf-8-sig")))
-    opts = [
-        r
-        for r in rows
-        if r["SEM_EXM_EXCH_ID"] == "NSE"
-        and r["SEM_INSTRUMENT_NAME"] == "OPTIDX"
-        and r["SEM_TRADING_SYMBOL"].startswith("NIFTY-")
-        and r["SEM_EXPIRY_DATE"] in ("2026-08-25 14:30:00", "2026-09-01 14:30:00")
-        and 23000 <= float(r["SEM_STRIKE_PRICE"]) <= 25500
-    ]
-    futs = [
-        r
-        for r in rows
-        if r["SEM_EXM_EXCH_ID"] == "NSE"
-        and r["SEM_INSTRUMENT_NAME"] == "FUTIDX"
-        and r["SEM_TRADING_SYMBOL"] in ("NIFTY-Aug2026-FUT", "NIFTY-Sep2026-FUT")
-    ]
-    return [_mapping(r, "NIFTY") for r in opts + futs]
+@dataclass(frozen=True, slots=True)
+class ReconnectExperiment:
+    first_security_ids: tuple[str, ...]
+    second_security_ids: tuple[str, ...]
+    same_socket_counts: dict[str, int]
+    fresh_socket_counts: dict[str, int]
+
+    def __post_init__(self) -> None:
+        if not self.first_security_ids or not self.second_security_ids:
+            raise ValueError("reconnect experiment requires two non-empty instrument sets")
+        if set(self.first_security_ids) & set(self.second_security_ids):
+            raise ValueError("reconnect experiment instrument sets must be disjoint")
+
+    @property
+    def first_message_worked(self) -> bool:
+        return any(self.same_socket_counts.get(value, 0) > 0 for value in self.first_security_ids)
+
+    @property
+    def second_message_same_socket_worked(self) -> bool:
+        return any(self.same_socket_counts.get(value, 0) > 0 for value in self.second_security_ids)
+
+    @property
+    def second_message_after_reconnect_worked(self) -> bool:
+        return any(self.fresh_socket_counts.get(value, 0) > 0 for value in self.second_security_ids)
+
+    @property
+    def socket_reset_supported(self) -> bool:
+        return (
+            self.first_message_worked
+            and not self.second_message_same_socket_worked
+            and self.second_message_after_reconnect_worked
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "first_security_ids": list(self.first_security_ids),
+            "second_security_ids": list(self.second_security_ids),
+            "same_socket_counts": self.same_socket_counts,
+            "fresh_socket_counts": self.fresh_socket_counts,
+            "first_message_worked": self.first_message_worked,
+            "second_message_same_socket_worked": self.second_message_same_socket_worked,
+            "second_message_after_reconnect_worked": self.second_message_after_reconnect_worked,
+            "socket_reset_supported": self.socket_reset_supported,
+        }
 
 
-async def run_20level_probe(instruments: list[DhanInstrumentMapping]) -> dict:
-    credentials = DhanCredentials.from_env_file(CRED_PATH)
-    manifest = ArtifactManifest.create(REPO / "artifacts" / "dat09-probe-depth20")
-    metrics = StreamMetrics()
-    writer = JsonlTapeWriter(manifest, fsync_every=200)
-    stream = DhanLiveStream(
-        credentials,
-        instruments,
-        writer.write,
-        run_id=str(manifest.run_id),
-        config=DhanStreamConfig(enable_standard_feed=False, enable_20_level_depth=True),
-        metrics=metrics,
-    )
-    task = asyncio.create_task(stream.run())
-    done, _ = await asyncio.wait({task}, timeout=DURATION_SECONDS)
-    if task not in done:
-        task.cancel()
-        await asyncio.gather(task, return_exceptions=True)
-    else:
-        with contextlib.suppress(BaseException):
-            task.result()
-    writer.close()
-    manifest.complete(rows=writer.rows_written, elapsed_seconds=DURATION_SECONDS)
-    tape_path = manifest.run_dir / f"tape_{manifest.run_id}.jsonl"
-    seen: set[str] = set()
-    for line in tape_path.read_text().splitlines():
-        seen.add(json.loads(line)["broker_security_id"])
-    subscribed = {m.security_id for m in instruments}
-    return {
-        "subscribed_count": len(subscribed),
-        "received_at_least_one_packet_count": len(seen & subscribed),
-        "never_received_count": len(subscribed - seen),
-        "never_received_sample": sorted(subscribed - seen)[:15],
-        "rows": writer.rows_written,
-        "run_dir": str(manifest.run_dir),
-        "metrics_snapshot": metrics.snapshot(DURATION_SECONDS),
-    }
+@dataclass(frozen=True, slots=True)
+class Depth200Control:
+    security_ids: tuple[str, ...]
+    packet_counts: dict[str, int]
+
+    def __post_init__(self) -> None:
+        if not self.security_ids or len(self.security_ids) != len(set(self.security_ids)):
+            raise ValueError("depth200 control requires unique security IDs")
+
+    @property
+    def all_received(self) -> bool:
+        return all(self.packet_counts.get(value, 0) > 0 for value in self.security_ids)
+
+    @property
+    def max_min_packet_ratio(self) -> float | None:
+        values = [self.packet_counts.get(value, 0) for value in self.security_ids]
+        if not values or min(values) == 0:
+            return None
+        return max(values) / min(values)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "security_ids": list(self.security_ids),
+            "packet_counts": self.packet_counts,
+            "all_received": self.all_received,
+            "max_min_packet_ratio": self.max_min_packet_ratio,
+            "interpretation": "pending_live_review",
+        }
 
 
-async def run_200level_probe(instruments: list[DhanInstrumentMapping]) -> dict:
-    credentials = DhanCredentials.from_env_file(CRED_PATH)
-    url = (
-        f"wss://full-depth-api.dhan.co/?token={credentials.access_token}"
-        f"&clientId={credentials.client_id}&authType=2"
-    )
-    counts: Counter[str] = Counter()
-    sizes: dict[str, int] = defaultdict(int)
-    async with connect(url, ping_interval=None, open_timeout=10, max_size=4 * 1024 * 1024) as ws:
-        for mapping in instruments:
-            await ws.send(
-                json.dumps(
-                    {
-                        "RequestCode": 23,
-                        "ExchangeSegment": mapping.exchange_segment.value,
-                        "SecurityId": mapping.security_id,
-                    }
+class DhanDepthProbeClient:
+    def __init__(
+        self,
+        credentials: DhanCredentials,
+        *,
+        connect_factory: ConnectFactory | None = None,
+    ) -> None:
+        self.credentials = credentials
+        if connect_factory is None:
+            from websockets.asyncio.client import connect
+
+            connect_factory = connect
+        self._connect = connect_factory
+
+    def _url(self, base: str) -> str:
+        return (
+            f"{base}?token={self.credentials.access_token}"
+            f"&clientId={self.credentials.client_id}&authType=2"
+        )
+
+    @staticmethod
+    def _twenty_message(instruments: Sequence[DhanInstrumentMapping]) -> str:
+        items = [
+            {
+                "ExchangeSegment": mapping.exchange_segment.value,
+                "SecurityId": mapping.security_id,
+            }
+            for mapping in instruments
+        ]
+        return json.dumps(
+            {"RequestCode": 23, "InstrumentCount": len(items), "InstrumentList": items}
+        )
+
+    async def observe_twenty(
+        self,
+        messages: Sequence[Sequence[DhanInstrumentMapping]],
+        *,
+        duration_seconds: float,
+        inter_message_delay_seconds: float = 1.0,
+    ) -> dict[str, int]:
+        if duration_seconds <= 0 or not messages:
+            raise ValueError("probe duration and messages must be non-empty")
+        counts: Counter[str] = Counter()
+        async with self._connect(
+            self._url(DEPTH20_URL), ping_interval=None, open_timeout=10, max_size=4 * 1024 * 1024
+        ) as websocket:
+            for index, instruments in enumerate(messages):
+                await websocket.send(self._twenty_message(instruments))
+                if index + 1 < len(messages):
+                    await asyncio.sleep(inter_message_delay_seconds)
+            await self._collect(websocket, counts, duration_seconds, depth_levels=20)
+        return dict(counts)
+
+    async def observe_200(
+        self,
+        instruments: Sequence[DhanInstrumentMapping],
+        *,
+        duration_seconds: float,
+    ) -> dict[str, int]:
+        counts: Counter[str] = Counter()
+        async with self._connect(
+            self._url(DEPTH200_URL), ping_interval=None, open_timeout=10, max_size=4 * 1024 * 1024
+        ) as websocket:
+            for mapping in instruments:
+                await websocket.send(
+                    json.dumps(
+                        {
+                            "RequestCode": 23,
+                            "ExchangeSegment": mapping.exchange_segment.value,
+                            "SecurityId": mapping.security_id,
+                        }
+                    )
                 )
-            )
-            await asyncio.sleep(0.05)
-        end = time.monotonic() + DURATION_SECONDS
+                await asyncio.sleep(0.05)
+            await self._collect(websocket, counts, duration_seconds, depth_levels=200)
+        return dict(counts)
+
+    @staticmethod
+    async def _collect(
+        websocket: ProbeSocket,
+        counts: Counter[str],
+        duration_seconds: float,
+        *,
+        depth_levels: int,
+    ) -> None:
+        end = time.monotonic() + duration_seconds
         while time.monotonic() < end:
             try:
                 message = await asyncio.wait_for(
-                    ws.recv(), timeout=max(end - time.monotonic(), 0.1)
+                    websocket.recv(), timeout=max(end - time.monotonic(), 0.001)
                 )
             except TimeoutError:
                 break
             if not isinstance(message, bytes):
                 continue
-            for packet in parse_deep_packets(message, depth_levels=200):
-                if isinstance(packet, ParsedDisconnect):
-                    continue
-                key = str(packet.security_id)
-                counts[key] += 1
-                sizes[key] = packet.raw_size
-    subscribed = {m.security_id: m.trading_symbol for m in instruments}
-    return {
-        "subscribed": subscribed,
-        "packet_counts_by_security_id": dict(counts),
-        "instruments_with_any_packet": sorted(set(counts) & set(subscribed)),
-        "instruments_with_zero_packets": sorted(set(subscribed) - set(counts)),
-    }
+            for packet in parse_deep_packets(message, depth_levels=depth_levels):
+                if isinstance(packet, ParsedDeepPacket):
+                    counts[str(packet.security_id)] += 1
 
 
-async def main() -> None:
-    universe = build_nifty_universe()
-    depth200_probe_ids = {"58072", "68407"}  # Aug/Sep NIFTY futures, guaranteed liquid
-    depth200_instruments = [m for m in universe if m.security_id in depth200_probe_ids]
-    extra_strikes = [m for m in universe if m.instrument.kind.value == "option"][:3]
-    depth200_instruments += extra_strikes
+def _load_mappings(
+    master_path: Path, security_ids: Iterable[str]
+) -> tuple[DhanInstrumentMapping, ...]:
+    master = DhanInstrumentMaster(master_path)
+    return tuple(master.find_by_security_id(value) for value in security_ids)
 
-    results = await asyncio.gather(
-        run_20level_probe(universe),
-        run_200level_probe(depth200_instruments),
-    )
-    print(
-        json.dumps(
-            {"depth20_probe": results[0], "depth200_probe": results[1]}, indent=2, default=str
+
+def _csv_ids(value: str) -> tuple[str, ...]:
+    ids = tuple(item.strip() for item in value.split(",") if item.strip())
+    if not ids:
+        raise argparse.ArgumentTypeError("at least one security ID is required")
+    return ids
+
+
+def _write_result(path: Path, payload: dict[str, Any]) -> None:
+    encoded = (json.dumps(payload, sort_keys=True, indent=2) + "\n").encode()
+    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    with os.fdopen(descriptor, "wb", closefd=True) as handle:
+        handle.write(encoded)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--credentials", type=Path, required=True)
+    parser.add_argument("--security-master", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--duration-seconds", type=float, default=40.0)
+    commands = parser.add_subparsers(dest="command", required=True)
+    ceiling = commands.add_parser("ceiling")
+    ceiling.add_argument("--ordered-security-ids", type=_csv_ids, required=True)
+    ceiling.add_argument("--control-security-ids", type=_csv_ids, required=True)
+    ceiling.add_argument("--known-working", type=int, default=52)
+    ceiling.add_argument("--known-failing", type=int, default=206)
+    reconnect = commands.add_parser("reconnect")
+    reconnect.add_argument("--first-security-ids", type=_csv_ids, required=True)
+    reconnect.add_argument("--second-security-ids", type=_csv_ids, required=True)
+    control = commands.add_parser("depth200-control")
+    control.add_argument("--comparable-liquid-security-ids", type=_csv_ids, required=True)
+    return parser
+
+
+async def _run(args: argparse.Namespace) -> dict[str, Any]:
+    credentials = DhanCredentials.from_env_file(args.credentials)
+    client = DhanDepthProbeClient(credentials)
+    if args.command == "ceiling":
+        universe = _load_mappings(args.security_master, args.ordered_security_ids)
+        controls = tuple(args.control_security_ids)
+
+        async def probe(count: int) -> ProbeObservation:
+            selected = universe[:count]
+            if len(selected) != count:
+                raise ValueError("ordered universe is too small for ceiling candidate")
+            selected_ids = {mapping.security_id for mapping in selected}
+            if not set(controls).issubset(selected_ids):
+                raise ValueError("every ceiling candidate must include every liquid control")
+            counts = await client.observe_twenty(
+                (selected,), duration_seconds=args.duration_seconds
+            )
+            return ProbeObservation(count, counts, controls, args.duration_seconds)
+
+        ceiling_result = await bisect_twenty_level_ceiling(
+            probe,
+            known_working=args.known_working,
+            known_failing=args.known_failing,
         )
-    )
+        return {"task": "DAT-11", **ceiling_result.to_dict()}
+    if args.command == "reconnect":
+        first = _load_mappings(args.security_master, args.first_security_ids)
+        second = _load_mappings(args.security_master, args.second_security_ids)
+        same_counts = await client.observe_twenty(
+            (first, second), duration_seconds=args.duration_seconds
+        )
+        fresh_counts = await client.observe_twenty(
+            (second,), duration_seconds=args.duration_seconds
+        )
+        reconnect_result = ReconnectExperiment(
+            tuple(args.first_security_ids),
+            tuple(args.second_security_ids),
+            same_counts,
+            fresh_counts,
+        )
+        return {"task": "DAT-12", **reconnect_result.to_dict()}
+    instruments = _load_mappings(args.security_master, args.comparable_liquid_security_ids)
+    counts = await client.observe_200(instruments, duration_seconds=args.duration_seconds)
+    control_result = Depth200Control(tuple(args.comparable_liquid_security_ids), counts)
+    return {"task": "DAT-13", **control_result.to_dict()}
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
+    try:
+        payload = asyncio.run(_run(args))
+        _write_result(args.output, payload)
+    except BaseException as exc:
+        # Never print exception text: network exceptions may contain an authenticated URL.
+        print(json.dumps({"status": "failed", "error_type": type(exc).__name__}))
+        return 1
+    print(json.dumps({"status": "completed", "output": str(args.output)}))
+    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main()) or 0)
+    raise SystemExit(main())
