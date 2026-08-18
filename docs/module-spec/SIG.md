@@ -24,6 +24,41 @@ Make “data leads, strategy follows” operational (D8): construct a taxonomy-c
 - Feature computation supports bounded-state forward streaming for the permanent feature tier. Permanent raw retention (D12/DAT-09) makes later recomputation possible where the tape contains the information.
 - Black-box models are diagnostic yardsticks for the residual information gap, not promotable strategies (D11).
 
+## Shaurya quotes; it does not cross (D21)
+
+Decided 2026-08-19: Shaurya trades as a **maker**, never a taker. The spread is not crossed.
+
+This fixes SIG's primary estimand on the maker side and inverts the target of most
+taker-oriented microstructure results. The governing question is not "will the price move" but
+"conditional on a resting quote being filled, what is the markout, and what was the probability
+of that fill". Concretely:
+
+- SIG-08's leading target families are fill probability (censored hazard / EXE-09 intensity) and
+  markout-conditional-on-fill supplied by ANL-01. Directional forecast regression remains in
+  scope as an input to quote placement, not as the objective.
+- SIG-17's economic gate is restated for a maker: expected spread capture must exceed adverse
+  selection plus side-specific taxes, fees and hedging cost. This is a different inequality from
+  the taker's half-spread hurdle, not a softer one.
+- EXE-10's labelled queue-position estimator is load-bearing, because maker fill probability
+  depends on queue rank while SIG-07 holds true rank unidentified. Its estimated/proxy label
+  propagates into every fill-conditional result.
+- The binding latency is cancel latency, not decision latency. The maker's characteristic loss is
+  being executed on a quote that should already have been withdrawn.
+
+Recorded risk, not a blocker: quoting from a retail broker's public feed into a market where a
+majority of derivatives turnover is co-located is structurally adverse. What maker edge survives
+for a non-co-located participant is an open empirical question, addressed by the commissioned
+maker research rather than assumed either way.
+
+## The claim ledger is pre-registered (D22)
+
+The SIG research agenda is decomposed to claim level with stable IDs, each claim recording its
+mechanism, resolved citations, capture path from our own feed, confirming test, falsifying test
+and CON-06 identification status. The ledger is the pre-registered hypothesis set against which
+SIG-19's trial log is checked: anything tested appears in the ledger first, and additions are
+recorded before results are inspected. Literature seeds claims; it does not settle them, and the
+ledger stays open to mechanisms the literature does not anticipate.
+
 ## Measurement design is empirical (D20)
 
 The sampling clock (event / calendar / volume time), the pooling coordinate (instrument identity
@@ -50,7 +85,7 @@ before the sweep begins, never by inspecting outcomes.
 | REQ-SIG-05 | Implement cross-asset features for underlying-to-option flow, index relationships, futures/spot basis and lead-lag, and cross-impact. | SIG-05 | TBD cross-asset module | Identity/alignment/lead-lag tests |
 | REQ-SIG-06 | Implement options features for surface shape/velocity, term structure, dealer exposures, delta-space flow, and OI change. | SIG-06 | TBD options feature module | Surface/Greek alignment tests |
 | REQ-SIG-07 | Encode the Dhan order-level identification boundary and forbid silent proxies for order identity, true rank, lifetime, or cancellation attribution. | SIG-07 | TBD registry constraints/docs | Schema rejection and boundary tests; identification ledger |
-| REQ-SIG-08 | Maintain separate target families: price regression, censored hazard/intensity fill probability, and ANL-derived markout conditional on fill. | SIG-08, D15 | TBD target registry | Target-family and provenance tests; target catalog |
+| REQ-SIG-08 | Maintain separate target families, led by the maker-side pair under D21: censored hazard/intensity fill probability and ANL-derived markout conditional on fill, with price regression retained as a quote-placement input rather than the objective. | SIG-08, D15, D21 | TBD target registry | Target-family and provenance tests; target catalog |
 | REQ-SIG-09 | Construct strictly lagged labels; separate contemporaneous impact from prediction and ban targets deterministic in current features. | SIG-09, CON-07 | TBD labels module | Leakage and deterministic-target rejection tests |
 | REQ-SIG-10 | Cluster/PCA correlated features before selection and compute importance at cluster, not individual collinear-feature, level. | SIG-10, D11 | TBD redundancy module | Synthetic-collinearity tests; cluster artifact |
 | REQ-SIG-11 | Use HAC/Newey–West with lag at least overlap, non-overlapping resampling, and stationary block bootstrap; report effective sample size with every t-statistic. | SIG-11 | TBD inference module | Coverage/calibration fixtures; inference report |
@@ -59,7 +94,7 @@ before the sweep begins, never by inspecting outcomes.
 | REQ-SIG-14 | Decompose contemporaneous and predictive effects with a Hasbrouck VAR, impulse responses, and permanent/transitory impact. | SIG-14 | TBD impact module | Simulated-VAR recovery tests; decomposition report |
 | REQ-SIG-15 | Evaluate OOS R² against no-change, compare forecasts with Diebold–Mariano/Giacomini–White, and report Hansen's Model Confidence Set. | SIG-15, D11 | TBD evaluation module | Known-ranking/equal-model tests; MCS report |
 | REQ-SIG-16 | Condition every result on VOL's HMM regime and downgrade regime-unstable signs to regime indicators. | SIG-16 | TBD regime evaluation | Regime-slice/sign-stability tests |
-| REQ-SIG-17 | Promote a finding only when predicted edge clears half-spread, fees, and adverse selection under EXE-09. | SIG-17 | TBD economic gate | Boundary/cost/fill-model tests; promotion decision |
+| REQ-SIG-17 | Promote a finding only when expected maker spread capture clears adverse selection, side-specific taxes, fees and hedging cost under EXE-09 (D21); the taker half-spread hurdle does not apply because the spread is never crossed. | SIG-17, D21 | TBD economic gate | Boundary/cost/fill-model tests; promotion decision |
 | REQ-SIG-18 | Measure the OOS gap between raw-book and engineered-feature models and diagnose residuals by time, regime, and raw-book slices; unexplained gaps create missing-feature tickets. | SIG-18, D11, D12 | TBD coverage module | Golden-tape residual-gap report and ticket output |
 | REQ-SIG-19 | Log every tested configuration — including sampling clock, pooling coordinate, and horizon (D20) — and report a performance distribution using combinatorially purged CV and deflated Sharpe. | SIG-19, D20 | TBD trial registry | Append-only/completeness tests; trial log |
 | REQ-SIG-20 | Require each permanent-tier feature to be computable in one bounded-state forward pass without future data or same-day refit. | SIG-20, DAT-09 | TBD streaming feature API | Streaming/batch parity, bounded-state, leakage tests |
