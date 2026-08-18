@@ -5,6 +5,25 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### DAT-14 / CON-01 — causal trade-direction classification at capture
+
+- Added the pure, versioned `quote-mid-tick-v1` classifier: prints above/below the prevailing
+  midpoint are buys/sells, exact-midpoint prints use the last differing trade price, and absence
+  of that price remains explicitly unclassified.
+- Added bounded capture-path state and versioned alignment rule
+  `latest-complete-depth-before-print-v1`. It selects only a complete 20/200-level BBO already
+  received before the print, records both BBO-leg timestamps, the composite timestamp, selected
+  channel and conservative quote age, and degrades stale/missing/crossed quotes instead of
+  silently forward-filling them.
+- Bumped CON-01 tape rows to schema `1.1.0` while retaining read compatibility with existing
+  `1.0.0` tapes. Classified rows retain the last price/quantity, cumulative-volume increment,
+  exact BBO used, freshness bound, side/reason, classifier and alignment versions, and explicit
+  degraded/coalesced flags; a coalesced sign is never assigned to unseen increment volume.
+- Dry-run verified on all 21,279 retained rows: 12 positive-volume print intervals classified
+  (3 buy, 8 sell, 1 unclassified), of which 1 was degraded and 5 were coalesced. Both pytest entry
+  points pass 100 tests; strict mypy and Ruff are clean. No live DAT-14 capture was attempted while
+  the market was closed, and DAT-15 remains unimplemented.
+
 ### DAT-03, DAT-04, DAT-05, DAT-06, DAT-07, DAT-09, and DAT-11-13 — storage, replay, quality, identity, capacity
 
 - Added historical bar fetch and local storage: Dhan minute and daily responses normalize into a

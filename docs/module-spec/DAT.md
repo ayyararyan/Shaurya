@@ -43,6 +43,8 @@ Every tape row retains its `CON-06` category and data-quality flags. Missing pro
 | REQ-DAT-11 | Bisect the exact 20-level per-message instrument ceiling with a live read-only binary-search probe. | DAT-11 | `scripts/dat09_concurrency_probe.py` | Dated per-probe acceptance table and exact supported ceiling |
 | REQ-DAT-12 | Test whether a fresh socket reconnect resets the one-honoured-message behaviour or whether the limit is account/session scoped. | DAT-12 | `scripts/dat09_concurrency_probe.py` | Reconnect experiment artifact with packet-by-instrument evidence |
 | REQ-DAT-13 | Run a 200-level same-liquidity control across comparably liquid instruments to distinguish liquidity from subscription-order throttling. | DAT-13 | `scripts/dat09_concurrency_probe.py` | Controlled packet-count comparison and conclusion |
+| REQ-DAT-14 | Classify positive-volume Quote/Full prints causally on capture with the versioned quote-mid/tick rule, retain every raw classification input and receive timestamp, version the cross-channel alignment rule, mark stale/missing quotes degraded, and flag coalesced intervals without assigning the sign to unseen volume. | DAT-14, D24 | `src/shaurya/data/trade_direction.py`; `src/shaurya/data/dhan_stream.py`; `src/shaurya/contracts/tape.py` | Pure rule tests; alignment/capture-path tests; legacy-schema replay; retained-tape dry run |
+| REQ-DAT-15 | Measure the DAT-14 cross-channel alignment error and coalescing empirically from retained tape as distributions and classification flip rates by activity, depth tier, and time of day; never assume the error is small. | DAT-15, D24 | Future DAT analysis code; intentionally not part of DAT-14 | Distribution/flip-rate artifact; market-hours retained tape; Not implemented |
 
 Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded by D18.
 
@@ -110,7 +112,34 @@ choice among quote rule, tick rule and successors is one of D20's swept axes and
    carries a coalesced flag with the increment and last quantity, so downstream signed-flow measures
    can exclude or explicitly model those intervals instead of attributing one sign to unseen volume.
 
+**Implemented rule versions and alignment semantics.** Classifier
+`quote-mid-tick-v1` uses the quote rule first and the tick rule only for an exact midpoint print;
+without a prior differing price the explicit result is `unclassified`. Alignment
+`latest-complete-depth-before-print-v1` admits a 20- or 200-level channel only after both BBO sides
+have been received in its current connection epoch. For each print it selects the complete candidate
+whose composite state was updated most recently at or before the print receive time, with channel
+name as the deterministic tie-break. The quote's composite receive timestamp is the later BBO-leg
+timestamp, while freshness age is conservatively measured from the older leg; both leg timestamps,
+the composite timestamp, selected depth tier, age, and configured bound are retained. A crossed,
+missing, or older-than-bound quote remains in the raw fields when available but yields a degraded
+`unclassified` result. The Full packet's bundled five-level book is not eligible for its own print,
+and reconnect boundaries clear the affected depth candidate. The default freshness bound is 1,000
+ms and is configurable on the capture CLI; every classified row records the bound actually used.
+
+Only a positive cumulative-volume increment is treated as a newly observed print. The first
+cumulative-volume observation establishes a baseline because pre-capture volume is unknown, and an
+unchanged snapshot is not re-signed. The state retained per instrument is constant-sized: latest
+complete quotes by depth tier, cumulative-volume baseline, current trade price, and prior differing
+trade price.
+
 **Downstream consumers.** SIG-03's signed-flow features and SIG-14's Hasbrouck decomposition consume
 the capture-time sign together with its version stamp. D23's queue-ahead bounds depend on separating
 trades from cancellations at a level, which is exactly what the signed, flagged print record makes
 possible.
+
+**Evidence as of 2026-08-19.** Dry-run verified: both pytest entry points pass 100 tests, strict mypy
+and Ruff are clean, and replay consumed all 21,279 retained rows. The one mixed standard/depth tape
+contained 12 positive-volume print intervals: 3 buy, 8 sell, 1 unclassified, including 1 degraded
+and 5 coalesced. Depth-only tapes correctly produced no print classifications. No live DAT-14
+capture was attempted while the market was closed. DAT-15's error-distribution/flip-rate study is
+still separate and unimplemented.

@@ -35,7 +35,7 @@ Labels must survive serialization and downstream transformations. An estimated o
 
 | Requirement | Normative statement | TASKS.md trace | Code target | Test / output target |
 |---|---|---|---|---|
-| REQ-CON-01 | Version a snapshot/tape schema containing BBO, full configured depth, timestamps, sequences where available, and explicit quality flags. | CON-01 | `src/shaurya/contracts/tape.py` | Round-trip/schema/version tests; canonical tape row |
+| REQ-CON-01 | Version a snapshot/tape schema containing BBO, full configured depth, timestamps, sequences where available, and explicit quality flags. DAT-14 classified-print rows additionally retain price, last quantity, cumulative-volume increment, the BBO and BBO-leg receive timestamps actually used, quote age/freshness bound, inferred side, classifier/alignment versions, degradation reason, and coalesced flag. | CON-01, DAT-14, D24 | `src/shaurya/contracts/tape.py` | Round-trip/schema/version tests; legacy `1.0.0` load test; canonical tape row |
 | REQ-CON-02 | Version an append-only ledger schema covering placement, execution, cancel/reject, cycle P&L, order role, quote/fill prices, age, book state, K, and break-even spread. | CON-02 | `src/shaurya/contracts/ledger.py`; future C++ consumer under EXE-05/NAT | Schema/version/event validation and golden-fixture round trip; canonical ledger row |
 | REQ-CON-03 | Version a surface-frame schema carrying parameters, fit diagnostics, age, and staleness. | CON-03 | `src/shaurya/contracts/surface.py`; future C++ consumer under NAT | Schema/version/age/staleness validation and golden-fixture round trip; surface frame |
 | REQ-CON-04 | Define one config format consumed by Python and C++, including credential handles and shared limit definitions. | CON-04 | `src/shaurya/contracts/config.py`; future C++ parser under INF-03/NAT | Python accepts/rejects committed golden fixture; same fixture reserved for C++ parity |
@@ -51,7 +51,9 @@ Labels must survive serialization and downstream transformations. An estimated o
 - Golden fixtures consumed by both languages where a contract crosses the boundary.
 - Backward-incompatible changes require a schema version and release/changelog entry.
 - Missing timestamps, mappings, labels, or data-insufficient states are explicit, never coerced to zero.
-- Existing live-verified slices (`CON-01`, Dhan slice of `CON-05`, `CON-08`) retain their evidence; unfinished slices do not inherit that status.
+- Existing live-verified slices (`CON-01`, Dhan slice of `CON-05`, `CON-08`) retain their evidence;
+  the CON-01 DAT-14 extension is schema `1.1.0`, accepts retained `1.0.0` rows, and is Dry-run
+  verified rather than Live verified. Unfinished slices do not inherit another slice's status.
 
 ## Exclusions
 
