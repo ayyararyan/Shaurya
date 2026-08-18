@@ -7,52 +7,34 @@
 
 ## START HERE — the one thing this session is for
 
-**Aryan's explicit instruction, given 2026-08-19 ~00:32 IST just before resetting the session:
-the next conversation is the discussion of the SIG research agent's results, once that agent
-has finished properly.**
+**The SIG claim ledger.** The first research report landed 2026-08-19 ~00:37 IST at
+`research/sig-feature-research-2026-08-19.md` (in the OpenClaw workspace, not this repo) and has
+been reviewed and corrected in place; read its "Corrections and status" preamble first. Round 2 of
+the discussion was held the same night and produced **D21** (Shaurya is a maker, never a taker)
+and **D22** (the claim ledger is a pre-registered hypothesis set) — both in `TASKS.md` and
+`docs/module-spec/SIG.md`.
 
-**THE REPORT HAS LANDED.** The `sig_feature_research` agent completed 2026-08-19 ~00:34 IST
-(runtime 12m37s). Do not spawn a replacement. Read the report in full, then open the
-discussion from it:
+**A second research agent is running**, commissioned by Aryan once D21 settled the maker question,
+because the first report was written for a directional taker and its targets invert for a maker.
+It is writing `research/sig-maker-research-2026-08-19.md` — market-making theory, queue dynamics
+and fill probability without order IDs, adverse-selection measurement, options-specific making,
+the non-co-located maker problem, NSE maker economics including the severe STT asymmetry on option
+sales, and which of the first report's twelve stories survive the inversion.
 
-- **Report:** `/Users/maheit/.openclaw/workspace/research/sig-feature-research-2026-08-19.md`
-  (7,460 words; 58 numbered sources; 20 candidate stories grouped by horizon, each with
-  mechanism, observable, confirming test and falsifying test)
-- Agent identifiers, for the record: task `sig_feature_research`, run
-  `1293b783-d7a3-439f-833b-3332a83c7269`, session
-  `agent:main:subagent:d44d2f48-ca86-47a6-a2cb-5e7bc798e765`
+- task name: `sig_maker_research`
+- run ID: `be2aa0f5-8b0c-4409-b8a5-a47a2653b3d7`
+- session key: `agent:main:subagent:5a5747e9-1d95-4154-8bda-5b5cd0747cc8`
 
-**Verification performed 2026-08-19 before handing it to Aryan.** Structure and counts check
-out independently: 20 story headings (A1–A4, B1–B4, C1–C4, D1–D5, E1–E3), 58 bibliography
-entries, §6 gives concrete narrowing on clocks, pooling coordinates and a staged falsification
-protocol — i.e. it answers the question D20 commissioned it to answer.
+On return: check whether it has finished, read it, verify its citations rather than trusting them
+(the first report ran roughly a one-in-seven citation error rate), and then continue the
+story-by-story debate with Aryan. **The debate is the work; the ledger is its output.** Do not
+start writing claims into the ledger from the first report alone — the maker report is expected to
+change which stories matter and what their targets are.
 
-**One defect found, not yet fixed: the bibliography needs a citation audit.** Fourteen entries
-were spot-checked against Crossref; twelve resolved correctly, two did not:
-
-- **Entry 33** ("Camilleri and Green (2015), The Impact of the Pre-Open Call Auction on the
-  Price Discovery Process in India, *RIBF* 35, 121–134") — the DOI belongs to an unrelated
-  paper (Verheyden et al., "Towards a new framework on efficient markets"), and no paper of
-  that title/venue is findable. Likely a garbled rendering of Camilleri and Green's real
-  NSE call-auction work.
-- **Entry 34** ("Kumar, Sarin and Shastri (2005), The Impact of Futures and Options Expiration
-  on the Underlying Stocks: Evidence from India, *JFM* 25(11), 1045–1065") — journal, volume
-  and pages are right; author and title are wrong. The real paper at that location is
-  **Vipul (2005), "Futures and options expiration-day effects: The Indian evidence."**
-
-Sampled error rate ~14%, concentrated in the India-specific entries — which is exactly where
-the report's marginal value lies. **Before any citation is relied on for a design decision,
-resolve it.** The report's *arguments* stand on their own; its *references* need checking one
-by one.
-
-**No SIG design decision is taken until that report has been read and discussed — this is a hard
-sequencing gate set by Aryan, not a preference.** The report's job is to narrow the plausible
-range of sampling clocks, pooling coordinates, horizons, and feature families from theory and
-prior evidence *before* any sweep, so that D20's swept axes stay a defensible search space
-rather than an unbounded one that multiple-testing control correctly annihilates. Read D20 in
-`TASKS.md` and the "Measurement design is empirical" section of `docs/module-spec/SIG.md`
-first, then `SIG.md` in full, so the discussion sharpens SIG-01–SIG-20 rather than re-deriving
-them.
+Under D22 the ledger is claim-level with stable IDs, each claim recording mechanism, resolved
+citations, capture path from our own feed, confirming test, falsifying test, and CON-06
+identification status. Where it lives and what the ID scheme looks like are engineering calls; that
+it binds SIG-19's trial log is not.
 
 ## Mandatory restart context
 
