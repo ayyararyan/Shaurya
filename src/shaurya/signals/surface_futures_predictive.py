@@ -323,6 +323,61 @@ class FutureBookSeries:
             return None
         return ResolvedBook(state, age)
 
+    def as_of_failure_reason(
+        self,
+        target_ts_ns: int,
+        *,
+        connection_epoch: int,
+        max_age_seconds: float = MAX_ASOF_AGE_SECONDS,
+    ) -> str | None:
+        """Return the explicit reason an as-of lookup would fail, or ``None``."""
+
+        position = bisect_right(self.timestamps, target_ts_ns) - 1
+        if position < 0:
+            return "no_prior_state"
+        state = self.states[position]
+        if state.connection_epoch != connection_epoch:
+            return "epoch_mismatch"
+        if not self.usable(state):
+            return "unusable_state"
+        age = (target_ts_ns - state.receive_ts_ns) / NANOSECONDS_PER_SECOND
+        if age < 0.0:
+            return "negative_age"
+        if age > max_age_seconds:
+            return "stale_state"
+        return None
+
+    def move_failure_reason(
+        self,
+        start_ts_ns: int,
+        end_ts_ns: int,
+        *,
+        connection_epoch: int,
+    ) -> str | None:
+        """Return the guarded move-resolution failure reason, or ``None``."""
+
+        if end_ts_ns <= start_ts_ns:
+            return "invalid_geometry"
+        if self.epoch_end.get(connection_epoch, -1) < end_ts_ns:
+            # If the global series does reach the endpoint, another epoch displaced the
+            # requested one; otherwise this is the ordinary tape right edge.
+            return (
+                "epoch_right_edge"
+                if self.timestamps and self.timestamps[-1] >= end_ts_ns
+                else "right_edge_uncovered"
+            )
+        start_reason = self.as_of_failure_reason(
+            start_ts_ns, connection_epoch=connection_epoch
+        )
+        if start_reason is not None:
+            return f"start_{start_reason}"
+        end_reason = self.as_of_failure_reason(
+            end_ts_ns, connection_epoch=connection_epoch
+        )
+        if end_reason is not None:
+            return f"end_{end_reason}"
+        return None
+
     def move(
         self,
         start_ts_ns: int,
@@ -709,11 +764,14 @@ def trailing_ofi_features(
     *,
     anchor_ts_ns: int,
     connection_epoch: int,
+    windows: Sequence[float] = OFI_WINDOWS_SECONDS,
 ) -> dict[str, float] | None:
     """Frozen OFI windows ending at the surface anchor; all components are past-only."""
 
     result: dict[str, float] = {}
-    for window in OFI_WINDOWS_SECONDS:
+    for window in windows:
+        if window not in OFI_WINDOWS_SECONDS:
+            raise ValueError(f"undeclared OFI window {window}")
         start = anchor_ts_ns - int(round(window * NANOSECONDS_PER_SECOND))
         start_state = series.as_of(start, connection_epoch=connection_epoch)
         end_state = series.as_of(anchor_ts_ns, connection_epoch=connection_epoch)
@@ -768,26 +826,56 @@ def build_predictive_observations(
         "same_window_uncovered": 0,
     }
     observations: list[SurfacePredictiveObservation] = []
+
+    def fail(family: str, reason: str | None) -> None:
+        failures[family] += 1
+        key = f"{family}__{reason or 'unknown'}"
+        failures[key] = failures.get(key, 0) + 1
+
     for draft in drafts:
         current = series.as_of(
             draft.receive_ts_ns, connection_epoch=draft.connection_epoch
         )
         if current is None:
-            failures["no_current_future_state"] += 1
+            fail(
+                "no_current_future_state",
+                series.as_of_failure_reason(
+                    draft.receive_ts_ns, connection_epoch=draft.connection_epoch
+                ),
+            )
             continue
         lob = lob_features(current.state)
         if lob is None:
             failures["lob_unusable"] += 1
             continue
+        # Only the ranked five-second block is required for the primary common sample.
+        # The other predeclared windows are emitted opportunistically and get explicit
+        # support counts; they never remove a primary row.
         ofi = trailing_ofi_features(
             prefix,
             series,
             anchor_ts_ns=draft.receive_ts_ns,
             connection_epoch=draft.connection_epoch,
+            windows=(PRIMARY_OFI_WINDOW_SECONDS,),
         )
         if ofi is None:
             failures["ofi_incomplete"] += 1
             continue
+        for window in OFI_WINDOWS_SECONDS:
+            if window == PRIMARY_OFI_WINDOW_SECONDS:
+                continue
+            robustness = trailing_ofi_features(
+                prefix,
+                series,
+                anchor_ts_ns=draft.receive_ts_ns,
+                connection_epoch=draft.connection_epoch,
+                windows=(window,),
+            )
+            if robustness is None:
+                key = f"ofi_robustness_w{_window_label(window)}_unavailable"
+                failures[key] = failures.get(key, 0) + 1
+            else:
+                ofi.update(robustness)
         future_start = draft.receive_ts_ns + int(
             round(DECISION_GAP_SECONDS * NANOSECONDS_PER_SECOND)
         )
@@ -798,25 +886,54 @@ def build_predictive_observations(
             future_start, future_end, connection_epoch=draft.connection_epoch
         )
         if future is None:
-            failures["future_target_uncovered"] += 1
+            fail(
+                "future_target_uncovered",
+                series.move_failure_reason(
+                    future_start,
+                    future_end,
+                    connection_epoch=draft.connection_epoch,
+                ),
+            )
             continue
+        past_start = draft.receive_ts_ns - int(
+            round(TARGET_END_SECONDS * NANOSECONDS_PER_SECOND)
+        )
+        past_end = draft.receive_ts_ns - int(
+            round(DECISION_GAP_SECONDS * NANOSECONDS_PER_SECOND)
+        )
         past = series.move(
-            draft.receive_ts_ns
-            - int(round(TARGET_END_SECONDS * NANOSECONDS_PER_SECOND)),
-            draft.receive_ts_ns
-            - int(round(DECISION_GAP_SECONDS * NANOSECONDS_PER_SECOND)),
+            past_start,
+            past_end,
             connection_epoch=draft.connection_epoch,
         )
         if past is None:
-            failures["past_mirror_uncovered"] += 1
+            fail(
+                "past_mirror_uncovered",
+                series.move_failure_reason(
+                    past_start,
+                    past_end,
+                    connection_epoch=draft.connection_epoch,
+                ),
+            )
             continue
+        same_start = draft.receive_ts_ns - int(
+            round(RESPONSE_SECONDS * NANOSECONDS_PER_SECOND)
+        )
+        same_end = draft.receive_ts_ns
         same = series.move(
-            draft.receive_ts_ns - int(round(RESPONSE_SECONDS * NANOSECONDS_PER_SECOND)),
-            draft.receive_ts_ns,
+            same_start,
+            same_end,
             connection_epoch=draft.connection_epoch,
         )
         if same is None:
-            failures["same_window_uncovered"] += 1
+            fail(
+                "same_window_uncovered",
+                series.move_failure_reason(
+                    same_start,
+                    same_end,
+                    connection_epoch=draft.connection_epoch,
+                ),
+            )
             continue
         observations.append(
             SurfacePredictiveObservation(
@@ -1471,17 +1588,14 @@ def freshness_rows(
     return rows, models
 
 
-def lagged_surface_placebo(
+def lagged_surface_source_positions(
     observations: Sequence[SurfacePredictiveObservation],
-    split: ObservationSplit,
-    *,
-    replicates: int,
-    seed: int,
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+) -> dict[int, int]:
+    """Map each row to the latest same-epoch surface at least 300 seconds earlier."""
+
     timestamps = tuple(observation.receive_ts_ns for observation in observations)
     lag_ns = int(round(SURFACE_LAG_PLACEBO_SECONDS * NANOSECONDS_PER_SECOND))
     lag_source: dict[int, int] = {}
-    placebo_observations = list(observations)
     for position, observation in enumerate(observations):
         source_position = bisect_right(timestamps, observation.receive_ts_ns - lag_ns) - 1
         if source_position < 0:
@@ -1493,7 +1607,22 @@ def lagged_surface_placebo(
         ):
             continue
         lag_source[position] = source_position
-        placebo_observations[position] = replace(observation, economic=source.economic)
+    return lag_source
+
+
+def lagged_surface_placebo(
+    observations: Sequence[SurfacePredictiveObservation],
+    split: ObservationSplit,
+    *,
+    replicates: int,
+    seed: int,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    lag_source = lagged_surface_source_positions(observations)
+    placebo_observations = list(observations)
+    for position, source_position in lag_source.items():
+        placebo_observations[position] = replace(
+            observations[position], economic=observations[source_position].economic
+        )
     train = tuple(position for position in split.train if position in lag_source)
     test = tuple(position for position in split.test if position in lag_source)
     if len(train) < 20 or len(test) < 20:
@@ -1551,6 +1680,91 @@ def _quantiles(values: Sequence[float]) -> dict[str, float | int | None]:
         "p95": float(np.quantile(array, 0.95)),
         "max": float(np.max(array)),
     }
+
+
+def surface_collinearity_summary(
+    observations: Sequence[SurfacePredictiveObservation],
+    split: ObservationSplit,
+) -> list[dict[str, Any]]:
+    """Deterministic surface-feature collinearity diagnostics by declared sample scope."""
+
+    names = tuple(sorted(observations[0].economic))
+    scopes = (
+        ("full", tuple(range(len(observations)))),
+        ("training", split.train),
+        ("held_out", split.test),
+    )
+    rows: list[dict[str, Any]] = []
+    for scope, positions in scopes:
+        matrix = np.asarray(
+            [
+                [observations[position].economic[name] for name in names]
+                for position in positions
+            ],
+            dtype=np.float64,
+        ).reshape(len(positions), len(names))
+        scales = np.std(matrix, axis=0)
+        active = np.flatnonzero(scales > 0.0)
+        zero_variance = [names[index] for index in range(len(names)) if scales[index] <= 0.0]
+        standardized = (
+            (matrix[:, active] - np.mean(matrix[:, active], axis=0)) / scales[active]
+            if len(active)
+            else np.empty((len(positions), 0), dtype=np.float64)
+        )
+        rank = int(np.linalg.matrix_rank(standardized)) if standardized.size else 0
+        singular = (
+            np.linalg.svd(standardized, compute_uv=False)
+            if standardized.size
+            else np.asarray([], dtype=np.float64)
+        )
+        condition: float | None = None
+        if len(singular) and rank == standardized.shape[1] and singular[-1] > 0.0:
+            condition = float(singular[0] / singular[-1])
+        pair_rows: list[dict[str, Any]] = []
+        if len(active) >= 2:
+            correlations = np.corrcoef(standardized, rowvar=False)
+            for left_position, left_index in enumerate(active):
+                for right_position in range(left_position + 1, len(active)):
+                    right_index = int(active[right_position])
+                    correlation = float(correlations[left_position, right_position])
+                    pair_rows.append(
+                        {
+                            "left": names[int(left_index)],
+                            "right": names[right_index],
+                            "pearson_correlation": correlation,
+                            "absolute_correlation": abs(correlation),
+                        }
+                    )
+        pair_rows.sort(
+            key=lambda row: (
+                -float(row["absolute_correlation"]),
+                str(row["left"]),
+                str(row["right"]),
+            )
+        )
+        rows.append(
+            {
+                "scope": scope,
+                "n": len(positions),
+                "feature_count": len(names),
+                "nonconstant_feature_count": len(active),
+                "zero_variance_features": zero_variance,
+                "standardized_matrix_rank": rank,
+                "standardized_condition_number_full_rank_only": condition,
+                "pair_count": len(pair_rows),
+                "absolute_correlation_ge_0_90": sum(
+                    float(row["absolute_correlation"]) >= 0.90 for row in pair_rows
+                ),
+                "absolute_correlation_ge_0_95": sum(
+                    float(row["absolute_correlation"]) >= 0.95 for row in pair_rows
+                ),
+                "absolute_correlation_ge_0_99": sum(
+                    float(row["absolute_correlation"]) >= 0.99 for row in pair_rows
+                ),
+                "strongest_25_pairs": pair_rows[:25],
+            }
+        )
+    return rows
 
 
 def build_scan_artifact(
@@ -1612,6 +1826,26 @@ def build_scan_artifact(
         smoothing_counts[observation.smoothing_status] = (
             smoothing_counts.get(observation.smoothing_status, 0) + 1
         )
+    ofi_window_support = {
+        f"w{_window_label(window)}": sum(
+            all(
+                ofi_feature(window, name) in observation.ofi
+                for name in (
+                    "cks_l1_raw",
+                    "cks_l1_depth_adjusted",
+                    "pk_level1_raw",
+                    "pk_levels2_5_raw",
+                    "pk_level1_depth_adjusted",
+                    "pk_levels2_5_depth_adjusted",
+                )
+            )
+            for observation in observations
+        )
+        for window in OFI_WINDOWS_SECONDS
+    }
+    all_ofi_names = {
+        name for observation in observations for name in observation.ofi
+    }
     model_index = {
         (str(row["source"]), str(row["model"])): row
         for row in model_rows
@@ -1668,6 +1902,7 @@ def build_scan_artifact(
                 [item.surface_age_seconds for item in observations]
             ),
             "smoothing_status_counts": dict(sorted(smoothing_counts.items())),
+            "ofi_window_support": ofi_window_support,
         },
         "feature_counts": {
             "surface_economic": len(observations[0].economic),
@@ -1675,8 +1910,9 @@ def build_scan_artifact(
             "surface_quality_categorical_fixed_schema": len(QUALITY_CATEGORICAL_NAMES),
             "lob_five_level": len(observations[0].lob),
             "ofi_primary_five_second": len(_primary_ofi_names(observations)),
-            "ofi_all_predeclared_windows": len(observations[0].ofi),
+            "ofi_all_predeclared_windows_emitted": len(all_ofi_names),
         },
+        "surface_collinearity": surface_collinearity_summary(observations, split),
         "headline": {
             "S_oos_r2": s.get("oos_r2_vs_training_mean"),
             "L_oos_r2": model_index[("future", "L")].get("oos_r2_vs_training_mean"),

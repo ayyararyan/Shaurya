@@ -10,10 +10,13 @@ import pytest
 
 from shaurya.data.depth_thinning_analysis import FULL, BookState
 from shaurya.signals.surface_futures_predictive import (
+    DECISION_GAP_SECONDS,
     EXPIRIES,
+    FIT_INTERVAL_SECONDS,
     FUTURES_INSTRUMENT_ID,
     NANOSECONDS_PER_SECOND,
     QUALITY_NUMERIC_NAMES,
+    RESPONSE_SECONDS,
     FrameDraft,
     FutureBookSeries,
     SurfacePredictiveObservation,
@@ -25,6 +28,7 @@ from shaurya.signals.surface_futures_predictive import (
     essvi_atm_shape,
     essvi_implied_volatility,
     fit_preprocessor,
+    lagged_surface_source_positions,
     lob_features,
     model_raw_names,
     ofi_feature,
@@ -191,11 +195,27 @@ def test_target_asof_enforces_age_epoch_and_right_edge_without_lookahead() -> No
     move = series.move(BASE, BASE + SECOND, connection_epoch=1)
     assert move is not None and move.value_ticks == pytest.approx(1.0)
     assert series.move(BASE, BASE + 8 * SECOND, connection_epoch=1) is None
+    assert (
+        series.move_failure_reason(BASE, BASE + 8 * SECOND, connection_epoch=1)
+        == "right_edge_uncovered"
+    )
     assert series.as_of(BASE + 6 * SECOND, connection_epoch=1) is not None
     assert series.as_of(BASE + 6 * SECOND + 1, connection_epoch=1) is not None
     assert series.as_of(BASE + 6 * SECOND, connection_epoch=2) is None
+    one_state = FutureBookSeries([_state(0.0)])
+    assert one_state.as_of(BASE + 6 * SECOND, connection_epoch=1) is not None
+    assert one_state.as_of(BASE + 6 * SECOND + 1, connection_epoch=1) is None
+    assert (
+        one_state.as_of_failure_reason(BASE + 6 * SECOND + 1, connection_epoch=1)
+        == "stale_state"
+    )
     invalid = FutureBookSeries([_state(0.0, flags=("sequence_gap",))])
     assert invalid.as_of(BASE, connection_epoch=1) is None
+    crossed = FutureBookSeries([_state(0.0, epoch=1), _state(10.0, epoch=2)])
+    assert (
+        crossed.move_failure_reason(BASE, BASE + 10 * SECOND, connection_epoch=1)
+        == "epoch_right_edge"
+    )
 
 
 def test_five_level_lob_formulas_and_average_size_proxy_semantics() -> None:
@@ -235,6 +255,10 @@ def test_ofi_reuses_canonical_sign_and_price_keyed_marginal_bands() -> None:
     assert features[ofi_feature(5.0, "pk_level1_raw")] == pytest.approx(20.0)
     assert features[ofi_feature(5.0, "pk_levels2_5_raw")] == pytest.approx(15.0)
     assert features[ofi_feature(5.0, "cks_l1_depth_adjusted")] > 0.0
+    assert all(
+        ofi_feature(window, "cks_l1_raw") in features
+        for window in (0.5, 1.0, 2.0, 5.0, 10.0)
+    )
 
 
 def test_exact_future_past_and_same_geometry_from_one_surface_anchor() -> None:
@@ -262,6 +286,25 @@ def test_exact_future_past_and_same_geometry_from_one_surface_anchor() -> None:
     assert observations[0].y_future_ticks == pytest.approx(10.0)
     assert observations[0].y_past_ticks == pytest.approx(10.0)
     assert observations[0].y_same_ticks == pytest.approx(10.0)
+
+
+def test_optional_ten_second_ofi_window_does_not_collapse_primary_sample() -> None:
+    states = [_state(index / 2.0, midpoint=100.025 + index * 0.05) for index in range(30)]
+    draft = FrameDraft(
+        sequence=1,
+        receive_ts_ns=BASE + 7 * SECOND,
+        connection_epoch=1,
+        economic={"surface__x": 1.0},
+        quality_numeric=dict.fromkeys(QUALITY_NUMERIC_NAMES),
+        quality_categorical={"quality__smoothing_status": "smoothed"},
+        surface_age_seconds=100.0,
+        smoothing_status="smoothed",
+    )
+    observations, failures = build_predictive_observations([draft], states)
+    assert len(observations) == 1
+    assert ofi_feature(5.0, "cks_l1_raw") in observations[0].ofi
+    assert ofi_feature(10.0, "cks_l1_raw") not in observations[0].ofi
+    assert failures["ofi_robustness_w10_unavailable"] == 1
 
 
 def test_chronological_split_has_120_second_embargo() -> None:
@@ -317,6 +360,20 @@ def test_freshness_filter_preserves_primary_split_positions() -> None:
     assert fresh == tuple(index for index in positions if index % 2 == 1)
 
 
+def test_lag_placebo_uses_same_epoch_past_without_wrap() -> None:
+    observations = [_observation(index) for index in range(100)]
+    mapping = lagged_surface_source_positions(observations)
+    assert mapping
+    assert min(mapping) == 60
+    for position, source in mapping.items():
+        assert source < position
+        assert observations[position].connection_epoch == observations[source].connection_epoch
+        assert (
+            observations[position].receive_ts_ns - observations[source].receive_ts_ns
+            >= 300 * SECOND
+        )
+
+
 def test_complete_artifact_is_deterministic_and_keeps_quality_increment_separate() -> None:
     observations = [_observation(index) for index in range(320)]
     split = chronological_split(observations)
@@ -344,6 +401,29 @@ def test_complete_artifact_is_deterministic_and_keeps_quality_increment_separate
     assert "LOS_minus_LO_oos_r2" in first["headline"]
     assert "LOSQ_minus_LOS_oos_r2" in first["headline"]
     assert {row["source"] for row in first["model_scores"]} == {"future", "past", "same"}
+    assert len(first["model_scores"]) == 24
+    assert len(first["correlations"]) == 36
+    assert all(
+        row["hac_lag_frames"] == 2 and "bh_fdr_q_value" in row
+        for row in first["correlations"]
+    )
+    held_out_future = [
+        row
+        for row in first["correlations"]
+        if row["source"] == "future" and row["scope"] == "held_out"
+    ]
+    assert held_out_future
+    assert all(
+        "S_standardized_ridge_coefficient" in row
+        and "LOS_mean_absolute_held_out_contribution_ticks" in row
+        for row in held_out_future
+    )
+    assert {row["scope"] for row in first["surface_collinearity"]} == {
+        "full",
+        "training",
+        "held_out",
+    }
+    assert all("strongest_25_pairs" in row for row in first["surface_collinearity"])
     paired = {
         (row["source"], row["base_model"], row["enhanced_model"])
         for row in first["paired_inference"]
@@ -361,8 +441,17 @@ def test_complete_artifact_is_deterministic_and_keeps_quality_increment_separate
         for source in ("future", "past", "same")
         for base, enhanced in expected_pairs
     }
+    assert all(
+        row["newey_west_lag_frames"] == 2
+        and row["stationary_bootstrap_mean_block_frames"] == 6.0
+        and row["non_overlapping_block_seconds"] == 10.0
+        for row in first["paired_inference"]
+    )
     assert any(row.get("arm") == "surface_lag_300s_no_wrap" for row in first["lag_placebo"])
 
 
 def test_scan_identity_and_target_instrument_are_frozen() -> None:
     assert FUTURES_INSTRUMENT_ID == "NSE:NSE_FNO:NIFTY:future:2026-08-25"
+    assert FIT_INTERVAL_SECONDS == 5.0
+    assert DECISION_GAP_SECONDS == 0.5
+    assert RESPONSE_SECONDS == 5.0
