@@ -1,0 +1,23 @@
+{
+  "scan_id": "X-OFI-HORSERACE-DAT20-05",
+  "confirmatory_eligible": false,
+  "execution_commit": "cd9cfd7c359dcf8e7aa53f4d0b95b4ffee3efe4c",
+  "sample": {"observations": 5210, "train_n": 3646, "embargoed_n": 960, "test_n": 604},
+  "trade_support": {"schema_packets": 310, "qualified_packets": 191, "excluded_coalesced": 117, "excluded_degraded_or_unclassified": 2},
+  "complete_outputs": {"future_cells": 175, "past_mirror_cells": 175, "same_window_cells": 35, "normalised_subarm_cells_per_direction": 50, "combined_ablation_cells": 125, "conditional_30_second_cells": 0},
+  "reproducing_primary_leaders": [
+    {"h2_seconds": 0.5, "model": "M6", "h1_seconds": 5.0, "oos_r2": 0.018301048344263937, "incremental_oos_r2_over_m0": 0.02018138635192257, "tape_increments": [0.030950849510304024, 0.003279051339861061]},
+    {"h2_seconds": 1.0, "model": "M6", "h1_seconds": 1.0, "oos_r2": 0.015174589317286213, "incremental_oos_r2_over_m0": 0.021153911646303203, "tape_increments": [0.021216757207033088, 0.02106271725134279]},
+    {"h2_seconds": 2.0, "model": "M6", "h1_seconds": 5.0, "oos_r2": 0.050818606312414194, "incremental_oos_r2_over_m0": 0.0553853718905003, "tape_increments": [0.09140925837640324, 0.0013322777978799216]},
+    {"h2_seconds": 5.0, "model": "M4", "h1_seconds": 2.0, "oos_r2": 0.02693686404347828, "incremental_oos_r2_over_m0": 0.01718815218570502, "tape_increments": [0.027392872130944323, 0.004618955349888099]},
+    {"h2_seconds": 10.0, "model": "M3", "h1_seconds": 0.5, "oos_r2": 0.014428245512612348, "incremental_oos_r2_over_m0": 0.0008168604867413443, "tape_increments": [0.0010118465820381228, 0.0006016342038017708]}
+  ],
+  "strongest_robustness_lead": {"subarm": "M3b_depth_normalised_cks", "h1_seconds": 2.0, "h2_seconds": 2.0, "oos_r2": 0.05746988681085208, "incremental_oos_r2_over_m0": 0.062036652388938185, "tape_increments": [0.08262223900399623, 0.031148406871871814], "past_mirror_increment": 0.026075061537844002},
+  "gate_30_seconds": {"passed": false, "conditional_cells": 0, "binding_failure": "M3 raw CKS coefficient direction changed sign across tapes"},
+  "artifact_sha256": {
+    "ofi_horserace_2026-08-19.json": "33847651706b7944acaf443b8cb8d5c820b3205297fb85d0ac08e767e886c20e",
+    "ofi_horserace_cells_2026-08-19.jsonl": "22a3ed990e041df0dbe8c06f38b4d32fbe46ee955daeba033aff4b5c9cc9cb28",
+    "ofi_horserace_past_2026-08-19.jsonl": "a6b73ace877bd7a3e9b6cdabdf8318c3a901a9c6ddb574f12b3281c0fcacf6b3",
+    "ofi_horserace_ranking_2026-08-19.csv": "720ccd738fa4f88c3002e2ad8fdde94968f35b1ca17a4fc7d4197382ff5c8bb8"
+  }
+}

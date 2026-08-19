@@ -5,6 +5,33 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### `X-OFI-HORSERACE-DAT20-05` — causal-alignment short-horizon predictor horse race
+
+- Added one common-sample comparison of depth only, static queue imbalance, identified signed
+  trades, canonical raw CKS L1 OFI, regularised seven-band price-keyed OFI, causally depth-adjusted
+  multi-level OFI and a regularised combined model over h1/h2 0.5/1/2/5/10 seconds.
+- Reuses `cks_l1_transition` from `X-CKS-L1-OFI-DAT20-04`; no duplicate CKS formula. M2 uses only
+  capture-time `quote-mid-tick-v1` non-coalesced, non-degraded last prints and becomes explicitly
+  blocked if either tape lacks minimum support.
+- Added training-only standardisation and three expanding inner folds over a frozen six-alpha Ridge
+  grid, per-tape support/reproduction, Newey-West/stationary-bootstrap/non-overlap inference, full
+  past mirror, same-window diagnostic, normalised trade/CKS sub-arms, M4-vs-M5 increments, band
+  collinearity diagnostics and 125 leave-family-out M6 ablations.
+- Complete execution: 5,210 common anchors; 3,646 train, 960 embargo, 604 test; 175 future and 175
+  past primary cells; 50 normalised sub-arms per direction; 35 same-window cells. M2 retained 191
+  qualified packets and excluded 117 coalesced plus 2 degraded/unclassified packets.
+- No robust primary winner. Reproducing primary leaders are M6 at 0.5–2 s, M4 at 5 s and raw M3 at
+  10 s, but none clears all three dependence checks and short-horizon past mirrors are stronger.
+  Depth-normalised CKS is the strongest robustness lead at h1=2 s/h2=2 s (+6.204 pp over M0;
+  +8.262/+3.115 pp by tape).
+- The frozen 30-second gate fails: raw M3 passes pooled/per-tape fit and the past-mirror condition at
+  h1=0.5 s/h2=10 s but its actual standardized coefficient flips sign across tapes. A regression
+  test prevents mechanically nonnegative fitted-family covariance from substituting for coefficient
+  direction. No 30-second cell is fitted or ranked.
+- Added `scripts/ofi_horserace.py`, focused tests, frozen spec, full plain-English report and compact
+  result/hash summary. Artifacts remain gitignored. Exploratory only; `confirmatory_eligible=false`;
+  immutable `H-SIG21` unchanged.
+
 ### `X-CKS-L1-OFI-DAT20-04` — Cont-Kukanov-Stoikov level-one OFI versus future returns, depth-controlled
 
 - Added the canonical CKS best-quote event increment
