@@ -50,6 +50,13 @@ def _parser() -> argparse.ArgumentParser:
         help="DAT-10: opt-in 200-level deep book. Dhan allows exactly one instrument per "
         "subscription on this endpoint, which --security-id already satisfies.",
     )
+    parser.add_argument(
+        "--channel-start-stagger-seconds",
+        type=float,
+        default=0.0,
+        help="DAT-20: seconds to wait between bringing up successive channel sockets, so "
+        "the concurrent socket count rises in observable single steps.",
+    )
     parser.add_argument("--heartbeat-interval-seconds", type=float, default=10.0)
     parser.add_argument("--heartbeat-timeout-seconds", type=float, default=5.0)
     parser.add_argument(
@@ -92,6 +99,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         heartbeat_interval_seconds=args.heartbeat_interval_seconds,
         heartbeat_timeout_seconds=args.heartbeat_timeout_seconds,
         trade_quote_freshness_seconds=args.trade_quote_freshness_seconds,
+        channel_start_stagger_seconds=args.channel_start_stagger_seconds,
     )
     stream = DhanLiveStream(
         credentials,
@@ -136,6 +144,8 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
                 "depth200": args.enable_depth200,
                 "duration_seconds_requested": args.duration_seconds,
                 "dat09_decision": False,
+                "channel_start_stagger_seconds": args.channel_start_stagger_seconds,
+                "channel_start_order": list(stream.channel_start_order),
             },
             "stream_error_type": type(stream_error).__name__ if stream_error else None,
             "acceptance": {

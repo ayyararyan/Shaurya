@@ -401,6 +401,7 @@ class DhanStreamConfig:
     stale_quote_after_seconds: float = 5.0
     trade_quote_freshness_seconds: float = 1.0
     depth20_instruments_per_socket_limit: int = 50
+    channel_start_stagger_seconds: float = 0.0
 
     def __post_init__(self) -> None:
         if (
@@ -422,6 +423,8 @@ class DhanStreamConfig:
             raise ValueError("stream timeouts and reconnect delays must be positive")
         if self.depth20_instruments_per_socket_limit < 1:
             raise ValueError("depth20 instrument limit must be positive")
+        if self.channel_start_stagger_seconds < 0:
+            raise ValueError("channel start stagger must be non-negative")
 
 
 ConnectFactory = Callable[..., AbstractAsyncContextManager[Any]]
@@ -478,6 +481,7 @@ class DhanLiveStream:
         self._epochs: dict[str, int] = defaultdict(int)
         self._ever_connected: dict[str, bool] = defaultdict(bool)
         self._pending_flags: dict[str, set[QualityFlag]] = defaultdict(set)
+        self.channel_start_order: list[str] = []
         # Keyed by (channel, segment, security_id): depth20 and depth200 books for the same
         # instrument are tracked independently so a reconnect on one never clears the other.
         self._books: dict[tuple[str, int, int], dict[str, tuple[DepthLevel, ...]]] = defaultdict(
@@ -524,7 +528,16 @@ class DhanLiveStream:
                     f"{len(deep200)} eligible instruments"
                 )
             channels.append("depth200")
-        tasks = [asyncio.create_task(self._supervise(channel)) for channel in channels]
+        # DAT-20: channels may be brought up one at a time so that the concurrent socket
+        # count rises in observable single steps rather than all at once. A zero stagger
+        # preserves the original simultaneous behaviour.
+        tasks: list[asyncio.Task[None]] = []
+        stagger = self.config.channel_start_stagger_seconds
+        for index, channel in enumerate(channels):
+            if index and stagger:
+                await asyncio.sleep(stagger)
+            tasks.append(asyncio.create_task(self._supervise(channel)))
+            self.channel_start_order.append(channel)
         try:
             done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
             error: BaseException | None = None

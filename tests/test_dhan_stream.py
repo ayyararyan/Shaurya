@@ -489,3 +489,68 @@ def stream_time():
     from datetime import UTC, datetime
 
     return datetime(2026, 8, 18, 5, 30, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_channel_start_stagger_brings_channels_up_sequentially() -> None:
+    # DAT-20: three tiers were captured concurrently under a hard four-socket budget, so the
+    # sockets must come up in observable single steps and the order must be recorded.
+    order: list[str] = []
+    release = asyncio.Event()
+
+    async def fake_supervise(channel: str) -> None:
+        order.append(channel)
+        await release.wait()
+
+    stream = DhanLiveStream(
+        DhanCredentials("client", "token"),
+        [_mapping()],
+        lambda row: None,
+        run_id="sha-20260819T073000.000000Z-1234abcd",
+        config=DhanStreamConfig(
+            enable_standard_feed=True,
+            enable_20_level_depth=True,
+            enable_200_level_depth=True,
+            channel_start_stagger_seconds=0.01,
+        ),
+    )
+    stream._supervise = fake_supervise  # type: ignore[method-assign]
+    task = asyncio.create_task(stream.run())
+    await asyncio.sleep(0.005)
+    assert order == ["standard"], "second socket must not open before the stagger elapses"
+    await asyncio.sleep(0.03)
+    assert order == ["standard", "depth20", "depth200"]
+    assert stream.channel_start_order == ["standard", "depth20", "depth200"]
+    release.set()
+    task.cancel()
+    await asyncio.gather(task, return_exceptions=True)
+
+
+def test_channel_start_stagger_must_be_non_negative() -> None:
+    with pytest.raises(ValueError, match="non-negative"):
+        DhanStreamConfig(channel_start_stagger_seconds=-1.0)
+
+
+@pytest.mark.asyncio
+async def test_zero_stagger_preserves_simultaneous_channel_start() -> None:
+    order: list[str] = []
+    release = asyncio.Event()
+
+    async def fake_supervise(channel: str) -> None:
+        order.append(channel)
+        await release.wait()
+
+    stream = DhanLiveStream(
+        DhanCredentials("client", "token"),
+        [_mapping()],
+        lambda row: None,
+        run_id="sha-20260819T073000.000000Z-1234abcd",
+        config=DhanStreamConfig(enable_standard_feed=True, enable_20_level_depth=True),
+    )
+    stream._supervise = fake_supervise  # type: ignore[method-assign]
+    task = asyncio.create_task(stream.run())
+    await asyncio.sleep(0.005)
+    assert order == ["standard", "depth20"]
+    release.set()
+    task.cancel()
+    await asyncio.gather(task, return_exceptions=True)
