@@ -27,9 +27,10 @@ to strategies that pin the package.
   put-call parity otherwise — carried as a `CON-06`/§7.1 `ObjectLabel` with construction,
   assumptions and limitations, and displayed on screen.
 - Measured the Quote/Full (`RequestCode` 21) instrument ceiling empirically rather than
-  assuming it: 402, 1,203 and 3,003 instruments on one socket all returned packets for every
-  requested instrument. The ceiling is a **lower bound of 3,003**, and unlike the 20-level
-  depth channel, multiple subscription messages on one Quote/Full socket all take effect.
+  assuming it: 402, 1,203, 3,003 and 5,538 instruments on one socket all returned packets for
+  every requested instrument, with zero silent instruments and zero reconnects. The ceiling is
+  a **lower bound of 5,538** — past Dhan's documented 5,000 — and unlike the 20-level depth
+  channel, multiple subscription messages on one Quote/Full socket all take effect.
 - Scope limits recorded rather than generalized away: the ANL-01/ANL-02 P&L, markout and
   reporting views are not built; no live reconnect, no observed arbitrage violation, no
   non-NIFTY underlying, and no afternoon or expiry-day session were exercised.
