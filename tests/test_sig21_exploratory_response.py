@@ -929,7 +929,7 @@ def test_power_section_separates_apparent_from_credible_precision() -> None:
     )
     power = artifact["power"]
     assert power["registered_mean_mde_gate_ticks"] == 0.25
-    assert power["registered_evaluation_ceiling_episodes"] == (22_500 // 11) * 20
+    assert power["registered_evaluation_ceiling_episodes"] == (23_100 // 11) * 20
     for arm, realised in power["realised_precision_by_arm"].items():
         assert realised["minimum_credible_cell_n"] == MINIMUM_CREDIBLE_CELL_N
         assert (

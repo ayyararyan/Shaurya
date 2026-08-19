@@ -1024,10 +1024,10 @@ def build_cks_l1_artifact(
             if stratum["m3_ofi_coefficient_ticks_per_training_sd"] is not None
         ]
         row["per_tape"] = strata
-        row["coefficient_sign_consistent_across_tapes"] = bool(coefficients) and (
+        row["coefficient_sign_consistent_across_tapes"] = len(coefficients) >= 2 and (
             all(value > 0 for value in coefficients) or all(value < 0 for value in coefficients)
         )
-        row["positive_increment_in_both_tapes"] = all(
+        row["positive_increment_in_both_tapes"] = len(strata) >= 2 and all(
             stratum["incremental_oos_r2_ofi_over_depth"] is not None
             and float(stratum["incremental_oos_r2_ofi_over_depth"]) > 0
             for stratum in strata

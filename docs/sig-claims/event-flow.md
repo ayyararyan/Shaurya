@@ -396,10 +396,10 @@ about how much degradation is tolerable, not a literature value.
 | **h₂** | {2, 5, 10, 30} s |
 | **f₂** | 2.00 Hz |
 | **Z** | {0.5, 1, 2} s |
-| **Stratum** | NIFTY, BANKNIFTY front-month futures × TOD thirds (09:15–11:00 / 11:00–14:00 / 14:00–15:30) |
+| **Stratum** | NIFTY, BANKNIFTY front-month futures × TOD buckets (09:15–11:00 / 11:00–14:00 / 14:00–15:40) |
 | **K** | OOS R² against no-change (Campbell–Thompson) **and** β in ticks per +1 SD of OFI, SD reported in contracts |
 | **G contribution** | 3 × 4 × 3 × 2 × 3 = **216** |
-| **MDE** | ≈ 0.0008 OOS R² at t\* ≈ 4.2 for the cell-wide G, N_eff ≈ 22,500 per instrument over 5 sessions. **Recompute per stratum before running** |
+| **MDE** | ≈ 0.0008 OOS R² at t\* ≈ 4.2 for the cell-wide G, N_eff ≈ 23,100 per instrument over 5 sessions. **Recompute per stratum before running** |
 | **Confirm** | OOS R² > MDE with a stable sign in ≥ 2 of 3 TOD buckets **and** both instruments |
 | **Falsify** | Predictability concentrated at Z = 0.5 s and gone by Z ≥ 1 s — that is `EF-01`'s identity leaking through timestamp inversion, not a forecast |
 | **Admissibility** | Z = 0.5 s descriptive; Z ≥ 1 s decision-relevant only under R = 500/900 ms arms |
@@ -582,7 +582,7 @@ constrains *queueing* without constraining *flow response*.
 | **Stratum** | NIFTY, BANKNIFTY futures; options by premium band × DTE bucket |
 | **K** | Mean net AM in **ticks and ₹/unit**, with block-bootstrap CI; plus fills/hour, so the level converts to ₹/hour |
 | **G contribution** | 5 × 7 = **35** |
-| **Ex-ante MDE — and the reason to run this first** | Prints, not snapshots: `DAT-14` gives ~5,900 prints/instrument/day → ~29,000 over 5 sessions, block-bootstrap N_eff assumed ~3,000. SE ≈ σ/55. At **h = 1 s** (σ ≈ 1–2 ticks) SE ≈ ₹0.001–0.002, **negligible against the ₹0.0474 cost floor — decisive within days.** At **h = 60 s** (σ ≈ several ₹) SE ≈ ₹0.09, **larger than the entire cost floor — register h = 60 s as `Deferred`, underpowered, and say so rather than return a spurious null** |
+| **Ex-ante MDE — and the reason to run this first** | Prints, not snapshots: `DAT-14` gives ~6,025 prints/instrument/day → ~30,125 over 5 sessions, block-bootstrap N_eff assumed ~3,000. SE ≈ σ/55. At **h = 1 s** (σ ≈ 1–2 ticks) SE ≈ ₹0.001–0.002, **negligible against the ₹0.0474 cost floor — decisive within days.** At **h = 60 s** (σ ≈ several ₹) SE ≈ ₹0.09, **larger than the entire cost floor — register h = 60 s as `Deferred`, underpowered, and say so rather than return a spurious null** |
 | **Confirm (survival)** | Net AM > 0 in some stratum at a powered horizon |
 | **Confirm (kill direction)** | Net AM < 0 at every powered horizon in liquid NIFTY |
 | **Interpretation limit, binding** | A negative level is **not** the `MK-05` kill on its own. Front-of-queue overstates value (best position) while never-cancelling understates it (worst policy); the deviations run opposite and do not compose into a bound. The kill requires a negative level **and** `EF-04/H2` failing to recover it |
@@ -609,7 +609,7 @@ constrains *queueing* without constraining *flow response*.
 grid; they are reported with intervals and claim no p-values.
 
 At G = 1,334 the Romano–Wolf critical value is roughly |t| ≈ 4.5, implying MDE on OOS
-R² ≈ 0.0009 at N_eff ≈ 22,500. Still detectable — but **one feature cell has consumed
+R² ≈ 0.0009 at N_eff ≈ 23,100. Still detectable — but **one feature cell has consumed
 1,334 tests, and there are six cells.** `D20` accepted this cost explicitly; §Open
 questions 5 proposes we now budget it rather than discover it.
 

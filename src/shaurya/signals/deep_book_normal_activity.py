@@ -47,6 +47,7 @@ from typing import Any, Literal
 import numpy as np
 from numpy.typing import NDArray
 
+from shaurya.contracts.timing import NSE_EQUITY_DERIVATIVES_CURRENT_SESSION_SECONDS
 from shaurya.data.depth_thinning_analysis import BookState, percentile
 from shaurya.signals.deep_book_construction_grid import time_bucket_ist
 from shaurya.signals.deep_book_response import (
@@ -1404,8 +1405,8 @@ def _nested_payload(
     }
 
 
-# A full NSE equity-derivatives session is 09:15-15:30 IST.
-SECONDS_PER_SESSION = 6 * 3_600 + 15 * 60
+# A current full NSE equity-derivatives session is 09:15-15:40 IST.
+SECONDS_PER_SESSION = NSE_EQUITY_DERIVATIVES_CURRENT_SESSION_SECONDS
 TARGET_R2_IMPROVEMENT = 0.01
 
 

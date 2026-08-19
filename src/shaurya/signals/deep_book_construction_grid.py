@@ -25,6 +25,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from shaurya.contracts.timing import NSE_EQUITY_DERIVATIVES_CURRENT_SESSION_SECONDS
 from shaurya.data.depth_thinning_analysis import (
     DEPTH200,
     BookState,
@@ -62,7 +63,6 @@ from shaurya.signals.deep_book_response import (  # isort: skip
     cluster_event_episodes,
     select_primary_non_overlapping_episodes,
 )
-
 PROTOCOL_ID = "H-SIG21"
 SAMPLE_ROLE = "construction_replay_only"
 OUTCOME_JOIN_ALLOWED = False
@@ -74,7 +74,7 @@ SECONDS_PER_MINUTE = 60.0
 
 # H-SIG21 §8: a full NSE session, the five calibration sessions and the twenty evaluation
 # sessions. Used only to label scenario-based extrapolations, never as a measurement.
-NSE_SESSION_SECONDS = 22_500
+NSE_SESSION_SECONDS = NSE_EQUITY_DERIVATIVES_CURRENT_SESSION_SECONDS
 CALIBRATION_SESSIONS = 5
 EVALUATION_SESSIONS = 20
 

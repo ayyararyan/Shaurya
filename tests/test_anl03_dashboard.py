@@ -42,6 +42,15 @@ PARAMETERS = {NEAR: (0.0009, -0.32, 0.022), FAR: (0.0040, -0.28, 0.038)}
 SECONDS_PER_YEAR = 365.0 * 24.0 * 3600.0
 
 
+def test_expiry_close_is_date_versioned_at_the_2026_extension_boundary() -> None:
+    assert expiry_timestamp(date(2026, 8, 2)) == datetime(
+        2026, 8, 2, 15, 30, tzinfo=IST
+    )
+    assert expiry_timestamp(date(2026, 8, 3)) == datetime(
+        2026, 8, 3, 15, 40, tzinfo=IST
+    )
+
+
 def _row(
     *,
     instrument_id: str,

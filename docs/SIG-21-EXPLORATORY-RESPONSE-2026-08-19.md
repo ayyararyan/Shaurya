@@ -834,3 +834,13 @@ Every number in this report comes from them.
   `romano_wolf_stepdown` are all used as registered. Two defects found on first real-tape contact
   are recorded in section 6, one fixed behind an optional parameter with a regression test, one
   documented as a non-defect that reads misleadingly.
+
+---
+
+## Erratum — current full-session ceiling (added 2026-08-19)
+
+The report's 40,900 evaluation ceiling used the old 22,500-second session constant. NSE equity
+derivatives close at 15:40 from 2026-08-03, so a current session is 23,100 seconds and the correct
+twenty-session ceiling is `floor(23,100 / 11) × 20` = **42,000**. This correction slightly changes
+the planning denominator only. The scan's retained tapes, cell results, power verdict, negative-
+control failures, and substantive conclusion are unchanged.

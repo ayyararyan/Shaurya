@@ -38,6 +38,7 @@ recorded as dated, numbered amendment files beside it and listed here.
 | Amendment | Amends | Approved | Pre-data? | Summary |
 |---|---|---|---|---|
 | [`H-SIG21-A1.md`](H-SIG21-A1.md) (`D34`) | `H-SIG21` §6 | Aryan, 2026-08-19 ~17:40 IST | **Yes** — zero of the 25 required post-registration sessions collected | The primary non-overlapping episode window is bound to each cell's own `Z + h2` instead of the 11 s family maximum. The family-maximum window is retained as a declared robustness arm. The matched-quiet-control definition is deliberately **not** changed and remains open. |
+| [`H-SIG21-A2.md`](H-SIG21-A2.md) | `H-SIG21` full-session calendar and derived ceilings | Official dated-calendar correction, 2026-08-19 | **Yes** — zero of the 25 required post-registration sessions collected | The NSE F&O close is date-versioned: 15:30 before 2026-08-03 and 15:40 from that date. A current session is 23,100 seconds, giving 11-second ceilings of 2,100 / 10,500 / 42,000. Registered 30-minute bins retain a short 15:30–15:40 final bin. |
 
 ## Method
 

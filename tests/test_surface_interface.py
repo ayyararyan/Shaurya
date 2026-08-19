@@ -45,7 +45,7 @@ def _request(*, receive_ts: datetime | None = None) -> SurfaceFitRequest:
         tape_rows=(_option_row(receive_ts),),
         valuation_timestamp=_time(1),
         forward_by_expiry={expiry: 25_000.0},
-        expiry_timestamp_by_expiry={expiry: datetime(2026, 8, 27, 15, 30, tzinfo=IST)},
+        expiry_timestamp_by_expiry={expiry: datetime(2026, 8, 27, 15, 40, tzinfo=IST)},
     )
 
 

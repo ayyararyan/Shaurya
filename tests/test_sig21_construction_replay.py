@@ -17,6 +17,7 @@ from scripts.sig21_construction_replay import (
     sha256_file,
     verify_instrument,
 )
+from shaurya.contracts.timing import IST
 from shaurya.data.depth_thinning_analysis import DEPTH200, BookState
 from shaurya.signals import deep_book_response
 from shaurya.signals.deep_book_anomaly import AtomicEventType, detect_candidates
@@ -350,6 +351,12 @@ def test_time_buckets_are_thirty_minute_ist_buckets() -> None:
     assert time_bucket_ist(FIXTURE_START_NS + 1_500 * 1_000_000_000) == "13:30"
 
 
+def test_current_session_close_retains_the_short_final_registered_bucket() -> None:
+    final_publication = datetime(2026, 8, 20, 15, 39, 59, tzinfo=IST)
+
+    assert time_bucket_ist(int(final_publication.timestamp() * 1_000_000_000)) == "15:30"
+
+
 def test_bucket_exposure_splits_an_observation_window_across_buckets() -> None:
     # 13:09:35 IST plus 1,500 seconds ends at 13:34:35, so the window straddles 13:30.
     exposure = bucket_exposure_seconds(
@@ -422,7 +429,7 @@ def test_scenario_extrapolation_is_labelled_and_never_a_measurement() -> None:
     assert scenario["object_category"] == "scenario_based"
     assert scenario["is_measurement"] is False
     assert "assumption" in scenario and "bias_warning" in scenario
-    assert scenario["episode_capacity_ceiling_per_session"] == 22_500 // 11
+    assert scenario["episode_capacity_ceiling_per_session"] == 23_100 // 11
     assert [item["scenario"] for item in scenario["scenarios"]] == [
         "one_full_session",
         "registered_calibration_sample",
@@ -431,7 +438,7 @@ def test_scenario_extrapolation_is_labelled_and_never_a_measurement() -> None:
     assert [item["sessions"] for item in scenario["scenarios"]] == [1, 5, 20]
     for row in scenario["retention_bounds"]:
         assert row["non_overlapping_episodes_upper_bound_per_session"] <= min(
-            row["retained_bursts_per_session"], 22_500 // 11
+            row["retained_bursts_per_session"], 23_100 // 11
         )
 
 

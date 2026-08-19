@@ -1,10 +1,28 @@
 # Shaurya — Next-Session Prompt
 
-**Prepared:** 2026-08-17, last updated 2026-08-19 ~15:41 IST (SIG-21 calibration reset)
-**Use on return:** prepare and run the next full-market-session SIG-21 calibration capture. The
-handoff immediately below supersedes every older PP/afternoon reset section retained as history.
+**Prepared:** 2026-08-17, last updated 2026-08-19 ~21:00 IST (full-session OFI replication)
+**Use on return:** launch and supervise `R-OFI-FULLSESSION-2026-08-20`. The handoff immediately
+below supersedes every older reset section retained as history.
 **Repository:** private `ayyararyan/Shaurya`
 **Canonical status ledger:** `TASKS.md`
+
+## RESET HANDOFF — 2026-08-20 FULL-SESSION OFI REPLICATION, READ THIS FIRST
+
+Aryan directed one same-day NIFTY front-month futures capture over the complete current NSE
+equity-derivatives regular session, **09:15–15:40 IST**, on Standard/Full + depth20 + depth200.
+The parent registration is `af9bec17694b5cf45f1d670113f14b02efb1e418`; its pre-capture
+publication-boundary amendment is
+`docs/OFI-FULL-SESSION-REPLICATION-SPEC-AMENDMENT-1-2026-08-19.md`. The durable controller and
+scheduled Telegram supervision own execution. Do not start a second capture manually while its
+tmux session or controller PID is alive.
+
+After timestamp/channel acceptance, the controller sequentially reruns the complete scalar OFI,
+exact CKS L1 and M0–M6 horse-race families. The fixed top-10 10 s → 10 s scalar lead and fixed M3b
+2 s → 2 s lead are reported before exploratory reranking. One session cannot establish cross-tape
+stability and cannot open the frozen 30-second gate.
+
+This tape is **not SIG-21 calibration**: outcome joins are authorised for the OFI replication,
+which makes it ineligible for `H-SIG21`. No live orders are authorised.
 
 ## RESET HANDOFF — SIG-21 DEPTH200 CALIBRATION, READ THIS FIRST
 
@@ -20,8 +38,9 @@ The immutable `H-SIG21` registration already encoded this split, so it was not r
 registration clock. The capture CLI now has an enforced `--sig21-calibration` profile, and the
 operational checklist is `docs/SIG-21-CALIBRATION-RUNBOOK.md`.
 
-**Next action:** on the next full NSE session, resolve the same-day NIFTY front-month future and run
-calibration session 1/5 with depth200 plus depth20. Start before 09:15 IST and cover through 15:30.
+**Deferred action after the OFI replication:** on a later full NSE session, resolve the same-day
+NIFTY front-month future and run calibration session 1/5 with depth200 plus depth20. Start before
+09:15 IST and cover through the date-versioned 15:40 close.
 Do not inspect any SIG-21 response, do not run outcome joins, and do not count a partial session.
 
 The parameter family is **not chosen tomorrow**. It is already locked at 384 cells by the pushed

@@ -10,6 +10,11 @@ from .instrument_master import (
     DhanInstrumentIndex,
     KotakInstrumentIndex,
 )
+from .ofi_replication import (
+    inspect_replication_capture,
+    iter_session_rows,
+    resolve_nifty_front_month_future,
+)
 from .option_chain import ValidatedOptionChain, fetch_and_validate_option_chain
 from .quality import CollectorQualityAudit
 from .tape import JsonlTapeReader, JsonlTapeWriter
@@ -45,5 +50,8 @@ __all__ = [
     "analyze_tape_rows",
     "fetch_and_validate_option_chain",
     "fetch_historical_bars",
+    "inspect_replication_capture",
+    "iter_session_rows",
+    "resolve_nifty_front_month_future",
     "classify_trade",
 ]

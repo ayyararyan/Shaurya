@@ -510,3 +510,13 @@ Every number in this document comes from them.
 - **Protocol audit:** `docs/sig-claims/H-SIG21.md` unchanged; no post-registration tape opened;
   every artifact carries `confirmatory_eligible: false` and `is_part_of_h_sig21: false`; every
   table emitted complete.
+
+---
+
+## Erratum — session-equivalent conversions (added 2026-08-19)
+
+NSE equity derivatives close at 15:40 from 2026-08-03, so the current session length is 23,100
+seconds rather than 22,500. Every session-equivalent figure above that was converted with the old
+constant should be multiplied by `22,500 / 23,100` = **0.974026**. Required seconds, model fits,
+test results, tape hashes, and the exploratory verdict do not change. This additive note preserves
+the original executed report while stating the corrected conversion.

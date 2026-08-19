@@ -8,7 +8,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +18,12 @@ from shaurya.contracts.instruments import (
     DhanInstrumentMaster,
     InstrumentKind,
 )
-from shaurya.contracts.timing import IST
+from shaurya.contracts.timing import (
+    IST,
+    NSE_EQUITY_DERIVATIVES_CURRENT_SESSION_SECONDS,
+    nse_equity_derivatives_session_bounds,
+    nse_equity_derivatives_session_seconds,
+)
 from shaurya.data.dhan_client import DhanCredentials
 from shaurya.data.dhan_stream import (
     DEPTH200_ELIGIBLE_KINDS,
@@ -33,7 +38,18 @@ from shaurya.data.tape import JsonlTapeWriter
 SIG21_PROTOCOL_ID = "H-SIG21"
 SIG21_REGISTRATION_COMMIT = "f2cf65011d02882191b5cfda566c1024119964d7"
 SIG21_REGISTERED_FAMILY_SIZE = 384
-SIG21_FULL_SESSION_SECONDS = 22_500.0
+SIG21_FULL_SESSION_SECONDS = float(NSE_EQUITY_DERIVATIVES_CURRENT_SESSION_SECONDS)
+
+OFI_FULL_SESSION_PROTOCOL_ID = "R-OFI-FULLSESSION-2026-08-20"
+OFI_FULL_SESSION_SOURCE_SPEC = "docs/OFI-FULL-SESSION-REPLICATION-SPEC-2026-08-20.md"
+OFI_FULL_SESSION_SOURCE_AMENDMENT = (
+    "docs/OFI-FULL-SESSION-REPLICATION-SPEC-AMENDMENT-1-2026-08-19.md"
+)
+OFI_FULL_SESSION_REGISTRATION_COMMIT = "af9bec17694b5cf45f1d670113f14b02efb1e418"
+OFI_FULL_SESSION_TRADING_DATE = date(2026, 8, 20)
+OFI_FULL_SESSION_SECONDS = float(
+    nse_equity_derivatives_session_seconds(OFI_FULL_SESSION_TRADING_DATE)
+)
 
 
 def _exclusive_json(path: Path, value: dict[str, Any]) -> None:
@@ -66,12 +82,21 @@ def _parser() -> argparse.ArgumentParser:
         "instrument per subscription on this endpoint, which --security-id already satisfies. "
         "D33: futures and equity books only — options are capped at 20 levels.",
     )
-    parser.add_argument(
+    protocol = parser.add_mutually_exclusive_group()
+    protocol.add_argument(
         "--sig21-calibration",
         action="store_true",
         help="Enforce the H-SIG21 calibration-only capture contract: depth200 is the signal "
         "source, depth20 is retained only for the later response/control surface, the requested "
         "duration covers at least one full NSE session, and no outcome join is authorised.",
+    )
+    protocol.add_argument(
+        "--ofi-full-session-replication",
+        action="store_true",
+        help="Enforce the prospective 2026-08-20 OFI replication capture profile: one NIFTY "
+        "future on Standard/Full, depth20 and depth200 for at least the 09:15-15:40 regular "
+        "session. Requested duration is only a preflight floor; final acceptance must inspect "
+        "actual receive timestamps and all three channels.",
     )
     parser.add_argument(
         "--channel-start-stagger-seconds",
@@ -118,6 +143,15 @@ def _validate_depth_tier_scope(
             "H-SIG21 calibration is registered on the NIFTY front-month future; "
             f"{mapping.trading_symbol!r} is a {mapping.instrument.kind} instrument"
         )
+    if args.ofi_full_session_replication and (
+        mapping.instrument.kind is not InstrumentKind.FUTURE
+        or mapping.instrument.underlying.strip().upper() != "NIFTY"
+    ):
+        raise ValueError(
+            "the OFI full-session replication profile requires a NIFTY future; "
+            f"{mapping.trading_symbol!r} maps to "
+            f"{mapping.instrument.underlying}/{mapping.instrument.kind}"
+        )
 
 
 def _validate_sig21_protocol(args: argparse.Namespace) -> None:
@@ -145,10 +179,59 @@ def _sig21_protocol_metadata(args: argparse.Namespace) -> dict[str, Any] | None:
     }
 
 
+def _validate_ofi_full_session_protocol(args: argparse.Namespace) -> None:
+    if not args.ofi_full_session_replication:
+        return
+    if args.no_standard:
+        raise ValueError("OFI full-session replication requires the Standard/Full channel")
+    if args.no_depth20:
+        raise ValueError("OFI full-session replication requires the depth20 channel")
+    if not args.enable_depth200:
+        raise ValueError("OFI full-session replication requires the depth200 channel")
+    if args.duration_seconds < OFI_FULL_SESSION_SECONDS:
+        raise ValueError(
+            "OFI full-session replication must request at least 23,100 seconds; "
+            "duration alone is not final regular-session coverage acceptance"
+        )
+
+
+def _ofi_full_session_protocol_metadata(args: argparse.Namespace) -> dict[str, Any] | None:
+    if not args.ofi_full_session_replication:
+        return None
+    regular_open, regular_close = nse_equity_derivatives_session_bounds(
+        OFI_FULL_SESSION_TRADING_DATE
+    )
+    return {
+        "protocol_id": OFI_FULL_SESSION_PROTOCOL_ID,
+        "source_spec": OFI_FULL_SESSION_SOURCE_SPEC,
+        "source_amendment": OFI_FULL_SESSION_SOURCE_AMENDMENT,
+        "registration_commit": OFI_FULL_SESSION_REGISTRATION_COMMIT,
+        "sample_role": "prospective_full_session_replication",
+        "trading_date": OFI_FULL_SESSION_TRADING_DATE.isoformat(),
+        "required_channels": ["standard", "depth20", "depth200"],
+        "regular_session": {
+            "timezone": "Asia/Kolkata",
+            "open": regular_open.time().isoformat(),
+            "close": regular_close.time().isoformat(),
+            "seconds": int((regular_close - regular_open).total_seconds()),
+        },
+        "duration_is_final_coverage_acceptance": False,
+        "final_coverage_acceptance": (
+            "actual receive timestamps on every required channel must start no later than "
+            "09:15:02 and end no earlier than 15:39:58 IST; analysis clips exactly to the "
+            "09:15:00-15:40:00 regular session"
+        ),
+        "outcome_join_allowed": True,
+        "sig21_calibration_eligible": False,
+        "order_entry_enabled": False,
+    }
+
+
 async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     if args.duration_seconds <= 0:
         raise ValueError("duration-seconds must be positive")
     _validate_sig21_protocol(args)
+    _validate_ofi_full_session_protocol(args)
     credentials = DhanCredentials.from_env_file(args.credentials)
     mapping = DhanInstrumentMaster(args.security_master).find_by_security_id(args.security_id)
     if mapping.trading_symbol != args.expected_symbol:
@@ -218,11 +301,18 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
                 "channel_start_stagger_seconds": args.channel_start_stagger_seconds,
                 "channel_start_order": list(stream.channel_start_order),
                 "sig21_protocol": _sig21_protocol_metadata(args),
+                "ofi_full_session_replication_protocol": (
+                    _ofi_full_session_protocol_metadata(args)
+                ),
             },
             "stream_error_type": type(stream_error).__name__ if stream_error else None,
             "acceptance": {
                 "required_channels": sorted(required_channels),
                 "missing_channels": missing_channels,
+                "regular_session_timestamp_coverage_required": bool(
+                    args.ofi_full_session_replication
+                ),
+                "duration_only_is_sufficient": not args.ofi_full_session_replication,
             },
         }
     )

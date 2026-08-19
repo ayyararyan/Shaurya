@@ -21,6 +21,7 @@ from shaurya.signals.deep_book_normal_activity import (
     NESTED_LADDER,
     PERMITTED_TAPE_SHA256,
     RIDGE_PENALTIES,
+    SECONDS_PER_SESSION,
     ConfirmatoryUseRefused,
     IncompleteTableRefused,
     Observation,
@@ -632,6 +633,10 @@ def test_the_required_sample_answers_how_much_tape_would_settle_a_step() -> None
     )
     assert result["required_blocks"] is not None
     assert result["required_tape_sessions"] > result["required_test_sessions"]
+    assert SECONDS_PER_SESSION == 23_100
+    assert result["required_test_sessions"] == pytest.approx(
+        result["required_test_seconds"] / 23_100
+    )
 
 
 def test_the_required_sample_refuses_to_invent_a_number_without_a_baseline() -> None:

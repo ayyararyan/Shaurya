@@ -35,6 +35,7 @@ from dataclasses import asdict, dataclass
 from math import sqrt
 from typing import Any, Literal
 
+from shaurya.contracts.timing import NSE_EQUITY_DERIVATIVES_CURRENT_SESSION_SECONDS
 from shaurya.data.depth_thinning_analysis import BookState, percentile
 from shaurya.signals.deep_book_anomaly import AtomicEventType, CandidateEvent
 from shaurya.signals.deep_book_construction_grid import (
@@ -2443,7 +2444,7 @@ def build_negative_controls(
 # Unconditional response attachment and the honest power statement
 # ----------------------------------------------------------------------------------------------
 
-NSE_SESSION_SECONDS = 22_500
+NSE_SESSION_SECONDS = NSE_EQUITY_DERIVATIVES_CURRENT_SESSION_SECONDS
 REGISTERED_EVALUATION_SESSIONS = 20
 # Below this many observations a Bartlett long-run variance is not a precision statement: it can
 # collapse toward zero and manufacture an interval narrow enough to clear the registered gate.

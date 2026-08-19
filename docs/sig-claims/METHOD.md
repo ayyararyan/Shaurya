@@ -115,14 +115,14 @@ with `t*` raised for the declared `G` (Romano–Wolf), and `N_eff` reduced for o
 **Planning figures for the accumulating tape** (assumptions stated; recompute per
 hypothesis, do not reuse these):
 
-- NSE F&O session 09:15–15:30 = 22,500 s. depth20 at the `DAT-16` measured 2.00 bursts/s
-  → **45,000 snapshots per instrument per day**; 5 sessions → 225,000.
-- A target at h₂ = 5 s sampled every 0.5 s overlaps 10-fold → **N_eff ≈ 22,500** per
+- Current NSE F&O session 09:15–15:40 = 23,100 s. depth20 at the `DAT-16` measured 2.00
+  bursts/s → **46,200 snapshots per instrument per day**; 5 sessions → 231,000.
+- A target at h₂ = 5 s sampled every 0.5 s overlaps 10-fold → **N_eff ≈ 23,100** per
   instrument over 5 days.
-- At `G = 200`, `t* ≈ 4.0` → **MDE on OOS R² ≈ 0.0007**. At `G = 20`, `t* ≈ 3.2` →
-  ≈ 0.00046. Five days is therefore ample for *statistical* detection of small R².
+- At `G = 200`, `t* ≈ 4.0` → **MDE on OOS R² ≈ 0.00069**. At `G = 20`,
+  `t* ≈ 3.2` → ≈ 0.00044. Five days is therefore ample for *statistical* detection of small R².
 - Markout hypotheses are counted in **prints, not snapshots**. `DAT-14` observed 313 prints
-  in a 10-minute two-future window → ~5,900 prints/instrument/day → ~29,000 over 5 days,
+  in a 10-minute two-future window → ~6,025 prints/instrument/day → ~30,125 over 5 days,
   with block-bootstrap `N_eff` materially lower (assume ~3,000 pending measurement).
 - **Power collapses with markout horizon, and this is the binding planning fact.** With
   `N_eff ≈ 3,000`, `SE(mean markout) ≈ σ/55`. At h = 1 s, σ ≈ 1–2 ticks → SE ≈ ₹0.001–0.002,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from pathlib import Path
 
@@ -29,7 +29,13 @@ from shaurya.contracts.ledger import (
     OrderSide,
 )
 from shaurya.contracts.surface import FitDiagnostic, SurfaceFrame, SurfaceParameter
-from shaurya.contracts.timing import IST, CausalTimestamps
+from shaurya.contracts.timing import (
+    IST,
+    CausalTimestamps,
+    nse_equity_derivatives_close,
+    nse_equity_derivatives_session_bounds,
+    nse_equity_derivatives_session_seconds,
+)
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "contracts"
 
@@ -139,6 +145,16 @@ def test_causal_timestamps_reject_actual_future_information_violation() -> None:
             receive_timestamp=_ts(3),
             decision_timestamp=_ts(2),
         )
+
+
+def test_nse_equity_derivatives_clock_is_date_versioned() -> None:
+    assert nse_equity_derivatives_close(date(2026, 8, 2)) == time(15, 30)
+    assert nse_equity_derivatives_close(date(2026, 8, 3)) == time(15, 40)
+    assert nse_equity_derivatives_session_seconds(date(2026, 8, 2)) == 22_500
+    assert nse_equity_derivatives_session_seconds(date(2026, 8, 3)) == 23_100
+    opened, closed = nse_equity_derivatives_session_bounds(date(2026, 8, 20))
+    assert opened == datetime(2026, 8, 20, 9, 15, tzinfo=IST)
+    assert closed == datetime(2026, 8, 20, 15, 40, tzinfo=IST)
 
 
 def test_ledger_placement_round_trip_preserves_harvested_fields() -> None:

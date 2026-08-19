@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Self
 from zoneinfo import ZoneInfo
 
@@ -12,6 +12,43 @@ from .base import ContractModel
 
 IST = ZoneInfo("Asia/Kolkata")
 IST_OFFSET = timedelta(hours=5, minutes=30)
+
+# NSE extended the equity-derivatives regular session close by ten minutes from
+# 2026-08-03.  Keep the rule date-versioned: historical expiry and replay clocks must retain
+# the close that was in force on their trading date.
+NSE_EQUITY_DERIVATIVES_OPEN = time(hour=9, minute=15)
+NSE_EQUITY_DERIVATIVES_LEGACY_CLOSE = time(hour=15, minute=30)
+NSE_EQUITY_DERIVATIVES_CURRENT_CLOSE = time(hour=15, minute=40)
+NSE_EQUITY_DERIVATIVES_CLOSE_CHANGE_DATE = date(2026, 8, 3)
+
+
+def nse_equity_derivatives_close(trading_date: date) -> time:
+    """Return the regular-session close that was in force on ``trading_date``."""
+
+    if trading_date < NSE_EQUITY_DERIVATIVES_CLOSE_CHANGE_DATE:
+        return NSE_EQUITY_DERIVATIVES_LEGACY_CLOSE
+    return NSE_EQUITY_DERIVATIVES_CURRENT_CLOSE
+
+
+def nse_equity_derivatives_session_bounds(trading_date: date) -> tuple[datetime, datetime]:
+    """Return the date-versioned regular equity-derivatives session in IST."""
+
+    return (
+        datetime.combine(trading_date, NSE_EQUITY_DERIVATIVES_OPEN, tzinfo=IST),
+        datetime.combine(trading_date, nse_equity_derivatives_close(trading_date), tzinfo=IST),
+    )
+
+
+def nse_equity_derivatives_session_seconds(trading_date: date) -> int:
+    """Return the regular-session length for the dated NSE F&O clock."""
+
+    opened, closed = nse_equity_derivatives_session_bounds(trading_date)
+    return int((closed - opened).total_seconds())
+
+
+NSE_EQUITY_DERIVATIVES_CURRENT_SESSION_SECONDS = nse_equity_derivatives_session_seconds(
+    NSE_EQUITY_DERIVATIVES_CLOSE_CHANGE_DATE
+)
 
 
 def require_ist(value: datetime, field_name: str = "timestamp") -> datetime:

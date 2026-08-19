@@ -113,7 +113,7 @@ on hedging; futures round trip `= ₹14.139` per index unit.
 
 $$T_{\min}=\left(\frac{14.139\,\sigma_D}{\varphi R}\right)^{2}$$
 
-Under the scenario below, `σ_D ≈ 206` index units/√hour and **`T_min` = 2,223 hours ≈ 356
+Under the scenario below, `σ_D ≈ 206` index units/√hour and **`T_min` = 2,223 hours ≈ 346
 sessions** at `φ = 0.20`. Futures hedging is not merely expensive here — the required
 interval exceeds the life of any position. **Unsteered, futures hedging does not exist as an
 option.**
@@ -131,19 +131,20 @@ affordable at all.**
 **Scenario used** (stated, not measured — every figure rescales when `BK-01/H2` and
 `BK-11/H1` supply the real ones): premium ₹100, Δ = 0.50, 65-unit lot, 40 one-lot fills per
 hour, net spread capture 0.2371% of premium, NIFTY 24,500 at 14% annualised. Gives
-32.5 index units of delta per fill, `R` = ₹308/hour = **₹1,926 per session**, and index
+32.5 index units of delta per fill, `R` = ₹308/hour = **approximately ₹1,976 per current
+6.4167-hour session**, and index
 σ = 86.4 points/√hour.
 
 | `σ_∞` | in ATM option lots | Hedge interval at φ=20% | Hedges/session | **Delta noise/session** | **Noise ÷ revenue** |
 |---:|---:|---:|---:|---:|---:|
-| 4.5 | 0.14 | 1.03 h | 6.1 | ₹972 | **0.5×** |
-| 9.0 | 0.28 | 2.06 h | 3.0 | ₹1,945 | **1.0×** |
-| 16.2 | 0.50 | 3.73 h | 1.7 | ₹3,511 | **1.8×** |
-| 32.5 | 1.00 | 7.45 h | 0.8 | ₹7,022 | **3.6×** |
-| 65.0 | 2.00 | 14.91 h | 0.4 | ₹14,045 | **7.3×** |
+| 4.5 | 0.14 | 1.03 h | 6.3 | ₹985 | **0.5×** |
+| 9.0 | 0.28 | 2.06 h | 3.1 | ₹1,971 | **1.0×** |
+| 16.2 | 0.50 | 3.73 h | 1.7 | ₹3,558 | **1.8×** |
+| 32.5 | 1.00 | 7.45 h | 0.9 | ₹7,115 | **3.6×** |
+| 65.0 | 2.00 | 14.91 h | 0.4 | ₹14,231 | **7.2×** |
 
 **C. The finding: the binding constraint is risk, not cost.** Read the last column. Carrying
-**one lot** of residual ATM delta produces P&L noise of **3.6× the entire session's spread
+**one lot** of residual ATM delta produces P&L noise of **approximately 3.6× the entire session's spread
 revenue.** The tax was never the thing that would stop us — the delta noise is, and it bites
 an order of magnitude earlier.
 
@@ -152,7 +153,7 @@ Setting delta noise equal to revenue gives the tolerance:
 $$\sigma_\infty^{\ast}\;=\;\frac{R\sqrt{T_{\text{sess}}}}{\sigma_{\text{index}}}\;\approx\;\mathbf{9\ index\ units}\;=\;\mathbf{0.14\ futures\ lots}\;=\;\mathbf{0.27\ ATM\ option\ lots}$$
 
 and at half that noise, **4.5 index units**. Either way the tolerance is **well under one
-lot.** At those tolerances the futures leg costs **₹385 per session on ₹1,926 gross — 20%,
+lot.** At those tolerances the futures leg costs **approximately ₹395 per session on ₹1,976 gross — 20%,
 by construction — at 3 to 6 uses per session.**
 
 **D. Capital, which is the reason Aryan gave and it holds.** SEBI's 2024 framework collects
@@ -261,7 +262,7 @@ trade is queue risk for liquidity risk, and which is cheaper is an empirical que
 | `BK-08` | **Order count per level** (hence average order size) tightens `EXE-10`'s add/cancel decomposition and narrows queue-ahead bounds | Hazard | Proposed | No |
 | `BK-09` | Depth imbalance predicts the next mid transition — **contested**; `EF-09` governs *where* it works | Predictive | Proposed | Yes |
 | `BK-10` | Book slope and curvature matter to us as **exit-cost and impact state**, not as direction | Predictive | Proposed | Partly |
-| `BK-11` | **Delta is steered by quote skew, not hedged by futures.** Steering converts the futures cadence from ~356 sessions to hours, and the binding tolerance (< 1 lot) is set by delta **risk**, not by hedge cost | Accounting/Policy | **Agreed — Aryan 2026-08-19** | No |
+| `BK-11` | **Delta is steered by quote skew, not hedged by futures.** Steering converts the futures cadence from ~346 current sessions to hours, and the binding tolerance (< 1 lot) is set by delta **risk**, not by hedge cost | Accounting/Policy | **Agreed — Aryan 2026-08-19** | No |
 | `BK-12` | The primary decision object is the **joint quoting configuration**, while per-quote fill probability and markout remain measurement primitives | Estimand | **Agreed — Aryan 2026-08-19 (`D30`)** | No |
 | `BK-13` | Inventory is reversed primarily through **passive option fills**, with aggressive option exits second and futures reserved for residual breaches | Policy/Empirical | Proposed | Yes — channel attribution |
 | `BK-14` | A joint controller using portfolio delta plus maturity-sensitive gamma/vega state dominates independent per-contract or delta-only control after costs and peak margin | Policy/Model comparison | Proposed | Yes — causal replay |
@@ -280,7 +281,7 @@ trade is queue risk for liquidity risk, and which is cheaper is an empirical que
   inventory arrives. A maker that reacts to inventory after a fill has already lost.
 - **`CON-06`.** Scenario-based (the cost arithmetic), consuming observed book state.
 - **Falsifier — tested and resolved 2026-08-19, see §2.1.** A portfolio-level cadence at which
-  14.14 index points amortises does exist, but **only under steering**: unsteered it is ~356
+  14.14 index points amortises does exist, but **only under steering**: unsteered it is ~346
   sessions, steered it is hours. The claim therefore stands and narrows to its correct form —
   futures hedging is unavailable as a *routine* mechanism and survives only as a breach valve.
   `BK-11` carries the steered form.
@@ -335,7 +336,7 @@ trade is queue risk for liquidity risk, and which is cheaper is an empirical que
 - **What it influences.** Whether the strategy has a hedging mechanism at all, the size it
   can carry, and its return on peak margin.
 - **How.** §2.1. Unsteered residual delta random-walks and the affordable futures cadence is
-  ~356 sessions — no mechanism. Steered by quote skew across the put/call book, residual
+  ~346 current sessions — no mechanism. Steered by quote skew across the put/call book, residual
   delta is bounded and the cadence collapses to hours. The tolerance is set by **delta risk**
   (P&L noise of 3.6× session revenue at one lot of residual ATM delta), not by hedge cost,
   and lands under one lot: `σ*_∞ ≈ 9` index units for noise ≈ revenue, ≈ 4.5 for half.
@@ -458,7 +459,7 @@ delta, `k` swept). Y: stationary distribution of residual delta under `NAT-07` r
 **K:** `σ_∞` in index units and ATM-lot equivalents; the **fraction of session time above the
 9-unit tolerance**; foregone spread revenue from skewing; and the implied futures breach-valve
 frequency. Confirm: `σ_∞ ≤ 9` index units at a skew intensity whose revenue cost is under the
-₹385/session the futures leg would otherwise cost. Falsify: no skew intensity achieves the
+approximately ₹395/session the futures leg would otherwise cost. Falsify: no skew intensity achieves the
 tolerance without destroying more revenue than it saves — **`BK-11`'s kill branch.**
 Dependencies: `EF-10/H1`, `BK-01/H2`, `NAT-07`.
 
@@ -540,7 +541,7 @@ the right direction.” Recorded as `D30`; no longer provisional.
 1. ~~**Does `BK-01` change the estimand?**~~ **Answered: yes (`D30`).** The primary object is a
    joint quoting configuration; per-quote fill and markout remain measurement primitives.
 2. ~~**What is the minimum viable futures hedge cadence?**~~ **Answered in §2.1
-   (2026-08-19).** Unsteered ~356 sessions; steered, hours — and the binding constraint is
+   (2026-08-19).** Unsteered ~346 current sessions; steered, hours — and the binding constraint is
    delta *risk* at a tolerance under one lot, not hedge cost. Routine futures hedging is the
    wrong shape; the futures leg is a breach valve. Remaining open sub-question: can skew
    actually hold `σ_∞` under 9 index units against *selected* fills? That is `BK-11/H1`, and

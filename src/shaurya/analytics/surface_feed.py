@@ -18,20 +18,18 @@ from collections import deque
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-from datetime import time as clock_time
 from enum import StrEnum
 from typing import Any
 
 from shaurya.analytics.forward import ForwardSelection, select_forwards
 from shaurya.contracts.surface import SurfaceFrame
 from shaurya.contracts.tape import TapeRow
-from shaurya.contracts.timing import IST
+from shaurya.contracts.timing import IST, nse_equity_derivatives_close
 from shaurya.surfaces.base import EvaluationStatus, SurfaceFitRequest, SurfaceUse
 from shaurya.surfaces.essvi import ESSVISurface, SurfaceCalibrationError
 from shaurya.surfaces.state import ESSVITemporalSmoother, staleness_measurement
 
 SECONDS_PER_YEAR = 365.0 * 24.0 * 3600.0
-NSE_EXPIRY_CLOSE = clock_time(hour=15, minute=30)
 
 
 class FeedStatus(StrEnum):
@@ -241,9 +239,9 @@ class SurfaceSnapshot:
 
 
 def expiry_timestamp(expiry: date) -> datetime:
-    """NSE index options expire at the 15:30 IST close on their expiry date."""
+    """Return the date-versioned NSE F&O close on the option's expiry date."""
 
-    return datetime.combine(expiry, NSE_EXPIRY_CLOSE, tzinfo=IST)
+    return datetime.combine(expiry, nse_equity_derivatives_close(expiry), tzinfo=IST)
 
 
 def _option_expiry(instrument_id: str) -> date | None:

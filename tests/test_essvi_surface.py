@@ -18,8 +18,8 @@ from shaurya.surfaces.state import ESSVITemporalSmoother, staleness_measurement
 
 VALUATION = datetime(2026, 8, 18, 10, 0, tzinfo=IST)
 EXPIRIES = {
-    date(2026, 8, 27): datetime(2026, 8, 27, 15, 30, tzinfo=IST),
-    date(2026, 9, 24): datetime(2026, 9, 24, 15, 30, tzinfo=IST),
+    date(2026, 8, 27): datetime(2026, 8, 27, 15, 40, tzinfo=IST),
+    date(2026, 9, 24): datetime(2026, 9, 24, 15, 40, tzinfo=IST),
 }
 FORWARDS = {date(2026, 8, 27): 25_000.0, date(2026, 9, 24): 25_100.0}
 PARAMETERS = {

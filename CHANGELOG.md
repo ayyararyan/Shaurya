@@ -5,6 +5,24 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### Dated NSE F&O clock and full-session OFI replication
+
+- Added a dated NSE equity-derivatives clock: 09:15–15:30 before 2026-08-03 and 09:15–15:40
+  from that date. Current full-session duration is 23,100 seconds; surface expiry close, SIG-21
+  capacity calculations, capture validation and storage planning now consume the shared helper.
+- Added pre-data `H-SIG21-A2` without editing the immutable registration. Current 11-second
+  opportunity ceilings are 2,100 per session, 10,500 over calibration and 42,000 over evaluation;
+  registered 30-minute bins retain the short 15:30–15:40 final bucket.
+- Added the protocol-locked, read-only `R-OFI-FULLSESSION-2026-08-20` capture profile and durable
+  controller for Standard/Full + depth20 + depth200 on the unique same-day NIFTY front-month
+  future. Acceptance is based on actual opening/closing publications and complete depth books,
+  not requested duration.
+- Added memory-bounded burst/state construction and full-session replay modes for the scalar OFI,
+  exact CKS L1 and complete M0–M6 horse-race scans. The two pre-named leads are reported before
+  full-grid reranking; one-tape cross-stability is unsupported and the 30-second gate stays closed.
+- The replication is selection-aware and exploratory, is not `H-SIG21`, has no order authority,
+  and cannot be promoted to a signal or confirmation.
+
 ### `X-OFI-HORSERACE-DAT20-05` — causal-alignment short-horizon predictor horse race
 
 - Added one common-sample comparison of depth only, static queue imbalance, identified signed

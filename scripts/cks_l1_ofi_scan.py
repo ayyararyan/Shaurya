@@ -17,7 +17,24 @@ from scripts.sig21_construction_replay import (
     sha256_file,
     verify_instrument,
 )
-from shaurya.data.depth_thinning_analysis import DEPTH20, DEPTH200, build_states
+from shaurya.data.depth_thinning_analysis import (
+    DEPTH20,
+    DEPTH200,
+    build_states,
+    build_states_streaming,
+)
+from shaurya.data.ofi_replication import (
+    PROTOCOL_ID as REPLICATION_PROTOCOL_ID,
+)
+from shaurya.data.ofi_replication import (
+    REGISTRATION_COMMIT as REPLICATION_REGISTRATION_COMMIT,
+)
+from shaurya.data.ofi_replication import (
+    filtered_session_rows,
+    inspect_replication_capture,
+    iter_session_rows,
+    require_accepted_receipt,
+)
 from shaurya.signals.cks_l1_ofi import (
     CksL1TapeInput,
     build_cks_l1_artifact,
@@ -42,17 +59,31 @@ def code_commit() -> str | None:
     return result.stdout.strip() or None
 
 
-def build_tape_input(tape: Path, *, tape_index: int) -> CksL1TapeInput:
+def build_tape_input(
+    tape: Path, *, tape_index: int, full_session_replication: bool = False
+) -> CksL1TapeInput:
     metrics = capture_metrics_for(tape)
     run_id, instrument_id, _, _ = verify_instrument(metrics, tape)
     computed = sha256_file(tape)
     recorded = manifest_sha256_for(tape)
     if recorded is not None and recorded != computed:
         raise ValueError(f"{tape} SHA-256 {computed} does not match manifest {recorded}")
-    assert_permitted_tape(run_id=run_id, tape_sha256=computed)
-    rows = list(iter_tape_rows(tape))
-    depth200 = build_states(rows, DEPTH200)
-    depth20 = build_states(rows, DEPTH20)
+    if full_session_replication:
+        receipt = inspect_replication_capture(
+            tape,
+            metrics,
+            tape_sha256=computed,
+            manifest_sha256=recorded,
+        )
+        require_accepted_receipt(receipt)
+        depth200 = build_states_streaming(iter_session_rows(tape), DEPTH200)
+        depth20 = build_states_streaming(iter_session_rows(tape), DEPTH20)
+        rows = filtered_session_rows(tape, {"full"})
+    else:
+        assert_permitted_tape(run_id=run_id, tape_sha256=computed)
+        rows = list(iter_tape_rows(tape))
+        depth200 = build_states(rows, DEPTH200)
+        depth20 = build_states(rows, DEPTH20)
     observations, failures, intensities = build_cks_l1_observations(
         depth200_states=depth200,
         depth20_states=depth20,
@@ -94,17 +125,41 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--components-output", required=True, type=Path)
     parser.add_argument("--replicates", type=int, default=BLOCK_BOOTSTRAP_REPLICATES)
     parser.add_argument("--seed", type=int, default=BOOTSTRAP_SEED)
+    parser.add_argument(
+        "--full-session-replication",
+        action="store_true",
+        help="Validate and clip the registered R-OFI-FULLSESSION-2026-08-20 tape instead of "
+        "using the immutable DAT-20 exploratory allowlist.",
+    )
     return parser
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    tapes = [build_tape_input(tape, tape_index=index) for index, tape in enumerate(args.tape)]
-    return build_cks_l1_artifact(
+    if args.full_session_replication and len(args.tape) != 1:
+        raise ValueError("the registered full-session replication consumes exactly one tape")
+    tapes = [
+        build_tape_input(
+            tape,
+            tape_index=index,
+            full_session_replication=args.full_session_replication,
+        )
+        for index, tape in enumerate(args.tape)
+    ]
+    artifact = build_cks_l1_artifact(
         tapes,
         code_commit=code_commit(),
         replicates=args.replicates,
         seed=args.seed,
     )
+    if args.full_session_replication:
+        artifact["replication_protocol"] = {
+            "protocol_id": REPLICATION_PROTOCOL_ID,
+            "registration_commit": REPLICATION_REGISTRATION_COMMIT,
+            "source_scan_id": "X-CKS-L1-OFI-DAT20-04",
+            "sample_role": "prospective_full_session_replication",
+            "confirmatory_eligible": False,
+        }
+    return artifact
 
 
 def component_rows(artifact: dict[str, Any]) -> list[dict[str, Any]]:

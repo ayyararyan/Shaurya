@@ -183,6 +183,57 @@ def build_states(rows: Iterable[dict[str, Any]], channel: str) -> list[BookState
     return states
 
 
+def build_states_streaming(rows: Iterable[dict[str, Any]], channel: str) -> list[BookState]:
+    """Collapse a chronological tape without retaining every full-book JSON object.
+
+    A full-session three-tier tape is several gigabytes because each depth row repeats the
+    complete ladder. The collector writes one channel/timestamp burst contiguously; retaining
+    only its last row and union of flags is therefore equivalent to :func:`build_states` while
+    keeping memory proportional to the compact state sequence rather than the raw tape.
+    """
+
+    states: list[BookState] = []
+    current_key: tuple[int, int] | None = None
+    current_last: dict[str, Any] | None = None
+    current_flags: set[str] = set()
+    rows_in_burst = 0
+
+    def finish() -> None:
+        if current_key is None or current_last is None:
+            return
+        states.append(
+            BookState(
+                channel=channel,
+                receive_ts_ns=current_key[0],
+                receive_sequence=int(current_last.get("receive_sequence") or 0),
+                connection_epoch=current_key[1],
+                bids=_levels(current_last.get("bids")),
+                asks=_levels(current_last.get("asks")),
+                rows_in_burst=rows_in_burst,
+                quality_flags=tuple(sorted(current_flags)),
+            )
+        )
+
+    for row in rows:
+        if row.get("event_type") != channel:
+            continue
+        raw_ts = row.get("receive_ts")
+        if not isinstance(raw_ts, str):
+            continue
+        key = (_parse_ts_ns(raw_ts), int(row.get("connection_epoch") or 0))
+        if current_key is not None and key != current_key:
+            finish()
+            current_flags = set()
+            rows_in_burst = 0
+        current_key = key
+        current_last = row
+        rows_in_burst += 1
+        for flag in row.get("quality_flags") or ():
+            current_flags.add(str(flag))
+    finish()
+    return states
+
+
 # --------------------------------------------------------------------------------------
 # Measurement 1 — cross-tier agreement
 # --------------------------------------------------------------------------------------

@@ -527,3 +527,17 @@ than committed. Every number in this report is reproduced from them.
   test replaces `build_depth20_response_labels` with a raising stub and runs the full replay; a
   further test walks every key in the emitted artifact and asserts no outcome-bearing field name
   appears anywhere.
+
+---
+
+## Erratum — dated NSE F&O close (added 2026-08-19)
+
+This replay used two approximately eleven-minute midday tapes, so the formerly stated 15:30 close
+did not affect any retained row, construction count, hash, or conclusion. NSE equity derivatives
+close at 15:40 from 2026-08-03. A current full-session projection therefore uses 23,100 seconds.
+
+Holding the report's explicitly linear mid-morning rate projection fixed, the corrected one-session
+scenario is approximately **720,657 candidates** and **94,232 timestamp bursts**. The registered
+11-second family-maximum opportunity ceilings are **2,100 per session**, **10,500 over five
+calibration sessions**, and **42,000 over twenty evaluation sessions**. These are scenario and
+mechanical-ceiling corrections only; the original executed evidence above is preserved.

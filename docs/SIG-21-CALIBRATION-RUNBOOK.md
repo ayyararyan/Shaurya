@@ -21,9 +21,10 @@
 
 1. Resolve the current NIFTY front-month future from the same-day Dhan master and verify the exact
    security ID to trading-symbol mapping. Never carry an ID across trading days without checking.
-2. Start before 09:15 IST and request enough duration to cover the entire 09:15–15:30 session.
+2. Start before 09:15 IST and request enough duration to cover the entire date-versioned
+   09:15–15:40 session.
 3. Use the `--sig21-calibration` profile together with `--enable-depth200`. The profile rejects a
-   missing depth200 source, disabled depth20 support, or a requested duration below 22,500 seconds.
+   missing depth200 source, disabled depth20 support, or a requested duration below 23,100 seconds.
 4. Use a new output root/run ID. Do not append to DAT-20 or another session's tape.
 5. This path is read-only market-data capture. It does not authorise or touch live orders.
 
@@ -37,9 +38,14 @@ Illustrative invocation; resolve the paths, symbol and security ID from the same
   --expected-symbol EXACT_TRADING_SYMBOL \
   --enable-depth200 \
   --sig21-calibration \
-  --duration-seconds 22620 \
+  --duration-seconds 23225 \
   --output-root artifacts/sig21-calibration
 ```
+
+The example `23,225` seconds assumes launch at exactly 09:13 and a five-second post-close buffer.
+For any other start, compute `(15:40:00 + buffer) − actual launch time`; do not reuse the example
+blindly. Requested duration is only a preflight floor. Session acceptance still uses actual tape
+timestamps and the date-versioned close.
 
 The resulting capture metrics record under `test_configuration.sig21_protocol`:
 
