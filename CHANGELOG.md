@@ -5,6 +5,24 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### Depth-tier scope by instrument class (D33)
+
+- Bound the depth tier to the instrument class: the 200-level endpoint is restricted to futures and
+  equity books, and option books are capped at 20 levels module-wide.
+- Enforced at the single socket-construction choke point in `DhanLiveStream.run` via
+  `DEPTH200_ELIGIBLE_KINDS`, so no caller can bypass it, and repeated as an early, explicit failure
+  in the capture CLI before credentials are read or a socket is opened.
+- `--sig21-calibration` now also requires a future, matching the `H-SIG21` registration, and capture
+  metrics record the instrument kind, the eligible depth200 kinds and the option depth ceiling.
+- Audit note: depth200 was **not** enabled by default anywhere before this change
+  (`DhanStreamConfig.enable_200_level_depth` was already `False`, `--enable-depth200` was already
+  opt-in, the DAT-09 plan's `depth200_security_ids` already defaulted to empty, and the ANL-03
+  option-chain capture uses the 5-level Quote/Full channel). The real gap was the missing
+  instrument-class guard: depth200 eligibility was filtered on exchange segment only, and every NSE
+  option is `NSE_FNO`.
+- Added `tests/test_depth_tier_scope.py`. The full Python suite passes 206 tests; Ruff and strict
+  mypy remain clean.
+
 ### SIG-21 — depth200 calibration scope lock (D32)
 
 - Recorded Aryan's binding clarification that SIG-21's differentiating treatment is the

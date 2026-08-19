@@ -8,6 +8,9 @@
   magnitude, baseline score and episode must originate from this channel.
 - **Measurement support:** depth20 for the same future. It supplies the later BBO midpoint and the
   near-book spread/depth/OFI controls only. It can never create or backfill an anomaly.
+- **Instrument class (`D33`):** the 200-level ladder is a futures/equity-book object. The capture
+  refuses `--enable-depth200` for an option, and `--sig21-calibration` refuses any instrument that
+  is not a future. Option books are capped at 20 levels module-wide.
 - **Grid:** the pushed registration already fixes
   `8 atomic types x 2 sides x 2 distance bands x 2 thresholds x 2 Z gaps x 3 horizons = 384`
   cells. Calibration measures support and power; it does not select axes or inspect cell outcomes.

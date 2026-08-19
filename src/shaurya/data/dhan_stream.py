@@ -20,10 +20,23 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any, NoReturn
 
-from shaurya.contracts.instruments import DhanInstrumentMapping, ExchangeSegment
+from shaurya.contracts.instruments import (
+    DhanInstrumentMapping,
+    ExchangeSegment,
+    InstrumentKind,
+)
 from shaurya.contracts.tape import DepthLevel, QualityFlag, TapeRow
 from shaurya.data.dhan_client import DhanCredentials
 from shaurya.data.trade_direction import CaptureTradeDirectionClassifier
+
+# D33 (2026-08-19): the depth tier is a property of the instrument class, not a default.
+# The 200-level ladder exists to expose a deep, densely populated futures book; an NSE option
+# book is quoted only a few rupees wide and never justifies a 200-level subscription, and each
+# depth200 subscription consumes an entire socket. Options are therefore capped at 20 levels
+# module-wide. This is enforced here, at the single socket-construction choke point, so no
+# caller can bypass it by forgetting a check.
+DEPTH200_ELIGIBLE_KINDS = frozenset({InstrumentKind.EQUITY, InstrumentKind.FUTURE})
+OPTION_MAX_DEPTH_LEVELS = 20
 
 
 class DhanProtocolError(RuntimeError):
@@ -518,6 +531,19 @@ class DhanLiveStream:
             ]
             if not deep200:
                 raise ValueError("200-level depth requires an NSE_EQ or NSE_FNO instrument")
+            ineligible = [
+                mapping
+                for mapping in deep200
+                if mapping.instrument.kind not in DEPTH200_ELIGIBLE_KINDS
+            ]
+            if ineligible:
+                kinds = sorted({str(mapping.instrument.kind) for mapping in ineligible})
+                raise ValueError(
+                    "200-level depth is restricted to futures and equity books (D33); "
+                    f"options are capped at {OPTION_MAX_DEPTH_LEVELS} levels — got "
+                    f"{', '.join(kinds)}: "
+                    + ", ".join(mapping.trading_symbol for mapping in ineligible)
+                )
             if len(deep200) > 1:
                 raise ValueError(
                     "200-level depth allows exactly one instrument per subscription "

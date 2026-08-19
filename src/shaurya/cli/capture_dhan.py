@@ -13,10 +13,20 @@ from pathlib import Path
 from typing import Any
 
 from shaurya.contracts.artifacts import ArtifactManifest
-from shaurya.contracts.instruments import DhanInstrumentMaster
+from shaurya.contracts.instruments import (
+    DhanInstrumentMapping,
+    DhanInstrumentMaster,
+    InstrumentKind,
+)
 from shaurya.contracts.timing import IST
 from shaurya.data.dhan_client import DhanCredentials
-from shaurya.data.dhan_stream import DhanLiveStream, DhanStreamConfig, StreamMetrics
+from shaurya.data.dhan_stream import (
+    DEPTH200_ELIGIBLE_KINDS,
+    OPTION_MAX_DEPTH_LEVELS,
+    DhanLiveStream,
+    DhanStreamConfig,
+    StreamMetrics,
+)
 from shaurya.data.quality import CollectorQualityAudit, write_quality_audit
 from shaurya.data.tape import JsonlTapeWriter
 
@@ -52,8 +62,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--enable-depth200",
         action="store_true",
-        help="DAT-10: opt-in 200-level deep book. Dhan allows exactly one instrument per "
-        "subscription on this endpoint, which --security-id already satisfies.",
+        help="DAT-10: opt-in 200-level deep book, never a default. Dhan allows exactly one "
+        "instrument per subscription on this endpoint, which --security-id already satisfies. "
+        "D33: futures and equity books only — options are capped at 20 levels.",
     )
     parser.add_argument(
         "--sig21-calibration",
@@ -89,6 +100,24 @@ def _required_channels(config: DhanStreamConfig) -> set[str]:
     if config.enable_200_level_depth:
         required.add("depth200")
     return required
+
+
+def _validate_depth_tier_scope(
+    args: argparse.Namespace, mapping: DhanInstrumentMapping
+) -> None:
+    """D33: the depth tier follows the instrument class, and options stop at 20 levels."""
+    if args.enable_depth200 and mapping.instrument.kind not in DEPTH200_ELIGIBLE_KINDS:
+        raise ValueError(
+            f"--enable-depth200 rejected for {mapping.trading_symbol!r}: the 200-level ladder "
+            "is restricted to futures and equity books (D33); "
+            f"{mapping.instrument.kind} instruments are capped at "
+            f"{OPTION_MAX_DEPTH_LEVELS} levels"
+        )
+    if args.sig21_calibration and mapping.instrument.kind is not InstrumentKind.FUTURE:
+        raise ValueError(
+            "H-SIG21 calibration is registered on the NIFTY front-month future; "
+            f"{mapping.trading_symbol!r} is a {mapping.instrument.kind} instrument"
+        )
 
 
 def _validate_sig21_protocol(args: argparse.Namespace) -> None:
@@ -127,6 +156,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             f"security-ID identity check failed: expected {args.expected_symbol!r}, "
             f"master has {mapping.trading_symbol!r}"
         )
+    _validate_depth_tier_scope(args, mapping)
     manifest = ArtifactManifest.create(args.output_root)
     metrics = StreamMetrics()
     writer = JsonlTapeWriter(manifest, fsync_every=100)
@@ -180,6 +210,9 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
                 "standard_full_5_level": not args.no_standard,
                 "depth20": not args.no_depth20,
                 "depth200": args.enable_depth200,
+                "instrument_kind": str(mapping.instrument.kind),
+                "depth200_eligible_kinds": sorted(str(kind) for kind in DEPTH200_ELIGIBLE_KINDS),
+                "option_max_depth_levels": OPTION_MAX_DEPTH_LEVELS,
                 "duration_seconds_requested": args.duration_seconds,
                 "dat09_decision": False,
                 "channel_start_stagger_seconds": args.channel_start_stagger_seconds,
