@@ -345,8 +345,8 @@ def as_normal_observation(observation: HorseRaceObservation) -> Observation:
         receive_ts_ns=observation.receive_ts_ns,
         time_bucket="mid_afternoon",
         features=observation.features,
-        future_ticks=observation.future_ticks,  # type: ignore[arg-type]
-        past_ticks=observation.past_ticks,  # type: ignore[arg-type]
+        future_ticks=observation.future_ticks,
+        past_ticks=observation.past_ticks,
         contemporaneous_ticks={},
     )
 
