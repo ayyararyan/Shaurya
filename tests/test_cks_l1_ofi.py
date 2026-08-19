@@ -6,11 +6,11 @@ import pytest
 
 from shaurya.data.depth_thinning_analysis import DEPTH20, DEPTH200, BookState
 from shaurya.signals.cks_l1_ofi import (
+    CKS_RETURN_HORIZONS_SECONDS,
     DEPTH_BASELINE_FEATURE,
     L1_COMPONENTS,
     MINIMUM_MEAN_DEPTH_CONTRACTS,
     OFI_WINDOWS_SECONDS,
-    RETURN_HORIZONS_SECONDS,
     CksL1TapeInput,
     assert_no_lookahead,
     build_cks_l1_artifact,
@@ -365,15 +365,17 @@ def _artifact() -> dict[str, object]:
     return build_cks_l1_artifact(tapes, code_commit="test", replicates=25, seed=7)
 
 
-def test_the_grid_emits_every_one_of_the_twenty_five_cells() -> None:
+def test_the_grid_emits_every_one_of_the_thirty_cells() -> None:
     artifact = _artifact()
 
     grid = artifact["grid"]
     assert isinstance(grid, list)
-    assert len(grid) == len(OFI_WINDOWS_SECONDS) * len(RETURN_HORIZONS_SECONDS)
+    assert len(grid) == len(OFI_WINDOWS_SECONDS) * len(CKS_RETURN_HORIZONS_SECONDS)
     seen = {(row["ofi_window_seconds"], row["return_horizon_seconds"]) for row in grid}
     assert seen == {
-        (window, horizon) for window in OFI_WINDOWS_SECONDS for horizon in RETURN_HORIZONS_SECONDS
+        (window, horizon)
+        for window in OFI_WINDOWS_SECONDS
+        for horizon in CKS_RETURN_HORIZONS_SECONDS
     }
     for row in grid:
         assert set(row["models"]) == {"M1", "M2", "M3", "M4", "M4b", "R1", "C1"}

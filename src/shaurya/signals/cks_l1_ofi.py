@@ -38,7 +38,6 @@ from shaurya.signals.deep_book_normal_activity import (
 from shaurya.signals.deep_book_ofi import (
     CAUSAL_GAP_SECONDS,
     OFI_WINDOWS_SECONDS,
-    RETURN_HORIZONS_SECONDS,
     _controls,
     _invalid_transition,
     _label,
@@ -50,6 +49,16 @@ from shaurya.signals.deep_book_response import NANOSECONDS_PER_SECOND
 EXPLORATORY_SCAN_ID = "X-CKS-L1-OFI-DAT20-04"
 CONFIRMATORY_ELIGIBLE = False
 DESIGN_DOCUMENT = "docs/CKS-L1-OFI-SPEC-2026-08-19.md"
+AMENDMENT_DOCUMENT = "docs/CKS-L1-OFI-SPEC-AMENDMENT-1-2026-08-19.md"
+
+#: Response horizons for this scan.  Amendment 1 admits the 0.5 s arm after confirming that the
+#: depth-20 mid resolves to two *different* snapshots at both endpoints in 99.4-99.5% of cases.
+#: ``deep_book_ofi.RETURN_HORIZONS_SECONDS`` is deliberately **not** reused: it is shared with the
+#: frozen, already-reported ``X-OFI-DAT20-03`` and must not be widened.  ``30`` is retained as the
+#: declared longer robustness arm, so the emitted grid is 5 windows x 6 horizons = 30 cells.
+CKS_RETURN_HORIZONS_SECONDS = (0.5, 1, 2, 5, 10, 30)
+CKS_CORE_RETURN_HORIZONS_SECONDS = (0.5, 1, 2, 5, 10)
+CKS_ROBUSTNESS_RETURN_HORIZONS_SECONDS = (30,)
 
 #: Floor on the average-depth denominator, in contracts, so scaling cannot divide by ~zero.
 MINIMUM_MEAN_DEPTH_CONTRACTS = 1.0
@@ -194,9 +203,9 @@ class CksL1Observation:
     receive_ts_ns: int
     time_bucket: str
     features: Mapping[str, float]
-    future_ticks: Mapping[int, float]
-    past_ticks: Mapping[int, float]
-    contemporaneous_ticks: Mapping[int, float]
+    future_ticks: Mapping[float, float]
+    past_ticks: Mapping[float, float]
+    contemporaneous_ticks: Mapping[float, float]
     same_window_ticks: Mapping[float, float]
     l1_depth_end: float
     mean_depth_by_window: Mapping[float, float]
@@ -320,10 +329,10 @@ def build_cks_l1_observations(
         if series.as_of(response_anchor) is None:
             failures["no_depth20_anchor"] += 1
             continue
-        future: dict[int, float] = {}
-        past: dict[int, float] = {}
-        for horizon in RETURN_HORIZONS_SECONDS:
-            horizon_ns = horizon * NANOSECONDS_PER_SECOND
+        future: dict[float, float] = {}
+        past: dict[float, float] = {}
+        for horizon in CKS_RETURN_HORIZONS_SECONDS:
+            horizon_ns = int(horizon * NANOSECONDS_PER_SECOND)
             response_value = _mid_return(series, response_anchor, response_anchor + horizon_ns)
             if response_value is not None:
                 future[horizon] = response_value
@@ -391,7 +400,7 @@ def assert_no_lookahead(observations: Sequence[CksL1Observation]) -> None:
 def _positions(
     observations: Sequence[CksL1Observation],
     candidates: Sequence[int],
-    horizon: int,
+    horizon: float,
     source: Literal["future", "past"],
 ) -> tuple[int, ...]:
     return tuple(
@@ -409,7 +418,7 @@ def _positions(
 def _target(
     observations: Sequence[CksL1Observation],
     positions: Sequence[int],
-    horizon: int,
+    horizon: float,
     source: Literal["future", "past"],
 ) -> np.ndarray[Any, np.dtype[np.float64]]:
     return np.asarray(
@@ -460,7 +469,7 @@ def _evaluate_model(
     *,
     name: str,
     names: Sequence[str],
-    horizon: int,
+    horizon: float,
     source: Literal["future", "past"],
     ofi_name: str | None,
     pressure_name: str | None,
@@ -527,7 +536,7 @@ def _inference_payload(
     observations: Sequence[CksL1Observation],
     test_positions: Sequence[int],
     *,
-    horizon: int,
+    horizon: float,
     replicates: int,
     seed: int,
 ) -> dict[str, Any]:
@@ -586,10 +595,10 @@ def evaluate_grid(
     replicates: int = BLOCK_BOOTSTRAP_REPLICATES,
     seed: int = BOOTSTRAP_SEED,
 ) -> list[dict[str, Any]]:
-    """Evaluate all 25 window x horizon cells, six models each, without any filtering."""
+    """Evaluate all 30 window x horizon cells, six models each, without any filtering."""
 
     rows: list[dict[str, Any]] = []
-    for horizon in RETURN_HORIZONS_SECONDS:
+    for horizon in CKS_RETURN_HORIZONS_SECONDS:
         future_train = _positions(observations, split.train, horizon, "future")
         future_test = _positions(observations, split.test, horizon, "future")
         past_train = _positions(observations, split.train, horizon, "past")
@@ -624,7 +633,7 @@ def evaluate_grid(
                     ofi_name=ofi_name,
                     pressure_name=pressure_name,
                 )
-            base = seed + horizon * 10_000 + int(window * 100)
+            base = seed + int(horizon * 10_000) + int(window * 100)
             rows.append(
                 {
                     "ofi_window_seconds": window,
@@ -681,7 +690,7 @@ def evaluate_grid(
                     ),
                 }
             )
-    expected = len(OFI_WINDOWS_SECONDS) * len(RETURN_HORIZONS_SECONDS)
+    expected = len(OFI_WINDOWS_SECONDS) * len(CKS_RETURN_HORIZONS_SECONDS)
     if len(rows) != expected:
         raise RuntimeError(f"complete grid required: expected {expected}, got {len(rows)}")
     return rows
@@ -1067,11 +1076,12 @@ def build_cks_l1_artifact(
             "part_of_h_sig21": False,
             "code_commit": code_commit,
             "design_document": DESIGN_DOCUMENT,
+            "amendment_document": AMENDMENT_DOCUMENT,
             "compared_against_scan_id": "X-OFI-DAT20-03",
             "grid_size": len(grid),
             "models": list(CELL_MODELS),
             "ofi_windows_seconds": list(OFI_WINDOWS_SECONDS),
-            "return_horizons_seconds": list(RETURN_HORIZONS_SECONDS),
+            "return_horizons_seconds": list(CKS_RETURN_HORIZONS_SECONDS),
             "causal_gap_seconds": CAUSAL_GAP_SECONDS,
             "minimum_mean_depth_contracts": MINIMUM_MEAN_DEPTH_CONTRACTS,
             "depth_baseline_feature": DEPTH_BASELINE_FEATURE,

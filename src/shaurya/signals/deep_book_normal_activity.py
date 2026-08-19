@@ -469,9 +469,9 @@ class Observation:
     receive_ts_ns: int
     time_bucket: str
     features: Mapping[str, float]
-    future_ticks: Mapping[int, float]
-    past_ticks: Mapping[int, float]
-    contemporaneous_ticks: Mapping[int, float]
+    future_ticks: Mapping[float, float]
+    past_ticks: Mapping[float, float]
+    contemporaneous_ticks: Mapping[float, float]
 
 
 def build_flow_features(
@@ -573,7 +573,7 @@ def response_ticks(
     anchor_ts_ns: int,
     horizons_seconds: Sequence[int] = HORIZONS_SECONDS,
     tick_size: float = FUTURES_TICK_SIZE,
-) -> tuple[dict[int, float], dict[int, float], dict[int, float]]:
+) -> tuple[dict[float, float], dict[float, float], dict[float, float]]:
     """Future, past-mirror and contemporaneous mid-price moves at one publication instant.
 
     - **future** — the move from the anchor to ``anchor + h``.  This is the thing being predicted.
@@ -595,9 +595,9 @@ def response_ticks(
     """
 
     anchor = series.as_of(anchor_ts_ns)
-    future: dict[int, float] = {}
-    past: dict[int, float] = {}
-    contemporaneous: dict[int, float] = {}
+    future: dict[float, float] = {}
+    past: dict[float, float] = {}
+    contemporaneous: dict[float, float] = {}
     if anchor is None:
         return future, past, contemporaneous
     for horizon in horizons_seconds:

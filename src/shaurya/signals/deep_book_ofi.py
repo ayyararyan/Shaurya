@@ -204,9 +204,9 @@ class OFIObservation:
     receive_ts_ns: int
     time_bucket: str
     features: Mapping[str, float]
-    future_ticks: Mapping[int, float]
-    past_ticks: Mapping[int, float]
-    contemporaneous_ticks: Mapping[int, float]
+    future_ticks: Mapping[float, float]
+    past_ticks: Mapping[float, float]
+    contemporaneous_ticks: Mapping[float, float]
     same_window_ticks: Mapping[float, float]
     boundary_excluded_quantity: Mapping[float, float]
     included_absolute_quantity: Mapping[float, float]
@@ -296,8 +296,8 @@ def build_ofi_observations(
         if series.as_of(response_anchor) is None:
             failures["no_depth20_anchor"] += 1
             continue
-        future: dict[int, float] = {}
-        past: dict[int, float] = {}
+        future: dict[float, float] = {}
+        past: dict[float, float] = {}
         for horizon in RETURN_HORIZONS_SECONDS:
             horizon_ns = horizon * NANOSECONDS_PER_SECOND
             response_value = _mid_return(series, response_anchor, response_anchor + horizon_ns)
