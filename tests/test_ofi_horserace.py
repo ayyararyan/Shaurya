@@ -123,16 +123,18 @@ def test_trade_series_requires_exact_classifier_and_alignment_versions() -> None
                 for key, value in _trade_row(44, "buy").items()
                 if key != "trade_alignment_version"
             },
+            {**_trade_row(45, "buy"), "last_quantity": 0},
         ]
     )
     series = build_trade_series(rows)
     assert series.identified
-    assert series.schema_packets == MINIMUM_TRADE_PACKETS + 4
+    assert series.schema_packets == MINIMUM_TRADE_PACKETS + 5
     assert series.qualified_packets == MINIMUM_TRADE_PACKETS
     assert series.excluded_wrong_classifier_version == 1
     assert series.excluded_missing_classifier_version == 1
     assert series.excluded_wrong_alignment_version == 1
     assert series.excluded_missing_alignment_version == 1
+    assert series.excluded_degraded_or_unclassified == 1
 
 
 def test_construction_uses_canonical_cks_and_causal_depth_adjustment(

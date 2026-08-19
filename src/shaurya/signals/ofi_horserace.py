@@ -162,6 +162,9 @@ def build_trade_series(rows: Sequence[Mapping[str, Any]]) -> TradeSeries:
             degraded += 1
             continue
         absolute_quantity = float(quantity)
+        if not isfinite(absolute_quantity) or absolute_quantity <= 0:
+            degraded += 1
+            continue
         values.append(
             (
                 parse_receive_ts_ns(stamp),
@@ -1340,9 +1343,13 @@ def feature_intensity_table(
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for window in OFI_WINDOWS_SECONDS:
-        names = ["l1_queue_imbalance", cks_feature(window)]
+        names = [
+            "l1_queue_imbalance",
+            cks_feature(window),
+            cks_pressure_feature(window),
+        ]
         if trade_identified:
-            names.append(trade_feature(window))
+            names.extend((trade_feature(window), normalised_trade_feature(window)))
         names.extend(pk_band_feature(window, *band) for band in BANDS)
         names.extend(adjusted_band_feature(window, *band) for band in BANDS)
         for name in names:
