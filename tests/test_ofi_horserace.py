@@ -15,13 +15,18 @@ from shaurya.signals.ofi_horserace import (
     OFI_WINDOWS_SECONDS,
     RETURN_HORIZONS_SECONDS,
     HorseRaceObservation,
+    _direction_by_tape,
     adjusted_band_feature,
     assert_no_lookahead,
     build_horserace_observations,
     build_trade_series,
     cks_feature,
+    cks_pressure_feature,
     evaluate_cells,
+    evaluate_combined_ablations,
+    evaluate_normalised_subarms,
     model_features,
+    normalised_trade_feature,
     pk_band_feature,
     resolve_30_second_gate,
     select_ridge_alpha,
@@ -131,6 +136,7 @@ def test_construction_uses_canonical_cks_and_causal_depth_adjustment(
     assert failures["trade_support"]["qualified_packets"] >= MINIMUM_TRADE_PACKETS
     final = observations[-1]
     assert final.features[cks_feature(0.5)] > 0
+    assert final.features[cks_pressure_feature(0.5)] > 0
     for lower, upper in BANDS:
         flow = final.features[pk_band_feature(0.5, lower, upper)]
         adjusted = final.features[adjusted_band_feature(0.5, lower, upper)]
@@ -168,7 +174,9 @@ def _synthetic_observation(index: int, *, test_shift: float = 0.0) -> HorseRaceO
     }
     for window in OFI_WINDOWS_SECONDS:
         features[trade_feature(window)] = signal * 2
+        features[normalised_trade_feature(window)] = signal / 5
         features[cks_feature(window)] = signal * 3
+        features[cks_pressure_feature(window)] = signal / 4
         for band_index, band in enumerate(BANDS, start=1):
             features[pk_band_feature(window, *band)] = signal * band_index
             features[adjusted_band_feature(window, *band)] = signal / band_index
@@ -209,6 +217,26 @@ def test_ridge_selection_uses_training_only_and_is_deterministic() -> None:
     assert first == second
 
 
+def test_gate_direction_uses_single_predictor_coefficient_not_fitted_covariance() -> None:
+    observations: list[HorseRaceObservation] = []
+    for index in range(80):
+        observation = _synthetic_observation(index)
+        sign = 1.0 if observation.tape_index == 0 else -1.0
+        signal = observation.features[cks_feature(0.5)]
+        observations.append(replace(observation, future_ticks={10.0: sign * signal}))
+    directions = _direction_by_tape(
+        observations,
+        tuple(range(len(observations))),
+        names=("log1p_l1_depth", "spread_ticks", cks_feature(0.5)),
+        model="M3",
+        horizon=10.0,
+        source="future",
+        alpha=0.0,
+    )
+    assert directions["0"] is not None and directions["0"] > 0
+    assert directions["1"] is not None and directions["1"] < 0
+
+
 def test_evaluation_emits_complete_common_sample_and_training_standardisation() -> None:
     observations = [_synthetic_observation(index) for index in range(120)]
     split = SplitIndex(
@@ -230,8 +258,32 @@ def test_evaluation_emits_complete_common_sample_and_training_standardisation() 
     assert len(rows) == len(OFI_WINDOWS_SECONDS) * len(MODEL_ORDER)
     assert {row["train_n"] for row in rows} == {80}
     assert {row["test_n"] for row in rows} == {30}
+    assert {row["embargoed_n"] for row in rows} == {10}
+    assert all(row["support_by_tape"]["0"]["train_n"] == 40 for row in rows)
     assert all(row["training_standardisation"]["source"] == "training_only" for row in rows)
     assert all(set(row["per_tape"]) == {"0", "1"} for row in rows)
+
+
+def test_normalised_subarms_and_combined_ablations_are_complete() -> None:
+    observations = [_synthetic_observation(index) for index in range(120)]
+    split = SplitIndex(
+        train=tuple(range(80)),
+        embargoed=tuple(range(80, 90)),
+        test=tuple(range(90, 120)),
+        embargo_seconds=120.0,
+        boundaries=(),
+    )
+    subarms = evaluate_normalised_subarms(
+        observations, split, source="future", trade_identified=True
+    )
+    assert len(subarms) == 2 * len(OFI_WINDOWS_SECONDS) * len(RETURN_HORIZONS_SECONDS)
+    assert {row["subarm"] for row in subarms} == {
+        "M2b_normalised_trade",
+        "M3b_depth_normalised_cks",
+    }
+    ablations = evaluate_combined_ablations(observations, split, trade_identified=True)
+    assert len(ablations) == 5 * len(OFI_WINDOWS_SECONDS) * len(RETURN_HORIZONS_SECONDS)
+    assert all(row["status"] == "estimated" for row in ablations)
 
 
 def _gate_row(
