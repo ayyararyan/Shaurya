@@ -2,7 +2,7 @@
 
 **Scan:** `X-OFI-HORSERACE-DAT20-05`
 
-**Execution commit:** `cd9cfd7c359dcf8e7aa53f4d0b95b4ffee3efe4c`
+**Execution commit:** `e39d67ce787824d78a7439caa89afa15c784f0b4`
 
 **Evidence:** Level-3 reproducible machinery; exploratory empirical comparison only
 

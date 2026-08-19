@@ -1,7 +1,7 @@
 {
   "scan_id": "X-OFI-HORSERACE-DAT20-05",
   "confirmatory_eligible": false,
-  "execution_commit": "cd9cfd7c359dcf8e7aa53f4d0b95b4ffee3efe4c",
+  "execution_commit": "e39d67ce787824d78a7439caa89afa15c784f0b4",
   "sample": {"observations": 5210, "train_n": 3646, "embargoed_n": 960, "test_n": 604},
   "trade_support": {"schema_packets": 310, "qualified_packets": 191, "excluded_coalesced": 117, "excluded_degraded_or_unclassified": 2},
   "complete_outputs": {"future_cells": 175, "past_mirror_cells": 175, "same_window_cells": 35, "normalised_subarm_cells_per_direction": 50, "combined_ablation_cells": 125, "conditional_30_second_cells": 0},
@@ -15,7 +15,7 @@
   "strongest_robustness_lead": {"subarm": "M3b_depth_normalised_cks", "h1_seconds": 2.0, "h2_seconds": 2.0, "oos_r2": 0.05746988681085208, "incremental_oos_r2_over_m0": 0.062036652388938185, "tape_increments": [0.08262223900399623, 0.031148406871871814], "past_mirror_increment": 0.026075061537844002},
   "gate_30_seconds": {"passed": false, "conditional_cells": 0, "binding_failure": "M3 raw CKS coefficient direction changed sign across tapes"},
   "artifact_sha256": {
-    "ofi_horserace_2026-08-19.json": "33847651706b7944acaf443b8cb8d5c820b3205297fb85d0ac08e767e886c20e",
+    "ofi_horserace_2026-08-19.json": "19d83c92bccc0c0bcdc4513ec35468754091a6edf3e86512b4e348c29f5ad58f",
     "ofi_horserace_cells_2026-08-19.jsonl": "22a3ed990e041df0dbe8c06f38b4d32fbe46ee955daeba033aff4b5c9cc9cb28",
     "ofi_horserace_past_2026-08-19.jsonl": "a6b73ace877bd7a3e9b6cdabdf8318c3a901a9c6ddb574f12b3281c0fcacf6b3",
     "ofi_horserace_ranking_2026-08-19.csv": "720ccd738fa4f88c3002e2ad8fdde94968f35b1ca17a4fc7d4197382ff5c8bb8"
