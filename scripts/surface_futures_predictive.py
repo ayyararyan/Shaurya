@@ -267,6 +267,12 @@ def write_artifacts(
         "paired_inference": output_dir / "surface_futures_predictive_paired_inference.csv",
         "freshness": output_dir / "surface_futures_predictive_freshness.csv",
         "lag_placebo": output_dir / "surface_futures_predictive_lag_placebo.csv",
+        "horse_aligned_scores": (
+            output_dir / "surface_futures_predictive_horse_aligned_scores.csv"
+        ),
+        "horse_aligned_inference": (
+            output_dir / "surface_futures_predictive_horse_aligned_inference.csv"
+        ),
     }
     _write(paths["summary"], _json(artifact))
     _write(paths["observations"], _jsonl(observations))
@@ -277,8 +283,14 @@ def write_artifacts(
         "paired_inference",
         "freshness",
         "lag_placebo",
+        "horse_aligned_scores",
+        "horse_aligned_inference",
     ):
-        rows = artifact[key]
+        artifact_key = {
+            "horse_aligned_scores": "horse_aligned_full_session_scores",
+            "horse_aligned_inference": "horse_aligned_full_session_inference",
+        }.get(key, key)
+        rows = artifact[artifact_key]
         if not isinstance(rows, list):
             raise ValueError(f"artifact section {key} is not a list")
         _write(paths[key], _csv(rows))

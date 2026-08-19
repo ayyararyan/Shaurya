@@ -203,6 +203,7 @@ class HorseRaceObservation:
     past_ticks: Mapping[float, float]
     same_window_ticks: Mapping[float, float]
     window_start_ts_ns: Mapping[float, int]
+    connection_epoch: int = 1
 
 
 def _band_depths(state: BookState) -> dict[tuple[int, int], float | None]:
@@ -384,6 +385,7 @@ def build_horserace_observations(
                 past_ticks=past,
                 same_window_ticks=same,
                 window_start_ts_ns=window_starts,
+                connection_epoch=state.connection_epoch,
             )
         )
     return observations, failures

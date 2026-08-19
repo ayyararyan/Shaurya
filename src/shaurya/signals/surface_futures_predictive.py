@@ -27,6 +27,7 @@ from shaurya.signals.deep_book_ofi import price_keyed_ofi_transition
 SCAN_ID = "X-SURFACE-FUT5-20260819-06"
 CONFIRMATORY_ELIGIBLE = False
 DESIGN_DOCUMENT = "docs/SURFACE-FUTURES-PREDICTIVE-SPEC-2026-08-19.md"
+CORRECTION_DOCUMENT = "docs/SURFACE-FUTURES-PREDICTIVE-CORRECTION-1-2026-08-19.md"
 
 FUTURES_INSTRUMENT_ID = "NSE:NSE_FNO:NIFTY:future:2026-08-25"
 EXPIRIES = (date(2026, 8, 25), date(2026, 9, 1), date(2026, 9, 29))
@@ -620,6 +621,8 @@ def lob_features(state: BookState) -> dict[str, float] | None:
     result: dict[str, float] = {
         "lob__spread_ticks": (best_ask - best_bid) / TICK_SIZE,
         "lob__microprice_tilt_ticks": (microprice - midpoint) / TICK_SIZE,
+        "lob__l1_total_quantity": l1_total,
+        "lob__log1p_l1_total_quantity": math.log1p(l1_total),
     }
     for level, (bid, ask) in enumerate(zip(bids, asks, strict=True), start=1):
         quantity_imbalance = _imbalance(float(bid[1]), float(ask[1]))
@@ -1164,15 +1167,20 @@ def fit_model(
     label: str,
     source: Literal["future", "past", "same"],
     raw_names_override: Sequence[str] | None = None,
+    alpha_override: float | None = None,
 ) -> FittedModel:
     raw_names = tuple(
         raw_names_override
         if raw_names_override is not None
         else model_raw_names(label, observations)
     )
-    alpha = select_alpha(
-        observations, train_positions, raw_names=raw_names, source=source
+    alpha = (
+        select_alpha(observations, train_positions, raw_names=raw_names, source=source)
+        if alpha_override is None
+        else float(alpha_override)
     )
+    if alpha not in RIDGE_ALPHAS:
+        raise ValueError(f"alpha override {alpha} is outside the frozen grid")
     processor = fit_preprocessor(
         observations, train_positions, raw_names=raw_names
     )
@@ -1232,6 +1240,160 @@ def fit_model(
         test_predictions=test_prediction,
         score=score,
     )
+
+
+def horse_aligned_five_level_names(
+    label: str,
+    window_seconds: float,
+    observations: Sequence[SurfacePredictiveObservation],
+) -> tuple[str, ...]:
+    """Exact horse-race baseline with honestly five-level-only flow analogues.
+
+    `H4_5L`/`H5_5L` are deliberately not called M4/M5: the Quote/Full tape has only
+    levels 1 and 2-5, not the seven depth200 marginal bands used by the earlier horse race.
+    """
+
+    baseline = ("lob__log1p_l1_total_quantity", "lob__spread_ticks")
+    mapping = {
+        "H0": baseline,
+        "H1": (*baseline, "lob__quantity_imbalance_l1"),
+        "H3": (*baseline, ofi_feature(window_seconds, "cks_l1_raw")),
+        "H3b": (*baseline, ofi_feature(window_seconds, "cks_l1_depth_adjusted")),
+        "H4_5L": (
+            *baseline,
+            ofi_feature(window_seconds, "pk_level1_raw"),
+            ofi_feature(window_seconds, "pk_levels2_5_raw"),
+        ),
+        "H5_5L": (
+            *baseline,
+            ofi_feature(window_seconds, "pk_level1_depth_adjusted"),
+            ofi_feature(window_seconds, "pk_levels2_5_depth_adjusted"),
+        ),
+    }
+    if label.endswith("S"):
+        base = mapping.get(label[:-1])
+        if base is None:
+            raise ValueError(f"unknown horse-aligned surface model {label}")
+        return (*base, *tuple(sorted(observations[0].economic)))
+    if label not in mapping:
+        raise ValueError(f"unknown horse-aligned five-level model {label}")
+    return mapping[label]
+
+
+def horse_aligned_full_session_rows(
+    observations: Sequence[SurfacePredictiveObservation],
+    split: ObservationSplit,
+    *,
+    replicates: int,
+    seed: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Corrected full-session comparison using the omitted M0/M3b state baseline."""
+
+    rows: list[dict[str, Any]] = []
+    fitted: dict[tuple[float, str], FittedModel] = {}
+    for window in OFI_WINDOWS_SECONDS:
+        required_ofi = tuple(
+            ofi_feature(window, name)
+            for name in (
+                "cks_l1_raw",
+                "cks_l1_depth_adjusted",
+                "pk_level1_raw",
+                "pk_levels2_5_raw",
+                "pk_level1_depth_adjusted",
+                "pk_levels2_5_depth_adjusted",
+            )
+        )
+        available = {
+            position
+            for position, observation in enumerate(observations)
+            if all(name in observation.ofi for name in required_ofi)
+        }
+        train = tuple(position for position in split.train if position in available)
+        test = tuple(position for position in split.test if position in available)
+        if min(len(train), len(test)) < 20:
+            rows.append(
+                {
+                    "status": "data_insufficient",
+                    "h1_seconds": window,
+                    "h2_seconds": RESPONSE_SECONDS,
+                    "train_n": len(train),
+                    "test_n": len(test),
+                }
+            )
+            continue
+        labels = ["H0", "H1", "H3", "H3b", "H4_5L", "H5_5L"]
+        if window == 1.0:
+            labels.append("H3bS")
+        if window == 2.0:
+            labels.append("H4_5LS")
+        for label in labels:
+            names = horse_aligned_five_level_names(label, window, observations)
+            unpenalised = label in {"H0", "H1", "H3", "H3b"}
+            model = fit_model(
+                observations,
+                train,
+                test,
+                label=label,
+                source="future",
+                raw_names_override=names,
+                alpha_override=0.0 if unpenalised else None,
+            )
+            fitted[(window, label)] = model
+            payload = {
+                "status": "estimated",
+                "model": label,
+                "h1_seconds": window,
+                "h2_seconds": RESPONSE_SECONDS,
+                "causal_gap_seconds": DECISION_GAP_SECONDS,
+                "book": "Quote/Full embedded five levels",
+                "is_depth200_M4_or_M5": False,
+                **model.score,
+            }
+            rows.append(payload)
+        baseline = fitted[(window, "H0")]
+        baseline_r2 = baseline.score.get("oos_r2_vs_training_mean")
+        for row in rows:
+            if row.get("h1_seconds") != window or row.get("status") != "estimated":
+                continue
+            value = row.get("oos_r2_vs_training_mean")
+            row["incremental_oos_r2_over_H0"] = (
+                None
+                if value is None or baseline_r2 is None
+                else float(value) - float(baseline_r2)
+            )
+
+    inference: list[dict[str, Any]] = []
+    for window, base, enhanced in (
+        (1.0, "H3b", "H3bS"),
+        (2.0, "H4_5L", "H4_5LS"),
+    ):
+        if (window, base) not in fitted or (window, enhanced) not in fitted:
+            inference.append(
+                {
+                    "comparison_scope": "full_session_five_level",
+                    "h1_seconds": window,
+                    "h2_seconds": RESPONSE_SECONDS,
+                    "base_model": base,
+                    "enhanced_model": enhanced,
+                    "status": "data_insufficient",
+                }
+            )
+            continue
+        inference.append(
+            {
+                "comparison_scope": "full_session_five_level",
+                "h1_seconds": window,
+                "h2_seconds": RESPONSE_SECONDS,
+                **paired_error_inference(
+                    observations,
+                    fitted[(window, base)],
+                    fitted[(window, enhanced)],
+                    replicates=replicates,
+                    seed=seed + 500 + len(inference),
+                ),
+            }
+        )
+    return rows, inference
 
 
 def benchmark_score(
@@ -1820,6 +1982,12 @@ def build_scan_artifact(
     placebo_rows, placebo_inference = lagged_surface_placebo(
         observations, split, replicates=replicates, seed=seed + 100
     )
+    horse_aligned_rows, horse_aligned_inference = horse_aligned_full_session_rows(
+        observations,
+        split,
+        replicates=replicates,
+        seed=seed,
+    )
 
     smoothing_counts: dict[str, int] = {}
     for observation in observations:
@@ -1869,6 +2037,7 @@ def build_scan_artifact(
             "confirmed, economic, tradeable or a signal"
         ),
         "design_document": DESIGN_DOCUMENT,
+        "correction_document": CORRECTION_DOCUMENT,
         "code_commit": code_commit,
         "seed": seed,
         "bootstrap_replicates": replicates,
@@ -1933,6 +2102,8 @@ def build_scan_artifact(
         ),
         "lag_placebo": placebo_rows,
         "lag_placebo_inference": placebo_inference,
+        "horse_aligned_full_session_scores": horse_aligned_rows,
+        "horse_aligned_full_session_inference": horse_aligned_inference,
     }
 
 

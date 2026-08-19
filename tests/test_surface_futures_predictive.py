@@ -28,6 +28,7 @@ from shaurya.signals.surface_futures_predictive import (
     essvi_atm_shape,
     essvi_implied_volatility,
     fit_preprocessor,
+    horse_aligned_five_level_names,
     lagged_surface_source_positions,
     lob_features,
     model_raw_names,
@@ -117,7 +118,13 @@ def _observation(index: int) -> SurfacePredictiveObservation:
         "surface__x__delta_1f": math.cos(index / 11.0),
         "surface__x__velocity_per_second": math.cos(index / 11.0) / 5.0,
     }
-    lob = {"lob__spread_ticks": 1.0, "lob__microprice_tilt_ticks": signal * 0.2}
+    lob = {
+        "lob__spread_ticks": 1.0,
+        "lob__microprice_tilt_ticks": signal * 0.2,
+        "lob__l1_total_quantity": 200.0,
+        "lob__log1p_l1_total_quantity": math.log1p(200.0),
+        "lob__quantity_imbalance_l1": signal * 0.1,
+    }
     ofi = {
         ofi_feature(5.0, name): signal * multiplier
         for multiplier, name in enumerate(
@@ -227,10 +234,32 @@ def test_five_level_lob_formulas_and_average_size_proxy_semantics() -> None:
     features = lob_features(state)
     assert features is not None
     assert features["lob__spread_ticks"] == pytest.approx(1.0)
+    assert features["lob__l1_total_quantity"] == pytest.approx(200.0)
+    assert features["lob__log1p_l1_total_quantity"] == pytest.approx(math.log1p(200.0))
     assert features["lob__quantity_imbalance_l1"] == pytest.approx(0.2)
     assert features["lob__quantity_imbalance_cum5"] == pytest.approx(-40 / 960)
     assert features["lob__bid_average_order_size_proxy_5"] == pytest.approx(460 / 35)
     assert "lob__bid_slope" in features and "lob__curvature_asymmetry_ask_minus_bid" in features
+
+
+def test_horse_aligned_mapping_restores_exact_m0_m3b_and_labels_five_level_analogue() -> None:
+    observations = [_observation(index) for index in range(200)]
+    assert horse_aligned_five_level_names("H0", 5.0, observations) == (
+        "lob__log1p_l1_total_quantity",
+        "lob__spread_ticks",
+    )
+    assert horse_aligned_five_level_names("H3b", 1.0, observations) == (
+        "lob__log1p_l1_total_quantity",
+        "lob__spread_ticks",
+        ofi_feature(1.0, "cks_l1_depth_adjusted"),
+    )
+    names = horse_aligned_five_level_names("H4_5L", 2.0, observations)
+    assert names[-2:] == (
+        ofi_feature(2.0, "pk_level1_raw"),
+        ofi_feature(2.0, "pk_levels2_5_raw"),
+    )
+    with pytest.raises(ValueError, match="unknown horse-aligned"):
+        horse_aligned_five_level_names("M4", 2.0, observations)
 
 
 def test_missing_lob_denominators_are_missing_not_zero() -> None:
