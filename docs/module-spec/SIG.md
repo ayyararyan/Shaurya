@@ -162,12 +162,19 @@ thin in the far tail. Under D28 that quietness is the baseline that makes an unu
 potentially informative; it is not a reason to discard the levels.
 
 `SIG-21` owns the separate, still-unanswered question: whether a causal, price-keyed deep-book
-addition, removal, relocation, quantity shock or order-count shock predicts a later mid-price
+addition, removal, displayed-liquidity relocation proxy, quantity shock or order-count shock predicts a later mid-price
 response. It must exclude mechanical level-index cascades, define unusualness from past data only
 conditional on side/distance/time/liquidity state, separate contemporaneous from predictive
 response, obey D27's cadence floor, and place every event type, threshold and horizon in one
 declared SIG-12 family. The two short DAT-20 tapes establish feasibility only; prediction requires
 a pre-registered multi-session sample and ex-ante power gate before outcomes are inspected.
+
+Under `D31`, `docs/sig-claims/H-SIG21.md` is the binding execution registration. Its pushed commit
+is a hard gate: the construction module may not import or emit prices, returns, labels or response
+objects, and no outcome pipeline may be built or run before that gate is independently verified.
+The first outcome sample is a two-sided informativeness/discovery test. A directional sign or
+horizon learned there cannot be promoted; it must be frozen under a new hypothesis ID and
+confirmed on subsequently collected tape.
 
 ## Requirements and traceability
 
@@ -193,7 +200,7 @@ a pre-registered multi-session sample and ex-ante power gate before outcomes are
 | REQ-SIG-18 | Measure the OOS gap between raw-book and engineered-feature models and diagnose residuals by time, regime, and raw-book slices; unexplained gaps create missing-feature tickets. | SIG-18, D11, D12 | TBD coverage module | Golden-tape residual-gap report and ticket output |
 | REQ-SIG-19 | Log every tested configuration — including sampling clock, pooling coordinate, and horizon (D20) — and report a performance distribution using combinatorially purged CV and deflated Sharpe. | SIG-19, D20 | TBD trial registry | Append-only/completeness tests; trial log |
 | REQ-SIG-20 | Require each permanent-tier feature to be computable in one bounded-state forward pass without future data or same-day refit. | SIG-20, DAT-09 | TBD streaming feature API | Streaming/batch parity, bounded-state, leakage tests |
-| REQ-SIG-21 | Pre-register and test whether causal price-keyed anomalies in the normally quiet far depth200 ladder predict future mid-price responses. Separate event types and contemporaneous/predictive effects; exclude mechanical index cascades; condition past-only baselines on side, distance, time and liquidity/regime; enforce D27-admissible horizons, overlap/dependence controls, full-grid multiplicity, multi-session support and ex-ante MDE before inspecting outcomes. | SIG-21, D20, D22, D27, D28, DAT-20 | TBD deep-book event-study module | Construction/leakage fixtures; pre-registration artifact; power gate; dependence-aware response report and `CON-09` finding |
+| REQ-SIG-21 | Pre-register and test whether causal price-keyed anomalies in the normally quiet far depth200 ladder predict future mid-price responses. Separate atomic event types and contemporaneous/predictive effects; label relocation only as a displayed-liquidity proxy; exclude mechanical index cascades and boundary slides; condition expanding previous-session-only baselines on side, price distance, time and liquidity/HMM regime; enforce D27-admissible gaps, overlap/dependence controls, the complete declared multiplicity family, multi-session support and a numeric ex-ante power artifact before inspecting outcomes. The construction module is outcome-blind by contract, and any directional sign discovered in the first sample requires a new registration and later confirmation sample before promotion. | SIG-21, D20, D22, D27, D28, D31, DAT-20 | `src/shaurya/signals/deep_book_anomaly.py`; later response/inference modules | Construction/leakage fixtures; pushed `H-SIG21` registration; numeric power gate; dependence-aware response report and `CON-09` finding |
 
 ## Outputs and acceptance tests
 
