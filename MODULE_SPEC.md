@@ -1,7 +1,7 @@
 # Shaurya module specification
 
 - **Owner:** Aryan Ayyar
-- **Scope authority:** `TASKS.md` decisions D1–D32 and all non-dropped stable task IDs
+- **Scope authority:** `TASKS.md` decisions D1–D36 and all non-dropped stable task IDs
 - **Form:** index plus one specification per frozen component
 
 ## Module objective
@@ -38,6 +38,6 @@ D5 is absolute: **strategies import and pin Shaurya; Shaurya never imports a str
 
 ## How to read traceability
 
-Each component file contains a requirement table. `REQ-<component>-<nn>` is the specification requirement corresponding to the stable `<component>-<nn>` row in `TASKS.md`; the trace column names that task and any binding decision. Code, test, and output columns identify the intended verification surface. `TBD` is a target placeholder, not an implementation claim. Dropped task IDs remain in `TASKS.md` but intentionally have no requirement. The 13 files collectively cover every one of the 116 non-dropped task IDs exactly once.
+Each component file contains a requirement table. `REQ-<component>-<nn>` is the specification requirement corresponding to the stable `<component>-<nn>` row in `TASKS.md`; the trace column names that task and any binding decision. Code, test, and output columns identify the intended verification surface. `TBD` is a target placeholder, not an implementation claim. Dropped task IDs remain in `TASKS.md` but intentionally have no requirement. The 13 files collectively cover every one of the 118 non-dropped task IDs exactly once.
 
 `TASKS.md` remains the sole status ledger. These specifications define required meaning and acceptance; they do not upgrade implementation or verification status.
