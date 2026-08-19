@@ -5,6 +5,28 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### DAT-17 — depth-tier cadence and operational bounds
+
+- Live-measured depth200 twice on NIFTY August futures in independent 600-second,
+  zero-reconnect captures: both runs produced 4,980 rows and exactly 2,491 receive-timestamp
+  bursts (4.1588–4.1589/s), with gap p05/p50/p95 approximately 197/201/401 ms and two rows
+  per ordinary burst.
+- Classified depth200 as a quantized, skip-prone approximately 200 ms base clock rather than
+  depth20's fixed 500 ms metronome: the depth200 p95 is approximately two base ticks and its
+  observed maxima were 602–603 ms. The physical publication/aggregation mechanism remains
+  unidentified because exchange timestamps and source sequences are absent.
+- Reproduced DAT-13's first-subscription throttle with timed evidence. Position 1 delivered
+  742 packets / 372 receive timestamps over 91.003 s; positions 2–4 delivered only an initial
+  two-packet pair and then no update for approximately 89.9 s. The observed usable recurring
+  ceiling is one depth200 instrument per socket.
+- Verified from retained healthy tapes that all 730/730 NIFTY and 993/993 BANKNIFTY Full rows
+  carry complete five-level books, so the block is republished on the dispersed Full clock
+  (1.217–1.656/s), not a separately observable clock.
+- Applied D27 pairwise: Full binds Full+depth20 and Full+depth200 (median 557–874 ms; p95
+  guardrail 1,112–1,141 ms), while depth20 binds depth20+first-position-depth200 (median
+  501 ms, p95 506 ms). Later-position depth200 has no finite recurring horizon and is
+  operationally inadmissible.
+
 ### ANL-03 — live implied-volatility surface dashboard (surface scope only)
 
 - Added a read-only surface dashboard and server (`shaurya.analytics.{forward,universe,

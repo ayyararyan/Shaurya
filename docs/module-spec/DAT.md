@@ -46,6 +46,7 @@ Every tape row retains its `CON-06` category and data-quality flags. Missing pro
 | REQ-DAT-14 | Classify positive-volume Quote/Full prints causally on capture with the versioned quote-mid/tick rule, retain every raw classification input and receive timestamp, version the cross-channel alignment rule, mark stale/missing quotes degraded, and flag coalesced intervals without assigning the sign to unseen volume. | DAT-14, D24 | `src/shaurya/data/trade_direction.py`; `src/shaurya/data/dhan_stream.py`; `src/shaurya/contracts/tape.py` | Pure rule tests; alignment/capture-path tests; legacy-schema replay; retained-tape dry run |
 | REQ-DAT-15 | Measure the DAT-14 cross-channel alignment error and coalescing empirically from retained tape as distributions and classification flip rates by activity, depth tier, and time of day; never assume the error is small. | DAT-15, D24 | `src/shaurya/data/alignment_analysis.py`; `scripts/dat15_alignment_analysis.py` | `tests/test_alignment_analysis.py`; dated distribution/flip-rate artifact; Live verified on retained eight-tape sample with explicit coverage limits |
 | REQ-DAT-16 | Measure depth delivery by distinct receive-timestamp bursts, rows per burst, burst-gap distribution, and BBO-change rate; never infer event cadence from parsed-row count. | DAT-16, D23 | Retained-tape cadence analysis | `docs/live-evidence/DAT-16-2026-08-19.md`; 500 ms depth20 snapshot cadence live-verified at stated scope |
+| REQ-DAT-17 | Measure Full/5-level and depth200 clocks with the DAT-16 method, measure first-versus-later depth200 cadence and usable per-socket capacity, and state D27's binding lower bound for every pair of depth tiers without guessing the upstream mechanism. | DAT-17, D27 | `scripts/dat17_cadence_analysis.py`; `scripts/dat17_depth200_operational_probe.py` | `tests/test_cadence_analysis.py`; `docs/live-evidence/DAT-17-2026-08-19.md`; two 600 s zero-reconnect depth200 tapes and a timed four-future throttle artifact |
 
 Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded by D18.
 
@@ -59,7 +60,7 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
   socket bandwidth collapse, but the solo test is `not-discriminated` for cap versus event rate.
   DAT-16 supplies the correct semantic unit: 2.00 same-timestamp snapshot bursts/s, ~4.17 rows per
   burst, and a 500 ms D23 netting bound. Within-window exchange events remain unidentified.
-- **200-level evidence:** multiple subscriptions receive at least minimal packets, but DAT-13's order-rotation control shows a genuine first-subscription throttle/bias. With the same four front-month futures, whichever instrument was sent first received 328 packets and each later instrument received 2; max/min skew was 164× in both orderings. This is not explained by ordinary instrument liquidity.
+- **200-level evidence:** DAT-17 measured 4.1588–4.1589 receive-timestamp bursts/s on two independent 600 s NIFTY captures, with a 200.5 ms median gap but a 400.8–401.1 ms p95 from skipped base ticks. A timed four-future socket delivered recurring updates only to subscription position 1; positions 2–4 received one startup bid/ask pair and then remained silent for approximately 89.9 s. The observed usable recurring-feed ceiling is therefore **one depth200 instrument per socket**; the exact ceiling for nominal initial-snapshot acknowledgements above four remains unidentified.
 - **Retention:** permanent. Once captured, raw data is kept; there is no rolling deletion or expiry window.
 - **Universe:** NSE index F&O only—NIFTY, BANKNIFTY, FINNIFTY, and MIDCPNIFTY. Single-stock depth and BSE deep book are out of current scope. Exact depth-tier strike bands such as ATM±7 remain illustrative, not committed.
 
@@ -70,7 +71,7 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 - Parser fixtures cover standard packet subtypes, separate deep-book sides, partial books, 20/200-level layouts, and the 200-level flat subscription envelope.
 - Reconnect tests preserve a visible gap boundary and resubscribe semantics.
 - Deterministic replay produces the same ordered rows, quality flags, and consumer-visible events from the same tape.
-- Existing evidence remains scoped: DAT-01/03/04/07 are Tested; DAT-02 and DAT-10-16 are Live
+- Existing evidence remains scoped: DAT-01/03/04/07 are Tested; DAT-02 and DAT-10-17 are Live
   verified at their stated scopes; DAT-05 is Dry-run verified end to end (its writer retains
   earlier live evidence); DAT-06 is Dry-run verified; DAT-09 planning/pooling is Tested.
 
