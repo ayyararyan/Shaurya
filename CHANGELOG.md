@@ -26,6 +26,12 @@ to strategies that pin the package.
 
 ### DAT-03, DAT-04, DAT-05, DAT-06, DAT-07, DAT-09, and DAT-11-13 — storage, replay, quality, identity, capacity
 
+- Live-verified DAT-11 on 2026-08-19: the 20-level endpoint accepted every tested one-message
+  prefix through 50 instruments and rejected 51, 52, and 53 wholesale. This corrects the
+  prior-day 52-working bound, which did not reproduce. The probe now freshly validates both
+  bracket endpoints, timestamps every candidate, exposes tested-candidate monotonicity, and
+  bounds socket-close latency; the dated acceptance table is retained under `docs/live-evidence/`.
+
 - Added historical bar fetch and local storage: Dhan minute and daily responses normalize into a
   strict versioned observed-bar schema on a stable on-disk layout. Bars only; no broker API
   offers tick-level history, so the tick tape is accumulated forward through DAT-02/DAT-05
@@ -44,10 +50,10 @@ to strategies that pin the package.
 - Added multi-socket capture planning for DAT-09 under the measured one-subscription-message-per-
   socket constraint and the permanent-retention decision. Tested.
 - Added capacity, reconnect, and depth-skew probes (DAT-11/12/13): a binary search for the exact
-  20-level per-message instrument ceiling within the measured 52-206 band, a reconnect test for
+  20-level per-message instrument ceiling, a reconnect test for
   whether the first-message limit is per socket or per account, and a same-liquidity control for
-  the 200-level packet skew. Implemented and tested; all three require market hours and remain
-  pending live verification, with their answers explicitly unmeasured rather than assumed.
+  the 200-level packet skew. DAT-11 is live verified at 50 instruments; DAT-12/13 still require
+  their market-hours experiments at this changelog point.
 
 ### SUR-01, SUR-02, SUR-05, SUR-06, SUR-07, and SUR-08 — eSSVI surfaces
 

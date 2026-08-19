@@ -15,10 +15,12 @@ from collections import Counter
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Protocol
 
 from shaurya.contracts.instruments import DhanInstrumentMapping, DhanInstrumentMaster
+from shaurya.contracts.timing import IST
 from shaurya.data.dhan_client import DhanCredentials
 from shaurya.data.dhan_stream import ParsedDeepPacket, parse_deep_packets
 
@@ -41,6 +43,8 @@ class ProbeObservation:
     packet_counts: dict[str, int]
     control_security_ids: tuple[str, ...]
     elapsed_seconds: float
+    started_at_ist: str | None = None
+    finished_at_ist: str | None = None
 
     def __post_init__(self) -> None:
         if self.requested_count < 1 or self.elapsed_seconds <= 0:
@@ -61,6 +65,8 @@ class ProbeObservation:
             "packet_counts": self.packet_counts,
             "control_security_ids": list(self.control_security_ids),
             "elapsed_seconds": self.elapsed_seconds,
+            "started_at_ist": self.started_at_ist,
+            "finished_at_ist": self.finished_at_ist,
             "accepted": self.accepted,
         }
 
@@ -72,11 +78,23 @@ class CeilingSearchResult:
     exact_ceiling: int
     observations: tuple[ProbeObservation, ...]
 
+    @property
+    def monotonic_on_tested_candidates(self) -> bool:
+        ordered = sorted(self.observations, key=lambda value: value.requested_count)
+        seen_rejection = False
+        for observation in ordered:
+            if not observation.accepted:
+                seen_rejection = True
+            elif seen_rejection:
+                return False
+        return True
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "known_working": self.known_working,
             "known_failing": self.known_failing,
             "exact_ceiling": self.exact_ceiling,
+            "monotonic_on_tested_candidates": self.monotonic_on_tested_candidates,
             "observations": [observation.to_dict() for observation in self.observations],
         }
 
@@ -96,7 +114,13 @@ async def bisect_twenty_level_ceiling(
         raise ValueError("invalid working/failing ceiling bracket")
     low = known_working
     high = known_failing
-    observations: list[ProbeObservation] = []
+    working_observation = await probe(low)
+    failing_observation = await probe(high)
+    if not working_observation.accepted:
+        raise ValueError("known-working endpoint did not accept in this live run")
+    if failing_observation.accepted:
+        raise ValueError("known-failing endpoint accepted in this live run")
+    observations: list[ProbeObservation] = [working_observation, failing_observation]
     while high - low > 1:
         candidate = (low + high) // 2
         observation = await probe(candidate)
@@ -148,6 +172,18 @@ class ReconnectExperiment:
             and self.second_message_after_reconnect_worked
         )
 
+    @property
+    def conclusion(self) -> str:
+        if self.socket_reset_supported:
+            return "socket-scoped"
+        if (
+            self.first_message_worked
+            and not self.second_message_same_socket_worked
+            and not self.second_message_after_reconnect_worked
+        ):
+            return "account-scoped"
+        return "not discriminated"
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "first_security_ids": list(self.first_security_ids),
@@ -158,6 +194,7 @@ class ReconnectExperiment:
             "second_message_same_socket_worked": self.second_message_same_socket_worked,
             "second_message_after_reconnect_worked": self.second_message_after_reconnect_worked,
             "socket_reset_supported": self.socket_reset_supported,
+            "conclusion": self.conclusion,
         }
 
 
@@ -235,7 +272,11 @@ class DhanDepthProbeClient:
             raise ValueError("probe duration and messages must be non-empty")
         counts: Counter[str] = Counter()
         async with self._connect(
-            self._url(DEPTH20_URL), ping_interval=None, open_timeout=10, max_size=4 * 1024 * 1024
+            self._url(DEPTH20_URL),
+            ping_interval=None,
+            open_timeout=10,
+            close_timeout=1,
+            max_size=4 * 1024 * 1024,
         ) as websocket:
             for index, instruments in enumerate(messages):
                 await websocket.send(self._twenty_message(instruments))
@@ -252,7 +293,11 @@ class DhanDepthProbeClient:
     ) -> dict[str, int]:
         counts: Counter[str] = Counter()
         async with self._connect(
-            self._url(DEPTH200_URL), ping_interval=None, open_timeout=10, max_size=4 * 1024 * 1024
+            self._url(DEPTH200_URL),
+            ping_interval=None,
+            open_timeout=10,
+            close_timeout=1,
+            max_size=4 * 1024 * 1024,
         ) as websocket:
             for mapping in instruments:
                 await websocket.send(
@@ -329,7 +374,7 @@ def _parser() -> argparse.ArgumentParser:
     reconnect = commands.add_parser("reconnect")
     reconnect.add_argument("--first-security-ids", type=_csv_ids, required=True)
     reconnect.add_argument("--second-security-ids", type=_csv_ids, required=True)
-    control = commands.add_parser("depth200-control")
+    control = commands.add_parser("control", aliases=["depth200-control"])
     control.add_argument("--comparable-liquid-security-ids", type=_csv_ids, required=True)
     return parser
 
@@ -348,10 +393,19 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             selected_ids = {mapping.security_id for mapping in selected}
             if not set(controls).issubset(selected_ids):
                 raise ValueError("every ceiling candidate must include every liquid control")
+            started_at = datetime.now(IST)
             counts = await client.observe_twenty(
                 (selected,), duration_seconds=args.duration_seconds
             )
-            return ProbeObservation(count, counts, controls, args.duration_seconds)
+            finished_at = datetime.now(IST)
+            return ProbeObservation(
+                count,
+                counts,
+                controls,
+                args.duration_seconds,
+                started_at.isoformat(),
+                finished_at.isoformat(),
+            )
 
         ceiling_result = await bisect_twenty_level_ceiling(
             probe,

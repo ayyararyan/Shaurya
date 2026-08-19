@@ -56,8 +56,9 @@ async def test_ceiling_binary_search_returns_largest_accepted_count() -> None:
         probe, known_working=52, known_failing=206
     )
     assert result.exact_ceiling == 87
-    assert len(tested) <= 8
-    assert all(52 < value < 206 for value in tested)
+    assert len(tested) <= 9
+    assert tested[:2] == [52, 206]
+    assert result.monotonic_on_tested_candidates
 
 
 def test_reconnect_experiment_requires_same_socket_failure_and_fresh_success() -> None:
@@ -68,6 +69,7 @@ def test_reconnect_experiment_requires_same_socket_failure_and_fresh_success() -
         fresh_socket_counts={"second": 90},
     )
     assert result.socket_reset_supported
+    assert result.conclusion == "socket-scoped"
     payload = result.to_dict()
     assert payload["second_message_same_socket_worked"] is False
     assert payload["second_message_after_reconnect_worked"] is True
