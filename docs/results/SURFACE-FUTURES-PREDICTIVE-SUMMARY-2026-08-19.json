@@ -1,0 +1,122 @@
+{
+  "scan_id": "X-SURFACE-FUT5-20260819-06",
+  "confirmatory_eligible": false,
+  "execution_commit": "1b3442ad9bdf367171e981693c317b79a7e8bed6",
+  "design_document": "docs/SURFACE-FUTURES-PREDICTIVE-SPEC-2026-08-19.md",
+  "source": {
+    "tape_rows": 5496592,
+    "tape_bytes": 9149464566,
+    "tape_sha256": "f85b4bdb4c6cce15664849dbf7405d89d35b89a258a2834d94acb0004108a28f",
+    "observed_first_receive_ts": "2026-08-19T06:34:12.754312+00:00",
+    "observed_last_receive_ts": "2026-08-19T10:10:02.723346+00:00",
+    "instrument_id": "NSE:NSE_FNO:NIFTY:future:2026-08-25",
+    "book": "Dhan Quote/Full embedded five-level book; not depth20/depth200"
+  },
+  "sample": {
+    "common_observations": 2579,
+    "train_n": 1805,
+    "embargoed_n": 23,
+    "test_n": 751,
+    "first_anchor_ist": "2026-08-19T12:04:22.794109+05:30",
+    "train_boundary_ist": "2026-08-19T14:35:11.598554+05:30",
+    "embargo_end_ist": "2026-08-19T14:37:11.598554+05:30",
+    "last_anchor_ist": "2026-08-19T15:39:54.898112+05:30"
+  },
+  "surface_replay": {
+    "attempted_fits": 2582,
+    "successful_fits": 2581,
+    "failed_fits": 1,
+    "successful_without_previous_frame": 1,
+    "surface_drafts": 2580,
+    "future_target_right_edge_failures": 1,
+    "front_future_full_states": 15789,
+    "smoothed_frames": 131,
+    "raw_unsmoothed_frames": 2448,
+    "raw_unsmoothed_reason": "raw surface timestamps must increase strictly",
+    "surface_age_seconds": {
+      "median": 286.600256,
+      "p95": 895.0494398,
+      "max": 1304.532946
+    },
+    "surface_stale_share": 0.2733617681271811,
+    "live_fit_duration": "not persisted; fixed missing with missing indicator; replay CPU excluded"
+  },
+  "feature_counts": {
+    "surface_economic": 72,
+    "surface_quality_numeric": 23,
+    "surface_quality_categorical": 1,
+    "lob_five_level": 28,
+    "ofi_primary_five_second": 6,
+    "ofi_all_windows_emitted": 30
+  },
+  "future_models": {
+    "N": {"oos_r2": 0.0, "rmse_ticks": 25.799867013546805},
+    "S": {"alpha": 100.0, "oos_r2": -0.0024241914993448077, "rmse_ticks": 25.831119993359184},
+    "SQ": {"alpha": 100.0, "oos_r2": -0.11330229944528347, "rmse_ticks": 27.222250146335114},
+    "L": {"alpha": 100.0, "oos_r2": -0.007420812346622618, "rmse_ticks": 25.895418060438296},
+    "O": {"alpha": 100.0, "oos_r2": -0.020068491134302757, "rmse_ticks": 26.057463242681166},
+    "LO": {"alpha": 100.0, "oos_r2": -0.029047243323263583, "rmse_ticks": 26.17189228232828},
+    "LOS": {"alpha": 100.0, "oos_r2": -0.060774061300293836, "rmse_ticks": 26.57228569476019},
+    "LOSQ": {"alpha": 100.0, "oos_r2": -0.19096755536652688, "rmse_ticks": 28.155771540407184}
+  },
+  "headline": {
+    "LOS_minus_LO_oos_r2": -0.03172681797703025,
+    "SQ_minus_S_oos_r2": -0.11087810794593866,
+    "LOSQ_minus_LOS_oos_r2": -0.13019349406623304,
+    "held_out_future_surface_correlations_bh_q_le_0_05": 0,
+    "held_out_future_correlation_rows": 144,
+    "largest_held_out_pearson": {
+      "feature": "surface__2026_09_29__atm_iv__delta_1f",
+      "correlation": 0.046652638882688606,
+      "hac_t": 1.178111180232086,
+      "bh_fdr_q": 0.9888338255514291
+    },
+    "largest_held_out_spearman": {
+      "feature": "surface__term_2026_09_01_minus_2026_08_25__atm_skew__delta_1f",
+      "correlation": -0.08026456735574718,
+      "hac_t": -2.1061376166584957,
+      "bh_fdr_q": 0.5655693262108267
+    },
+    "verdict": "No held-out predictive power found; all future model R2 values are non-positive and adding the surface worsens LO. Exploratory one-session result only."
+  },
+  "primary_paired_inference": {
+    "mean_squared_error_improvement_ticks_squared": -21.11842140616247,
+    "newey_west_t": -2.0287450531814333,
+    "stationary_bootstrap_t": -2.0329657378372694,
+    "non_overlapping_10s_t": -1.9578915107145058,
+    "non_overlapping_blocks": 377
+  },
+  "diagnostics": {
+    "S_oos_r2": {"future": -0.0024241914993448077, "past": 0.024380387830006622, "same_window": 0.03949514698831169},
+    "O_oos_r2": {"future": -0.020068491134302757, "past": 0.2684648424407534, "same_window": 0.33300653348408427},
+    "LO_oos_r2": {"future": -0.029047243323263583, "past": 0.2581045388068679, "same_window": 0.33574046722272255},
+    "LOS_oos_r2": {"future": -0.060774061300293836, "past": 0.2425891416193393, "same_window": 0.28209784493298895},
+    "freshness_480s": {"train_n": 1104, "test_n": 751, "S_oos_r2": -0.004845839224242976, "LO_oos_r2": -0.035311589779770225, "LOS_oos_r2": -0.0728195019763982, "LOS_minus_LO": -0.03750791219662797},
+    "freshness_240s": {"train_n": 393, "test_n": 676, "S_oos_r2": -0.04713574407242027, "LO_oos_r2": -0.11207127241289272, "LOS_oos_r2": -0.1411194728805203, "LOS_minus_LO": -0.029048200467627572},
+    "lag_placebo_300s": {"train_n": 1745, "test_n": 751, "LO_oos_r2": -0.024344225502019423, "LOS_oos_r2": -0.07561789523528617, "LOS_minus_LO": -0.05127366973326675},
+    "surface_collinearity_full": {"feature_count": 72, "rank": 54, "pairs": 2556, "absolute_correlation_ge_0_95": 354, "absolute_correlation_ge_0_99": 171}
+  },
+  "coverage": {
+    "frozen_rows": 39,
+    "mapped": 39,
+    "missing": 0,
+    "document": "docs/SURFACE-FUTURES-PREDICTIVE-SPEC-COVERAGE-2026-08-19.md"
+  },
+  "deterministic_replay": {
+    "passed": true,
+    "byte_identical_payloads": 8,
+    "reference_manifest_sha256": "ef09f09da95538d5ad4f6331fc6e3fa0057307f050c27c141c2a2d31587fa36d",
+    "separate_replay_manifest_sha256": "8bfc368a6ba8934307af1e4854f63eda637846d99560d51b5c53d620a4a09429"
+  },
+  "artifact_sha256": {
+    "artifact_manifest.json": "ef09f09da95538d5ad4f6331fc6e3fa0057307f050c27c141c2a2d31587fa36d",
+    "surface_futures_predictive_summary.json": "799dec2278a654b8a607d4f2a2e8158e3b8499a55743f9608e175cc53187c5de",
+    "surface_futures_predictive_observations.jsonl": "cd81e7052d8cc759d2f9b9c7f2bf9f77bb3db27f6705316ac589d4d564895c31",
+    "surface_futures_predictive_model_scores.csv": "2ba15972a357dbcb6d09b0843850b26e527e22203dc82277a5053945bbc572a5",
+    "surface_futures_predictive_correlations.csv": "2dfa45a5a51f5494a3d13a52f305704bb48df52d9f9fe3168ec0179b11831475",
+    "surface_futures_predictive_coefficients.csv": "56870193a274128820b49bded6976bcb397272ac7f7068840b1d9aeb0c4f1a4d",
+    "surface_futures_predictive_paired_inference.csv": "4719429d4a6d6d67b94444a77a5dbd1779c52b65cbdf1489c85663d17842b243",
+    "surface_futures_predictive_freshness.csv": "005838cd429d3ad206881fa7e0233c972a230202de13358b3be5504455592229",
+    "surface_futures_predictive_lag_placebo.csv": "bc0cf20f758279361ee10d58ec574691408eaae671a3ba1199c0c11b9c1464fb"
+  }
+}

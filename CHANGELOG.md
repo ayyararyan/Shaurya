@@ -5,6 +5,26 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### `X-SURFACE-FUT5-20260819-06` — displayed eSSVI versus next five-second futures move
+
+- Added a frozen, permanently exploratory replay of the three-expiry five-second displayed eSSVI
+  surface on the pinned full-session ANL-03 Quote/Full tape, joined to the front NIFTY future's
+  `t+0.5 s` to `t+5.5 s` BBO-mid move.
+- Added exact theta/rho/psi, ATM IV/skew/curvature, changes, velocities and adjacent-expiry term
+  features; a separately identified fixed-schema quality block; exact five-level LOB state; and
+  canonical CKS plus price-keyed five-level OFI without duplicating either transition formula.
+- Added the same-sample N/S/SQ/L/O/LO/LOS/LOSQ Ridge horse race, train-only preprocessing and inner
+  CV, 120-second embargo, held-out halves, full Pearson/Spearman HAC/FDR screen, paired Newey-West /
+  stationary-bootstrap / non-overlap inference, past mirror, same-window diagnostic, 300-second
+  no-wrap placebo, 480/240-second freshness and explicit surface collinearity diagnostics.
+- Complete replay: 2,579 common rows, 1,805 train, 23 embargoed and 751 test. Future OOS R² is S
+  −0.24%, L −0.74%, O −2.01%, LO −2.90% and LOS −6.08%; adding surface to LO worsens R² by 3.17
+  points. No held-out surface correlation survives BH-FDR. Past/same OFI is much stronger, so no
+  future predictive claim is promoted.
+- Added focused regression coverage, 39-row frozen-spec traceability, a compact result/model bundle
+  and a plain-English report. Full artifacts remain gitignored and hash-pinned. No live system,
+  broker, credential, capture, subscription or order path was touched.
+
 ### Dated NSE F&O clock and full-session OFI replication
 
 - Added a dated NSE equity-derivatives clock: 09:15–15:30 before 2026-08-03 and 09:15–15:40

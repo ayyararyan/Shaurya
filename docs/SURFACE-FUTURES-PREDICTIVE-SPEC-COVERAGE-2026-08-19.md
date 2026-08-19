@@ -6,18 +6,17 @@
 
 **Evidence class:** permanently exploratory; `confirmatory_eligible=false`
 
-This is the pre-execution static audit. It maps every frozen requirement to implementation, a
-test or acceptance check, and its expected machine evidence before the full tape is allowed to run.
-The final pass will replace the pending outcome/validation statuses with exact artifacts, hashes and
-counts. A mapped completion-stage gate is not a silent omission.
+This document began as the pre-execution static audit that gated the full tape. It now records the
+completed empirical artifacts, deterministic replay and final validation evidence. A mapped
+source-unavailable quantity is not silently replaced by a replay-machine measurement.
 
 ## DATA
 
 | Requirement | Implementation | Test / acceptance | Expected evidence | Pre-run status |
 |---|---|---|---|---|
-| DATA-01 immutable tape | `scripts.surface_futures_predictive.replay_tape`: resolved-path refusal plus exact bytes, rows and streaming SHA-256 | durable controller; full replay is the only empirical acceptance | `summary.source`; manifest source hash and exact CLI | Ready; empirical acceptance pending |
+| DATA-01 immutable tape | `scripts.surface_futures_predictive.replay_tape`: resolved-path refusal plus exact bytes, rows and streaming SHA-256 | durable controller; full replay is the only empirical acceptance | `summary.source`; manifest source hash and exact CLI | Complete — 5,496,592 rows, 9,149,464,566 bytes, exact SHA matched |
 | DATA-02 five-level Quote/Full boundary | `future_state`; `FutureBookSeries.usable`; no depth20/depth200 reader | `test_scan_identity_and_target_instrument_are_frozen`; five-level LOB tests | `summary.source.book_channel`; `feature_counts.lob_five_level` | Implemented |
-| DATA-03 displayed surface parity | unchanged `SurfaceEngine` in `replay_tape`, exact expiries and 5 s cadence | cadence/identity test; replay metadata acceptance | `summary.replay.fit_engine`, fit counts and smoothing statuses | Ready; empirical acceptance pending |
+| DATA-03 displayed surface parity | unchanged `SurfaceEngine` in `replay_tape`, exact expiries and 5 s cadence | cadence/identity test; replay metadata acceptance | `summary.replay.fit_engine`, fit counts and smoothing statuses | Complete — 2,581/2,582 fits succeeded; 131 smoothed and 2,448 honestly raw |
 | DATA-04 observation availability | `frame_draft`, `surface_economic_features`, `build_predictive_observations`; all predictors end at or before `t` | surface velocity and exact joined-geometry tests | observations JSONL; replay draft/join counts | Implemented |
 | DATA-05 guarded future response | `FutureBookSeries.as_of`, `move`, `as_of_failure_reason`, `move_failure_reason`; exact 6 s/epoch/right-edge guards | `test_target_asof_enforces_age_epoch_and_right_edge_without_lookahead` | `summary.timing`, target-age quantiles, reason-separated join failures including epoch failures | Implemented |
 | DATA-06 past/same controls | exact target construction in `build_predictive_observations` | `test_exact_future_past_and_same_geometry_from_one_surface_anchor` | three model-score source families; timing formulas | Implemented |
@@ -83,23 +82,21 @@ counts. A mapped completion-stage gate is not a silent omission.
 
 | Requirement | Implementation | Test / acceptance | Expected evidence | Pre-run status |
 |---|---|---|---|---|
-| Same-tape comparison primary; DAT-20 context non-apples-to-apples | same observation rows for all model families; report-only comparison to the two named OFI reports | report review | explicit five-level-versus-depth20/depth200 boundary | Report text pending outcome; no implementation gap |
+| Same-tape comparison primary; DAT-20 context non-apples-to-apples | same observation rows for all model families; report-only comparison to the two named OFI reports | report review | explicit five-level-versus-depth20/depth200 boundary | Complete in the report; DAT-20 numbers are context only |
 
 ## OUT / VAL
 
 | Requirement | Implementation | Test / acceptance | Expected evidence | Pre-run status |
 |---|---|---|---|---|
-| OUT-01 full deterministic machine bundle | atomic `write_artifacts` writes summary, observations, scores, correlations, coefficients, paired inference, freshness, lag placebo; manifest hashes all eight payloads | controller reread/hash/nonempty acceptance | gitignored artifact directory plus manifest | Ready; empirical output pending |
-| OUT-02 committed compact bundle/report/traceability | this file plus planned compact JSON/table and plain-English report | hash audit after deterministic replay | `docs/results/` and report | Completion-stage pending |
-| VAL-01 required unit coverage | `tests/test_surface_futures_predictive.py` now covers timing/cadence, guards, derivatives, formulas, common-case semantics, train-only transforms/CV, quality isolation, canonical OFI, missingness, staleness, mirror, placebo and determinism | focused pytest | exact pass/warning counts | Implemented; rerun pending |
-| VAL-02 full validation, deterministic replay, immutable claim | validation commands plus two full accepted replays; immutable file diff/hash check; staged secret scan | recorded command outputs and artifact hashes | report validation section | Completion-stage pending |
-| VAL-03 ledger/changelog and no operational side effects | isolated read-only tape workflow; final `TASKS.md`/`CHANGELOG.md` update only | clean-tree/remote equality and diff review | pushed final commit | Completion-stage pending |
+| OUT-01 full deterministic machine bundle | atomic `write_artifacts` writes summary, observations, scores, correlations, coefficients, paired inference, freshness, lag placebo; manifest hashes all eight payloads | controller reread/hash/nonempty acceptance | gitignored artifact directory plus manifest | Complete — eight payloads plus manifest; reference manifest `ef09f09d…a36d` |
+| OUT-02 committed compact bundle/report/traceability | this file plus compact JSON/table and plain-English report | hash audit after deterministic replay | `docs/results/` and report | Complete — compact JSON hash-pins the manifest and every ignored payload |
+| VAL-01 required unit coverage | `tests/test_surface_futures_predictive.py` covers timing/cadence, guards, derivatives, formulas, common-case semantics, train-only transforms/CV, quality isolation, canonical OFI, missingness, staleness, mirror, placebo and determinism | focused pytest | exact pass/warning counts | Complete — 15 passed; one `RuntimeWarning: invalid value encountered in divide` at the Ridge SVD path (`deep_book_normal_activity.py:871`) |
+| VAL-02 full validation, deterministic replay, immutable claim | validation commands plus two full accepted replays; immutable file diff/hash check; staged secret scan | recorded command outputs and artifact hashes | report validation section | Complete — 499 passed; seven occurrences of that same verified RuntimeWarning; Ruff clean; strict mypy 53 files; compileall clean; eight payloads byte-identical; immutable claim unchanged |
+| VAL-03 ledger/changelog and no operational side effects | isolated read-only tape workflow; final `TASKS.md`/`CHANGELOG.md` update only | clean-tree/remote equality and diff review | pushed final commit | Complete locally; remote hash/clean-tree equality is the final push gate |
 
-## Pre-run audit disposition
+## Final audit disposition
 
-- **39/39 frozen rows are mapped.** There are no unmapped requirements.
-- **35 rows are implementation-complete or execution-ready; four are explicitly outcome/finalization
-  gates** (`OUT-01`, `OUT-02`, `VAL-02`, `VAL-03`).
+- **39/39 frozen rows are complete and mapped.** There are no partial or missing requirements.
 - One requested live diagnostic is source-unavailable: live fit duration was not persisted. Its
   fixed column is missing with a training-only missing indicator; replay runtime is excluded.
 - Static audit corrections made before accepting any empirical output:
@@ -107,3 +104,13 @@ counts. A mapped completion-stage gate is not a silent omission.
   2. added direct collinearity and reason-separated epoch-failure evidence;
   3. stopped optional OFI windows from shrinking the 5 s primary common sample;
   4. added direct 300 s no-wrap placebo, cadence and strict staleness regression checks.
+- Primary accepted manifest SHA-256:
+  `ef09f09da95538d5ad4f6331fc6e3fa0057307f050c27c141c2a2d31587fa36d`.
+- Independent replay manifest SHA-256:
+  `8bfc368a6ba8934307af1e4854f63eda637846d99560d51b5c53d620a4a09429`.
+  Its paths and exact CLI differ by output directory; all eight payload byte counts and SHA-256
+  values are identical to the primary run.
+- Final validation: focused 15 passed with one `invalid value encountered in divide` RuntimeWarning
+  at `deep_book_normal_activity.py:871`; full suite 499 passed with seven occurrences of that same
+  warning. Repository Ruff passed; strict mypy passed on 53 source files; compileall and JSON
+  validation passed; `docs/sig-claims/H-SIG21.md` remains unchanged.
