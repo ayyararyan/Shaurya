@@ -11,6 +11,10 @@ to strategies that pin the package.
   zero-reconnect captures: both runs produced 4,980 rows and exactly 2,491 receive-timestamp
   bursts (4.1588–4.1589/s), with gap p05/p50/p95 approximately 197/201/401 ms and two rows
   per ordinary burst.
+- Replicated the four-instrument first-subscription throttle for 600.987 seconds on retained
+  packet timestamps: the first position delivered 4,984 side packets / 2,493 bursts, while
+  positions 2–4 each delivered only two startup packets and then stayed silent for 599.789
+  seconds. The observed usable recurring ceiling remains one instrument per socket.
 - Classified depth200 as a quantized, skip-prone approximately 200 ms base clock rather than
   depth20's fixed 500 ms metronome: the depth200 p95 is approximately two base ticks and its
   observed maxima were 602–603 ms. The physical publication/aggregation mechanism remains
