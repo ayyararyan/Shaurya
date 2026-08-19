@@ -163,7 +163,7 @@ story-by-story SIG debate and the final DAT-09 strike-band/connection-count owne
 
 ### 1. The maker research report — this is what the next conversation is for
 
-`research/sig-maker-research-2026-08-19.md` (OpenClaw workspace, not this repo). 9,235 words.
+`docs/research/sig-maker-research-2026-08-19.md` (committed to this repo 2026-08-19). 9,235 words.
 Commissioned once **D21** settled that Shaurya quotes and never crosses.
 
 **Verified 2026-08-19:** 23 of 23 peer-reviewed citations resolve correctly against Crossref with
@@ -283,7 +283,7 @@ volatility arbitrage, or by predicting the forward and hence the option's fair v
 ahead — which of those is real is a data question, not a modelling preference.
 
 **Both reports are now in and verified — see START HERE section 1.** The taker report
-(`research/sig-feature-research-2026-08-19.md`) carries four inline corrections and a standing
+(`docs/research/sig-feature-research-2026-08-19.md`) carries four inline corrections and a standing
 citation-reliability warning; the maker report supersedes its framing under **D21**. Resume the
 story-by-story debate from the maker report. Do not re-derive `SIG-01`–`SIG-20`; this is
 sharpening and narrowing, not redesign.
