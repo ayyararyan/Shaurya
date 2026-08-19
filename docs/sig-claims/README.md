@@ -22,6 +22,13 @@ gates* (instrumentation, labels, kill tests). A gate says "measure this before a
 justified"; a claim says "this proposition is true or false about the market". Claims cite
 the gates they depend on.
 
+## Method
+
+**`METHOD.md` is binding on all of SIG**, not just this ledger. It defines the claim →
+hypothesis → trial-log chain, the eight measurement axes every hypothesis must bind, the
+mandatory resolution statement, ex-ante power requirements, the verdict vocabulary, and
+pre-registration by commit order. Read it before adding or testing anything.
+
 ## Required fields per claim
 
 Per D22, every claim records: **mechanism** (why it would move prices, not that it

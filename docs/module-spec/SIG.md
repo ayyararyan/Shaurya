@@ -93,6 +93,16 @@ scheme and required per-claim fields in `docs/sig-claims/README.md`. Event flow 
 SIG-03) was opened 2026-08-19 in the story-by-story debate; its claims are `Proposed`
 until Aryan accepts them.
 
+**The testable atom is a hypothesis, not a claim.** `docs/sig-claims/METHOD.md` is binding
+on all of SIG: a claim is a directional proposition, a hypothesis is one fully bound
+instance of it in which X, h1, f1, Y, h2, f2, the causal gap Z, and the stratum are all
+fixed before the data are inspected. The causal gap Z carries admissibility - Z = 0 is an
+identity, Z below the measured reaction path R is descriptive only, and Z >= R is
+decision-relevant. Every hypothesis declares its effect size K in stated units, its
+effective sample size, its contribution to SIG-12's grid G, and an ex-ante minimum
+detectable effect, so that a null is distinguishable from an underpowered test.
+Pre-registration is enforced by commit order.
+
 ## Measurement design is empirical (D20)
 
 The sampling clock (event / calendar / volume time), the pooling coordinate (instrument identity
