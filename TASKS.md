@@ -319,6 +319,8 @@ agreed; the retention decision it depends on is open at `DAT-09`.
 | SIG-19 | **Trial log.** Every configuration tested is recorded, and performance is reported as a distribution (combinatorially purged CV, deflated Sharpe) rather than a single out-of-sample number | New | SIG-13 | Not started |
 | SIG-21 | **Deep-book anomaly → future-price response (`H-SIG21`).** Test whether rare disturbances in the normally quiet far depth200 ladder forecast later NIFTY-futures mid-price movement. The event definition must be **price-keyed, causal and pre-registered before outcomes are inspected**: additions, removals, displayed-liquidity relocation **proxies**, displayed-quantity shocks and order-count shocks are separated; mechanical level-index cascades and whole-ladder window slides are excluded; unusualness is measured against a past-only baseline conditional on side, distance from the same-side best quote, time of day and liquidity/regime. **Under D32, depth200 is the exclusive anomaly/treatment source; depth20 supplies only Y and near-book controls.** Outcomes are future depth20/BBO mid-price returns at the registered `D27`-admissible gaps and horizons; contemporaneous response is reported separately from predictive response. Use non-overlapping event clusters or dependence-robust inference, matched quiet controls, explicit effective sample size and one `SIG-12` family across every inspected axis. Report the full response distribution, sign, peak timing and reversion — not merely significance. **The two 11-minute `DAT-20` runs are feasibility evidence only and cannot establish predictability.** The discovery sample may establish two-sided informativeness but cannot confirm a newly discovered directional sign; any directional promotion requires a new registration and later held-out tape. | New; motivated by D28 and enabled by DAT-20 | DAT-05, DAT-10, DAT-20, SIG-01/02/04/09/11/12/14/19, D20, D22, D27, D28, D31, D32 | **In progress — registration/construction commit pushed and verified (`f2cf6501`); construction Dry-run verified outcome-blind on both DAT-20 tapes and replayed into the published basic 32-cell construction support grid (all 32 cells populated; primary non-overlapping episode risk set capped at 2,045/session by the registered 11 s window; every baseline key `baseline_insufficient`); synthetic response/matching/power/inference/trial-log pipeline Tested; SIG-21 calibration capture profile enforces depth200 source + depth20 measurement support; outcome gate CLOSED pending five new calibration sessions and a pushed numeric power artifact, then 20 later evaluation sessions** |
 
+| SIG-21X | **Exploratory future mid-price response scan on the pre-registration `DAT-20` tapes (`X-SIG21-DAT20-01`).** Directed by Aryan by voice 2026-08-19 ~16:42 IST. Attach the registered `H-SIG21` response convention to the already-registered construction detector's candidates on the **two retained `DAT-20` tapes only**, and answer three questions: at what selectivity the primary risk set stops being degenerate, what the future mid-price relationship looks like, and what candidate model the data supports. **Permanently non-confirmatory**: both tapes were captured before the registering commit `f2cf6501` was pushed at 15:00:42 IST, so under `H-SIG21` §1.5 they were already ineligible for the first outcome sample and under §1.2 their price paths were already excluded from SIG-21 inference. Every threshold is `in_sample_exploratory`; §5's past-only baseline does not exist for these tapes and is not simulated. Carries `confirmatory_eligible: false` in every artifact, reports the complete 384-cell family in three risk-set arms, and may never be cited as a SIG-21 result, as evidence of predictability, or as grounds to alter the registered 384 cells. | New; directed by Aryan 2026-08-19 after the construction replay | SIG-21, DAT-20, D28, D31, D32 | **Dry-run verified — machinery Level 3, empirical content exploratory and unpowered.** Complete 384-cell family, correlation tables, five negative controls and the power statement produced from both tapes. Headline findings: the pooled "2 episodes" figure counts contiguous tapes, and the registered 99.5% threshold leaves it at 2 while 99.9% reaches 39 of a 118 ceiling; per construction cell the primary risk set is 321 episodes at 99.5% and 129 at 99.9%, peaking at the 95th percentile and falling thereafter; binding the episode window to each cell's own `Z + h2` instead of the family maximum takes a `Z=0.5/h2=1` cell from 2 episodes to 260; **zero quiet control instants exist at the 99.5% threshold**, so the registered primary estimand is undefined for 192 cells; three of five negative controls fire in 31–41% of cells against a 5% null, so the raw arms are measuring the session's drift; **no cell in any arm meets the 0.25-tick MDE gate on a credible sample**, and that gate needs 239×–1,402× the per-cell share of the whole registered 20-session ceiling. One §14 change-control proposal on the primary-risk-set definition awaits Aryan's approval; nothing implemented. `H-SIG21.md` untouched |
+
 ### RSK — Risk
 
 **Resolved 2026-08-17 by voice (D13).** Three governing calls: the binding gate is a single C++
@@ -456,6 +458,16 @@ tree at `700`/`600`; the module adopts that pattern from day one (INF-05).
   Construction counts only; the tapes' post-event price paths remain permanently excluded.
 - [x] Build and test the synthetic response, control, power, inference and trial-log pipeline.
 - [x] Lock D32 channel roles and enforce them in the calibration capture profile.
+- [x] Exploratory response scan `X-SIG21-DAT20-01` on the pre-registration tapes only
+  (`docs/SIG-21-EXPLORATORY-RESPONSE-2026-08-19.md`). Non-confirmatory by construction under
+  §1.5; carries `confirmatory_eligible: false`; the registered 384 cells are unchanged.
+- [ ] **Before any confirmatory run:** pass `coverage_end_ts_ns` to
+  `build_depth20_response_labels`. Without it an endpoint past the last depth20 observation
+  silently resolves back to that observation; on the DAT-20 tapes that produced 306 truncated
+  cells, 45 of them with a negative realised horizon and a fabricated 0.0-tick response.
+- [ ] **Awaiting Aryan:** decide the §14 primary-risk-set proposal in
+  `docs/SIG-21-EXPLORATORY-RESPONSE-2026-08-19.md` §9, and the separate matched-quiet-control
+  question it raises, before the five calibration sessions are spent.
 - [ ] Capture calibration sessions 1–5 as separate complete post-registration sessions.
 - [ ] Write, push and remotely verify the complete pre-outcome 384-cell power artifact.
 - [ ] Capture and analyse 20 later full evaluation sessions for adequately powered cells only.
@@ -481,6 +493,62 @@ through `EXE-06` can proceed once `CON` lands. **O5 remains open by design** —
 blocked until each old strategy is decided individually, when it is next touched.
 
 ### 6.1 Work log
+
+- **2026-08-19 — exploratory future mid-price response scan `X-SIG21-DAT20-01` on the
+  pre-registration `DAT-20` tapes.** Aryan directed by voice at ~16:42 IST that the construction
+  replay "does not actually tell us anything" without the future mid-price correlations, and asked
+  what model the data supports. Both tapes were captured at 13:09 and 13:20 IST, before the
+  registering commit `f2cf6501` was pushed at 15:00:42 IST, so under `H-SIG21` §1.5 they were
+  already permanently ineligible for the first outcome sample and under §1.2 their price paths were
+  already excluded from SIG-21 inference. The scan is therefore declared exploratory with
+  `confirmatory_eligible: false`, every magnitude cutoff labelled `in_sample_exploratory`, and code
+  refusals that reject a confirmatory framing before a file is opened, reject any tape outside the
+  two pinned SHA-256s, reject any other threshold provenance and reject anything less than the
+  complete 384 cells. `docs/sig-claims/H-SIG21.md` is byte-for-byte unchanged.
+  **(1) The "2 usable episodes" figure was mostly an artefact of pooling.** It came from merging all
+  32 construction cells with no threshold applied; pooled, the risk set stays at 2 from the 50th
+  percentile through the registered 99.5th and only reaches 39 of a 118 ceiling at 99.9%. Estimated
+  cell by cell — which is what the registered family does — it is 321 episodes at 99.5% (median 5)
+  and 129 at 99.9% (median 2), peaking at the **95th** percentile with 608 and falling thereafter,
+  so both registered thresholds sit on the falling side. Magnitude ties mean the nominal 99.5%
+  cutoff retains 5.0% of candidates, not 0.5%. **(2) The family-maximum window is the largest
+  lever:** at 99.5% a `Z=0.5/h2=1` cell has 260 episodes under its own 1.5 s window and 2 under the
+  11 s family maximum, a factor of 130. **(3) The registered matched-control design is infeasible at
+  99.5%:** all 2,354 candidate control instants lie within 11 s of a retained anomaly, so **zero**
+  quiet controls exist and the registered primary estimand is undefined for 192 cells; at 99.9%,
+  313 quiet instants survive and 159 events match. **(4) The negative controls fire almost as hard
+  as the real family:** timestamp shuffle 159/384, side permutation 149/384, future-leads-predicting-
+  past 121/384, against a 5% null — the raw arms are measuring the session's downward drift, not the
+  events. The pure quiet-vs-quiet placebo is the only clean one at 0/384, which is exactly why §6
+  makes the event-minus-control difference the primary estimand. **(5) Nothing is powered:** no cell
+  in any of the three arms meets the 0.25-tick MDE gate on a credible sample size, and with the
+  observed response volatility that gate needs 26,000–149,000 effective episodes per cell against a
+  whole-evaluation-sample ceiling of 40,900 across all 384 cells — 239× to 1,402× the per-cell share.
+  The 5 pp move-probability gate needs 457–742 and is reachable. **(6) One pattern is worth a new
+  hypothesis, and only that:** burst-level far-book side imbalance is the sole predictor whose
+  association is confined to the forward window and absent from both the past-return mirror and the
+  contemporaneous leg (block-level `t` = −4.46 forward, −0.65 past, −0.16 contemporaneous at
+  `Z=0.5/h2=10`), strengthening monotonically with horizon. It is written up as an `H-SIG21C-*`
+  proposal with its identification threats and five kill conditions, not as a finding — the
+  block-level estimator fires at 20% on the placebo, so one large `t` in 1,548 rows is not evidence.
+  **Two defects found on the registered primitives' first contact with real tape.**
+  `build_depth20_response_labels` had no right-edge coverage guard: an endpoint past the last
+  depth20 observation silently resolved back to it, producing 306 truncated cells of which 45 had a
+  **negative realised horizon** and a fabricated exact 0.0-tick response. Fixed behind an optional
+  `coverage_end_ts_ns` parameter so existing callers are byte-identical, with three regression tests;
+  the confirmatory pipeline must pass it and that is now a checklist item. Separately,
+  `select_primary_non_overlapping_episodes` is the identity on `cluster_event_episodes` output, so
+  its `overlap_excluded_episodes` counter reads zero by construction rather than by measurement —
+  documented, not changed. A defect in this scan's own first draft is also recorded: the quiet-
+  episode placebo differenced the control set against a permutation of itself, which sums to zero
+  identically and could never fire; it now uses §6 nearest-neighbour matching, locked in by a test.
+  Added `src/shaurya/signals/deep_book_exploratory_response.py`,
+  `scripts/sig21_exploratory_response_scan.py`, `tests/test_sig21_exploratory_response.py`
+  (76 tests), `docs/SIG-21-EXPLORATORY-RESPONSE-2026-08-19.md` and the artifacts under
+  `artifacts/sig21-exploratory-response/`. Full suite 343 passed; Ruff and strict mypy clean.
+  **A §14 change-control proposal on the §6 primary-risk-set definition — four options, with option
+  (iii) recommended — awaits Aryan's approval. Nothing was implemented against the registration and
+  no result about predictability exists.**
 
 - **2026-08-19 — SIG-21 construction replay produced the basic 32-cell support grid.** Replayed the
   already-registered outcome-blind detector over both retained `DAT-20` depth200 NIFTY front-month

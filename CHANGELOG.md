@@ -5,6 +5,63 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### SIG-21 — exploratory future mid-price response scan `X-SIG21-DAT20-01`
+
+- Added `scripts/sig21_exploratory_response_scan.py` and
+  `src/shaurya/signals/deep_book_exploratory_response.py`, which attach the registered `H-SIG21`
+  response convention to the already-registered construction detector's candidates over the two
+  retained pre-registration `DAT-20` tapes and emit the complete 384-cell family in three risk-set
+  arms, correlation tables, five negative controls and a power statement.
+- **The scan can never be confirmatory and enforces that in code.** Both tapes were captured before
+  the registering commit `f2cf6501` was pushed at 15:00:42 IST, so under `H-SIG21` §1.5 they were
+  already permanently ineligible for the first outcome sample and under §1.2 their price paths were
+  already excluded from SIG-21 inference. Every artifact carries `exploratory_scan_id`,
+  `confirmatory_eligible: false`, the source tape SHA-256s and the §1.5 justification. Refusals:
+  a confirmatory or economic framing is rejected before a file is opened; any tape outside the two
+  pinned SHA-256s is rejected; any threshold provenance other than `in_sample_exploratory` is
+  rejected; anything less than the complete 384 cells is rejected.
+- Episode-count-versus-selectivity curve, pooled and per construction cell, over fourteen
+  within-sample cutoffs. Pooled, the primary risk set stays at 2 episodes from the 50th percentile
+  through the registered 99.5th and reaches 39 of a 118 ceiling only at 99.9%; per construction cell
+  it is 321 at 99.5% and 129 at 99.9%, peaking at the 95th percentile with 608. Magnitude ties make
+  the nominal 99.5% cutoff retain 5.0% of candidates rather than 0.5%.
+- `(Z, h2)` window decomposition: at 99.5% a `Z=0.5/h2=1` cell has 260 non-overlapping episodes
+  under its own 1.5 s window against 2 under the 11 s family maximum. Reported as a diagnostic; the
+  registered 11 s window is used unchanged for every estimate.
+- Complete 384-cell family in `primary_non_overlapping_episodes`,
+  `secondary_all_event_overlap_robust` and `event_minus_matched_control` arms, reported side by side
+  with two effective sample sizes each — a deterministic episode count and an estimated
+  variance-inflation figure. The secondary arm is never promoted to primary. The registered
+  `hac_newey_west_mean_difference` estimates the paired control arm and is cross-checked against it.
+- Matched quiet controls with every failure explicit: **zero quiet control instants exist at the
+  99.5% threshold**, so the registered primary estimand is undefined for 192 cells; 313 survive at
+  99.9%. The `VOL-04` regime stratum is unidentified here, so matching is on three registered strata.
+- All five registered negative controls over the complete family. Three fire in 31–41% of cells
+  against a 5% null, so the raw response arms are measuring the session's drift rather than the
+  events; the quiet-versus-quiet placebo is clean at 0/384.
+- Power statement measured against the registered gates: no cell in any arm meets the 0.25-tick mean
+  MDE gate on a credible sample size, and the apparent passes are Bartlett variance collapse at
+  n = 1. The gate needs 26,000–149,000 effective episodes per cell against a 40,900-episode ceiling
+  for the entire registered 20-session evaluation sample.
+- **Fixed a defect in `build_depth20_response_labels` found on its first contact with real tape.**
+  With no coverage bound, an endpoint past the last depth20 observation silently resolved back to
+  that observation: on the `DAT-20` tapes 306 cells were truncated, 45 of them reporting an exact
+  0.0-tick response over a *negative* realised horizon. Added an optional `coverage_end_ts_ns`
+  parameter which refuses such cells with `endpoint_beyond_coverage`; omitting it preserves the
+  previous behaviour byte-for-byte, so no existing caller changes. Three regression tests.
+- Added `depth20_midpoint`, `outer_price` and `edge_distance` as public accessors over logic that
+  was already present, so the response path and the rim diagnostic reuse the registered rules rather
+  than reimplementing them.
+- Added `tests/test_sig21_exploratory_response.py` (76 tests) covering every protocol refusal, the
+  coverage-guard regressions, the selectivity and window diagnostics, the HAC estimators, the sign
+  convention, complete-family emission, and a regression proving the quiet-episode placebo is not
+  forced to zero by construction. Full Python suite 343 tests; Ruff and strict mypy clean.
+- Report: `docs/SIG-21-EXPLORATORY-RESPONSE-2026-08-19.md`, including a candidate model proposal
+  requiring its own `H-SIG21C-*` registration and a §14 change-control proposal on the §6
+  primary-risk-set definition awaiting Aryan's approval. Artifacts:
+  `artifacts/sig21-exploratory-response/`. **The immutable `H-SIG21` registration is unchanged and
+  no result about predictability exists.**
+
 ### SIG-21 — outcome-blind construction replay and the basic 32-cell support grid
 
 - Added `scripts/sig21_construction_replay.py` and

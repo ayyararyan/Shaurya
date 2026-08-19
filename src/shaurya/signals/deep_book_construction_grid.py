@@ -287,6 +287,22 @@ def _edge_distance(
     return min(abs(candidate.price - edge) for edge in available)
 
 
+def outer_price(state: BookState, side: Side) -> float | None:
+    """The outermost occupied price on one side of a 200-level window, or ``None`` if empty."""
+
+    return _outer_price(state, side)
+
+
+def edge_distance(
+    candidate: CandidateEvent,
+    outer_previous: float | None,
+    outer_current: float | None,
+) -> float | None:
+    """Public accessor for a candidate's rupee distance from its own side's outer rim."""
+
+    return _edge_distance(candidate, outer_previous, outer_current)
+
+
 def replay_states(
     states: Sequence[BookState],
     *,

@@ -93,6 +93,17 @@ def _midpoint(state: BookState) -> Decimal | None:
     return (bid + ask) / Decimal(2)
 
 
+def depth20_midpoint(state: BookState) -> Decimal | None:
+    """The registered depth20 BBO midpoint, or ``None`` if the state cannot supply one.
+
+    Public accessor over the same rule the label builder uses, so a caller that needs the
+    midpoint *path* between two registered endpoints cannot drift from the endpoint convention
+    by reimplementing it.
+    """
+
+    return _midpoint(state)
+
+
 def _has_invalid_quality(state: BookState) -> bool:
     return bool(set(state.quality_flags) & INVALID_RESPONSE_QUALITY_FLAGS)
 
@@ -105,12 +116,24 @@ def build_depth20_response_labels(
     tick_size: float = 0.05,
     gaps_seconds: tuple[float, ...] = RESPONSE_GAPS_SECONDS,
     horizons_seconds: tuple[int, ...] = RESPONSE_HORIZONS_SECONDS,
+    coverage_end_ts_ns: int | None = None,
 ) -> ResponseLabelResult:
     """Build the registered labels using only the last depth20 state at each endpoint.
 
     No state after an endpoint can be selected.  The move from the pre-event midpoint to
     ``t + Z`` is retained as ``contemporaneous_ticks`` and is not folded into the predictive
     move from ``t + Z`` to ``t + Z + h``.
+
+    ``coverage_end_ts_ns`` is the last instant the depth20 feed is known to cover.  When it is
+    supplied, any cell whose registered endpoint ``t + Z + h`` falls after it is refused with
+    ``endpoint_beyond_coverage`` instead of being resolved to a stale earlier observation.  It
+    defaults to ``None``, which preserves the previous behaviour exactly for existing callers.
+
+    The guard exists because the as-of rule alone is not safe at the right edge of a finite
+    tape: with no coverage bound, an endpoint past the final observation silently resolves back
+    to that final observation, which can sit *before* the response start and fabricate a
+    zero-return label over a negative realised horizon.  See
+    ``docs/SIG-21-EXPLORATORY-RESPONSE-2026-08-19.md``.
     """
 
     if event_ts_ns < 0:
@@ -146,6 +169,11 @@ def build_depth20_response_labels(
         start = as_of(start_target)
         for horizon in horizons_seconds:
             end_target = start_target + _seconds_to_ns(horizon)
+            if coverage_end_ts_ns is not None and end_target > coverage_end_ts_ns:
+                failures.append(
+                    ResponseLabelFailure(event_id, gap, horizon, "endpoint_beyond_coverage")
+                )
+                continue
             end = as_of(end_target)
             selected = (pre_event, start, end)
             if any(state is None for state in selected):
