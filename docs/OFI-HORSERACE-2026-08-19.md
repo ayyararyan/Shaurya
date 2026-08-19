@@ -146,9 +146,11 @@ construction sensitivity but is partly mechanical and is never ranked as forecas
 `X-OFI-DAT20-03` found a fragile h1=10 s top-10 scalar OFI lead for h2=10 s (+7.91 pp), driven by
 levels 2–10 and dominated by its past mirror. This horse race changes the object to seven marginal
 bands with training-selected Ridge and a common depth-only baseline. The old cell collapses rather
-than reproduces. `X-CKS-L1-OFI-DAT20-04` separately reported that depth scaling improved 22/25 CKS
-cells and peaked around h1=2 s/h2=2 s. The present M3b result agrees numerically with that adjacent
-scan while showing why raw M3 itself is much weaker.
+than reproduces. The amended 30-cell `X-CKS-L1-OFI-DAT20-04` scan separately reported that depth
+scaling improved 27/30 cells and peaked around h1=2 s/h2=2 s, but only 1/30 raw cells and 0/30
+depth-scaled-pressure cells cleared all three dependence checks; its added h2=0.5 s arm was
+negative. The present M3b result agrees numerically with that adjacent scan while showing why raw
+M3 itself is much weaker.
 
 ## Literature benchmark
 
