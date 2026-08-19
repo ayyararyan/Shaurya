@@ -5,6 +5,24 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### `X-OFI-DAT20-03` — price-keyed OFI versus future returns
+
+- Added a frozen exploratory grid over five OFI accumulation windows (0.5–10 s), seven cumulative
+  depths (1–200) and five future-return horizons (1–30 s), with a 0.5 s causal gap and chronological
+  per-tape train/test separation.
+- Price-keyed OFI follows quantity at absolute prices across consecutive depth200 snapshots, assigns
+  each price to the shallowest endpoint rank, excludes vendor-window boundary churn, and aggregates
+  both cumulative depths and disjoint nested bands.
+- The strongest lead is 10 s OFI through level 10 → next 10 s depth20-mid return: state+OFI OOS R²
+  7.78%, incremental +7.91 pp, positive on both tapes. Levels 2–10 account for the gain; deeper
+  bands do not.
+- The lead is not dependence-robust (Newey-West 1.51, stationary bootstrap 1.65, non-overlapping
+  blocks 1.20), and the past-mirror gain is larger (+13.29 pp). It is therefore an exploratory
+  candidate to freeze and retest, not a confirmed predictive signal.
+- Added tape-stratified diagnostics, same-window and past-mirror arms, a complete 175-cell JSONL
+  grid, nested-depth results, boundary accounting, regression tests, and the plain-English report
+  `docs/OFI-PREDICTIVE-SCAN-2026-08-19.md`.
+
 ### D34 / `H-SIG21-A1` — the primary episode window is bound to each cell's own `Z + h2`
 
 - **`docs/sig-claims/H-SIG21.md` is unchanged.** The registration body is immutable and its single
