@@ -10,8 +10,8 @@ One file per `SIG-01` taxonomy cell. Claim IDs are `<CELL>-nn`, stable and never
 
 | Cell | Prefix | File | SIG task |
 |---|---|---|---|
-| Book state (static) | `BK` | `book-state.md` | SIG-02 |
-| Event flow | `EF` | `event-flow.md` | SIG-03 |
+| Book state (static) | `BK` | [`book-state.md`](book-state.md) | SIG-02 |
+| Event flow | `EF` | [`event-flow.md`](event-flow.md) | SIG-03 |
 | Price-path derived | `PP` | `price-path.md` | SIG-04 |
 | Cross-asset | `XA` | `cross-asset.md` | SIG-05 |
 | Options-specific | `OP` | `options.md` | SIG-06 |
