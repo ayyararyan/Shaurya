@@ -2,7 +2,7 @@
 
 **Scan:** `X-OFI-HORSERACE-DAT20-05`
 
-**Execution commit:** `2c89872b55774ae439592a7e343f710cd11bc0b3`
+**Execution commit:** `c18a4bd959ea6e882625a37c57d75211969f06dc`
 
 **Evidence:** Level-3 reproducible machinery; exploratory empirical comparison only
 
@@ -37,6 +37,7 @@ or ranked.
 | C2 | Depth-normalised CKS is the strongest robustness lead | Predictive | Best sub-arm at h1=2 s/h2=2 s: +6.204 pp, positive on both tapes | Registered robustness sub-arm; outcome-inspected sample; multiple comparisons | Candidate construction, not a signal | Supported as exploratory lead |
 | C3 | The 30-second arm must remain closed | Specification/gate | Raw M3 at h1=0.5 s/h2=10 s fails cross-tape coefficient sign stability | Direction is sensitive to tape | No 30-second inference | Mechanically resolved |
 | C4 | Signed trades are measurable here but do not dominate | Predictive/measurement | 191 qualified non-coalesced prints; best primary M2 increment +1.672 pp at h1=5 s/h2=5 s | Sparse/coalesced prints; last observed print only | Not total market-order flow | Supported descriptively |
+| C5 | Normalised trade imbalance has narrower, conditional support | Predictive/measurement | Best M2b cell h1=5 s/h2=5 s: +3.639 pp pooled on 306 test anchors, but +6.094/-0.762 pp by tape | Defined only when qualified buy+sell volume is positive | Robustness arm, not a primary winner | Supported descriptively |
 
 ## Design and identification
 
@@ -65,12 +66,18 @@ Ridge selection use training observations only, with three expanding inner folds
 | Qualified signed-trade packets | 101 | 90 | **191** |
 | Excluded coalesced packets | 64 | 53 | **117** |
 | Excluded degraded/unclassified | 1 | 1 | **2** |
+| Wrong/missing classifier or alignment version | 0 | 0 | **0** |
 
 Future coverage declines near the tape end. At h2=0.5 seconds, the test contains 266 and 338
 anchors; at 10 seconds, it contains 226 and 298. Every identified model uses the identical
 complete-case positions within a cell. M2 is identified: both tapes exceed the frozen 20-packet
 minimum after excluding coalesced and degraded prints. A window with no qualified print is an
-observed zero; absence of the trade schema would instead have blocked M2.
+observed zero for raw M2; absence of the trade schema would instead have blocked M2. Every one of
+the 310 trade-schema packets carries the exact canonical `quote-mid-tick-v1` classifier and
+`latest-complete-depth-before-print-v1` alignment versions. The normalised M2b ratio is defined only
+on anchors with positive qualified buy+sell volume and therefore has its own smaller support.
+All retained depth200 states populate every registered band, so M5 loses zero actual primary rows;
+an empty band is nevertheless missing and excluded by the common-case rule.
 
 ## Primary horse race
 
@@ -99,12 +106,20 @@ but the gains are small or statistically unresolved.
   -7.349 pp: the pooled result hides a sharp failure to reproduce.
 - **M2 signed trade imbalance.** Its best increments by horizon are +0.081, +0.118, +0.793,
   +1.672 and +0.001 pp. The h1=5 s/h2=5 s cell is positive in both tapes (+2.528 and +0.618 pp),
-  but sparse classified prints and coalescing make this a limited observed-flow object.
+  but sparse classified prints and coalescing make this a limited observed-flow object. The
+  corrected normalised M2b sub-arm is not assigned zero when no print exists. Its strongest cell,
+  h1=5 s/h2=5 s, uses 2,688 total / 1,844 train / 538 embargo / 306 test anchors and adds +3.639 pp
+  pooled, but the tape increments are +6.094 and -0.762 pp. Its three dependence t-statistics are
+  1.48/1.83/1.64, so it is neither a reproducing nor dependence-robust winner.
 - **M3 exact raw L1 CKS.** Best increments are +0.639, +1.227, +1.473, +0.564 and +0.082 pp. The
   10-second gate cell reproduces in fit but not coefficient direction, so it cannot open 30 seconds.
 - **M4 regularised multi-level OFI.** It leads the reproducing primary race at 5 seconds. The old
   h1=10 s/h2=10 s top-10 lead from `X-OFI-DAT20-03` does not survive the full seven-band Ridge model:
-  M4 adds **-6.966 pp** there, with `alpha=100`.
+  M4 adds **-6.966 pp** there, with `alpha=100`. At the winning h1=2 s/h2=5 s cell, the largest
+  held-out mean-absolute band contribution is levels 11-20 (1.681 ticks), followed by L1 (0.628)
+  and levels 101-200 (0.591). Coefficient signs reproduce across tapes for bands 1, 11-20, 51-100
+  and 101-200, but not for 2-5, 6-10 or 21-50. These are standardized Ridge contributions under
+  strong collinearity, not additive causal importance scores.
 - **M5 depth-adjusted multi-level OFI.** It beats M4 in 18 of 25 cells (the cell-level delta is
   emitted), but its best primary 10-second increment is only +0.122 pp and is negative on tape 1.
 - **M6 combined.** It numerically leads 0.5–2 seconds. At the reproducing h1=1 s/h2=1 s cell,
@@ -199,8 +214,24 @@ PYTHONPATH=src .venv/bin/python -m scripts.ofi_horserace \
   --cells-output artifacts/ofi-horserace/ofi_horserace_cells_2026-08-19.jsonl \
   --past-output artifacts/ofi-horserace/ofi_horserace_past_2026-08-19.jsonl \
   --ranking-output artifacts/ofi-horserace/ofi_horserace_ranking_2026-08-19.csv \
+  --ablation-output artifacts/ofi-horserace/ofi_horserace_ablation_2026-08-19.csv \
+  --intensity-output artifacts/ofi-horserace/ofi_horserace_intensity_2026-08-19.csv \
+  --support-output artifacts/ofi-horserace/ofi_horserace_support_2026-08-19.csv \
+  --gate-output artifacts/ofi-horserace/ofi_horserace_gate_2026-08-19.csv \
   --replicates 400 --seed 20260819
 ```
 
 Large outputs remain gitignored. Their hashes and compact results are committed in
-`docs/results/OFI-HORSERACE-SUMMARY-2026-08-19.json`.
+`docs/results/OFI-HORSERACE-SUMMARY-2026-08-19.json`. Full frozen-requirement traceability is in
+`docs/OFI-HORSERACE-SPEC-COVERAGE-2026-08-19.md`.
+
+## Verification
+
+- Focused horse-race suite: **17 passed**.
+- Full Python suite: **467 passed**. Six non-failing warnings are the existing Ridge SVD divide
+  warning on deliberately collinear synthetic fixtures.
+- Repository-wide Ruff: passed. Strict mypy: **52 source files passed**. `compileall` and
+  `git diff --check`: passed.
+- Deterministic replay: all **8/8** machine artifacts byte-identical at the same seed and execution
+  commit; every committed SHA-256 matches the ignored artifact on disk.
+- Secret scan: passed before each commit. Immutable `H-SIG21` was not edited.

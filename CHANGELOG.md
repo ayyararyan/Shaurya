@@ -11,8 +11,8 @@ to strategies that pin the package.
   trades, canonical raw CKS L1 OFI, regularised seven-band price-keyed OFI, causally depth-adjusted
   multi-level OFI and a regularised combined model over h1/h2 0.5/1/2/5/10 seconds.
 - Reuses `cks_l1_transition` from `X-CKS-L1-OFI-DAT20-04`; no duplicate CKS formula. M2 uses only
-  capture-time `quote-mid-tick-v1` non-coalesced, non-degraded last prints and becomes explicitly
-  blocked if either tape lacks minimum support.
+  capture-time `quote-mid-tick-v1` / `latest-complete-depth-before-print-v1` non-coalesced,
+  non-degraded last prints and becomes explicitly blocked if either tape lacks minimum support.
 - Added training-only standardisation and three expanding inner folds over a frozen six-alpha Ridge
   grid, per-tape support/reproduction, Newey-West/stationary-bootstrap/non-overlap inference, full
   past mirror, same-window diagnostic, normalised trade/CKS sub-arms, M4-vs-M5 increments, band
@@ -31,6 +31,18 @@ to strategies that pin the package.
 - Added `scripts/ofi_horserace.py`, focused tests, frozen spec, full plain-English report and compact
   result/hash summary. Artifacts remain gitignored. Exploratory only; `confirmatory_eligible=false`;
   immutable `H-SIG21` unchanged.
+- Completion audit repair: exact classifier and alignment versions are now enforced with separate
+  missing/wrong counters; raw no-print windows remain zero while zero-denominator normalised trade
+  imbalance is missing and scored on its own support; empty M5 depth bands are missing and enforce
+  the primary common case. All retained bands are populated, so primary support/results do not
+  change. The corrected M2b h1=5 s/h2=5 s arm adds +3.639 pp pooled on 306 test anchors but is
+  +6.094/-0.762 pp by tape and fails all-three dependence resolution (1.48/1.83/1.64).
+- Added deterministic seven-band contribution/stability records for M4/M5. At the reproducing M4
+  h1=2 s/h2=5 s cell, levels 11-20 have the largest mean-absolute held-out contribution (1.681
+  ticks); band signs are stable for 1, 11-20, 51-100 and 101-200 only. Added and hashed the missing
+  ablation, intensity, support and gate CSVs alongside ranking; all eight machine artifacts replay
+  byte-for-byte. The 28-row frozen-spec audit is
+  `docs/OFI-HORSERACE-SPEC-COVERAGE-2026-08-19.md`.
 
 ### `X-CKS-L1-OFI-DAT20-04` — Cont-Kukanov-Stoikov level-one OFI versus future returns, depth-controlled
 

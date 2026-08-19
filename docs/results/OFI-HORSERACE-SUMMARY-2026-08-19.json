@@ -1,10 +1,31 @@
 {
   "scan_id": "X-OFI-HORSERACE-DAT20-05",
   "confirmatory_eligible": false,
-  "execution_commit": "2c89872b55774ae439592a7e343f710cd11bc0b3",
+  "execution_commit": "c18a4bd959ea6e882625a37c57d75211969f06dc",
+  "artifact_schema_version": 2,
   "sample": {"observations": 5210, "train_n": 3646, "embargoed_n": 960, "test_n": 604},
-  "trade_support": {"schema_packets": 310, "qualified_packets": 191, "excluded_coalesced": 117, "excluded_degraded_or_unclassified": 2},
-  "complete_outputs": {"future_cells": 175, "past_mirror_cells": 175, "same_window_cells": 35, "normalised_subarm_cells_per_direction": 50, "combined_ablation_cells": 125, "conditional_30_second_cells": 0},
+  "trade_support": {
+    "schema_packets": 310,
+    "qualified_packets": 191,
+    "excluded_coalesced": 117,
+    "excluded_degraded_or_unclassified": 2,
+    "excluded_missing_classifier_version": 0,
+    "excluded_wrong_classifier_version": 0,
+    "excluded_missing_alignment_version": 0,
+    "excluded_wrong_alignment_version": 0
+  },
+  "complete_outputs": {
+    "future_cells": 175,
+    "past_mirror_cells": 175,
+    "same_window_cells": 35,
+    "normalised_subarm_cells_per_direction": 50,
+    "combined_ablation_cells": 125,
+    "band_contribution_records_per_direction": 350,
+    "support_rows": 450,
+    "intensity_rows": 95,
+    "gate_rows": 5,
+    "conditional_30_second_cells": 0
+  },
   "reproducing_primary_leaders": [
     {"h2_seconds": 0.5, "model": "M6", "h1_seconds": 5.0, "oos_r2": 0.018301048344263937, "incremental_oos_r2_over_m0": 0.02018138635192257, "tape_increments": [0.030950849510304024, 0.003279051339861061]},
     {"h2_seconds": 1.0, "model": "M6", "h1_seconds": 1.0, "oos_r2": 0.015174589317286213, "incremental_oos_r2_over_m0": 0.021153911646303203, "tape_increments": [0.021216757207033088, 0.02106271725134279]},
@@ -13,11 +34,38 @@
     {"h2_seconds": 10.0, "model": "M3", "h1_seconds": 0.5, "oos_r2": 0.014428245512612348, "incremental_oos_r2_over_m0": 0.0008168604867413443, "tape_increments": [0.0010118465820381228, 0.0006016342038017708]}
   ],
   "strongest_robustness_lead": {"subarm": "M3b_depth_normalised_cks", "h1_seconds": 2.0, "h2_seconds": 2.0, "oos_r2": 0.05746988681085208, "incremental_oos_r2_over_m0": 0.062036652388938185, "tape_increments": [0.08262223900399623, 0.031148406871871814], "past_mirror_increment": 0.026075061537844002},
+  "corrected_normalised_trade_best": {
+    "subarm": "M2b_normalised_trade",
+    "h1_seconds": 5.0,
+    "h2_seconds": 5.0,
+    "support": {"total_n": 2688, "train_n": 1844, "embargoed_n": 538, "test_n": 306},
+    "oos_r2": 0.057213133076164824,
+    "incremental_oos_r2_over_m0": 0.03639432594242287,
+    "tape_increments": [0.06093619714693099, -0.007622946905417427],
+    "dependence_t": {"newey_west": 1.4760607587455739, "stationary_bootstrap": 1.8334957286835485, "non_overlapping": 1.6420268592535676},
+    "verdict": "pooled exploratory lead but not cross-tape reproducing or dependence-robust"
+  },
+  "winning_m4_band_contributions": {
+    "h1_seconds": 2.0,
+    "h2_seconds": 5.0,
+    "definition": "mean absolute held-out contribution in ticks using pooled-training standardisation and Ridge coefficients",
+    "largest_bands": [
+      {"band": "11-20", "mean_absolute_ticks": 1.6813639597073347, "sign_stable_across_tapes": true},
+      {"band": "1", "mean_absolute_ticks": 0.6282869869761669, "sign_stable_across_tapes": true},
+      {"band": "101-200", "mean_absolute_ticks": 0.590920395306368, "sign_stable_across_tapes": true}
+    ]
+  },
   "gate_30_seconds": {"passed": false, "conditional_cells": 0, "binding_failure": "M3 raw CKS coefficient direction changed sign across tapes"},
+  "coverage_audit": {"required_components": 28, "implemented": 28, "partial": 0, "missing": 0, "machine_artifacts": "8/8", "document": "docs/OFI-HORSERACE-SPEC-COVERAGE-2026-08-19.md"},
+  "deterministic_replay": {"passed": true, "byte_identical_artifacts": 8},
   "artifact_sha256": {
-    "ofi_horserace_2026-08-19.json": "b4b95ad479138518472aa740dec9703a5b2e339ad576d2003c7e17a79ff6f149",
-    "ofi_horserace_cells_2026-08-19.jsonl": "22a3ed990e041df0dbe8c06f38b4d32fbe46ee955daeba033aff4b5c9cc9cb28",
-    "ofi_horserace_past_2026-08-19.jsonl": "a6b73ace877bd7a3e9b6cdabdf8318c3a901a9c6ddb574f12b3281c0fcacf6b3",
-    "ofi_horserace_ranking_2026-08-19.csv": "720ccd738fa4f88c3002e2ad8fdde94968f35b1ca17a4fc7d4197382ff5c8bb8"
+    "ofi_horserace_2026-08-19.json": "a91bd7e1535a160cb0cc0a8d714af47cc37d2c088c6dc43e3d037153fd8091b1",
+    "ofi_horserace_cells_2026-08-19.jsonl": "dc531ff38e18dad61871bd8f3423df4136041924bdbe7742661d4ea61eebe75f",
+    "ofi_horserace_past_2026-08-19.jsonl": "969c2530e8cccc1e6808ec5d1cf914d2a14c87365a4545d46217f11fc41f3c25",
+    "ofi_horserace_ranking_2026-08-19.csv": "720ccd738fa4f88c3002e2ad8fdde94968f35b1ca17a4fc7d4197382ff5c8bb8",
+    "ofi_horserace_ablation_2026-08-19.csv": "1c3681c76546f98920dd9d889f09f1ac5268d0220f41a71fbaf58ac8961ae4bb",
+    "ofi_horserace_intensity_2026-08-19.csv": "5134669ac108a21cc954c6e010f42ed623c49548e20984450f097333b08c82c9",
+    "ofi_horserace_support_2026-08-19.csv": "c9dc12b94030c0404b29d04195da5d24d67e4754d1e2e341e54e5136dfcb053d",
+    "ofi_horserace_gate_2026-08-19.csv": "efe6359b6881f2b78281f118b28f8ecfc217e10e39fe85accab9ef18389c2a07"
   }
 }
