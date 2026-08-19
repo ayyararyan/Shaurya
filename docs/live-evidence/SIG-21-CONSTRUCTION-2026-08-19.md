@@ -68,7 +68,8 @@ to the detector, and no midpoint or post-event alignment was computed.
 
 ## Gate state
 
-The future-price outcome gate stays **CLOSED** until the commit containing the registration,
-detector, tests and this evidence is pushed and the remote hash is verified. After that, the next
-allowed work is the outcome-independent power/response/inference implementation. Execution on
-outcomes still waits for the numeric power artifact and subsequently collected tape.
+The registration/construction gate was **OPENED** by pushed commit
+`f2cf65011d02882191b5cfda566c1024119964d7`; the remote `main` hash was independently verified to
+match. This allowed the synthetic response/power/inference implementation to begin. The separate
+future-price outcome gate remains **CLOSED** pending five new calibration sessions, a complete
+pushed numeric power artifact, and then 20 later full evaluation sessions.

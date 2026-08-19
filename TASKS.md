@@ -8,12 +8,13 @@ commit messages. If a task is not in this file it is not being worked on.
 **Owner:** Aryan Ayyar
 **Location:** `Google Drive/My Drive/Dhandho/shaurya/`
 
-**Next substantive step (updated 2026-08-19 ~14:49 IST by Aryan):** execute `SIG-21` top-down.
-First update this ledger and the module specification; then push the immutable
-`docs/sig-claims/H-SIG21.md` pre-registration and the construction-only, price-keyed anomaly
-detector. Verify the pushed commit before any future-price response code is built or any outcome
-is inspected. Only after that gate may the response, power and inference pipeline be delegated and
-built. The `PP` / `SIG-04` debate remains open but is no longer the next task (`D31`).
+**Next substantive step (updated 2026-08-19 after the D31 implementation):** collect the five
+full post-registration calibration sessions required by `H-SIG21`, then create and push the
+outcome-independent 384-cell numeric power artifact. The registration/construction gate was
+verified at `f2cf65011d02882191b5cfda566c1024119964d7`; the synthetic response, matching, power,
+inference and immutable trial-log pipeline is built and tested. No outcome execution is allowed
+until the power artifact passes its registered gates; the first evaluation then requires 20 later
+full sessions. The `PP` / `SIG-04` debate remains open behind `SIG-21` (`D31`).
 
 ---
 
@@ -312,7 +313,7 @@ agreed; the retention decision it depends on is open at `DAT-09`.
 | SIG-17 | **Configuration-level economic-significance gate (`D21`, `D30`).** Expected maker spread capture across the joint quote set must clear adverse selection, side-specific taxes, fees, passive-flattening loss, portfolio-risk charge and residual futures-breach cost under `EXE-09`, reported per unit of peak margin. The taker half-spread hurdle is inapplicable because Shaurya does not cross. No single quote is promoted independently of the configuration that carries its inventory | New | SIG-15, EXE-09, BK-14/H1 | Not started |
 | SIG-18 | **Coverage completeness test.** Measure the out-of-sample gap between a model on the raw level-by-level book state and a model on the engineered feature set; the gap is how much information the features leave on the table. Plus residual diagnostics against time-of-day, regime and raw book slices. An unexplained gap opens a ticket for a missing feature rather than being absorbed | New | SIG-01, SIG-15 | **Agreed (D11)** — not started; unblocked by D12, golden-set curation still sized at `DAT-09` |
 | SIG-19 | **Trial log.** Every configuration tested is recorded, and performance is reported as a distribution (combinatorially purged CV, deflated Sharpe) rather than a single out-of-sample number | New | SIG-13 | Not started |
-| SIG-21 | **Deep-book anomaly → future-price response (`H-SIG21`).** Test whether rare disturbances in the normally quiet far depth200 ladder forecast later NIFTY-futures mid-price movement. The event definition must be **price-keyed, causal and pre-registered before outcomes are inspected**: additions, removals, displayed-liquidity relocation **proxies**, displayed-quantity shocks and order-count shocks are separated; mechanical level-index cascades and whole-ladder window slides are excluded; unusualness is measured against a past-only baseline conditional on side, distance from the same-side best quote, time of day and liquidity/regime. Outcomes are future depth20/BBO mid-price returns at the registered `D27`-admissible gaps and horizons; contemporaneous response is reported separately from predictive response. Use non-overlapping event clusters or dependence-robust inference, matched quiet controls, explicit effective sample size and one `SIG-12` family across every inspected axis. Report the full response distribution, sign, peak timing and reversion — not merely significance. **The two 11-minute `DAT-20` runs are feasibility evidence only and cannot establish predictability.** The discovery sample may establish two-sided informativeness but cannot confirm a newly discovered directional sign; any directional promotion requires a new registration and later held-out tape. | New; motivated by D28 and enabled by DAT-20 | DAT-05, DAT-10, DAT-20, SIG-01/02/04/09/11/12/14/19, D20, D22, D27, D28, D31 | **In progress — registration written; construction detector Tested (10 focused, 164 full Python tests) and Dry-run verified outcome-blind on both DAT-20 tapes; future-price outcome gate CLOSED until this commit is pushed and verified** |
+| SIG-21 | **Deep-book anomaly → future-price response (`H-SIG21`).** Test whether rare disturbances in the normally quiet far depth200 ladder forecast later NIFTY-futures mid-price movement. The event definition must be **price-keyed, causal and pre-registered before outcomes are inspected**: additions, removals, displayed-liquidity relocation **proxies**, displayed-quantity shocks and order-count shocks are separated; mechanical level-index cascades and whole-ladder window slides are excluded; unusualness is measured against a past-only baseline conditional on side, distance from the same-side best quote, time of day and liquidity/regime. Outcomes are future depth20/BBO mid-price returns at the registered `D27`-admissible gaps and horizons; contemporaneous response is reported separately from predictive response. Use non-overlapping event clusters or dependence-robust inference, matched quiet controls, explicit effective sample size and one `SIG-12` family across every inspected axis. Report the full response distribution, sign, peak timing and reversion — not merely significance. **The two 11-minute `DAT-20` runs are feasibility evidence only and cannot establish predictability.** The discovery sample may establish two-sided informativeness but cannot confirm a newly discovered directional sign; any directional promotion requires a new registration and later held-out tape. | New; motivated by D28 and enabled by DAT-20 | DAT-05, DAT-10, DAT-20, SIG-01/02/04/09/11/12/14/19, D20, D22, D27, D28, D31 | **In progress — registration/construction commit pushed and verified (`f2cf6501`); construction Dry-run verified outcome-blind on both DAT-20 tapes; synthetic response/matching/power/inference/trial-log pipeline Tested (28 focused, 192 full Python tests); outcome gate CLOSED pending five new calibration sessions and a pushed numeric power artifact, then 20 later evaluation sessions** |
 
 ### RSK — Risk
 
@@ -440,19 +441,30 @@ tree at `700`/`600`; the module adopts that pattern from day one (INF-05).
 | `MODULE_SPEC.md` | **Drafted 2026-08-18; extended through D31 on 2026-08-19** — root index plus 13 per-component specifications under `docs/module-spec/`; all non-dropped task IDs map to stable `REQ-*` rows with code/test/output targets. `SIG.md` binds D29's hypothesis-resolution method, D30's joint configuration estimand and D31's SIG-21 registration gate; dropped `DAT-08`/`EXE-07/08` intentionally have no requirement |
 | Repository | **Created 2026-08-17** — private `ayyararyan/Shaurya`; canonical design artifacts pushed on `main` |
 | Code harvested | Dhan clients reconciled from Mushin_Gamma + Shoshin; feed patterns generalized from Mushin_Gamma + Still_Water into the standalone `shaurya` package |
-| Tasks in progress | DAT-11/12/13 are Live verified; DAT-14/15/16/17/20 are Live verified at their stated scopes. `DAT-20` establishes reliable deep-book observability and quiet-time skips, not rare-event predictability. **`SIG-21` is the active next task under D31: registration and construction detector are in progress; its future-price outcome gate remains closed.** The `PP` / `SIG-04` debate remains open behind it. INF-02/05/07/09 are tested; INF-06 is blocked on exact approved destinations for 8 Drive-hosted files. CON-02/03/04/05/06/07/09 are tested; CON-01/08 and the Dhan slice of CON-05 retain live evidence. DAT-03/04/07 are tested; DAT-05/06 are dry-run verified; DAT-08 is dropped; DAT-09 planning/pooling is tested with the final strike-band/connection-count owner choice still open |
+| Tasks in progress | DAT-11/12/13 are Live verified; DAT-14/15/16/17/20 are Live verified at their stated scopes. `DAT-20` establishes reliable deep-book observability and quiet-time skips, not rare-event predictability. **`SIG-21` is the active next task under D31: its registration, construction and synthetic downstream pipeline are tested, while empirical execution remains gated on five new calibration sessions, a pushed numeric power artifact and 20 later evaluation sessions. No future-price result exists.** The `PP` / `SIG-04` debate remains open behind it. INF-02/05/07/09 are tested; INF-06 is blocked on exact approved destinations for 8 Drive-hosted files. CON-02/03/04/05/06/07/09 are tested; CON-01/08 and the Dhan slice of CON-05 retain live evidence. DAT-03/04/07 are tested; DAT-05/06 are dry-run verified; DAT-08 is dropped; DAT-09 planning/pooling is tested with the final strike-band/connection-count owner choice still open |
 
-**Immediate next action (D31):** update the SIG-21 specification top-down, add and push
-`docs/sig-claims/H-SIG21.md`, and implement the outcome-blind construction detector with its
-leakage/price-keying fixtures. Verify the pushed commit. Only then build the response, power and
-inference pipeline. The retained `DAT-20` tapes may be used to verify parser/event construction and
-event counts only; their future returns remain unopened permanently for SIG-21 inference.
+**Immediate next action (D31):** capture five full post-registration calibration sessions without
+using them for a SIG-21 result. Use only unconditional calibration quantities to create the
+complete 384-cell power artifact, push it, and verify the remote hash before any outcome join. If
+the numeric gates pass, collect 20 subsequent full evaluation sessions. The retained `DAT-20`
+tapes remain permanently excluded from SIG-21 future-return inference.
 
 **O4 is resolved (D7) — `EXE` is unblocked.** `EXE-07` and `EXE-08` are dropped; `EXE-01`
 through `EXE-06` can proceed once `CON` lands. **O5 remains open by design** — `MIG` stays
 blocked until each old strategy is decided individually, when it is next touched.
 
 ### 6.1 Work log
+
+- **2026-08-19 — D31 post-registration synthetic pipeline implemented and tested.** After remote
+  verification of `f2cf65011d02882191b5cfda566c1024119964d7`, delegated implementation added
+  strict as-of depth20 midpoint labels for the registered `Z x h2` grid, separate
+  contemporaneous/predictive legs, 11-second episode clustering, primary overlap exclusion,
+  outcome-blind quiet-control matching, the exact 384-cell manifest, unconditional-calibration
+  power calculations and support gates, HAC/Newey-West, within-session stationary bootstrap,
+  Romano-Wolf step-down, directional-promotion protection, and immutable create-once `SIG-19`
+  JSONL output. Twenty-eight focused tests and the complete 192-test Python suite pass; Ruff and strict
+  mypy pass. `docs/live-evidence/SIG-21-PIPELINE-2026-08-19.md` records the scope and limitations.
+  **No real tape, response outcome, numeric power artifact or predictive result was produced.**
 
 - **2026-08-19 — D31 activated SIG-21 top-down; registration and outcome-blind construction
   completed locally.** Updated `TASKS.md`, `MODULE_SPEC.md` and `docs/module-spec/SIG.md` first;
@@ -464,8 +476,9 @@ blocked until each old strategy is decided individually, when it is next touched
   and the complete 164-test Python suite pass; Ruff lint and strict mypy pass. Construction-only
   dry run on the two retained DAT-20 tapes produced 23,110 and 17,692 candidate events respectively
   without reading or joining any future-price outcome. Full evidence and limitations are in
-  `docs/live-evidence/SIG-21-CONSTRUCTION-2026-08-19.md`. **Outcome gate remains closed until the
-  registering commit is pushed and independently verified.**
+  `docs/live-evidence/SIG-21-CONSTRUCTION-2026-08-19.md`. The registration/construction gate was
+  subsequently opened by the pushed and remotely verified commit `f2cf6501`; the distinct numeric
+  power gate remains closed.
 
 - **2026-08-19 — D28 and SIG-21 opened from the DAT-20 interpretation correction.** Aryan clarified
   that depth200 is not collected primarily to estimate routine fill/cancellation behaviour in the
