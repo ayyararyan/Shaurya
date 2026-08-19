@@ -95,6 +95,17 @@ def _git(repo: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
+def _git_commit_is_remote_ancestor(repo: Path, commit: str) -> bool:
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", commit, "origin/main"],
+        cwd=repo,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode == 0
+
+
 def _find_one(directory: Path, pattern: str) -> Path:
     matches = tuple(directory.glob(pattern))
     if len(matches) != 1:
@@ -277,8 +288,8 @@ class Controller:
             )
         if _git(self.repo, "status", "--porcelain"):
             raise ValueError("repository worktree is not clean")
-        if _git(self.repo, "rev-parse", "origin/main") != head:
-            raise ValueError("local HEAD does not equal the fetched origin/main")
+        if not _git_commit_is_remote_ancestor(self.repo, head):
+            raise ValueError("pinned code commit is not present in fetched origin/main history")
         credentials = self.args.credentials.resolve()
         if not credentials.is_file():
             raise FileNotFoundError(credentials)

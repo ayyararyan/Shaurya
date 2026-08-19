@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
-from scripts.ofi_full_session_controller import build_fixed_lead_summary
+from scripts.ofi_full_session_controller import (
+    _git_commit_is_remote_ancestor,
+    build_fixed_lead_summary,
+)
 from shaurya.contracts.instruments import DhanInstrumentMaster
 from shaurya.contracts.timing import IST, nse_equity_derivatives_session_bounds
 from shaurya.data.depth_thinning_analysis import (
@@ -215,3 +219,38 @@ def test_fixed_lead_report_does_not_substitute_a_new_full_grid_argmax() -> None:
     assert summary["scalar_top10_10s_to_10s"]["replicates_all_frozen_conditions"] is True
     assert summary["horse_m3b_2s_to_2s"]["replicates_all_frozen_conditions"] is True
     assert summary["cross_tape_stability_supported"] is False
+
+
+def test_pinned_commit_may_be_behind_remote_main_but_must_be_in_its_history(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"],
+        cwd=repo,
+        check=True,
+    )
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
+    marker = repo / "marker.txt"
+    marker.write_text("one\n", encoding="utf-8")
+    subprocess.run(["git", "add", "marker.txt"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-m", "one"], cwd=repo, check=True, capture_output=True)
+    pinned = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    marker.write_text("two\n", encoding="utf-8")
+    subprocess.run(["git", "commit", "-am", "two"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "update-ref", "refs/remotes/origin/main", "HEAD"],
+        cwd=repo,
+        check=True,
+    )
+
+    assert _git_commit_is_remote_ancestor(repo, pinned) is True
+    assert _git_commit_is_remote_ancestor(repo, "0" * 40) is False
