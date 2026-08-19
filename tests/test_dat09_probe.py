@@ -75,6 +75,23 @@ def test_reconnect_experiment_requires_same_socket_failure_and_fresh_success() -
     assert payload["second_message_after_reconnect_worked"] is True
 
 
+def test_reconnect_experiment_exposes_account_scoped_and_not_discriminated_results() -> None:
+    account = ReconnectExperiment(
+        first_security_ids=("first",),
+        second_security_ids=("second",),
+        same_socket_counts={"first": 10},
+        fresh_socket_counts={},
+    )
+    assert account.conclusion == "account-scoped"
+    both_work = ReconnectExperiment(
+        first_security_ids=("first",),
+        second_security_ids=("second",),
+        same_socket_counts={"first": 10, "second": 10},
+        fresh_socket_counts={"second": 10},
+    )
+    assert both_work.conclusion == "not discriminated"
+
+
 def test_depth200_control_surfaces_zero_and_packet_skew_without_guessing_cause() -> None:
     complete = Depth200Control(("a", "b", "c"), {"a": 100, "b": 50, "c": 25})
     assert complete.all_received

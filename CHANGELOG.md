@@ -31,6 +31,11 @@ to strategies that pin the package.
   prior-day 52-working bound, which did not reproduce. The probe now freshly validates both
   bracket endpoints, timestamps every candidate, exposes tested-candidate monotonicity, and
   bounds socket-close latency; the dated acceptance table is retained under `docs/live-evidence/`.
+- Live-verified DAT-12 at the reproduced 50+50 load: one socket delivered all 50 instruments
+  from message one and none from message two, while a fresh socket delivered all 50 from the
+  unchanged second set. The limit is therefore socket-scoped under that load. A 2+2 control
+  accepted both same-socket messages, correcting the broader prior claim that every second
+  message is always ignored.
 
 - Added historical bar fetch and local storage: Dhan minute and daily responses normalize into a
   strict versioned observed-bar schema on a stable on-disk layout. Bars only; no broker API
@@ -52,8 +57,8 @@ to strategies that pin the package.
 - Added capacity, reconnect, and depth-skew probes (DAT-11/12/13): a binary search for the exact
   20-level per-message instrument ceiling, a reconnect test for
   whether the first-message limit is per socket or per account, and a same-liquidity control for
-  the 200-level packet skew. DAT-11 is live verified at 50 instruments; DAT-12/13 still require
-  their market-hours experiments at this changelog point.
+  the 200-level packet skew. DAT-11 is live verified at 50 instruments and DAT-12 is live
+  verified as socket-scoped at 50+50; DAT-13 still requires its market-hours experiment.
 
 ### SUR-01, SUR-02, SUR-05, SUR-06, SUR-07, and SUR-08 — eSSVI surfaces
 

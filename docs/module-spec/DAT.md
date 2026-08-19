@@ -50,7 +50,7 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 
 ## Current DAT-09 working constraint — measured, not final
 
-- **20-level socket behaviour:** only the first subscription message on a socket produced data in the 2026-08-18 tests; later messages were silently ignored even with pacing.
+- **20-level socket behaviour:** DAT-12 discriminates the reproduced 50+50 failure as **socket-scoped**: the second 50-instrument message failed on the occupied socket and succeeded unchanged on a fresh socket. A 2+2 control accepted both messages on one socket, so the effect is load-dependent rather than a universal first-message-only rule.
 - **Measured per-message ceiling:** **50 instruments** in the 2026-08-19 live probe. Fresh one-message sockets accepted every tested count through 50 and rejected 51, 52 and 53 wholesale; the prior-day statement that 52 worked did not reproduce and is superseded by the same-day boundary evidence. This is an observed endpoint constraint, not a broker guarantee across future protocol/account changes.
 - **200-level evidence:** at least five concurrent subscriptions on one socket produced packets, but the first instrument received far more packets. Whether this was ordinary liquidity or a throttle is unresolved.
 - **Retention:** permanent. Once captured, raw data is kept; there is no rolling deletion or expiry window.
@@ -63,7 +63,7 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 - Parser fixtures cover standard packet subtypes, separate deep-book sides, partial books, 20/200-level layouts, and the 200-level flat subscription envelope.
 - Reconnect tests preserve a visible gap boundary and resubscribe semantics.
 - Deterministic replay produces the same ordered rows, quality flags, and consumer-visible events from the same tape.
-- Existing evidence remains scoped: DAT-01/03/04/07 are Tested; DAT-02, DAT-10, and DAT-11 are Live verified; DAT-05 is Dry-run verified end to end (its writer retains earlier live evidence); DAT-06 is Dry-run verified; DAT-09 planning/pooling is Tested; DAT-12/13 are Implemented but pending live verification.
+- Existing evidence remains scoped: DAT-01/03/04/07 are Tested; DAT-02, DAT-10, DAT-11, and DAT-12 are Live verified; DAT-05 is Dry-run verified end to end (its writer retains earlier live evidence); DAT-06 is Dry-run verified; DAT-09 planning/pooling is Tested; DAT-13 is Implemented but pending live verification.
 
 ## Exclusions
 
