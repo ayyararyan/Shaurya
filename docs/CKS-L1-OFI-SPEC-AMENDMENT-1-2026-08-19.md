@@ -176,7 +176,8 @@ This amendment was applied rather than left open:
 - The scan was re-run at 30 cells and replayed byte-for-byte. `cks_l1_ofi_components_2026-08-19.jsonl`
   is **bit-identical** to the pre-amendment run, confirming the transition decomposition is
   independent of the response grid.
-- 448 repository tests pass; `ruff check` and strict `mypy` over 50 source files are clean.
+- 448 repository tests pass at the time of this record; `ruff check` and strict `mypy` over 50
+  source files are clean. (The suite is 450 after the later sub-second horizon coverage tests.)
 
 **Side effect that must be disclosed.** Admitting a shorter horizon lets a few observations near the
 end of each recording qualify that previously had no covered future horizon. The sample moved from

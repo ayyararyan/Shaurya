@@ -498,13 +498,19 @@ tree at `700`/`600`; the module adopts that pattern from day one (INF-05).
   1.96 and the past-mirror gain is larger (+13.29 pp). Exploratory lead only, not a confirmed
   signal; freeze it before testing on a new full session.
 - [x] Exploratory CKS level-one OFI scan `X-CKS-L1-OFI-DAT20-04` on the pre-registration tapes only
-  (`docs/CKS-L1-OFI-2026-08-19.md`, frozen at `docs/CKS-L1-OFI-SPEC-2026-08-19.md`). The complete
-  25-cell grid answers Aryan's depth-controlled question: raw best-quote CKS OFI adds at most
-  +1.44 pp of held-out R² above a causal level-one depth control, depth scaling helps in 22 of 25
-  cells and reaches +6.01 pp at its best, but the one substantive cell clearing all three
-  dependence checks flips coefficient sign between the two tapes. `X-OFI-DAT20-03`'s levels-2–10
-  lead survives this scan's independent depth control at +7.16 pp while level one contributes
-  −0.54 pp there. Exploratory observation only; nothing to register.
+  (`docs/CKS-L1-OFI-2026-08-19.md`, frozen at `docs/CKS-L1-OFI-SPEC-2026-08-19.md`, amended once
+  before the report by `docs/CKS-L1-OFI-SPEC-AMENDMENT-1-2026-08-19.md`). The complete **30-cell**
+  grid — 25 core cells over `h1 ∈ {0.5, 1, 2, 5, 10} s × h2 ∈ {0.5, 1, 2, 5, 10} s`, plus 5 cells at
+  the separately labelled 30 s robustness horizon — answers Aryan's depth-controlled question over
+  5,210 observations: raw best-quote CKS OFI adds at most +1.44 pp of held-out R² above a causal
+  level-one depth control and is positive in 16 of 30 cells; depth scaling helps in **27 of 30**
+  cells and reaches **+6.00 pp** at its best (2 s → 2 s, pressure-only OOS R² 6.30%). Only **1 of 30
+  raw and 0 of 30 pressure** cells clear all three dependence checks, and that single survivor flips
+  coefficient sign between the two tapes. The amended `h2 = 0.5 s` arm is a clean negative — no cell
+  clears the checks and the past-return mirror beats the future increment in all five of its cells.
+  `X-OFI-DAT20-03`'s levels-2–10 lead survives this scan's independent depth control at **+7.12 pp**
+  (8.38% OOS R²) while level one contributes **−0.55 pp** there with a negative coefficient.
+  Exploratory observation only; nothing to register.
 - [ ] Capture calibration sessions 1–5 as separate complete post-registration sessions.
 - [ ] Write, push and remotely verify the complete pre-outcome 384-cell power artifact.
 - [ ] Capture and analyse 20 later full evaluation sessions for adequately powered cells only.
