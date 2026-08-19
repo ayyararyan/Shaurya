@@ -5,6 +5,22 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### SIG-21 — depth200 calibration scope lock (D32)
+
+- Recorded Aryan's binding clarification that SIG-21's differentiating treatment is the
+  price-keyed far **depth200** ladder. Depth20 is retained only for the later BBO midpoint response
+  and registered near-book controls; it can never originate or substitute for an anomaly.
+- Added an enforced `--sig21-calibration` profile to the Dhan capture CLI. It refuses runs without
+  depth200, with depth20 disabled, or with a requested duration shorter than the 22,500-second
+  regular NSE session, and records the channel roles, calibration-only status, registration
+  commit, 384-cell family and `outcome_join_allowed=false` in capture metrics.
+- Added a detector regression rejecting depth20 states and protocol tests for every capture gate
+  and the exact metadata contract. The full Python suite passes 197 tests; Ruff and strict mypy
+  remain clean.
+- Added `docs/SIG-21-CALIBRATION-RUNBOOK.md` and replaced the reset handoff. The pushed 384-cell
+  registration remains immutable: the five calibration sessions estimate support and power, not
+  a preferable grid.
+
 ### Traceability repair — follow-up tasks added after the original module-spec draft
 
 - A full ID-set audit triggered while adding `SIG-21` found that four previously opened,

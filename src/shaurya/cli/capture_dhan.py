@@ -20,6 +20,11 @@ from shaurya.data.dhan_stream import DhanLiveStream, DhanStreamConfig, StreamMet
 from shaurya.data.quality import CollectorQualityAudit, write_quality_audit
 from shaurya.data.tape import JsonlTapeWriter
 
+SIG21_PROTOCOL_ID = "H-SIG21"
+SIG21_REGISTRATION_COMMIT = "f2cf65011d02882191b5cfda566c1024119964d7"
+SIG21_REGISTERED_FAMILY_SIZE = 384
+SIG21_FULL_SESSION_SECONDS = 22_500.0
+
 
 def _exclusive_json(path: Path, value: dict[str, Any]) -> None:
     encoded = (json.dumps(value, sort_keys=True, indent=2) + "\n").encode()
@@ -51,6 +56,13 @@ def _parser() -> argparse.ArgumentParser:
         "subscription on this endpoint, which --security-id already satisfies.",
     )
     parser.add_argument(
+        "--sig21-calibration",
+        action="store_true",
+        help="Enforce the H-SIG21 calibration-only capture contract: depth200 is the signal "
+        "source, depth20 is retained only for the later response/control surface, the requested "
+        "duration covers at least one full NSE session, and no outcome join is authorised.",
+    )
+    parser.add_argument(
         "--channel-start-stagger-seconds",
         type=float,
         default=0.0,
@@ -79,9 +91,35 @@ def _required_channels(config: DhanStreamConfig) -> set[str]:
     return required
 
 
+def _validate_sig21_protocol(args: argparse.Namespace) -> None:
+    if not args.sig21_calibration:
+        return
+    if not args.enable_depth200:
+        raise ValueError("H-SIG21 calibration requires the depth200 signal-source channel")
+    if args.no_depth20:
+        raise ValueError("H-SIG21 calibration requires depth20 for response/control measurement")
+    if args.duration_seconds < SIG21_FULL_SESSION_SECONDS:
+        raise ValueError("H-SIG21 calibration must request at least one full NSE session")
+
+
+def _sig21_protocol_metadata(args: argparse.Namespace) -> dict[str, Any] | None:
+    if not args.sig21_calibration:
+        return None
+    return {
+        "protocol_id": SIG21_PROTOCOL_ID,
+        "sample_role": "calibration_only",
+        "signal_source_channel": "depth200",
+        "response_control_channel": "depth20",
+        "registered_family_size": SIG21_REGISTERED_FAMILY_SIZE,
+        "registration_commit": SIG21_REGISTRATION_COMMIT,
+        "outcome_join_allowed": False,
+    }
+
+
 async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     if args.duration_seconds <= 0:
         raise ValueError("duration-seconds must be positive")
+    _validate_sig21_protocol(args)
     credentials = DhanCredentials.from_env_file(args.credentials)
     mapping = DhanInstrumentMaster(args.security_master).find_by_security_id(args.security_id)
     if mapping.trading_symbol != args.expected_symbol:
@@ -146,6 +184,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
                 "dat09_decision": False,
                 "channel_start_stagger_seconds": args.channel_start_stagger_seconds,
                 "channel_start_order": list(stream.channel_start_order),
+                "sig21_protocol": _sig21_protocol_metadata(args),
             },
             "stream_error_type": type(stream_error).__name__ if stream_error else None,
             "acceptance": {

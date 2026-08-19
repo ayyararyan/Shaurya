@@ -4,7 +4,7 @@ from dataclasses import fields, replace
 
 import pytest
 
-from shaurya.data.depth_thinning_analysis import DEPTH200, BookState
+from shaurya.data.depth_thinning_analysis import DEPTH20, DEPTH200, BookState
 from shaurya.signals.deep_book_anomaly import (
     AtomicEventType,
     BaselineContext,
@@ -98,6 +98,19 @@ def test_contaminated_transitions_are_rejected_whole(reason: str) -> None:
 
     assert not result.candidates
     assert result.exclusions[0].reason == reason
+
+
+def test_depth20_can_never_enter_the_sig21_anomaly_source() -> None:
+    before = replace(state(1), channel=DEPTH20)
+    after = replace(
+        state(2, bids=[(100.0, 10, 1), (70.0, 20, 1)]),
+        channel=DEPTH20,
+    )
+
+    result = detect_candidates(before, after, instrument_id="NIFTY-FUT")
+
+    assert not result.candidates
+    assert result.exclusions[0].reason == "not_depth200"
 
 
 def test_strict_far_boundary_uses_pre_event_same_side_best() -> None:

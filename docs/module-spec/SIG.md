@@ -161,6 +161,23 @@ depth200, and all 200 levels were populated. The same evidence shows that ordina
 thin in the far tail. Under D28 that quietness is the baseline that makes an unusual event
 potentially informative; it is not a reason to discard the levels.
 
+### Channel roles are not interchangeable (D32)
+
+SIG-21's differentiating object is the **200-level ladder itself**. Every `X` event, unusualness
+baseline observation and episode originates from a valid depth200 publication and uses prices
+beyond the registered far boundary. Depth20 cannot create, replace or backfill an anomaly, even
+when the corresponding price is visible there.
+
+Depth20 is still captured for the same future because it measures a different object: `Y`, the
+later BBO midpoint response, plus the registered near-book spread/depth/OFI controls. This is a
+treatment-versus-measurement distinction, not a comparison of two competing signal tiers. The
+capture metrics must record `signal_source_channel=depth200`,
+`response_control_channel=depth20`, and `outcome_join_allowed=false` during calibration.
+
+The primary family is already locked at 384 cells by the pushed registration. The five calibration
+sessions estimate support, projected `N_eff`, multiplicity critical values and MDE; they do not
+select a new grid or remove unattractive cells after observing responses.
+
 `SIG-21` owns the separate, still-unanswered question: whether a causal, price-keyed deep-book
 addition, removal, displayed-liquidity relocation proxy, quantity shock or order-count shock predicts a later mid-price
 response. It must exclude mechanical level-index cascades, define unusualness from past data only
@@ -203,7 +220,7 @@ collected tape.
 | REQ-SIG-18 | Measure the OOS gap between raw-book and engineered-feature models and diagnose residuals by time, regime, and raw-book slices; unexplained gaps create missing-feature tickets. | SIG-18, D11, D12 | TBD coverage module | Golden-tape residual-gap report and ticket output |
 | REQ-SIG-19 | Log every tested configuration — including sampling clock, pooling coordinate, and horizon (D20) — and report a performance distribution using combinatorially purged CV and deflated Sharpe. | SIG-19, D20 | TBD trial registry | Append-only/completeness tests; trial log |
 | REQ-SIG-20 | Require each permanent-tier feature to be computable in one bounded-state forward pass without future data or same-day refit. | SIG-20, DAT-09 | TBD streaming feature API | Streaming/batch parity, bounded-state, leakage tests |
-| REQ-SIG-21 | Pre-register and test whether causal price-keyed anomalies in the normally quiet far depth200 ladder predict future mid-price responses. Separate atomic event types and contemporaneous/predictive effects; label relocation only as a displayed-liquidity proxy; exclude mechanical index cascades and boundary slides; condition expanding previous-session-only baselines on side, price distance, time and liquidity/HMM regime; enforce D27-admissible gaps, overlap/dependence controls, the complete declared multiplicity family, multi-session support and a numeric ex-ante power artifact before inspecting outcomes. The construction module is outcome-blind by contract, and any directional sign discovered in the first sample requires a new registration and later confirmation sample before promotion. | SIG-21, D20, D22, D27, D28, D31, DAT-20 | `src/shaurya/signals/deep_book_anomaly.py`; `src/shaurya/signals/deep_book_response.py`; `src/shaurya/signals/deep_book_inference.py` | Construction/leakage fixtures; pushed `H-SIG21` registration; synthetic response/inference fixtures; numeric power gate; dependence-aware response report and `CON-09` finding |
+| REQ-SIG-21 | Pre-register and test whether causal price-keyed anomalies in the normally quiet far depth200 ladder predict future mid-price responses. **Depth200 is the exclusive anomaly/treatment source; depth20 is only the response and near-book control surface and cannot substitute for it.** Separate atomic event types and contemporaneous/predictive effects; label relocation only as a displayed-liquidity proxy; exclude mechanical index cascades and boundary slides; condition expanding previous-session-only baselines on side, price distance, time and liquidity/HMM regime; enforce D27-admissible gaps, overlap/dependence controls, the complete declared multiplicity family, multi-session support and a numeric ex-ante power artifact before inspecting outcomes. The construction module is outcome-blind by contract, and any directional sign discovered in the first sample requires a new registration and later confirmation sample before promotion. | SIG-21, D20, D22, D27, D28, D31, D32, DAT-20 | `src/shaurya/signals/deep_book_anomaly.py`; `src/shaurya/signals/deep_book_response.py`; `src/shaurya/signals/deep_book_inference.py`; `src/shaurya/cli/capture_dhan.py` | Construction/leakage/channel-role fixtures; pushed `H-SIG21` registration; enforced calibration metrics; synthetic response/inference fixtures; numeric power gate; dependence-aware response report and `CON-09` finding |
 
 ## Outputs and acceptance tests
 

@@ -7,6 +7,11 @@ was produced.
 **Sequencing:** implementation began only after the registration/construction commit
 `f2cf65011d02882191b5cfda566c1024119964d7` was pushed and the remote hash was verified.
 
+**Channel boundary (D32):** depth200 is the exclusive candidate/anomaly source. Depth20 is used
+only for the later midpoint response and registered near-book controls; it is not a competing
+signal tier and cannot substitute for a missing depth200 stream. The already-registered 384-cell
+family is fixed before calibration.
+
 ## Implemented boundary
 
 - `src/shaurya/signals/deep_book_response.py`

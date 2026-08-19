@@ -1,10 +1,38 @@
 # Shaurya — Next-Session Prompt
 
-**Prepared:** 2026-08-17, last updated 2026-08-19 evening (signal-mining reset by Aryan)
-**Use on return:** the 2026-08-19 **evening** session. Read the reset handoff immediately below;
-it supersedes the older afternoon agenda as the next conversation.
+**Prepared:** 2026-08-17, last updated 2026-08-19 ~15:41 IST (SIG-21 calibration reset)
+**Use on return:** prepare and run the next full-market-session SIG-21 calibration capture. The
+handoff immediately below supersedes every older PP/afternoon reset section retained as history.
 **Repository:** private `ayyararyan/Shaurya`
 **Canonical status ledger:** `TASKS.md`
+
+## RESET HANDOFF — SIG-21 DEPTH200 CALIBRATION, READ THIS FIRST
+
+Aryan's final instruction before reset is binding as `D32`: **SIG-21 is differentiated by the
+200-level ladder.** Depth20 is widely available and is not the treatment/signal source. Keep the
+roles exact:
+
+- depth200 → every price-keyed far-book candidate, unusualness baseline and event episode;
+- depth20 → later BBO midpoint response and near-book spread/depth/OFI controls only;
+- depth20 must never create or substitute for a depth200 anomaly.
+
+The immutable `H-SIG21` registration already encoded this split, so it was not rewritten after its
+registration clock. The capture CLI now has an enforced `--sig21-calibration` profile, and the
+operational checklist is `docs/SIG-21-CALIBRATION-RUNBOOK.md`.
+
+**Next action:** on the next full NSE session, resolve the same-day NIFTY front-month future and run
+calibration session 1/5 with depth200 plus depth20. Start before 09:15 IST and cover through 15:30.
+Do not inspect any SIG-21 response, do not run outcome joins, and do not count a partial session.
+
+The parameter family is **not chosen tomorrow**. It is already locked at 384 cells by the pushed
+registration. Calibration estimates candidate support, projected `N_eff`, critical values and MDE.
+After five accepted sessions, write/push/verify the numeric power artifact. Only adequately powered
+cells may then enter the separate 20-session evaluation sample.
+
+Verified repository state before this handoff began: registration/construction commit `f2cf6501`;
+synthetic response/power/inference commit `4e5aee9`; no predictive result exists.
+
+The older “PP next” handoff below is superseded by D31–D32 and remains historical only.
 
 ## RESET HANDOFF — EVENING 2026-08-19, READ THIS FIRST
 
