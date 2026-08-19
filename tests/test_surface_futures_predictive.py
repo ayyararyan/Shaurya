@@ -344,6 +344,23 @@ def test_complete_artifact_is_deterministic_and_keeps_quality_increment_separate
     assert "LOS_minus_LO_oos_r2" in first["headline"]
     assert "LOSQ_minus_LOS_oos_r2" in first["headline"]
     assert {row["source"] for row in first["model_scores"]} == {"future", "past", "same"}
+    paired = {
+        (row["source"], row["base_model"], row["enhanced_model"])
+        for row in first["paired_inference"]
+    }
+    expected_pairs = {
+        ("S", "L"),
+        ("S", "O"),
+        ("S", "LO"),
+        ("LO", "LOS"),
+        ("S", "SQ"),
+        ("LOS", "LOSQ"),
+    }
+    assert paired == {
+        (source, base, enhanced)
+        for source in ("future", "past", "same")
+        for base, enhanced in expected_pairs
+    }
     assert any(row.get("arm") == "surface_lag_300s_no_wrap" for row in first["lag_placebo"])
 
 

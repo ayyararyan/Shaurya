@@ -1577,7 +1577,18 @@ def build_scan_artifact(
         all_models.update({(source, label): model for label, model in models.items()})
 
     inference_rows: list[dict[str, Any]] = []
-    comparisons = (("LO", "LOS"), ("S", "SQ"), ("LOS", "LOSQ"))
+    # Preserve every frozen paired comparison.  The first three directly compare the
+    # surface-only model with the LOB/OFI alternatives; the final three measure the
+    # declared surface and quality increments.  A positive error improvement always
+    # favours ``enhanced_model`` over ``base_model``.
+    comparisons = (
+        ("S", "L"),
+        ("S", "O"),
+        ("S", "LO"),
+        ("LO", "LOS"),
+        ("S", "SQ"),
+        ("LOS", "LOSQ"),
+    )
     for _source, models in by_source.items():
         for base, enhanced in comparisons:
             inference_rows.append(
