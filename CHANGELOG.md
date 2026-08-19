@@ -5,6 +5,87 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### D34 / `H-SIG21-A1` — the primary episode window is bound to each cell's own `Z + h2`
+
+- **`docs/sig-claims/H-SIG21.md` is unchanged.** The registration body is immutable and its single
+  commit `f2cf650` is the registration clock required by `D29`/`SIG-19`; editing it in place would
+  make the file and the clock disagree. The change is recorded as `docs/sig-claims/H-SIG21-A1.md`,
+  a dated numbered amendment listed in the `docs/sig-claims/README.md` companion index.
+- **Pre-data, not post-hoc.** Committed and pushed before any confirmatory tape exists — zero of
+  the 25 required post-registration sessions (5 calibration + 20 evaluation) have been collected.
+- Approved by Aryan by voice 2026-08-19 ~17:40 IST. This is option (iii) of the §14 change-control
+  proposal in `docs/SIG-21-EXPLORATORY-RESPONSE-2026-08-19.md` §9; options (i), (ii) and (iv) are
+  recorded as considered and rejected, with reasons, in the amendment.
+- Added `episode_window_ns(gap_seconds=..., horizon_seconds=...)` to
+  `src/shaurya/signals/deep_book_response.py`, plus `FAMILY_MAXIMUM_EPISODE_WINDOW_NS` /
+  `..._SECONDS` so the old convention has an explicit name rather than being the unmarked default.
+- `build_cell_series` now forms the primary risk set under each cell's own window. Measured effect
+  at the registered 99.5% threshold: a `Z=0.5 s, h2=1 s` cell retains 260 non-overlapping episodes
+  under its own 1.5 s window against 2 under the 11 s family maximum — a factor of 130.
+- **The family-maximum path is kept, not deleted.** `build_response_family` now emits a fourth arm
+  `robustness_family_maximum_episodes` for all 384 cells, which reproduces the pre-amendment primary
+  arm exactly. It is never promoted to primary. Every family artifact carries
+  `episode_window_convention: "per_cell_z_plus_h2"`, `episode_window_amendment: "H-SIG21-A1"` and a
+  per-cell `episode_window_seconds`.
+- Estimand, estimator, HAC lag floor, the 384-cell family, thresholds, strata, negative controls
+  and power gates are all unchanged. Cross-horizon `N` comparisons stop being meaningful; that cost
+  is stated in the amendment rather than hidden.
+- **The matched-quiet-control definition is deliberately unchanged** and remains an open item.
+  Aryan deferred it: *"only tomorrow's limit order book activity will tell us what is a quiet
+  moment."* No replacement is proposed. `H-SIG21` §6's 11-second quiet window stands.
+- `select_primary_non_overlapping_episodes` was re-examined under the per-cell window and left
+  unchanged — it remains the identity on `cluster_event_episodes` output at every window size. Its
+  docstring now states that its zero exclusion count is a construction property and must never be
+  cited as evidence, and it records why the function is retained: it is not the identity on episode
+  sets assembled from more than one clustering call, which per-cell windows make more likely.
+
+### `X-DEEPBOOK-DAT20-02` — what ordinary deep-book activity says about the futures price
+
+- Added `scripts/deepbook_normal_activity_scan.py` and
+  `src/shaurya/signals/deep_book_normal_activity.py`. **Anomalies are dropped entirely**: no
+  thresholds, no rare-tail selection, no episodes, no anomaly detector. Ordinary state and flow of
+  the 200-level book at every depth200 publication, against the depth20 mid-price.
+- **This is not `H-SIG21`.** It shares two source tapes and the mid-price target convention and
+  nothing else. Every artifact carries `is_part_of_h_sig21: false` and `confirmatory_eligible:
+  false`. Refusals in code: a confirmatory or economic framing is rejected before a file is opened,
+  any tape outside the two pinned pre-registration SHA-256s is rejected, and a filtered or
+  truncated table is rejected.
+- 584 features per publication: quantity, order-count and average-order-size imbalance plus region
+  totals and per-region book shape, over five level-index regions (best / top 5 / top 20 / 21-50 /
+  51-200) **and** four price-distance regions (≤₹5 / ₹5-20 / ₹20-50 / >₹50), each differenced at
+  tick, 1 s and 5 s look-backs resolved as-of. Average order size is labelled a **proxy**
+  throughout: the feed carries no order IDs, so per-order identity and lifetime are unidentified.
+- Target: depth20 BBO mid-price return in futures ticks at 1, 5, 10, 30 and 60 s, last observation
+  at or before each endpoint, endpoints past coverage refused rather than resolved backwards.
+  Future, past-mirror and contemporaneous legs are carried separately and never merged.
+- **Central test — the nested region comparison.** best quote only → top 5 → top 20 → add 21-50 →
+  add 51-200, fitted with regularised linear models on a chronological 70% split with a 120 s
+  embargo band discarded from both sides, penalty selected on a held-out tail of the training set
+  only. **On this tape the region beyond level 20 adds nothing: 0 of 10 deep steps in the
+  level-index ladder are distinguishable from zero and half are negative.** One of ten deep steps
+  in the price-distance ladder fires, on four non-overlapping blocks, and is not believed.
+- A step counts as distinguishable only when a Newey-West statistic, a within-tape stationary block
+  bootstrap and a non-overlapping block estimate all agree in sign and all exceed 1.96. The naive
+  standard error is emitted alongside with `naive_inference_valid: false`.
+- **The past-return placebo fires 8 times out of 20 against a real 2 out of 20**; the univariate
+  tables agree (past 32.2%, future 29.3%, contemporaneous 39.1%, against a 5% null). The apparatus
+  predicts the past about four times as often as the future, so the raw arms are measuring drift.
+  Raw scoring inflates the 60-second out-of-sample number from 0.05 to 0.40 purely from the fall.
+- A gradient-boosted stump ensemble is included as a **yardstick only** (`D11(c)` / `SIG-18`
+  logic), labelled never a strategy candidate. It ties the linear fits and is worse at two of five
+  horizons, so the near-nothing is not the linear form being too restrictive.
+- Required-sample figures are emitted per step: one full trading session settles the 1 s and 10 s
+  questions; 60 s needs 48-107 sessions.
+- Four defects found by running it, three of them checks that could not have failed whatever the
+  data said, all fixed with regression tests: the raw and drift-adjusted columns collapsed onto
+  each other after adjustment; the contemporaneous leg was identically 0.0 because both ends
+  resolved to the same publication; the side-label control mirrored the whole sample, which a
+  refit linear model relearns exactly; and the ridge penalty selected the largest value in its grid
+  in every fit, a censored search rather than a choice.
+- Report: `docs/DEEPBOOK-NORMAL-ACTIVITY-2026-08-19.md`. **Nothing in it is a result and nothing
+  predictive or economic is claimed:** 22 minutes, one contract, one mid-afternoon half-hour, one
+  price direction, zero between-session variation.
+
 ### SIG-21 — exploratory future mid-price response scan `X-SIG21-DAT20-01`
 
 - Added `scripts/sig21_exploratory_response_scan.py` and

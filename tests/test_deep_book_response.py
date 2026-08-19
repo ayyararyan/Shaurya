@@ -7,6 +7,7 @@ import pytest
 from shaurya.data.depth_thinning_analysis import DEPTH20, BookState
 from shaurya.signals.deep_book_response import (
     EPISODE_WINDOW_NS,
+    FAMILY_MAXIMUM_EPISODE_WINDOW_NS,
     ControlMatchFailure,
     EpisodeEvent,
     EventBurst,
@@ -15,6 +16,7 @@ from shaurya.signals.deep_book_response import (
     QuietControlCandidate,
     build_depth20_response_labels,
     cluster_event_episodes,
+    episode_window_ns,
     match_quiet_control,
     select_primary_non_overlapping_episodes,
 )
@@ -293,3 +295,113 @@ def test_matching_input_schema_contains_only_registered_pre_event_covariates() -
         "realised_volatility",
     }
     assert not ({"future", "outcome", "response", "label"} & names)
+
+
+# ----------------------------------------------------------------------------------------------
+# D34 / H-SIG21-A1 — the primary episode window is each cell's own Z + h2
+# ----------------------------------------------------------------------------------------------
+
+
+def test_episode_window_is_derived_from_the_cells_own_gap_and_horizon() -> None:
+    assert episode_window_ns(gap_seconds=0.5, horizon_seconds=1) == 1_500_000_000
+    assert episode_window_ns(gap_seconds=1.0, horizon_seconds=1) == 2 * SECOND
+    assert episode_window_ns(gap_seconds=0.5, horizon_seconds=5) == 5_500_000_000
+    assert episode_window_ns(gap_seconds=1.0, horizon_seconds=10) == 11 * SECOND
+
+
+def test_the_longest_registered_cell_reproduces_the_family_maximum_window() -> None:
+    """The amendment changes nothing for the cell the family maximum was derived from."""
+
+    longest = episode_window_ns(gap_seconds=1.0, horizon_seconds=10)
+    assert longest == FAMILY_MAXIMUM_EPISODE_WINDOW_NS == EPISODE_WINDOW_NS
+
+
+@pytest.mark.parametrize(
+    ("gap_seconds", "horizon_seconds"),
+    [(-0.5, 1), (0.5, 0), (0.5, -1)],
+)
+def test_episode_window_refuses_an_impossible_cell(
+    gap_seconds: float, horizon_seconds: int
+) -> None:
+    with pytest.raises(ValueError):
+        episode_window_ns(gap_seconds=gap_seconds, horizon_seconds=horizon_seconds)
+
+
+def test_a_short_horizon_cell_retains_far_more_episodes_than_the_family_maximum() -> None:
+    """The measured DAT-20 distortion, reproduced deterministically on a synthetic burst train.
+
+    Bursts every two seconds for two minutes.  A ``Z = 0.5 s, h2 = 1 s`` cell needs 1.5 s of
+    exclusivity, so every burst is its own episode.  Under the 11 s family maximum the whole
+    train collapses into one episode, because each burst lands inside its predecessor's window.
+    """
+
+    events = [EpisodeEvent(index * 2 * SECOND, str(index)) for index in range(60)]
+
+    own_window = episode_window_ns(gap_seconds=0.5, horizon_seconds=1)
+    own = select_primary_non_overlapping_episodes(
+        cluster_event_episodes(events, window_ns=own_window)
+    ).selected
+    family_maximum = select_primary_non_overlapping_episodes(
+        cluster_event_episodes(events, window_ns=FAMILY_MAXIMUM_EPISODE_WINDOW_NS)
+    ).selected
+
+    assert len(own) == 60
+    assert len(family_maximum) == 1
+    assert len(own) == 60 * len(family_maximum)
+
+
+def test_the_family_maximum_arm_still_reproduces_the_old_numbers() -> None:
+    """Passing the family maximum explicitly is byte-identical to the pre-amendment default."""
+
+    events = [EpisodeEvent(index * 3 * SECOND, str(index)) for index in range(40)]
+
+    before = select_primary_non_overlapping_episodes(cluster_event_episodes(events)).selected
+    after = select_primary_non_overlapping_episodes(
+        cluster_event_episodes(events, window_ns=FAMILY_MAXIMUM_EPISODE_WINDOW_NS)
+    ).selected
+
+    assert before == after
+
+
+def test_selection_is_the_identity_on_clustered_output() -> None:
+    """`overlap_excluded` reads zero *by construction* at every window, not by measurement.
+
+    This is the honest statement recorded in `H-SIG21-A1`: the diagnostic cannot detect anything
+    on a clustered episode set, so a reader must not treat its zero as evidence.
+    """
+
+    events = [
+        EpisodeEvent(0, "a"),
+        EpisodeEvent(SECOND, "b"),
+        EpisodeEvent(4 * SECOND, "c"),
+        EpisodeEvent(30 * SECOND, "d"),
+    ]
+
+    for window_ns in (
+        episode_window_ns(gap_seconds=0.5, horizon_seconds=1),
+        episode_window_ns(gap_seconds=0.5, horizon_seconds=5),
+        FAMILY_MAXIMUM_EPISODE_WINDOW_NS,
+    ):
+        episodes = cluster_event_episodes(events, window_ns=window_ns)
+        selection = select_primary_non_overlapping_episodes(episodes)
+        assert selection.selected == episodes
+        assert selection.overlap_excluded == ()
+
+
+def test_selection_excludes_overlap_from_an_externally_assembled_episode_set() -> None:
+    """The reason the function is kept: a union of per-cell episode sets genuinely overlaps."""
+
+    events = [EpisodeEvent(0, "a"), EpisodeEvent(3 * SECOND, "b")]
+    short = cluster_event_episodes(
+        events, window_ns=episode_window_ns(gap_seconds=0.5, horizon_seconds=1)
+    )
+    long = cluster_event_episodes(
+        events, window_ns=episode_window_ns(gap_seconds=0.5, horizon_seconds=5)
+    )
+
+    selection = select_primary_non_overlapping_episodes([*short, *long])
+
+    assert len(short) == 2
+    assert len(long) == 1
+    assert len(selection.overlap_excluded) > 0
+    assert len(selection.selected) < len(short) + len(long)

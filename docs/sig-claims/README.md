@@ -22,6 +22,23 @@ gates* (instrumentation, labels, kill tests). A gate says "measure this before a
 justified"; a claim says "this proposition is true or false about the market". Claims cite
 the gates they depend on.
 
+## Registered execution hypotheses and their amendments
+
+`H-*` files are execution registrations: a complete, frozen test protocol committed and pushed
+*before* outcomes are inspected, with the pushed commit acting as the registration clock.
+
+| Registration | File | Registering commit | Status |
+|---|---|---|---|
+| `H-SIG21` — deep-book anomaly to later NIFTY-futures price response | [`H-SIG21.md`](H-SIG21.md) | `f2cf650`, pushed 2026-08-19T15:00:42+05:30 | Active; outcome gate closed |
+
+**A registration body is never edited.** Editing it in place would make the file and its
+registration clock disagree and would destroy the audit trail. Meaning-changing alterations are
+recorded as dated, numbered amendment files beside it and listed here.
+
+| Amendment | Amends | Approved | Pre-data? | Summary |
+|---|---|---|---|---|
+| [`H-SIG21-A1.md`](H-SIG21-A1.md) (`D34`) | `H-SIG21` §6 | Aryan, 2026-08-19 ~17:40 IST | **Yes** — zero of the 25 required post-registration sessions collected | The primary non-overlapping episode window is bound to each cell's own `Z + h2` instead of the 11 s family maximum. The family-maximum window is retained as a declared robustness arm. The matched-quiet-control definition is deliberately **not** changed and remains open. |
+
 ## Method
 
 **`METHOD.md` is binding on all of SIG under `D29`**, not just this ledger. It defines the claim →

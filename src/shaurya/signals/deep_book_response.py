@@ -22,6 +22,14 @@ RESPONSE_GAPS_SECONDS = (0.5, 1.0)
 RESPONSE_HORIZONS_SECONDS = (1, 5, 10)
 EPISODE_WINDOW_SECONDS = 11
 EPISODE_WINDOW_NS = EPISODE_WINDOW_SECONDS * NANOSECONDS_PER_SECOND
+
+# `D34` / `H-SIG21-A1`: the family-maximum window is no longer the primary convention.  It is
+# retained under an explicit name because the amendment keeps it as a declared robustness arm and
+# because the matched-quiet-control definition still uses 11 s unchanged (that decision is open and
+# deferred).  Reading `EPISODE_WINDOW_NS` as "the primary risk-set window" is now wrong; read
+# `episode_window_ns(...)` instead.
+FAMILY_MAXIMUM_EPISODE_WINDOW_SECONDS = EPISODE_WINDOW_SECONDS
+FAMILY_MAXIMUM_EPISODE_WINDOW_NS = EPISODE_WINDOW_NS
 INVALID_RESPONSE_QUALITY_FLAGS = frozenset(
     {
         "sequence_gap",
@@ -251,12 +259,45 @@ class EventEpisode:
         return tuple(event_id for burst in self.bursts for event_id in burst.event_ids)
 
 
+def episode_window_ns(*, gap_seconds: float, horizon_seconds: int) -> int:
+    """The exclusivity window one registered cell needs: its own ``Z + h2``, in nanoseconds.
+
+    ``H-SIG21`` §6 as originally registered bound *every* cell of the 384-cell family to the
+    family-maximum endpoint ``Z_max + h2_max = 11 s``.  Amendment ``H-SIG21-A1`` (``D34``,
+    approved by Aryan 2026-08-19, committed before any confirmatory tape existed) replaces that
+    with each cell's own endpoint.  A cell that predicts one second ahead from a half-second gap
+    only needs 1.5 s of exclusivity; charging it 11 s discards risk-set support it never needed.
+
+    On the retained ``DAT-20`` tapes the measured difference at the registered 99.5% threshold is
+    260 non-overlapping episodes under a cell's own 1.5 s window against 2 under the 11 s family
+    maximum — a factor of 130 between two cells of the same registered family.
+
+    The non-overlapping *principle* is unchanged: episodes remain genuinely non-overlapping for
+    the predictive window they are actually used to estimate.  Only the window changes.
+    """
+
+    if gap_seconds < 0:
+        raise ValueError("gap_seconds must be non-negative")
+    if horizon_seconds <= 0:
+        raise ValueError("horizon_seconds must be positive")
+    window = _seconds_to_ns(gap_seconds) + _seconds_to_ns(horizon_seconds)
+    if window <= 0:
+        raise ValueError("the derived episode window must be positive")
+    return window
+
+
 def cluster_event_episodes(
     events: Sequence[EpisodeEvent],
     *,
     window_ns: int = EPISODE_WINDOW_NS,
 ) -> tuple[EventEpisode, ...]:
-    """Collapse exact-timestamp bursts, then connect bursts with overlapping windows."""
+    """Collapse exact-timestamp bursts, then connect bursts with overlapping windows.
+
+    ``window_ns`` defaults to the family maximum for backward compatibility, but the registered
+    primary convention since ``H-SIG21-A1`` (``D34``) is each cell's own ``Z + h2``: callers
+    forming a primary risk set must pass ``episode_window_ns(gap_seconds=..., horizon_seconds=...)``
+    and the family-maximum default is a declared robustness comparison, not the primary.
+    """
 
     if window_ns <= 0:
         raise ValueError("window_ns must be positive")
@@ -292,7 +333,23 @@ class PrimaryEpisodeSelection:
 def select_primary_non_overlapping_episodes(
     episodes: Sequence[EventEpisode],
 ) -> PrimaryEpisodeSelection:
-    """Greedily retain chronologically first episodes with no shared predictive endpoint."""
+    """Greedily retain chronologically first episodes with no shared predictive endpoint.
+
+    **This is the identity on :func:`cluster_event_episodes` output, at every window size.**  The
+    clustering step starts a new episode only when a burst begins strictly after the running
+    episode's end, so consecutive clustered episodes never share an endpoint and nothing here can
+    be excluded.  ``overlap_excluded`` therefore reads zero *by construction*, not by measurement,
+    and must never be cited as evidence that overlap exclusion was checked and found unnecessary.
+
+    ``H-SIG21-A1`` (``D34``) re-examined this under the new per-cell window and found the property
+    unchanged: shrinking the window shrinks each episode's end but preserves the strict inequality,
+    so the composition is still the identity.  The function is deliberately kept rather than
+    removed, because it is the guard for episode sets that did *not* come from a single
+    ``cluster_event_episodes`` call — a union of per-cell episode sets, a set rebuilt from a stored
+    artifact, or a set assembled by any future caller — where episodes genuinely can overlap and
+    the exclusion does real work.  ``test_selection_is_the_identity_on_clustered_output`` and
+    ``test_selection_excludes_overlap_from_an_externally_assembled_episode_set`` pin both halves.
+    """
 
     selected: list[EventEpisode] = []
     excluded: list[EventEpisode] = []

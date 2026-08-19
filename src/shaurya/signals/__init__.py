@@ -40,6 +40,8 @@ from .deep_book_inference import (
 from .deep_book_response import (
     EPISODE_WINDOW_NS,
     EPISODE_WINDOW_SECONDS,
+    FAMILY_MAXIMUM_EPISODE_WINDOW_NS,
+    FAMILY_MAXIMUM_EPISODE_WINDOW_SECONDS,
     RESPONSE_GAPS_SECONDS,
     RESPONSE_HORIZONS_SECONDS,
     ControlMatch,
@@ -56,6 +58,7 @@ from .deep_book_response import (
     ResponseLabelResult,
     build_depth20_response_labels,
     cluster_event_episodes,
+    episode_window_ns,
     match_quiet_control,
     select_primary_non_overlapping_episodes,
 )
@@ -93,6 +96,8 @@ __all__ = [
     "write_sig19_jsonl_once",
     "EPISODE_WINDOW_NS",
     "EPISODE_WINDOW_SECONDS",
+    "FAMILY_MAXIMUM_EPISODE_WINDOW_NS",
+    "FAMILY_MAXIMUM_EPISODE_WINDOW_SECONDS",
     "MAX_MEAN_MDE_TICKS",
     "MAX_MOVE_PROBABILITY_MDE",
     "REGISTERED_FAMILY_SIZE",
@@ -114,6 +119,7 @@ __all__ = [
     "ResponseLabelResult",
     "build_depth20_response_labels",
     "cluster_event_episodes",
+    "episode_window_ns",
     "match_quiet_control",
     "select_primary_non_overlapping_episodes",
 ]

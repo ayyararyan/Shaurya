@@ -60,6 +60,7 @@ from shaurya.signals.deep_book_inference import (
 from shaurya.signals.deep_book_response import (
     EPISODE_WINDOW_NS,
     EPISODE_WINDOW_SECONDS,
+    FAMILY_MAXIMUM_EPISODE_WINDOW_NS,
     NANOSECONDS_PER_SECOND,
     ControlMatchFailure,
     EpisodeEvent,
@@ -68,6 +69,7 @@ from shaurya.signals.deep_book_response import (
     build_depth20_response_labels,
     cluster_event_episodes,
     depth20_midpoint,
+    episode_window_ns,
     match_quiet_control,
     select_primary_non_overlapping_episodes,
 )
@@ -1173,6 +1175,9 @@ class CellSeries:
     event_sessions: tuple[str, ...]
     episode_values: tuple[float, ...]
     episode_sessions: tuple[str, ...]
+    episode_window_seconds: float
+    family_maximum_episode_values: tuple[float, ...]
+    family_maximum_episode_sessions: tuple[str, ...]
     peak_values: tuple[float, ...]
     reversion_values: tuple[float, ...]
     contemporaneous_values: tuple[float, ...]
@@ -1180,7 +1185,7 @@ class CellSeries:
 
 
 def _empty_series() -> CellSeries:
-    return CellSeries((), (), (), (), (), (), (), (), 0)
+    return CellSeries((), (), (), (), (), 0.0, (), (), (), (), (), 0)
 
 
 def build_cell_series(
@@ -1188,15 +1193,26 @@ def build_cell_series(
     scans: Sequence[TapeScan],
     index: InSampleMagnitudeIndex,
 ) -> CellSeries:
-    """Collect one registered cell's response series in both the primary and secondary risk sets.
+    """Collect one registered cell's response series in every registered risk set.
 
-    The primary risk set is the ``H-SIG21`` §6 non-overlapping 11 s episode set: retained bursts
-    are clustered, non-overlapping episodes are selected, and each selected episode contributes
-    one value, the mean response of its member events.  The secondary risk set is every retained
-    event, which §6 permits only alongside the primary and only with dependence-robust inference.
+    The primary risk set is the ``H-SIG21`` §6 non-overlapping episode set as amended by
+    ``H-SIG21-A1`` (``D34``): retained bursts are clustered under **this cell's own** ``Z + h2``
+    window, non-overlapping episodes are selected, and each selected episode contributes one
+    value, the mean response of its member events.
+
+    The same episodes are built a second time under the original family-maximum 11 s window and
+    carried as ``family_maximum_episode_values``.  That arm is the declared robustness comparison
+    ``H-SIG21-A1`` requires: it is not deleted, it is not primary, and it reproduces every number
+    the pre-amendment primary arm produced.
+
+    The secondary risk set is every retained event, which §6 permits only alongside the primary
+    and only with dependence-robust inference.
     """
 
     key = (cell.gap_seconds, cell.horizon_seconds)
+    window_ns = episode_window_ns(
+        gap_seconds=cell.gap_seconds, horizon_seconds=cell.horizon_seconds
+    )
     event_values: list[float] = []
     event_timestamps: list[int] = []
     event_sessions: list[str] = []
@@ -1205,6 +1221,8 @@ def build_cell_series(
     contemporaneous: list[float] = []
     episode_values: list[float] = []
     episode_sessions: list[str] = []
+    family_maximum_values: list[float] = []
+    family_maximum_sessions: list[str] = []
     bursts: set[tuple[int, int]] = set()
     for scan in scans:
         by_ts: defaultdict[int, list[float]] = defaultdict(list)
@@ -1236,18 +1254,21 @@ def build_cell_series(
         if not by_ts:
             continue
         stamps = sorted(by_ts)
-        episodes = cluster_event_episodes(
-            [EpisodeEvent(stamp, str(stamp)) for stamp in stamps]
-        )
-        for episode in select_primary_non_overlapping_episodes(episodes).selected:
-            members = [
-                value
-                for burst in episode.bursts
-                for value in by_ts.get(burst.receive_ts_ns, ())
-            ]
-            if members:
-                episode_values.append(sum(members) / len(members))
-                episode_sessions.append(scan.run_id)
+        events = [EpisodeEvent(stamp, str(stamp)) for stamp in stamps]
+        for target_window_ns, values, sessions in (
+            (window_ns, episode_values, episode_sessions),
+            (FAMILY_MAXIMUM_EPISODE_WINDOW_NS, family_maximum_values, family_maximum_sessions),
+        ):
+            episodes = cluster_event_episodes(events, window_ns=target_window_ns)
+            for episode in select_primary_non_overlapping_episodes(episodes).selected:
+                members = [
+                    value
+                    for burst in episode.bursts
+                    for value in by_ts.get(burst.receive_ts_ns, ())
+                ]
+                if members:
+                    values.append(sum(members) / len(members))
+                    sessions.append(scan.run_id)
     order = sorted(range(len(event_values)), key=lambda position: event_timestamps[position])
     return CellSeries(
         event_values=tuple(event_values[position] for position in order),
@@ -1255,6 +1276,9 @@ def build_cell_series(
         event_sessions=tuple(event_sessions[position] for position in order),
         episode_values=tuple(episode_values),
         episode_sessions=tuple(episode_sessions),
+        episode_window_seconds=window_ns / NANOSECONDS_PER_SECOND,
+        family_maximum_episode_values=tuple(family_maximum_values),
+        family_maximum_episode_sessions=tuple(family_maximum_sessions),
         peak_values=tuple(peaks[position] for position in order),
         reversion_values=tuple(reversions),
         contemporaneous_values=tuple(contemporaneous[position] for position in order),
@@ -1508,15 +1532,21 @@ def build_response_family(
 ) -> dict[str, Any]:
     """The complete registered 384-cell family, reported whether or not a cell is interesting.
 
-    Three arms are reported side by side and never silently substituted for one another:
+    Four arms are reported side by side and never silently substituted for one another:
 
     ``primary_non_overlapping_episodes``
-        the ``H-SIG21`` §6 primary risk set, one value per selected non-overlapping 11 s episode;
+        the ``H-SIG21`` §6 primary risk set as amended by ``H-SIG21-A1`` (``D34``), one value per
+        selected non-overlapping episode formed under **each cell's own** ``Z + h2`` window;
+    ``robustness_family_maximum_episodes``
+        the same risk set formed under the original family-maximum 11 s window.  This is the
+        declared robustness comparison the amendment requires and reproduces the pre-amendment
+        primary arm exactly.  It is never promoted to primary;
     ``secondary_all_event_overlap_robust``
         the §6-permitted supplement over every retained event, with HAC/Newey-West inference;
     ``event_minus_matched_control``
         the registered primary *estimand*, which exists only where a quiet control could be
-        matched at all.
+        matched at all.  Its quiet window is **unchanged at 11 s**: ``H-SIG21-A1`` deliberately
+        leaves the matched-quiet-control definition alone because Aryan deferred that decision.
 
     Romano-Wolf step-down is applied over the complete family separately for each arm.
     """
@@ -1537,6 +1567,7 @@ def build_response_family(
 
     arms = (
         "primary_non_overlapping_episodes",
+        "robustness_family_maximum_episodes",
         "secondary_all_event_overlap_robust",
         "event_minus_matched_control",
     )
@@ -1560,6 +1591,12 @@ def build_response_family(
                 series.episode_sessions,
                 REGISTERED_OVERLAP_LAG,
                 len(series.episode_values),
+            ),
+            "robustness_family_maximum_episodes": (
+                series.family_maximum_episode_values,
+                series.family_maximum_episode_sessions,
+                REGISTERED_OVERLAP_LAG,
+                len(series.family_maximum_episode_values),
             ),
             "secondary_all_event_overlap_robust": (
                 series.event_values,
@@ -1620,6 +1657,8 @@ def build_response_family(
             "threshold_provenance": THRESHOLD_PROVENANCE,
             "gap_seconds": cell.gap_seconds,
             "horizon_seconds": cell.horizon_seconds,
+            "episode_window_seconds": series.episode_window_seconds,
+            "family_maximum_episode_window_seconds": float(EPISODE_WINDOW_SECONDS),
             "family_size": REGISTERED_FAMILY_SIZE,
             "object_category": "estimated",
             "contemporaneous_path_ticks": _summarise_ticks(series.contemporaneous_values),
@@ -1629,6 +1668,12 @@ def build_response_family(
             "matched_control_quiet_candidates": control_set.quiet_candidates,
         }
         row["arms"] = {
+            "robustness_family_maximum_episodes": _arm_payload(
+                estimates["robustness_family_maximum_episodes"][cell.cell_id],
+                _summarise_ticks(series.family_maximum_episode_values),
+                n_eff_deterministic=float(len(series.family_maximum_episode_values)),
+                n_eff_category="deterministically_derived",
+            ),
             "primary_non_overlapping_episodes": _arm_payload(
                 estimates["primary_non_overlapping_episodes"][cell.cell_id],
                 _summarise_ticks(series.episode_values),
@@ -1692,8 +1737,13 @@ def build_response_family(
             "The 95th percentile of the bootstrap max-|t| distribution over all 384 cells. A "
             "per-cell |t| of 1.96 is not enough once the family is paid for; this is the bar."
         ),
+        "episode_window_convention": "per_cell_z_plus_h2",
+        "episode_window_amendment": "H-SIG21-A1",
         "arm_note": (
-            "The registered primary risk set is the non-overlapping 11 s episode set. The "
+            "The registered primary risk set is the non-overlapping episode set formed under "
+            "each cell's own Z + h2 window (H-SIG21-A1 / D34). The family-maximum 11 s arm is "
+            "retained beside it as the declared robustness comparison and reproduces the "
+            "pre-amendment primary arm exactly; it is never promoted to primary. The "
             "all-event arm is the §6-permitted supplement and is reported alongside it, never in "
             "place of it. The event-minus-matched-control arm is the registered estimand and "
             "exists only where a quiet control could be matched."

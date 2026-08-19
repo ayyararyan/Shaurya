@@ -71,8 +71,11 @@ from shaurya.signals.deep_book_inference import (
     canonical_family_manifest,
 )
 from shaurya.signals.deep_book_response import (
+    EpisodeEvent,
     build_depth20_response_labels,
+    cluster_event_episodes,
     depth20_midpoint,
+    select_primary_non_overlapping_episodes,
 )
 
 SECOND = 1_000_000_000
@@ -634,7 +637,7 @@ def test_cell_series_collapses_overlapping_bursts_into_one_episode() -> None:
     series = build_cell_series(cell, [scan], index)
     assert series.distinct_bursts == 5
     assert len(series.event_values) == 5
-    assert len(series.episode_values) == 1  # all five windows overlap inside 11 s
+    assert len(series.episode_values) == 1  # 1 s apart, inside this cell's 1.5 s window
 
 
 def test_cell_series_separates_bursts_spaced_beyond_the_window() -> None:
@@ -647,7 +650,56 @@ def test_cell_series_separates_bursts_spaced_beyond_the_window() -> None:
     assert len(series.episode_values) == 4
 
 
-def test_family_emits_all_384_cells_with_all_three_arms() -> None:
+def test_cell_series_uses_this_cells_own_window_not_the_family_maximum() -> None:
+    """`D34` / `H-SIG21-A1` on the shape the DAT-20 tapes actually showed.
+
+    Bursts every three seconds.  The `Z = 0.5 s, h2 = 1 s` cell needs 1.5 s of exclusivity, so
+    every burst is its own episode.  Under the old family-maximum 11 s convention the whole train
+    collapsed to one, which is the distortion the amendment removes.  Both numbers are emitted.
+    """
+
+    states = ramp_states(400, drift=0.02)
+    candidates = [candidate(START_NS + (20 + index * 3) * SECOND) for index in range(10)]
+    scan = build_fixture_scan(candidates, states)
+    index = build_in_sample_magnitude_index(candidates)
+
+    short = build_cell_series(
+        FamilyCell(AtomicEventType.ADDITION, "bid", "gt_50", 0.995, 0.5, 1), [scan], index
+    )
+    assert short.episode_window_seconds == pytest.approx(1.5)
+    assert len(short.episode_values) == 10
+    assert len(short.family_maximum_episode_values) == 1
+
+    longest = build_cell_series(
+        FamilyCell(AtomicEventType.ADDITION, "bid", "gt_50", 0.995, 1.0, 10), [scan], index
+    )
+    assert longest.episode_window_seconds == pytest.approx(11.0)
+    # The cell the family maximum was derived from is untouched by the amendment.
+    assert longest.episode_values == longest.family_maximum_episode_values
+
+
+def test_the_family_maximum_arm_reproduces_the_pre_amendment_primary_arm() -> None:
+    """The robustness arm is not decoration: it equals the old primary arm cell for cell."""
+
+    states = ramp_states(400, drift=0.02)
+    candidates = [candidate(START_NS + (20 + index * 3) * SECOND) for index in range(10)]
+    scan = build_fixture_scan(candidates, states)
+    index = build_in_sample_magnitude_index(candidates)
+    cell = FamilyCell(AtomicEventType.ADDITION, "bid", "gt_50", 0.995, 0.5, 1)
+
+    series = build_cell_series(cell, [scan], index)
+    stamps = sorted({event.receive_ts_ns for event in scan.candidates})
+    # `cluster_event_episodes` with no `window_ns` is exactly the pre-amendment call site.
+    pre_amendment = select_primary_non_overlapping_episodes(
+        cluster_event_episodes([EpisodeEvent(stamp, str(stamp)) for stamp in stamps])
+    ).selected
+
+    assert len(pre_amendment) == 1
+    assert len(series.family_maximum_episode_values) == len(pre_amendment)
+    assert len(series.episode_values) == 10
+
+
+def test_family_emits_all_384_cells_with_all_four_arms() -> None:
     states = ramp_states(300, drift=0.05)
     candidates = [
         candidate(
@@ -668,9 +720,12 @@ def test_family_emits_all_384_cells_with_all_three_arms() -> None:
     assert family["confirmatory_eligible"] is False
     assert set(family["arms"]) == {
         "primary_non_overlapping_episodes",
+        "robustness_family_maximum_episodes",
         "secondary_all_event_overlap_robust",
         "event_minus_matched_control",
     }
+    assert family["episode_window_convention"] == "per_cell_z_plus_h2"
+    assert family["episode_window_amendment"] == "H-SIG21-A1"
     for cell in family["cells"]:
         assert set(cell["arms"]) == set(family["arms"])
         for arm in family["arms"]:
@@ -811,7 +866,7 @@ def test_exploratory_artifact_assembles_every_required_section() -> None:
     }
     assert artifact["protocol"]["exploratory_scan_id"] == EXPLORATORY_SCAN_ID
     rows = family_rows(artifact)
-    assert len(rows) == REGISTERED_FAMILY_SIZE * 3
+    assert len(rows) == REGISTERED_FAMILY_SIZE * 4
     assert all(row["confirmatory_eligible"] is False for row in rows)
     assert all(row["threshold_provenance"] == THRESHOLD_PROVENANCE for row in rows)
 
