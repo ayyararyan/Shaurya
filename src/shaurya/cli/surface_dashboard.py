@@ -49,7 +49,15 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--expiry", action="append", required=True)
     parser.add_argument("--fit-interval-seconds", type=float, default=5.0)
-    parser.add_argument("--surface-staleness-seconds", type=float, default=60.0)
+    parser.add_argument(
+        "--surface-staleness-seconds",
+        type=float,
+        default=480.0,
+        help="SUR-07 threshold. Surface age is the age of the *oldest* contributing "
+        "quote, so on a wide chain it measures wing sparsity: the 2026-08-19 live run "
+        "over 452 instruments measured p50 200 s and p95 421 s. Supply a smaller value "
+        "for a narrow, uniformly liquid universe.",
+    )
     parser.add_argument("--fit-stale-seconds", type=float, default=20.0)
     parser.add_argument(
         "--post-stream-seconds",

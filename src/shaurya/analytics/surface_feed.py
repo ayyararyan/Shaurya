@@ -53,13 +53,22 @@ class StalenessPolicy:
     milliseconds is healthy rather than faulty. The dead threshold is set where a liquid
     chain has demonstrably stopped: two seconds is more than 1.75x the single-instrument p95
     gap, so on a universe of dozens of instruments it cannot be produced by ordinary gaps.
+    The 2026-08-19 live run measured aggregate feed age at p50 4.7 ms and p95 30.8 ms across
+    452 instruments, so the 1 s / 2 s thresholds sit far above ordinary variation.
+
+    ``surface_staleness_seconds`` is a different measurement and is calibrated separately:
+    `ESSVISurface.surface_timestamp` is the *oldest* contributing quote, so on a wide chain
+    surface age tracks how sparsely the deepest wing quotes, not how current the fit is. The
+    same live run measured it at p50 200 s and p95 421 s. `SUR-07` leaves this threshold to
+    the consuming strategy; this dashboard supplies one above the measured p95 and reports
+    fit age separately as the "is this picture current" signal.
     """
 
     feed_slow_seconds: float = 1.0
     feed_dead_seconds: float = 2.0
     instrument_slow_seconds: float = 3.0
     instrument_dead_seconds: float = 6.0
-    surface_staleness_seconds: float = 60.0
+    surface_staleness_seconds: float = 480.0
     fit_stale_seconds: float = 20.0
     rate_window_seconds: float = 10.0
 
