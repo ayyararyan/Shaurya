@@ -5,6 +5,43 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### SIG-21 — outcome-blind construction replay and the basic 32-cell support grid
+
+- Added `scripts/sig21_construction_replay.py` and
+  `src/shaurya/signals/deep_book_construction_grid.py`, which replay the already-registered
+  `H-SIG21` construction detector over retained depth200 futures tape and emit the complete
+  construction support grid. The registered detector's semantics are reused unchanged.
+- The registered 384-cell family is decomposed explicitly: only `8 atomic types x 2 sides x
+  2 distance bands = 32` cells are determined by construction; the threshold, `Z` and `h2` axes
+  multiply the same support and are not measurable outcome-blind. The artifact always emits all
+  32 cells, including empty ones.
+- Replayed both retained `DAT-20` NIFTY front-month futures tapes (21.76 minutes, security
+  `58072`). All 32 construction cells are populated: 40,724 candidates in 5,325 bursts, 99.82% of
+  transitions valid. The registered 11-second non-overlapping episode rule is the binding
+  constraint on the primary risk set — the largest inter-burst gap is 0.807 s, so both tapes
+  collapse to 2 episodes and the risk set is capped at `floor(22,500/11) = 2,045` per session.
+- Added an outcome-blind window-edge diagnostic: 41.4% of candidates lie within Rs 1 of the
+  outermost occupied price on their own side (76.9% of ask removals, 72.5% of ask additions),
+  so the four largest cells are substantially the 200-level window's rim shifting rather than
+  interior far-book activity, while the quantity and order-count families are genuinely interior.
+  The registered §3 boundary-churn rule is applied exactly as written and no candidate was
+  reclassified; this is reported so the grid is read correctly.
+- The past-only baseline layer is reported, not fabricated: every registered key is
+  `baseline_insufficient` because no completed prior session exists, no candidate was scored and
+  no threshold was estimated. Session-scale projections are labelled scenario-based with their
+  linear-rate assumption and mid-morning-window bias stated.
+- `H-SIG21` §1.2 is enforced in code, not only in documentation: the entry point refuses any
+  outcome-bearing request before opening a tape, records `protocol_id`, `sample_role`,
+  `outcome_join_allowed=false` and each input tape's SHA-256 (cross-checked against the capture
+  manifest), and verifies the instrument is a NIFTY future. No response, return, midpoint,
+  markout or label is computed or read anywhere.
+- Added `tests/test_sig21_construction_replay.py` (49 tests) covering deterministic fixture
+  aggregation, empty-cell emission, protocol refusal, SHA recording and manifest agreement, and a
+  regression that replaces `build_depth20_response_labels` with a raising stub to prove it is
+  never called. The full Python suite passes 255 tests; Ruff and strict mypy remain clean.
+- Report: `docs/SIG-21-CONSTRUCTION-REPLAY-2026-08-19.md`. Artifacts:
+  `artifacts/sig21-construction-replay/`. The immutable `H-SIG21` registration is unchanged.
+
 ### Depth-tier scope by instrument class (D33)
 
 - Bound the depth tier to the instrument class: the 200-level endpoint is restricted to futures and

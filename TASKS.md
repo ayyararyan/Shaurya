@@ -317,7 +317,7 @@ agreed; the retention decision it depends on is open at `DAT-09`.
 | SIG-17 | **Configuration-level economic-significance gate (`D21`, `D30`).** Expected maker spread capture across the joint quote set must clear adverse selection, side-specific taxes, fees, passive-flattening loss, portfolio-risk charge and residual futures-breach cost under `EXE-09`, reported per unit of peak margin. The taker half-spread hurdle is inapplicable because Shaurya does not cross. No single quote is promoted independently of the configuration that carries its inventory | New | SIG-15, EXE-09, BK-14/H1 | Not started |
 | SIG-18 | **Coverage completeness test.** Measure the out-of-sample gap between a model on the raw level-by-level book state and a model on the engineered feature set; the gap is how much information the features leave on the table. Plus residual diagnostics against time-of-day, regime and raw book slices. An unexplained gap opens a ticket for a missing feature rather than being absorbed | New | SIG-01, SIG-15 | **Agreed (D11)** — not started; unblocked by D12, golden-set curation still sized at `DAT-09` |
 | SIG-19 | **Trial log.** Every configuration tested is recorded, and performance is reported as a distribution (combinatorially purged CV, deflated Sharpe) rather than a single out-of-sample number | New | SIG-13 | Not started |
-| SIG-21 | **Deep-book anomaly → future-price response (`H-SIG21`).** Test whether rare disturbances in the normally quiet far depth200 ladder forecast later NIFTY-futures mid-price movement. The event definition must be **price-keyed, causal and pre-registered before outcomes are inspected**: additions, removals, displayed-liquidity relocation **proxies**, displayed-quantity shocks and order-count shocks are separated; mechanical level-index cascades and whole-ladder window slides are excluded; unusualness is measured against a past-only baseline conditional on side, distance from the same-side best quote, time of day and liquidity/regime. **Under D32, depth200 is the exclusive anomaly/treatment source; depth20 supplies only Y and near-book controls.** Outcomes are future depth20/BBO mid-price returns at the registered `D27`-admissible gaps and horizons; contemporaneous response is reported separately from predictive response. Use non-overlapping event clusters or dependence-robust inference, matched quiet controls, explicit effective sample size and one `SIG-12` family across every inspected axis. Report the full response distribution, sign, peak timing and reversion — not merely significance. **The two 11-minute `DAT-20` runs are feasibility evidence only and cannot establish predictability.** The discovery sample may establish two-sided informativeness but cannot confirm a newly discovered directional sign; any directional promotion requires a new registration and later held-out tape. | New; motivated by D28 and enabled by DAT-20 | DAT-05, DAT-10, DAT-20, SIG-01/02/04/09/11/12/14/19, D20, D22, D27, D28, D31, D32 | **In progress — registration/construction commit pushed and verified (`f2cf6501`); construction Dry-run verified outcome-blind on both DAT-20 tapes; synthetic response/matching/power/inference/trial-log pipeline Tested; SIG-21 calibration capture profile enforces depth200 source + depth20 measurement support; outcome gate CLOSED pending five new calibration sessions and a pushed numeric power artifact, then 20 later evaluation sessions** |
+| SIG-21 | **Deep-book anomaly → future-price response (`H-SIG21`).** Test whether rare disturbances in the normally quiet far depth200 ladder forecast later NIFTY-futures mid-price movement. The event definition must be **price-keyed, causal and pre-registered before outcomes are inspected**: additions, removals, displayed-liquidity relocation **proxies**, displayed-quantity shocks and order-count shocks are separated; mechanical level-index cascades and whole-ladder window slides are excluded; unusualness is measured against a past-only baseline conditional on side, distance from the same-side best quote, time of day and liquidity/regime. **Under D32, depth200 is the exclusive anomaly/treatment source; depth20 supplies only Y and near-book controls.** Outcomes are future depth20/BBO mid-price returns at the registered `D27`-admissible gaps and horizons; contemporaneous response is reported separately from predictive response. Use non-overlapping event clusters or dependence-robust inference, matched quiet controls, explicit effective sample size and one `SIG-12` family across every inspected axis. Report the full response distribution, sign, peak timing and reversion — not merely significance. **The two 11-minute `DAT-20` runs are feasibility evidence only and cannot establish predictability.** The discovery sample may establish two-sided informativeness but cannot confirm a newly discovered directional sign; any directional promotion requires a new registration and later held-out tape. | New; motivated by D28 and enabled by DAT-20 | DAT-05, DAT-10, DAT-20, SIG-01/02/04/09/11/12/14/19, D20, D22, D27, D28, D31, D32 | **In progress — registration/construction commit pushed and verified (`f2cf6501`); construction Dry-run verified outcome-blind on both DAT-20 tapes and replayed into the published basic 32-cell construction support grid (all 32 cells populated; primary non-overlapping episode risk set capped at 2,045/session by the registered 11 s window; every baseline key `baseline_insufficient`); synthetic response/matching/power/inference/trial-log pipeline Tested; SIG-21 calibration capture profile enforces depth200 source + depth20 measurement support; outcome gate CLOSED pending five new calibration sessions and a pushed numeric power artifact, then 20 later evaluation sessions** |
 
 ### RSK — Risk
 
@@ -451,6 +451,9 @@ tree at `700`/`600`; the module adopts that pattern from day one (INF-05).
 
 - [x] Push and remotely verify the immutable `H-SIG21` registration.
 - [x] Build and dry-run the outcome-blind depth200 candidate detector.
+- [x] Replay the detector over the retained `DAT-20` depth200 tapes and publish the basic
+  32-cell construction support grid (`docs/SIG-21-CONSTRUCTION-REPLAY-2026-08-19.md`).
+  Construction counts only; the tapes' post-event price paths remain permanently excluded.
 - [x] Build and test the synthetic response, control, power, inference and trial-log pipeline.
 - [x] Lock D32 channel roles and enforce them in the calibration capture profile.
 - [ ] Capture calibration sessions 1–5 as separate complete post-registration sessions.
@@ -478,6 +481,40 @@ through `EXE-06` can proceed once `CON` lands. **O5 remains open by design** —
 blocked until each old strategy is decided individually, when it is next touched.
 
 ### 6.1 Work log
+
+- **2026-08-19 — SIG-21 construction replay produced the basic 32-cell support grid.** Replayed the
+  already-registered outcome-blind detector over both retained `DAT-20` depth200 NIFTY front-month
+  futures tapes (21.76 minutes, security `58072`, `NIFTY-Aug2026-FUT`, both tape SHA-256s verified
+  against their capture manifests) and emitted the complete construction grid. **All 32 construction
+  cells are populated**, so all 384 registered family cells have some construction support: 40,724
+  candidates, 1,872/min, in 5,325 timestamp bursts; 5,470 of 5,480 transitions valid (99.82%), the
+  10 rejections all `crossed_book`/`partial_book`, plus 24 boundary-churn price exclusions. Three
+  findings matter for planning. **(1)** The registered 11-second non-overlapping episode rule is the
+  binding power constraint, not candidate abundance: the largest inter-burst gap anywhere is 0.807 s,
+  there is not one gap of 11 s or more, so both tapes collapse to **2 non-overlapping episodes** and
+  the primary risk set is capped at `floor(22,500/11) = 2,045` per session however many candidates
+  arrive. **(2)** 41.4% of all candidates lie within Rs 1 of the outermost occupied price on their own
+  side, and 76.9% of ask removals / 72.5% of ask additions do — so the four `addition`/`removal x
+  gt_50` cells (53.6% of the grid) are substantially the 200-level window's rim moving, not
+  interior far-book activity, while the quantity/order-count families are genuinely interior
+  (5-6% within Rs 1). The registered §3 boundary-churn rule is applied exactly as written; it only
+  suppresses near-complete slides. Nothing was reclassified. **(2b)** Ten cells hold under 50
+  candidates, eight of them the `ask x 20_50` family — those are the support-gate risks. **(3)** Observed far distance tops out at Rs 87.7, so the registered
+  `(50, inf)` band is in practice `(50, 88]`, with 64% of mass in Rs 50–75 and the Rs 50 split
+  sitting in a trough below the bulk. The baseline layer is reported as required and **not**
+  fabricated: every registered key is `baseline_insufficient`, zero candidates scored, no percentile
+  or threshold computed; on the four determinable key axes 64 partial keys are populated and 26 hold
+  at least 200 candidates, which is a strict upper bound because the past-only liquidity bin and the
+  `VOL-04` regime cannot be formed from this tape and can only partition further. Session-scale and
+  5/20-session figures are labelled scenario-based with the linear-rate assumption and the
+  mid-morning-window bias stated. **No response, return, midpoint, markout or label was computed or
+  read anywhere**, enforced by a request-refusal guard, a regression that replaces
+  `build_depth20_response_labels` with a raising stub, and a test that walks every emitted field
+  name. Added `src/shaurya/signals/deep_book_construction_grid.py`,
+  `scripts/sig21_construction_replay.py`, `tests/test_sig21_construction_replay.py` (49 tests),
+  `docs/SIG-21-CONSTRUCTION-REPLAY-2026-08-19.md` and the artifacts under
+  `artifacts/sig21-construction-replay/`. Full suite 255 passed; Ruff and strict mypy clean. This is
+  construction evidence only and changes nothing in the immutable `H-SIG21` registration.
 
 - **2026-08-19 — D32 locked SIG-21's channel roles before Aryan's reset.** The depth200 ladder is
   the exclusive candidate/anomaly source; depth20 remains only the future-midpoint and near-book

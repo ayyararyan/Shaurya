@@ -107,6 +107,12 @@ def _days_from_civil(year: int, month: int, day: int) -> int:
     return era * 146_097 + day_of_era - 719_468
 
 
+def parse_receive_ts_ns(value: str) -> int:
+    """Public wrapper over the collector receive-timestamp parser, in integer nanoseconds."""
+
+    return _parse_ts_ns(value)
+
+
 # Prices must be quantised before any cross-tier equality test. The Full packet encodes its
 # 5-level block prices as IEEE-754 binary32 (`FIVE_LEVEL_STRUCT` = "<IIHHff") while both depth
 # channels encode binary64 (`DEEP_LEVEL` = "<dII"). A price such as 24118.9 therefore arrives as
