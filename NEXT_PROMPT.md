@@ -9,7 +9,7 @@
 
 Nothing is outstanding from the 2026-08-19 ~01:16 IST reset. Both `sig_maker_research` and
 `shaurya_dat14_trade_signing` finished, and both were checked independently rather than accepted.
-**The DAT-11 through DAT-15 market-hours runs are complete and landed. The open work is the
+**The DAT-11 through DAT-16 market-hours measurements are complete and landed. The open work is the
 story-by-story SIG debate and the final DAT-09 strike-band/connection-count owner choice.**
 
 ### 1. The maker research report — this is what the next conversation is for
@@ -69,13 +69,16 @@ and a connection gap or reconnect discards the quote state instead of carrying i
   Quote ages at classification ran 58–427 ms against the 1 s freshness bound. Both numbers are
   exactly what **DAT-15** exists to measure properly.
 
-### 3. DAT-11 through DAT-15 market-hours outcomes — landed
+### 3. DAT-11 through DAT-16 market-hours outcomes — landed
 
 - **DAT-11:** exact observed 20-level one-message ceiling is **50**. Fresh 50 worked; 51, 52,
   and 53 failed wholesale. This corrects the prior-day statement that 52 worked. A later
-  fresh-socket solo addendum delivered 116 and 120 NIFTY packets/15 s versus 116 inside the
-  50-instrument run, identifying an observed per-instrument cap near 8 packets/s and an
-  approximately 125–129 ms coalesced-view bound for D23.
+  fresh-socket solo addendum delivered 116, 120, 114, and 114 NIFTY rows/15 s versus 116 inside
+  the 50-instrument run. That rules out shared-socket bandwidth collapse but is **not
+  discriminating** for cap versus event rate because one publication contains multiple rows.
+- **DAT-16 correction:** timestamp grouping identifies the 20-level channel as a fixed **2.00
+  snapshot bursts/s** feed with ~4.17 rows/burst and a **500 ms** D23 netting bound. The ~8 rows/s
+  figure is an encoding artifact, neither a packet cap nor a true event rate.
 - **DAT-12:** **socket-scoped** at the reproduced 50+50 load. Message two failed on the loaded
   socket and succeeded unchanged on a fresh socket. A 2+2 control accepted both messages, so the
   effect is load-dependent rather than a universal first-message-only rule.
@@ -105,10 +108,10 @@ Canonical details, denominators, identification limits and residual gaps are in 
    than one process has committed to this clone concurrently before.
 5. **Current state as of 2026-08-19 ~10:52 IST**, superseding the 2026-08-17 line that said no
    code had been harvested: real code exists and is pushed. CON contracts, INF packaging, the
-   DAT component through DAT-15, and the SUR eSSVI surface stack are implemented, with 107 tests,
+   DAT component through DAT-16, and the SUR eSSVI surface stack are implemented, with 107 tests,
    strict mypy clean on 31 package files plus live-analysis scripts, and Ruff clean. Per-component
    specs live in `docs/module-spec/*.md`; `MODULE_SPEC.md` is the index over them.
-6. **Market-hours work DAT-11 through DAT-15 completed on 2026-08-19.** Read the dated evidence
+6. **Market-hours work DAT-11 through DAT-16 completed on 2026-08-19.** Read the dated evidence
    under `docs/live-evidence/` before using the 50-instrument ceiling, socket-scoped reconnect
    result, 200-level throttle, trade-signing evidence, or alignment-error estimates.
 

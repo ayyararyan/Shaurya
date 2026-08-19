@@ -72,11 +72,12 @@ counts per level further give average order size and tighten the add/cancel deco
 identity and per-order lifetime; and hidden or iceberg quantity, which corrupts queue-ahead directly
 and is invisible at any depth tier.
 
-**The binding limit is packet coalescing, and it is measurable.** At roughly eight packets per
-second, several events net into a single observed delta and the decomposition is under-determined
-within that interval. Bound width is therefore an empirical quantity EXE-10 measures and reports,
-not a constant asserted in advance. EXE-10's CON-06 label is accordingly estimated with reported
-bounds, not an unqualified proxy, and those bounds propagate into every fill-conditional result.
+**The binding limit is snapshot coalescing, and it is measurable.** DAT-16 shows that 20-level
+depth arrives as two book states per second on a fixed ~500 ms clock; the earlier ~8/s count was
+parsed rows, about 4.17 per same-timestamp snapshot, not events. Adds, cancels, and trades therefore
+net into one delta over a 500 ms blind window. EXE-10 measures and reports the resulting bound
+width. Its CON-06 label remains estimated with reported bounds, not an unqualified proxy, and those
+bounds propagate into every fill-conditional result.
 
 ## The claim ledger is pre-registered (D22)
 

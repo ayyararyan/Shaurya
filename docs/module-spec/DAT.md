@@ -45,6 +45,7 @@ Every tape row retains its `CON-06` category and data-quality flags. Missing pro
 | REQ-DAT-13 | Run a 200-level same-liquidity control across comparably liquid instruments to distinguish liquidity from subscription-order throttling. | DAT-13 | `scripts/dat09_concurrency_probe.py` | Controlled packet-count comparison and conclusion |
 | REQ-DAT-14 | Classify positive-volume Quote/Full prints causally on capture with the versioned quote-mid/tick rule, retain every raw classification input and receive timestamp, version the cross-channel alignment rule, mark stale/missing quotes degraded, and flag coalesced intervals without assigning the sign to unseen volume. | DAT-14, D24 | `src/shaurya/data/trade_direction.py`; `src/shaurya/data/dhan_stream.py`; `src/shaurya/contracts/tape.py` | Pure rule tests; alignment/capture-path tests; legacy-schema replay; retained-tape dry run |
 | REQ-DAT-15 | Measure the DAT-14 cross-channel alignment error and coalescing empirically from retained tape as distributions and classification flip rates by activity, depth tier, and time of day; never assume the error is small. | DAT-15, D24 | `src/shaurya/data/alignment_analysis.py`; `scripts/dat15_alignment_analysis.py` | `tests/test_alignment_analysis.py`; dated distribution/flip-rate artifact; Live verified on retained eight-tape sample with explicit coverage limits |
+| REQ-DAT-16 | Measure depth delivery by distinct receive-timestamp bursts, rows per burst, burst-gap distribution, and BBO-change rate; never infer event cadence from parsed-row count. | DAT-16, D23 | Retained-tape cadence analysis | `docs/live-evidence/DAT-16-2026-08-19.md`; 500 ms depth20 snapshot cadence live-verified at stated scope |
 
 Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded by D18.
 
@@ -52,12 +53,12 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 
 - **20-level socket behaviour:** DAT-12 discriminates the reproduced 50+50 failure as **socket-scoped**: the second 50-instrument message failed on the occupied socket and succeeded unchanged on a fresh socket. A 2+2 control accepted both messages on one socket, so the effect is load-dependent rather than a universal first-message-only rule.
 - **Measured per-message ceiling:** **50 instruments** in the 2026-08-19 live probe. Fresh one-message sockets accepted every tested count through 50 and rejected 51, 52 and 53 wholesale; the prior-day statement that 52 worked did not reproduce and is superseded by the same-day boundary evidence. This is an observed endpoint constraint, not a broker guarantee across future protocol/account changes.
-- **Measured per-instrument 20-level cadence:** NIFTY-Aug2026-FUT received 116 packets in 15
-  seconds inside the 50-instrument subscription, then 116 and 120 in two fresh-socket solo runs.
-  Removing 49 instruments did not materially raise the delivered rate. Under the predeclared
-  comparison rule this identifies an observed per-instrument cap near 8 packets/s, not shared
-  socket bandwidth. D23 must preserve an approximately 125–129 ms coalesced-view identification
-  bound; the number and ordering of exchange events inside that interval remain unidentified.
+- **Measured per-instrument 20-level cadence:** NIFTY-Aug2026-FUT received 116 parsed rows in 15
+  seconds inside the 50-instrument subscription, then 116, 120, 114, and 114 in four fresh-socket
+  solo runs. Removing 49 instruments did not materially raise the row rate, ruling out shared
+  socket bandwidth collapse, but the solo test is `not-discriminated` for cap versus event rate.
+  DAT-16 supplies the correct semantic unit: 2.00 same-timestamp snapshot bursts/s, ~4.17 rows per
+  burst, and a 500 ms D23 netting bound. Within-window exchange events remain unidentified.
 - **200-level evidence:** multiple subscriptions receive at least minimal packets, but DAT-13's order-rotation control shows a genuine first-subscription throttle/bias. With the same four front-month futures, whichever instrument was sent first received 328 packets and each later instrument received 2; max/min skew was 164× in both orderings. This is not explained by ordinary instrument liquidity.
 - **Retention:** permanent. Once captured, raw data is kept; there is no rolling deletion or expiry window.
 - **Universe:** NSE index F&O only—NIFTY, BANKNIFTY, FINNIFTY, and MIDCPNIFTY. Single-stock depth and BSE deep book are out of current scope. Exact depth-tier strike bands such as ATM±7 remain illustrative, not committed.
@@ -69,7 +70,9 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 - Parser fixtures cover standard packet subtypes, separate deep-book sides, partial books, 20/200-level layouts, and the 200-level flat subscription envelope.
 - Reconnect tests preserve a visible gap boundary and resubscribe semantics.
 - Deterministic replay produces the same ordered rows, quality flags, and consumer-visible events from the same tape.
-- Existing evidence remains scoped: DAT-01/03/04/07 are Tested; DAT-02 and DAT-10-13 are Live verified; DAT-05 is Dry-run verified end to end (its writer retains earlier live evidence); DAT-06 is Dry-run verified; DAT-09 planning/pooling is Tested.
+- Existing evidence remains scoped: DAT-01/03/04/07 are Tested; DAT-02 and DAT-10-16 are Live
+  verified at their stated scopes; DAT-05 is Dry-run verified end to end (its writer retains
+  earlier live evidence); DAT-06 is Dry-run verified; DAT-09 planning/pooling is Tested.
 
 ## Exclusions
 
