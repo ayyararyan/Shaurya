@@ -17,6 +17,7 @@ import json
 from typing import Any
 
 from shaurya.analytics.surface_feed import (
+    FeedHealth,
     FeedStatus,
     StalenessPolicy,
     SurfaceEngine,
@@ -85,8 +86,16 @@ def _diagnostics_summary(snapshot: SurfaceSnapshot) -> dict[str, object]:
     }
 
 
-def _health_verdict(snapshot: SurfaceSnapshot, policy: StalenessPolicy) -> dict[str, object]:
-    health = snapshot.health
+def _health_verdict(
+    snapshot: SurfaceSnapshot,
+    policy: StalenessPolicy,
+    *,
+    health: FeedHealth | None = None,
+    fit_age_seconds: float | None = None,
+) -> dict[str, object]:
+    """Judge on a health reading taken *now*, not on the one frozen into the last fit."""
+
+    health = health or snapshot.health
     reasons: list[str] = []
     if health.status is FeedStatus.DEAD:
         reasons.append(
@@ -105,11 +114,17 @@ def _health_verdict(snapshot: SurfaceSnapshot, policy: StalenessPolicy) -> dict[
             "surface age exceeds the dashboard's SUR-07 staleness threshold of "
             f"{policy.surface_staleness_seconds:.0f}s"
         )
+    if fit_age_seconds is not None and fit_age_seconds > policy.fit_stale_seconds:
+        reasons.append(
+            f"no surface has been fitted for {fit_age_seconds:.1f}s, past the "
+            f"{policy.fit_stale_seconds:.0f}s fit-staleness threshold"
+        )
     if not snapshot.fit_ok:
         reasons.append(f"last fit failed: {snapshot.failure_reason}")
     return {
         "status": health.status.value,
         "surface_is_stale": snapshot.surface_is_stale,
+        "fit_age_seconds": fit_age_seconds,
         "reasons": reasons,
     }
 
@@ -117,6 +132,8 @@ def _health_verdict(snapshot: SurfaceSnapshot, policy: StalenessPolicy) -> dict[
 def build_payload(engine: SurfaceEngine, *, title: str, source: str) -> dict[str, Any]:
     """Build the whole dashboard payload from the engine's current state."""
 
+    now = engine.current_time()
+    live_health = engine.sample_health(now) if now is not None else None
     snapshot = engine.latest
     trace = engine.latency_trace()
     policy = engine.policy
@@ -129,6 +146,8 @@ def build_payload(engine: SurfaceEngine, *, title: str, source: str) -> dict[str
             "snapshot": None,
             "history_length": 0,
             "trace": trace,
+            "live_health": live_health.to_dict() if live_health else None,
+            "fit_age_seconds": None,
             "health_verdict": {
                 "status": FeedStatus.NO_DATA.value,
                 "surface_is_stale": True,
@@ -143,6 +162,7 @@ def build_payload(engine: SurfaceEngine, *, title: str, source: str) -> dict[str
             },
             "diagnostics": {},
         }
+    fit_age = engine.fit_age_seconds(now) if now is not None else None
     return {
         "title": title,
         "source": source,
@@ -151,7 +171,11 @@ def build_payload(engine: SurfaceEngine, *, title: str, source: str) -> dict[str
         "snapshot": snapshot.to_dict(),
         "history_length": len(engine.history),
         "trace": trace,
-        "health_verdict": _health_verdict(snapshot, policy),
+        "live_health": live_health.to_dict() if live_health else None,
+        "fit_age_seconds": fit_age,
+        "health_verdict": _health_verdict(
+            snapshot, policy, health=live_health, fit_age_seconds=fit_age
+        ),
         "arbitrage": _arbitrage_summary(snapshot),
         "diagnostics": _diagnostics_summary(snapshot),
     }
@@ -191,10 +215,18 @@ function renderHealth(payload) {
   const verdict = payload.health_verdict;
   const strip = document.getElementById('healthStrip');
   strip.className = 'health ' + verdict.status;
-  const health = snapshot ? snapshot.health : null;
+  const health = payload.live_health || (snapshot ? snapshot.health : null);
+  const feedAge = health ? health.feed_age_seconds : null;
+  const feedColour = feedAge === null ? '#c0221c'
+    : (feedAge >= payload.policy.feed_dead_seconds ? '#c0221c'
+      : (feedAge >= payload.policy.feed_slow_seconds ? '#b8860b' : '#111111'));
+  const fitAge = payload.fit_age_seconds;
+  const fitColour = (fitAge !== null && fitAge !== undefined
+    && fitAge > payload.policy.fit_stale_seconds) ? '#c0221c' : '#111111';
   const tiles = [
     ['FEED', verdict.status.toUpperCase(), statusColour(verdict.status)],
-    ['FEED AGE', health ? fmt(health.feed_age_seconds, 3) + ' s' : '--', null],
+    ['FEED AGE', health ? fmt(feedAge, 3) + ' s' : '--', feedColour],
+    ['FIT AGE', fmt(fitAge, 2) + ' s', fitColour],
     ['SURFACE AGE', snapshot ? fmt(snapshot.surface_age_seconds, 2) + ' s' : '--', null],
     ['PACKETS/S', health ? fmt(health.packets_per_second, 1) : '--', null],
     ['RECONNECTS', health ? health.reconnect_count : '--', null],
@@ -271,8 +303,11 @@ function renderTrace(payload) {
   const trace = payload.trace;
   const holder = document.getElementById('latencyChart');
   const traces = [
-    {x: trace.timestamps, y: trace.feed_age_seconds, name: 'feed age (s)',
+    {x: trace.health_sample_timestamps, y: trace.health_sample_feed_age_seconds,
+     name: 'feed age (s), sampled every dashboard read',
      mode: 'lines', line: {width: 1.4, color: '#1f4e9c'}},
+    {x: trace.timestamps, y: trace.fit_gap_seconds, name: 'gap between fits (s)',
+     mode: 'lines', line: {width: 1.2, color: '#7a1f9c'}},
     {x: trace.timestamps, y: trace.surface_age_seconds, name: 'surface age (s)',
      mode: 'lines', line: {width: 1.4, color: '#b8860b'}},
     {x: trace.timestamps, y: trace.fit_duration_seconds, name: 'fit duration (s)',

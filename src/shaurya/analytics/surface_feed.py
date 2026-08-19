@@ -59,7 +59,8 @@ class StalenessPolicy:
     feed_dead_seconds: float = 2.0
     instrument_slow_seconds: float = 3.0
     instrument_dead_seconds: float = 6.0
-    surface_staleness_seconds: float = 15.0
+    surface_staleness_seconds: float = 60.0
+    fit_stale_seconds: float = 20.0
     rate_window_seconds: float = 10.0
 
     def __post_init__(self) -> None:
@@ -69,6 +70,8 @@ class StalenessPolicy:
             raise ValueError("instrument thresholds must satisfy 0 < slow < dead")
         if self.surface_staleness_seconds <= 0 or self.rate_window_seconds <= 0:
             raise ValueError("surface staleness and rate windows must be positive")
+        if self.fit_stale_seconds <= 0:
+            raise ValueError("fit staleness threshold must be positive")
 
     def to_dict(self) -> dict[str, float]:
         return {
@@ -77,6 +80,7 @@ class StalenessPolicy:
             "instrument_slow_seconds": self.instrument_slow_seconds,
             "instrument_dead_seconds": self.instrument_dead_seconds,
             "surface_staleness_seconds": self.surface_staleness_seconds,
+            "fit_stale_seconds": self.fit_stale_seconds,
             "rate_window_seconds": self.rate_window_seconds,
         }
 
@@ -240,6 +244,8 @@ class SurfaceEngine:
     risk_free_rate: float = 0.0
     min_quotes_per_slice: int = 5
     history_limit: int = 720
+    health_sample_limit: int = 3600
+    wall_clock: bool = True
     smoother: ESSVITemporalSmoother = field(default_factory=ESSVITemporalSmoother)
 
     _latest: dict[str, TapeRow] = field(default_factory=dict, init=False, repr=False)
@@ -251,6 +257,7 @@ class SurfaceEngine:
     _max_connection_epoch: int = field(default=0, init=False)
     _sequence: int = field(default=0, init=False)
     _last_fit_timestamp: datetime | None = field(default=None, init=False)
+    _health_samples: deque[FeedHealth] = field(default_factory=deque, init=False, repr=False)
     _previous_surface: ESSVISurface | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -269,6 +276,44 @@ class SurfaceEngine:
     @property
     def latest(self) -> SurfaceSnapshot | None:
         return self._history[-1] if self._history else None
+
+    def current_time(self) -> datetime | None:
+        """The engine's clock: the wall clock when live, tape time when replaying.
+
+        Replay must not compare tape timestamps against the wall clock, or every replayed
+        surface would read as hours stale.
+        """
+
+        if self.wall_clock:
+            return datetime.now(tz=IST)
+        if self._last_fit_timestamp is None:
+            return self._last_row_timestamp
+        if self._last_row_timestamp is None:
+            return self._last_fit_timestamp
+        return max(self._last_row_timestamp, self._last_fit_timestamp)
+
+    def fit_age_seconds(self, now: datetime) -> float | None:
+        if self._last_fit_timestamp is None:
+            return None
+        return (now - self._last_fit_timestamp).total_seconds()
+
+    def sample_health(self, now: datetime) -> FeedHealth:
+        """Record a health reading independently of fits.
+
+        A dead feed produces no fits, so a trace built only from fits would simply stop and
+        leave the last good reading on screen forever. That is the exact failure mode this
+        dashboard exists to make visible, so health is sampled on every dashboard read.
+        """
+
+        health = self.health(now)
+        self._health_samples.append(health)
+        while len(self._health_samples) > self.health_sample_limit:
+            self._health_samples.popleft()
+        return health
+
+    @property
+    def health_samples(self) -> tuple[FeedHealth, ...]:
+        return tuple(self._health_samples)
 
     def ingest(self, row: TapeRow) -> None:
         """Absorb one tape row. Only two-sided option and future books matter here."""
@@ -414,6 +459,30 @@ class SurfaceEngine:
             del self._history[0 : len(self._history) - self.history_limit]
         return snapshot
 
+    def _smooth(self, raw: ESSVISurface) -> tuple[ESSVISurface, str]:
+        """Apply SUR-07 smoothing, and report rather than hide when it cannot apply.
+
+        The smoother's contract is strict on purpose: it refuses a non-increasing surface
+        timestamp, a changed instrument scope, or a changed expiry set. All three occur
+        legitimately on a live chain — `ESSVISurface.surface_timestamp` is the *oldest*
+        contributing quote, so two consecutive fits can share it when a wing instrument has
+        not reprinted, and slices drop in and out as quotes thin. When that happens the
+        dashboard shows the raw fit and says so; it never silently pretends the surface was
+        smoothed.
+        """
+
+        try:
+            return self.smoother.update(raw), "smoothed"
+        except ValueError as error:
+            reason = str(error)
+            if "scope" in reason or "expiry set" in reason:
+                self.smoother.reset()
+                try:
+                    return self.smoother.update(raw), f"reset_then_smoothed: {reason}"
+                except ValueError as retry_error:  # pragma: no cover - defensive
+                    return raw, f"raw_after_reset_failure: {retry_error}"
+            return raw, f"raw_unsmoothed: {reason}"
+
     def fit(self, now: datetime) -> SurfaceSnapshot:
         """Refit and emit one snapshot. A failure is emitted, never swallowed."""
 
@@ -478,7 +547,7 @@ class SurfaceEngine:
         except (SurfaceCalibrationError, ValueError) as error:
             return failure(f"{type(error).__name__}: {error}")
         self._previous_surface = raw
-        smoothed = self.smoother.update(raw)
+        smoothed, smoothing_status = self._smooth(raw)
         smoothed.assert_ready_for(SurfaceUse.RESEARCH)
         frame = smoothed.to_frame(
             run_id=self.run_id,
@@ -490,6 +559,10 @@ class SurfaceEngine:
         grid = self._grid(smoothed, maturities)
         diagnostics: dict[str, object] = {
             diagnostic.name: diagnostic.value for diagnostic in smoothed.diagnostics
+        }
+        diagnostics["temporal_smoothing"] = {
+            "status": smoothing_status,
+            "is_temporally_smoothed": smoothed.is_temporally_smoothed,
         }
         return self._record(
             SurfaceSnapshot(
@@ -516,7 +589,24 @@ class SurfaceEngine:
     def latency_trace(self) -> dict[str, list[Any]]:
         """Session-long traces: an instantaneous readout hides its own tails."""
 
+        gaps: list[float | None] = []
+        previous: datetime | None = None
+        for snapshot in self._history:
+            gaps.append(
+                None if previous is None else (snapshot.fit_timestamp - previous).total_seconds()
+            )
+            previous = snapshot.fit_timestamp
         return {
+            "fit_gap_seconds": gaps,
+            "health_sample_timestamps": [
+                sample.observation_timestamp.isoformat() for sample in self._health_samples
+            ],
+            "health_sample_feed_age_seconds": [
+                sample.feed_age_seconds for sample in self._health_samples
+            ],
+            "health_sample_worst_instrument_age_seconds": [
+                sample.worst_instrument_age_seconds for sample in self._health_samples
+            ],
             "timestamps": [snapshot.fit_timestamp.isoformat() for snapshot in self._history],
             "feed_age_seconds": [
                 snapshot.health.feed_age_seconds for snapshot in self._history
