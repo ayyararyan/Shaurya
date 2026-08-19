@@ -173,6 +173,34 @@ class MarketPoint:
 
 
 @dataclass(frozen=True, slots=True)
+class AtmReading:
+    """The fitted surface read exactly at k = 0 — at the money on the chosen forward.
+
+    This is an **estimated** object, not an observed one: it is the SUR-01 fit (after SUR-07
+    smoothing, when smoothing applied) evaluated at log-moneyness zero, so it inherits that
+    fit's labels and moves whenever the forward moves, even if no option reprinted. It is
+    read exactly at zero rather than picked off the display grid, so it stays correct under
+    a grid whose points do not straddle the money. When the slice cannot support the money
+    the volatility is null and `reason` says why; nothing is filled in.
+    """
+
+    expiry: str
+    maturity_days: float
+    implied_volatility: float | None
+    status: str
+    reason: str | None
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "expiry": self.expiry,
+            "maturity_days": self.maturity_days,
+            "implied_volatility": self.implied_volatility,
+            "status": self.status,
+            "reason": self.reason,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class SurfaceSnapshot:
     """One dashboard-ready observation of the whole chain: fit or explicit failure."""
 
@@ -186,6 +214,7 @@ class SurfaceSnapshot:
     frame: SurfaceFrame | None
     grid: SurfaceGrid | None
     market_points: tuple[MarketPoint, ...]
+    atm: tuple[AtmReading, ...]
     arbitrage: dict[str, object] | None
     diagnostics: dict[str, object]
     surface_age_seconds: float | None
@@ -202,6 +231,7 @@ class SurfaceSnapshot:
             "forwards": self.forwards.to_dict(),
             "grid": self.grid.to_dict() if self.grid else None,
             "market_points": [point.to_dict() for point in self.market_points],
+            "atm": [reading.to_dict() for reading in self.atm],
             "arbitrage": self.arbitrage,
             "diagnostics": self.diagnostics,
             "surface_age_seconds": self.surface_age_seconds,
@@ -438,6 +468,36 @@ class SurfaceEngine:
             reasons=tuple(sorted(reasons)),
         )
 
+    def _atm(
+        self, surface: ESSVISurface, maturities: dict[date, float]
+    ) -> tuple[AtmReading, ...]:
+        """Evaluate at k = 0 on each fitted maturity, the same way `_grid` does.
+
+        The maturity comes from the fitted slice, not from the clock, for the reason given
+        in `_grid`: recomputing it would miss `ESSVISurface.evaluate`'s exact-maturity match
+        and quietly demote a fitted reading to an interpolated one.
+        """
+
+        fitted = {item.expiry: item.maturity_years for item in surface.slices}
+        readings: list[AtmReading] = []
+        for expiry in self.expiries:
+            maturity = fitted.get(expiry, maturities[expiry])
+            evaluation = surface.evaluate(log_moneyness=0.0, maturity_years=maturity)
+            readings.append(
+                AtmReading(
+                    expiry=expiry.isoformat(),
+                    maturity_days=maturity * 365.0,
+                    implied_volatility=evaluation.implied_volatility,
+                    status=str(evaluation.status),
+                    reason=(
+                        evaluation.reason
+                        if expiry in fitted
+                        else f"{expiry.isoformat()} has no fitted slice in this frame"
+                    ),
+                )
+            )
+        return tuple(sorted(readings, key=lambda item: item.maturity_days))
+
     def _market_points(
         self, surface: ESSVISurface, forwards: ForwardSelection, maturities: dict[date, float]
     ) -> tuple[MarketPoint, ...]:
@@ -543,6 +603,7 @@ class SurfaceEngine:
                     frame=None,
                     grid=None,
                     market_points=(),
+                    atm=(),
                     arbitrage=None,
                     diagnostics={"fit_status": "failed", "reason": reason},
                     surface_age_seconds=None,
@@ -600,6 +661,7 @@ class SurfaceEngine:
                 frame=frame,
                 grid=grid,
                 market_points=self._market_points(smoothed, forwards, maturities),
+                atm=self._atm(smoothed, maturities),
                 arbitrage=smoothed.arb_check().to_dict(),
                 diagnostics=diagnostics,
                 surface_age_seconds=surface_age,

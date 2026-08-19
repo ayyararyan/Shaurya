@@ -391,3 +391,173 @@ def test_the_universe_interleaves_expiries_so_a_ceiling_truncates_wings() -> Non
 def test_staleness_policy_rejects_inverted_thresholds() -> None:
     with pytest.raises(ValueError, match="slow < dead"):
         StalenessPolicy(feed_slow_seconds=3.0, feed_dead_seconds=1.0)
+
+
+# --- ANL-05: the presentation redesign -------------------------------------------------
+#
+# These guard the *shell*, not the model. The rule Aryan set for ANL-05 is that layout,
+# typography and colour may change and measured fields may not, so the tests below pin the
+# fields that must survive any future restyle, and pin exactly the two panels he asked to
+# have removed so a later edit cannot quietly put a third one back or take a fourth away.
+
+
+def _rendered_shell() -> str:
+    engine = _engine()
+    for row in _chain():
+        engine.ingest(row)
+    engine.fit(VALUATION)
+    return render_html(build_payload(engine, title="ANL-03 test", source="fixture"))
+
+
+def test_the_shell_carries_both_themes_and_a_toggle() -> None:
+    html = _rendered_shell()
+    assert 'data-theme="light"' in html
+    assert ':root[data-theme="dark"]' in html
+    assert "prefers-color-scheme: dark" in html
+    assert "function toggleTheme()" in html
+    assert "anl03-theme" in html  # the choice persists across refreshes
+    # Both Plotly palettes must be present, or one mode would render with the other's ramp.
+    assert "ivRamp" in html and "violRamp" in html
+    assert html.count("ivRamp:") == 2 and html.count("violRamp:") == 2
+
+
+def test_the_shell_is_monospace_and_uses_the_approved_muted_palette() -> None:
+    html = _rendered_shell()
+    assert "ui-monospace" in html and "JetBrains Mono" in html and "Consolas" in html
+    for muted in ("#46586b", "#b5851f", "#8f3327", "#5b7a52"):  # light slate/brass/brick/sage
+        assert muted in html
+    for muted in ("#8199b0", "#d3a44a", "#c05c46", "#8faa7c"):  # the dark steps
+        assert muted in html
+    for bright in ("Viridis", "Hot", "#c0221c", "#1a7a34", "#1f4e9c"):  # the old defaults
+        assert bright not in html
+
+
+def test_status_is_never_carried_by_colour_alone() -> None:
+    html = _rendered_shell()
+    assert "STATUS_GLYPH" in html
+    for glyph in ("\\u25CF", "\\u25D0", "\\u2715", "\\u25CB"):  # live, slow, dead, no data
+        assert glyph in html
+
+
+def test_only_the_latency_and_forward_panels_were_removed() -> None:
+    html = _rendered_shell()
+    for gone in ("latencyChart", "renderTrace", "forwardBody", "forwardUnresolved",
+                 "SUSTAINED LATENCY", "FORWARD SOURCE"):
+        assert gone not in html
+    for kept in ("healthStrip", "healthReasons", "arbBanner", "arbCounts", "arbBody",
+                 "diagBody", "residualBody", "surfaceChart", "historySlider", "liveToggle"):
+        assert kept in html
+
+
+def test_removing_the_two_panels_did_not_remove_the_measurements() -> None:
+    """The panels stopped being drawn; the fields behind them still reach `/api/state`."""
+
+    engine = _engine()
+    for row in _chain():
+        engine.ingest(row)
+    engine.fit(VALUATION)
+    payload = build_payload(engine, title="ANL-03 test", source="fixture")
+    trace = payload["trace"]
+    assert trace["timestamps"] and trace["fit_duration_seconds"]
+    assert trace["health_sample_feed_age_seconds"]
+    assert trace["surface_age_seconds"]
+    forwards = payload["snapshot"]["forwards"]
+    assert forwards["choices"], "the forward per expiry is still resolved and still published"
+    assert forwards["choices"][0]["method"]
+    assert forwards["choices"][0]["label"]["category"]
+
+
+def test_every_health_and_diagnostic_field_is_still_on_screen() -> None:
+    html = _rendered_shell()
+    for label in ("feed age", "fit age", "surface age", "packets / s", "reconnects",
+                  "worst instrument age", "last update ist", "browser clock"):
+        assert label in html
+    for label in ("fit status", "weighted RMSE (total variance)", "fit duration",
+                  "unsupported grid cells", "butterfly points checked",
+                  "calendar points checked", "min butterfly density factor",
+                  "min calendar total-variance spread"):
+        assert label in html
+    assert "feed_dead_seconds" in html and "feed_slow_seconds" in html
+    assert "fit_stale_seconds" in html and "surface_staleness_seconds" in html
+
+
+def test_sur05_violations_are_placed_on_the_surface_as_well_as_tabulated() -> None:
+    html = _rendered_shell()
+    assert "SUR-05 violation" in html
+    assert "symbol: 'diamond'" in html
+
+
+# --- ANL-05 follow-ups: free navigation, and ATM IV as a live hero number ---------------
+
+
+def test_atm_is_read_at_k_zero_and_matches_the_surface_the_dashboard_plots() -> None:
+    """The hero number must be the same object as the cell the surface draws at k = 0."""
+
+    engine = _engine()
+    for row in _chain():
+        engine.ingest(row)
+    snapshot = engine.fit(VALUATION)
+    assert snapshot.atm, "a converged fit must produce an at-the-money reading"
+    grid = snapshot.grid
+    assert grid is not None
+    k_zero = grid.log_moneyness.index(0.0)
+    for reading in snapshot.atm:
+        from_grid = grid.implied_volatility[grid.expiry_labels.index(reading.expiry)][k_zero]
+        assert reading.implied_volatility == pytest.approx(from_grid, abs=1e-12)
+        assert reading.maturity_days > 0
+        assert reading.status
+    # Front expiry first, so the hero is always the nearest maturity.
+    assert [reading.maturity_days for reading in snapshot.atm] == sorted(
+        reading.maturity_days for reading in snapshot.atm
+    )
+
+
+def test_a_failed_fit_reports_no_atm_rather_than_a_stale_one() -> None:
+    engine = _engine()
+    snapshot = engine.fit(VALUATION)
+    assert not snapshot.fit_ok
+    assert snapshot.atm == ()
+    payload = build_payload(engine, title="ANL-03 test", source="fixture")
+    assert payload["atm"]["front"] is None
+    assert payload["atm"]["readings"] == []
+
+
+def test_the_atm_change_is_matched_by_expiry_and_is_null_on_the_first_fit() -> None:
+    engine = _engine()
+    for row in _chain():
+        engine.ingest(row)
+    engine.fit(VALUATION)
+    first = build_payload(engine, title="t", source="s")["atm"]["front"]
+    assert first["change_since_previous_fit"] is None, "nothing to difference against yet"
+
+    engine.fit(VALUATION + timedelta(seconds=6))
+    payload = build_payload(engine, title="t", source="s")
+    previous = {
+        reading.expiry: reading.implied_volatility
+        for reading in engine.history[-2].atm
+    }
+    for reading in payload["atm"]["readings"]:
+        expected = reading["implied_volatility"] - previous[reading["expiry"]]
+        assert reading["change_since_previous_fit"] == pytest.approx(expected, abs=1e-15)
+
+
+def test_the_shell_shows_atm_big_and_states_what_it_is() -> None:
+    html = _rendered_shell()
+    assert 'id="atmBand"' in html and "renderAtm" in html
+    assert "font-size:44px" in html  # the hero, not another table row
+    assert "k = 0" in html
+    assert "fitted, not observed" in html  # it is estimated; the shell says so
+    assert "change_since_previous_fit" in html
+    # Direction is a glyph, never a status hue: a rising ATM vol is not "good".
+    assert "\\u25B2" in html and "\\u25BC" in html
+
+
+def test_the_camera_survives_a_refresh_and_the_view_can_be_driven() -> None:
+    html = _rendered_shell()
+    assert "cameraState" in html and "plotly_relayout" in html
+    assert "cameraState || DEFAULT_CAMERA" in html, "the held camera must win over the default"
+    assert "scrollZoom: true" in html
+    for mode in ("turntable", "pan", "zoom"):
+        assert f'data-drag="{mode}"' in html
+    assert "function resetView()" in html
+    assert "dragmode: sceneDragMode" in html
