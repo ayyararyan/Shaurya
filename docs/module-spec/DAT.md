@@ -44,7 +44,7 @@ Every tape row retains its `CON-06` category and data-quality flags. Missing pro
 | REQ-DAT-12 | Test whether a fresh socket reconnect resets the one-honoured-message behaviour or whether the limit is account/session scoped. | DAT-12 | `scripts/dat09_concurrency_probe.py` | Reconnect experiment artifact with packet-by-instrument evidence |
 | REQ-DAT-13 | Run a 200-level same-liquidity control across comparably liquid instruments to distinguish liquidity from subscription-order throttling. | DAT-13 | `scripts/dat09_concurrency_probe.py` | Controlled packet-count comparison and conclusion |
 | REQ-DAT-14 | Classify positive-volume Quote/Full prints causally on capture with the versioned quote-mid/tick rule, retain every raw classification input and receive timestamp, version the cross-channel alignment rule, mark stale/missing quotes degraded, and flag coalesced intervals without assigning the sign to unseen volume. | DAT-14, D24 | `src/shaurya/data/trade_direction.py`; `src/shaurya/data/dhan_stream.py`; `src/shaurya/contracts/tape.py` | Pure rule tests; alignment/capture-path tests; legacy-schema replay; retained-tape dry run |
-| REQ-DAT-15 | Measure the DAT-14 cross-channel alignment error and coalescing empirically from retained tape as distributions and classification flip rates by activity, depth tier, and time of day; never assume the error is small. | DAT-15, D24 | Future DAT analysis code; intentionally not part of DAT-14 | Distribution/flip-rate artifact; market-hours retained tape; Not implemented |
+| REQ-DAT-15 | Measure the DAT-14 cross-channel alignment error and coalescing empirically from retained tape as distributions and classification flip rates by activity, depth tier, and time of day; never assume the error is small. | DAT-15, D24 | `src/shaurya/data/alignment_analysis.py`; `scripts/dat15_alignment_analysis.py` | `tests/test_alignment_analysis.py`; dated distribution/flip-rate artifact; Live verified on retained eight-tape sample with explicit coverage limits |
 
 Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded by D18.
 
@@ -76,10 +76,15 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 
 ## Deferred and open items
 
-- **DAT-11 / 2026-08-19 first task:** bisect the exact 20-level ceiling within the measured 52-worked/206-failed band.
-- **DAT-12:** determine whether reconnect resets the first-message-only behaviour.
-- **DAT-13:** resolve the 200-level liquidity-versus-throttle skew.
-- **DAT-09:** derive the exact depth bands and connection-count plan only after those measurements; retention is already permanently settled.
+- **DAT-11/12/13:** the 2026-08-19 market-hours probes are complete at their stated scopes; see
+  the dated evidence files. The optional DAT-11 solo-rate addendum is separate and does not alter
+  the measured 50-instrument per-message ceiling.
+- **DAT-09:** derive the exact depth bands and connection-count plan from the completed capacity
+  measurements; retention is already permanently settled. The exact 200-level instrument-count
+  ceiling remains unmeasured.
+- **DAT-15 coverage expansion:** options, midday, and a healthy simultaneous depth200-aligned
+  capture remain unmeasured; the existing stressed cross-tier comparison does not identify a
+  general depth-tier ranking.
 
 ## Trade-direction classification at capture (D24)
 
@@ -137,12 +142,23 @@ the capture-time sign together with its version stamp. D23's queue-ahead bounds 
 trades from cancellations at a level, which is exactly what the signed, flagged print record makes
 possible.
 
-**Evidence as of 2026-08-19.** Live verified for depth20 alignment on NIFTY and BANKNIFTY
+**DAT-14 evidence as of 2026-08-19.** Live verified for depth20 alignment on NIFTY and BANKNIFTY
 front-month futures in one 10-minute morning window. Two simultaneous Standard+depth20 captures
 produced 11,691 rows and 313 positive-volume prints: 158 buy, 154 sell, 1 unclassified; 311
 quote-rule, 1 live tick-rule fallback, and 1 degraded because no prevailing quote existed. Every
 print row carried both version stamps. Quote age n=312 was 7.4–567.4 ms (median 238.7, p95 462.6)
 against the 1 s bound; 113/313 intervals were coalesced and observed last quantities covered only
 44.3% of increment volume. The earlier retained-tape dry run remains valid. Live evidence does not
-cover options, depth200 selection, other times of day, or stale/crossed degraded causes. DAT-15's
-error-distribution/flip-rate study remains a separate requirement.
+cover options, other times of day, or stale/crossed degraded causes.
+
+**DAT-15 evidence as of 2026-08-19.** Live verified for the retained eight-tape sample: 38,572
+rows and 482 positive-volume prints. The healthy-core quote-age distribution has n=323, median
+238.7 ms, p95 462.6 ms and max 567.4 ms; the first post-print complete-BBO diagnostic proxy flips
+5/320 directional comparisons (1.56%). The all-tape result includes a stressed simultaneous
+depth20/depth200 run with 39 reconnect boundaries: quote-age n=480, median 212.1 ms, p95 3.82 s,
+max 24.16 s, 42 degraded prints, and 5/429 proxy flips. Coalescing is 206/482, with unseen excess
+volume median 180, p95 2,080 and max 7,215 units. The post-print comparator is labelled a proxy:
+deep packets lack exchange timestamps/source sequence, so the true exchange-time quote and true
+classification error remain unidentified. Depth200 occurs only in the stressed run; afternoon
+has n=12; midday and options have no aligned prints. No unsupported general tier/time inference is
+made.

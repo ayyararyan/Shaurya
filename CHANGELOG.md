@@ -5,6 +5,20 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### DAT-15 — cross-channel alignment-error measurement
+
+- Added a reproducible retained-tape analyzer for causal quote-age distributions, a clearly
+  labelled first-post-print-BBO classification-flip proxy, activity/depth/time/age breakdowns,
+  and coalesced-interval frequency, excess-size, and attributable-volume coverage.
+- Live-ran it across all five pre-existing tapes and three 2026-08-19 captures: 38,572 rows and
+  482 prints. Healthy-core quote age was 238.7 ms median / 462.6 ms p95 with 5/320 proxy flips;
+  the all-tape result, including a reconnect-heavy cross-tier stress run, was 212.1 ms median /
+  3.82 s p95 with 5/429 flips and 42 degraded prints.
+- Measured 206/482 coalesced intervals; excess unseen volume was 180 units median, 2,080 p95,
+  7,215 max, and last quantities covered 32.0% of increment volume. The stress-run depth-tier
+  comparison, n=12 afternoon slice, and absence of midday/options are explicit limitations, not
+  generalized away. Five focused regression tests plus the full suite cover the analyzer.
+
 ### DAT-14 / CON-01 — causal trade-direction classification at capture
 
 - Live-verified the capture-time classifier on simultaneous Standard+depth20 feeds for NIFTY and

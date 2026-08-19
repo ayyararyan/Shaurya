@@ -1,7 +1,7 @@
 # Shaurya — Next-Session Prompt
 
-**Prepared:** 2026-08-17, last updated 2026-08-19 ~01:40 IST
-**Use on return:** 2026-08-19, including the market-open window from 09:15 IST
+**Prepared:** 2026-08-17, last updated 2026-08-19 ~10:52 IST
+**Use on return:** after the 2026-08-19 DAT market-hours session
 **Repository:** private `ayyararyan/Shaurya`
 **Canonical status ledger:** `TASKS.md`
 
@@ -9,7 +9,8 @@
 
 Nothing is outstanding from the 2026-08-19 ~01:16 IST reset. Both `sig_maker_research` and
 `shaurya_dat14_trade_signing` finished, and both were checked independently rather than accepted.
-**The open work is the story-by-story SIG debate and the market-hours DAT runs in section 3.**
+**The DAT-11 through DAT-15 market-hours runs are complete and landed. The open work is the
+story-by-story SIG debate and the final DAT-09 strike-band/connection-count owner choice.**
 
 ### 1. The maker research report — this is what the next conversation is for
 
@@ -38,7 +39,7 @@ costs ~0.24 ticks against ~0.95 ticks at ₹20. Cheap OTM options are not disqua
 claim ledger (**D22**) is its output. Do not write ledger claims from the taker report alone, and
 resolve each citation as its claim is reached.
 
-### 2. The DAT-14 build — landed, independently verified
+### 2. The DAT-14 pre-live build — historical evidence, superseded by section 3
 
 Pushed as `4855778` + `9f96380`; `origin/main` and local HEAD match, tree clean.
 
@@ -68,6 +69,29 @@ and a connection gap or reconnect discards the quote state instead of carrying i
   Quote ages at classification ran 58–427 ms against the 1 s freshness bound. Both numbers are
   exactly what **DAT-15** exists to measure properly.
 
+### 3. DAT-11 through DAT-15 market-hours outcomes — landed
+
+- **DAT-11:** exact observed 20-level one-message ceiling is **50**. Fresh 50 worked; 51, 52,
+  and 53 failed wholesale. This corrects the prior-day statement that 52 worked.
+- **DAT-12:** **socket-scoped** at the reproduced 50+50 load. Message two failed on the loaded
+  socket and succeeded unchanged on a fresh socket. A 2+2 control accepted both messages, so the
+  effect is load-dependent rather than a universal first-message-only rule.
+- **DAT-13:** the 200-level skew is a real first-subscription throttle/bias. NIFTY-first and
+  BANKNIFTY-first rotations both produced 328 packets for the first future and 2 for every later
+  future.
+- **DAT-14:** Live verified for two front-month futures/depth20/one 10-minute morning window:
+  313 prints, 158 buy/154 sell/1 unclassified, 1 real tick-rule fallback, 1 degraded, 113
+  coalesced, and 313/313 version stamps.
+- **DAT-15:** Live verified for the retained eight-tape sample (38,572 rows, 482 prints), with a
+  healthy-core quote-age median/p95 of 238.7/462.6 ms and 5/320 post-BBO proxy flips. The
+  simultaneous depth20/depth200 capture was reconnect-heavy; its cross-tier comparison is a
+  stress diagnostic, not a general tier ranking. Options, midday, and a healthy depth200-aligned
+  run remain unmeasured.
+
+Canonical details, denominators, identification limits and residual gaps are in `TASKS.md`,
+`docs/module-spec/DAT.md`, and `docs/live-evidence/DAT-11-2026-08-19.md` through
+`DAT-15-2026-08-19.md`.
+
 ## Mandatory restart context
 
 1. Load and follow `OPENCLAW_WORKING_INSTRUCTIONS_REVISED.md` for the new session.
@@ -76,13 +100,14 @@ and a connection gap or reconnect discards the quote state instead of carrying i
    choices merely because a different implementation would be easier.
 4. Before editing the repository, `git fetch` and compare `HEAD` against `origin/main` — more
    than one process has committed to this clone concurrently before.
-5. **Current state as of 2026-08-19 ~01:16 IST**, superseding the 2026-08-17 line that said no
-   code had been harvested: real code exists and is pushed. `origin/main` is at the commit
-   recorded below. CON contracts, INF packaging, the full DAT component, and the SUR eSSVI
-   surface stack are implemented, with 100 tests, strict mypy clean on 30 files, ruff clean. Per-component
+5. **Current state as of 2026-08-19 ~10:52 IST**, superseding the 2026-08-17 line that said no
+   code had been harvested: real code exists and is pushed. CON contracts, INF packaging, the
+   DAT component through DAT-15, and the SUR eSSVI surface stack are implemented, with 106 tests,
+   strict mypy clean on 31 package files plus live-analysis scripts, and Ruff clean. Per-component
    specs live in `docs/module-spec/*.md`; `MODULE_SPEC.md` is the index over them.
-6. **Market-hours work is listed in START HERE section 3** — DAT-11 through DAT-15. Do not
-   attempt any of it outside 09:15–15:30 IST; it is not a reset-session activity.
+6. **Market-hours work DAT-11 through DAT-15 completed on 2026-08-19.** Read the dated evidence
+   under `docs/live-evidence/` before using the 50-instrument ceiling, socket-scoped reconnect
+   result, 200-level throttle, trade-signing evidence, or alignment-error estimates.
 
 ## SIG discussion — round 1 held 2026-08-19; both commissioned reports have landed
 

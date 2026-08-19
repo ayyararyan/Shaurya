@@ -1,5 +1,6 @@
 """Reusable market-data clients, capture, identity, historical, quality, and tape APIs."""
 
+from .alignment_analysis import analyze_alignment_tapes, analyze_tape_rows
 from .capture import CaptureUniversePlan, DhanDepth20CapturePool
 from .dhan_client import DhanClient, DhanCredentials
 from .historical import BarInterval, HistoricalBar, HistoricalBarStore, fetch_historical_bars
@@ -40,6 +41,8 @@ __all__ = [
     "TRADE_CLASSIFIER_VERSION",
     "TradeClassification",
     "ValidatedOptionChain",
+    "analyze_alignment_tapes",
+    "analyze_tape_rows",
     "fetch_and_validate_option_chain",
     "fetch_historical_bars",
     "classify_trade",
