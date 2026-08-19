@@ -1,9 +1,55 @@
 # Shaurya — Next-Session Prompt
 
-**Prepared:** 2026-08-17, last updated 2026-08-19 ~12:35 IST (second session reset by Aryan)
-**Use on return:** the 2026-08-19 **afternoon** session. Aryan set the agenda himself — see § AFTERNOON AGENDA below.
+**Prepared:** 2026-08-17, last updated 2026-08-19 evening (signal-mining reset by Aryan)
+**Use on return:** the 2026-08-19 **evening** session. Read the reset handoff immediately below;
+it supersedes the older afternoon agenda as the next conversation.
 **Repository:** private `ayyararyan/Shaurya`
 **Canonical status ledger:** `TASKS.md`
+
+## RESET HANDOFF — EVENING 2026-08-19, READ THIS FIRST
+
+Aryan explicitly approved the **joint quoting configuration** as the right direction, asked for
+the top academic literature to be researched and recorded, and then reset the session. That work
+is complete in the repository:
+
+- paper-by-paper synthesis, boundaries and claim–evidence ledger:
+  `docs/research/joint-option-quoting-literature-2026-08-19.md`;
+- book-state consequences and registered tests: `docs/sig-claims/book-state.md`;
+- `D29`: the scale-specific hypothesis method in `docs/sig-claims/METHOD.md` is binding across
+  every feature class. The intended method was previously called “D28” in conversation, but
+  another same-day decision had already occupied that stable ID; stable IDs are never reused, so
+  it is correctly recorded as `D29`;
+- `D30`: the primary decision object is a simultaneous chain-level put/call quote configuration,
+  while per-quote fill and markout remain measurement primitives. Quote skew/passive option fills
+  are the routine inventory-control mechanism and futures are a residual breach valve. The
+  controller form is **not** chosen.
+
+### The next conversation — do this, not more hedge architecture
+
+Aryan's exact intent: *“today evening we need to continue our debate on the signal mining (as we
+slightly drifted from it for the right reasons though) and take on the next class of objects.”*
+
+The next taxonomy cell after event flow (`EF`) and book state (`BK`) is **price-path-derived
+objects (`PP`, `SIG-04`)**: lagged returns, realised volatility/variation, variance ratio,
+microprice tilt, spread/impact transforms, Kyle lambda and Amihud-type measures. Proceed as in the
+BK discussion:
+
+1. first answer **what each PP object influences** at the short horizon;
+2. then answer **how that changes a maker's joint quoting configuration** — fill, conditional
+   markout, withdrawal/skew, inventory tolerance, or flattening — without wandering into mechanism
+   stories unless the mechanism changes the sign of the action;
+3. invite Aryan's attack and refine the claims;
+4. bind accepted hypotheses under `METHOD.md` with `X,h₁,f₁,Y,h₂,f₂,Z`, stratum, `K`, `N_eff`,
+   `G`, MDE, latency admissibility and a real falsifier before any execution.
+
+Do **not** reopen whether the estimand is per quote or joint configuration; `D30` settles it. Do
+not select a control model from the literature. `BK-11/H1`, `BK-13/H1`, `BK-14/H1` and
+`BK-15/H1` are registered future tests, not the evening debate. `SIG-21` remains open and must be
+pre-registered before its outcomes are inspected, but Aryan explicitly set `PP` as the next
+conversation.
+
+The earlier **AFTERNOON AGENDA** below is retained as historical operational context. It no longer
+defines the next conversational task.
 
 ## AFTERNOON AGENDA — SET BY ARYAN 2026-08-19 ~12:24 IST, READ THIS FIRST
 
@@ -236,7 +282,7 @@ re-derived by hand and reproduces. One unresolved caveat: the report claims to h
 erroneous author list, but that correction is not documented in its body.
 
 Governing conclusion, stated as an inference from market structure and not a measurement:
-**presume one-tick at-touch quoting in the liquid NIFTY complex has no viable edge for a
+**presume prevailing-spread at-touch quoting in the liquid NIFTY complex has no viable edge for a
 non-colocated retail-feed maker**, overturnable only by fill-conditioned, latency-realistic
 evidence. Structural output is **MK-01 – MK-13**, preregistered in four tiers, with **MK-05 as an
 explicit kill test** on the liquid contracts before any control-model work is justified.

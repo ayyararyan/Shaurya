@@ -24,7 +24,7 @@ the gates they depend on.
 
 ## Method
 
-**`METHOD.md` is binding on all of SIG**, not just this ledger. It defines the claim →
+**`METHOD.md` is binding on all of SIG under `D29`**, not just this ledger. It defines the claim →
 hypothesis → trial-log chain, the eight measurement axes every hypothesis must bind, the
 mandatory resolution statement, ex-ante power requirements, the verdict vocabulary, and
 pre-registration by commit order. Read it before adding or testing anything.

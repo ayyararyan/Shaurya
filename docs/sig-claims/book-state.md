@@ -5,8 +5,12 @@ depth, depth imbalance, book slope and curvature, notional within k ticks, order
 versus volume per level, bid/ask asymmetry — and, under `D23`, **queue-ahead at placement**,
 which is a book-state object rather than a flow object.
 
-Status: **round 1, opened 2026-08-19.** Claims are `Proposed`. Hypotheses are bound only for
-the accounting and regime tiers; the hazard and predictive tiers wait for Aryan's pushback.
+Status: **round 2, updated 2026-08-19.** `BK-01`, `BK-11` and `BK-12` are `Agreed`; other
+claims remain `Proposed`. The hazard and directional-predictive tiers still wait for Aryan's
+pushback.
+
+**Round-2 literature synthesis:**
+[`docs/research/joint-option-quoting-literature-2026-08-19.md`](../research/joint-option-quoting-literature-2026-08-19.md).
 
 ---
 
@@ -193,6 +197,32 @@ not disqualified by tax in tick terms: the percentage burden is flat, but premiu
 is smaller, so the underlying has less room to move against you. Cheap OTM is cheap in
 tax and **tight in delta**.
 
+### 2.2 What the joint-quoting literature changes
+
+Aryan confirmed on 2026-08-19 that the **joint quoting configuration is the right primary
+decision object** (`D30`). The literature supports that decision while narrowing what “joint”
+must mean:
+
+1. **Portfolio marginal risk, not contract inventory.** Stoikov–Sağlam, Guéant, and
+   Giannetti–Zhong–Wu show that the correct skew on one option depends on the rest of the book,
+   the covariance of residual risks, and the relative liquidity of the available hedges.
+2. **Delta is necessary and not sufficient.** Near expiry net gamma matters most; at longer
+   tenors net vega does. Baldacci–Bergault–Guéant show that aggregate risk-factor state can make
+   a many-option controller tractable, but only under a continuous-delta-hedge assumption that
+   Shaurya explicitly rejects.
+3. **Aryan's hedge hierarchy has a close empirical analogue.** Hu–Kirilova–Muravyev–Ryu find
+   that professional KOSPI 200 option makers primarily reverse inventory through passive option
+   orders, with futures a very small reported channel. Their 38–48% five-minute reversal is a
+   benchmark to reproduce or reject, not an NSE prior.
+4. **Joint control must be centralised in the implementation.** Naik–Yadav's dealer evidence
+   warns that decentralised firms can behave contract by contract even when portfolio theory
+   says otherwise. One portfolio state and one configuration decision boundary are therefore
+   architectural, not cosmetic.
+
+The full paper-by-paper findings, boundaries and claim–evidence ledger are in the linked report.
+They register `BK-13`–`BK-15`; they do **not** select an HJB, risk aversion, Greek buckets or
+arrival law before data.
+
 ## 3. Two different businesses in one chain
 
 The ₹21 premium boundary (`D26`) is not only a stratification variable. It separates two
@@ -221,7 +251,7 @@ trade is queue risk for liquidity risk, and which is cheaper is an empirical que
 
 | ID | Claim | Tier | Status | Forecast needed? |
 |---|---|---|---|---|
-| `BK-01` | **The book is the hedging instrument** — futures hedging is arithmetically excluded, so delta nets inside the option book and netting is a book-state-governed fill-rate object | Accounting | Proposed | No |
+| `BK-01` | **The book is the hedging instrument** — futures hedging is arithmetically excluded, so delta nets inside the option book and netting is a book-state-governed fill-rate object | Accounting | **Agreed — Aryan 2026-08-19** | No |
 | `BK-02` | Queue-ahead at placement is **exactly** displayed depth; the distribution of touch depth is the fill-rate prior, model-free | Accounting | Proposed | No |
 | `BK-03` | Exit cost is deterministic from the far-side depth profile; the **exit-cost ÷ spread-capture** ratio decides whether aggressive unwind exists at all | Accounting | Proposed | No |
 | `BK-04` | Spread against the statutory floor defines the **adverse-selection budget**, expressible in index points of tolerable adverse underlying move | Accounting | Proposed | No |
@@ -232,6 +262,10 @@ trade is queue risk for liquidity risk, and which is cheaper is an empirical que
 | `BK-09` | Depth imbalance predicts the next mid transition — **contested**; `EF-09` governs *where* it works | Predictive | Proposed | Yes |
 | `BK-10` | Book slope and curvature matter to us as **exit-cost and impact state**, not as direction | Predictive | Proposed | Partly |
 | `BK-11` | **Delta is steered by quote skew, not hedged by futures.** Steering converts the futures cadence from ~356 sessions to hours, and the binding tolerance (< 1 lot) is set by delta **risk**, not by hedge cost | Accounting/Policy | **Agreed — Aryan 2026-08-19** | No |
+| `BK-12` | The primary decision object is the **joint quoting configuration**, while per-quote fill probability and markout remain measurement primitives | Estimand | **Agreed — Aryan 2026-08-19 (`D30`)** | No |
+| `BK-13` | Inventory is reversed primarily through **passive option fills**, with aggressive option exits second and futures reserved for residual breaches | Policy/Empirical | Proposed | Yes — channel attribution |
+| `BK-14` | A joint controller using portfolio delta plus maturity-sensitive gamma/vega state dominates independent per-contract or delta-only control after costs and peak margin | Policy/Model comparison | Proposed | Yes — causal replay |
+| `BK-15` | A low-dimensional Greek state is an adequate local compression of the full inventory vector inside a declared inventory region | Approximation | Proposed | Yes — approximation error |
 
 ### `BK-01` — The book is the hedging instrument
 
@@ -315,6 +349,25 @@ trade is queue risk for liquidity risk, and which is cheaper is an empirical que
   neither steering nor futures works at the required tolerance, and **the maker cannot carry
   inventory at all**, which is a kill result at the strategy level, not a parameter problem.
 
+### `BK-12` — Joint configuration is the primary object — **Agreed (`D30`)**
+
+- **What.** A simultaneous set of put/call bid and ask quotes, conditional on one central
+  portfolio state; not a collection of independently optimal orders.
+- **How.** Each possible fill contributes its own capture, cost, fill intensity and conditional
+  markout, but also changes residual delta, gamma/vega, flattening capacity, breach probability
+  and peak margin of the full book.
+- **Why we care.** Independent quote selection can accept individually positive quotes whose
+  joint fills produce an unhedgeable book, or reject a low standalone-value quote that cheaply
+  neutralises portfolio risk. Per-quote estimates remain necessary inputs; separability is what
+  is rejected.
+- **Status.** Estimand decision, not a statistical claim. The choice of controller remains open.
+
+### `BK-13` – `BK-15`
+
+Seeded by the joint-quoting literature and registered before execution. These are empirical
+claims about Shaurya's own tape and replay, not conclusions imported from KOSPI, U.S. options or
+continuous-hedging models. Their bound tests follow below.
+
 ### `BK-06` – `BK-10`
 
 Mechanisms and capture paths drafted; **hypotheses deliberately not bound in round 1**,
@@ -340,7 +393,7 @@ cell.
 | **h₂ / f₂** | Event (per offsetting print) / event clock |
 | **Z** | n/a — policy evaluation |
 | **Stratum** | Premium band × DTE bucket × moneyness; same-contract-both-sides versus offsetting-strike |
-| **K** | Median and p95 **time-to-flat in seconds**; **peak |delta| per lot quoted**, in index-point equivalents; and **% of quoted intervals in which flattening was unavailable at all** |
+| **K** | Median and p95 **time-to-flat in seconds**; **peak absolute delta per lot quoted**, in index-point equivalents; and **% of quoted intervals in which flattening was unavailable at all** |
 | **Verdict rule** | Descriptive; feeds `RSK` position sizing directly |
 | **Why it runs first** | If p95 time-to-flat is minutes, the strategy carries overnight-scale delta on a spread capture of 0.237% of premium, and no signal work is justified until sizing accounts for it |
 
@@ -409,6 +462,52 @@ frequency. Confirm: `σ_∞ ≤ 9` index units at a skew intensity whose revenue
 tolerance without destroying more revenue than it saves — **`BK-11`'s kill branch.**
 Dependencies: `EF-10/H1`, `BK-01/H2`, `NAT-07`.
 
+### `BK-13/H1` — Inventory reversal and hedge-channel attribution
+
+| Axis | Binding |
+|---|---|
+| **X** | A signed option-inventory shock created by a fill under the declared joint quoting configuration; magnitude recorded in option lots, delta units and Greek vector |
+| **h₁ / f₁** | Instantaneous fill event / canonical fill clock |
+| **Y** | Fraction of the shock reversed, and attribution of the reversal to passive option fills, aggressive option exits, and futures |
+| **h₂ / f₂** | `{1, 5, 15, 30}` minutes / event ledger sampled at each horizon |
+| **Z** | `0` from fill completion; descriptive inventory dynamics, not a price forecast |
+| **Stratum** | Premium band × DTE bucket × initial absolute-delta bucket × volatility regime × selected/adverse fill side |
+| **K** | Median and p10/p90 reversal fraction at each horizon; channel shares summing to 100%; time-to-50%-reversal; peak-margin and realised cost per unit reversed |
+| **External benchmark** | Hu et al.'s 38–48% five-minute reversal and passive-option dominance are reported beside, never used as a verdict threshold |
+| **Confirm / falsify** | Confirm `BK-13` only if passive option fills are the largest reversal channel **and** their all-in loss is below the futures alternative. Falsify if futures or aggressive exits dominate after identical attribution rules; report regime-specific reversals rather than averaging them away. |
+| **Dependencies** | `CON-02`, `ANL-01`, `BK-11/H1`, `NAT-07`; Live claims require broker-reconciled fills |
+
+### `BK-14/H1` — Does portfolio state improve the quoting policy?
+
+This is a pre-registered **paired policy comparison**, so the timing axes describe the common
+decision/reward protocol rather than a predictor regression.
+
+| Axis | Binding |
+|---|---|
+| **X** | Controller class: `{independent per-contract, joint delta-only, joint delta + DTE-bucketed gamma + tenor-bucketed vega}`; identical eligible quote set, fill model, latency, costs and risk limits |
+| **h₁ / f₁** | Portfolio state at every admissible 500 ms decision point / 2.00 Hz binding depth20 clock |
+| **Y** | Configuration value and risk realised after the decision |
+| **h₂ / f₂** | `{5 s, 60 s, time-to-flat, full session}` / event ledger, with overlapping short-horizon inference handled under `METHOD.md` |
+| **Z** | At least realised end-to-end response bound `R`; arms below eventual `R` are descriptive/demoted, not deleted |
+| **Stratum** | Premium regime × DTE × volatility regime × starting residual-delta bucket |
+| **K** | Net ₹ per unit peak margin; p95/p99 drawdown; tail Greek exposure; median/p95 time-to-flat; futures breaches/session; foregone spread; paired differences with dependence-aware intervals |
+| **Grid / power** | Every controller, bucket definition, risk-aversion value and horizon enters one declared `G`; ex-ante MDE is stated for the primary K before replay |
+| **Confirm / falsify** | Confirm only if the expanded joint state improves the pre-registered primary economic K and does not merely exchange mean P&L for worse tail risk. Delta-only wins if the expanded state has no economically resolvable gain; independent control wins if joint state adds no resolvable gain. `Inconclusive` if MDE is too wide. |
+| **Dependencies** | `BK-11/H1`, `GRK`, `SUR`, `EXE-09/10`, `NAT-07`, configuration-level `SIG-17` |
+
+### `BK-15/H1` — Low-dimensional state-compression error
+
+X: inventory representation `{full contract vector, delta-only, delta + DTE-gamma buckets +
+tenor-vega buckets}` evaluated against the **same fixed value/policy yardstick**. h₁/f₁: state at
+each 500 ms decision point / 2.00 Hz. Y: value-function error and configuration disagreement
+against the full-vector yardstick. h₂/f₂: one decision and `{5 s, 60 s}` realised consequences /
+event ledger. Z: at least `R` for economic consequences. Stratum: norm of inventory vector × DTE
+× volatility regime. **K:** median and p95 absolute value error, fraction of decisions choosing a
+different configuration, and economic regret per peak-margin unit. All Greek bucketings and
+inventory-region cutoffs enter `G` before execution. Confirm only **locally** where p95 regret is
+below the ex-ante tolerance; if error grows outside that region, shrink the admissible state space
+rather than asserting a global approximation. Dependencies: `BK-14/H1`, `GRK`, `SUR`, `NAT-07`.
+
 ---
 
 ## 5.1 Change control — the estimand moves to chain level
@@ -416,7 +515,7 @@ Dependencies: `EF-10/H1`, `BK-01/H2`, `NAT-07`.
 **Requirement affected:** `SIG-08` (target register), `REQ-SIG-08`.
 **Current requirement:** maker-side targets are fill probability and markout-conditional-on-fill
 for **a quote**, `V_s(d,x)` per resting order.
-**Proposed change:** the primary decision object becomes the **joint quoting configuration
+**Approved change (`D30`):** the primary decision object becomes the **joint quoting configuration
 across the chain** — a set of simultaneously resting quotes on puts and calls whose fills net
 delta — with per-quote value retained as a component, not the objective.
 **Why it appears necessary:** `BK-01` and `BK-11`. If futures cannot hedge and delta must net
@@ -431,18 +530,15 @@ margin, not per quote.
 **Alternatives considered:** keep the per-quote estimand and treat inventory as an exogenous
 state variable. Rejected — inventory is endogenous to our own configuration, so treating it as
 exogenous assumes away the thing `BK-11` says is binding.
-**Status:** **taken as directed by Aryan's 2026-08-19 instruction to quote both puts and calls
-as the hedging mechanism.** Recorded here rather than re-asked. If that over-reads the
-instruction, say so and it reverts.
+**Status:** **Approved explicitly by Aryan on 2026-08-19:** “the joint quoting configuration is
+the right direction.” Recorded as `D30`; no longer provisional.
 
 ---
 
 ## 6. Open questions for round 2
 
-1. **Does `BK-01` change the estimand?** If the book is the hedging instrument, the maker's
-   object may not be per-quote value `V_s(d,x)` at all, but the value of a **joint quoting
-   configuration across the chain** — a portfolio of resting quotes whose fills net. That is
-   a materially different optimisation and would be a change-control item against `SIG-08`.
+1. ~~**Does `BK-01` change the estimand?**~~ **Answered: yes (`D30`).** The primary object is a
+   joint quoting configuration; per-quote fill and markout remain measurement primitives.
 2. ~~**What is the minimum viable futures hedge cadence?**~~ **Answered in §2.1
    (2026-08-19).** Unsteered ~356 sessions; steered, hours — and the binding constraint is
    delta *risk* at a tolerance under one lot, not hedge cost. Routine futures hedging is the

@@ -1,7 +1,7 @@
 # Shaurya module specification
 
 - **Owner:** Aryan Ayyar
-- **Scope authority:** `TASKS.md` decisions D1–D28 and all non-dropped stable task IDs
+- **Scope authority:** `TASKS.md` decisions D1–D30 and all non-dropped stable task IDs
 - **Form:** index plus one specification per frozen component
 
 ## Module objective

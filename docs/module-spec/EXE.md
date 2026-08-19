@@ -11,16 +11,16 @@ Provide one broker-shaped execution interface, a Kotak-only live implementation,
 | Kotak acknowledgements, order status, fills, positions, and limits | Observed | Observed broker reports; lifecycle races remain visible. |
 | Canonical order/ledger state | Deterministically derived from observed events | Must preserve partial fills, cancel races, late fills, rejects, and residual exits. |
 | Queue-state intensities | Estimated | Fitted from canonical depth/event data. |
-| Queue position | Estimated / proxy | True rank is unidentified from Dhan aggregated depth; inferred only from level size, order counts, and trades. |
-| Paper/backtest fill | Proxy | Never relabelled as realised execution. It inherits the queue-position estimated/proxy label. |
-| True queue rank and individual-order history | Unidentified | No Dhan order IDs; EXE cannot silently manufacture them. |
+| Own queue-ahead | Estimated, with reported bounds | Exact displayed quantity at acceptance; bounded thereafter from trades, aggregate cancellations, level size and order counts under D23. |
+| Paper/backtest fill | Proxy | Never relabelled as realised execution. It inherits the queue-ahead estimate and both bounds. |
+| Anonymous-order rank, cancellation position, hidden quantity and individual-order history | Unidentified | No Dhan order IDs/hidden depth; EXE cannot silently manufacture them. |
 
 ## Architecture and contracts
 
 - `CON-01` supplies canonical depth/events to the shared fill model.
 - `CON-02` is the append-only order ledger written by EXE and consumed by ANL/BKT parity.
 - `CON-04` supplies shared configuration and paper/live mode settings.
-- `CON-06` carries proxy/estimated labels through queue position and simulated fills.
+- `CON-06` carries queue-ahead point estimates, bounds and proxy labels through simulated fills.
 - The broker interface is mirrored for research/testing, but the authoritative live-order implementation is C++. Python cannot place or authorise a live order.
 - Kotak is the sole execution broker. Orders use REST; Kotak WebSocket is receive-only. Every POST body is one `jData=<url-encoded JSON>` form field.
 
@@ -35,7 +35,7 @@ Provide one broker-shaped execution interface, a Kotak-only live implementation,
 | REQ-EXE-05 | Write one append-only `CON-02` ledger per run. | EXE-05 | TBD native ledger writer | Schema, append-only, hash, crash-recovery tests |
 | REQ-EXE-06 | Require flat-account preflight, an explicit one-time per-session human confirmation phrase, refusal of paper-only settings in live mode, and no scripted or per-order reauthorisation path. | EXE-06 | TBD native CLI/live gate | Negative safety tests; session-authorisation audit event |
 | REQ-EXE-09 | Build one Q-conditioned queue-reactive/intensity fill model consumed by paper execution and backtesting. | EXE-09, D14 | TBD shared execution-realism core | Calibration/replay/property tests; model artifact |
-| REQ-EXE-10 | Estimate queue position from visible level size, order counts, and trades; propagate estimated/proxy labels into every generated fill. | EXE-10, SIG-07, D14 | TBD queue estimator | Known-scenario/label-propagation tests; queue estimate |
+| REQ-EXE-10 | Estimate own queue-ahead from visible level size, order counts and trades: exact at acceptance, hard lower/upper bounds thereafter, plus a point estimate under an explicit cancellation-position model. Report bound width and propagate both bounds into every generated fill. | EXE-10, SIG-07, D14, D23 | TBD queue estimator | Known-scenario/bound/label-propagation tests; bounded queue estimate |
 
 Dropped tasks EXE-07 and EXE-08 have no requirements: Dhan and Kite order placement are outside scope.
 

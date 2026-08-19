@@ -1,6 +1,6 @@
 # Hypothesis testing method — binding on all of SIG
 
-**Status:** adopted 2026-08-19 on Aryan's instruction. Governs every `SIG` claim, every
+**Status:** adopted 2026-08-19 on Aryan's instruction; recorded as `D29`. Governs every `SIG` claim, every
 `MK-*` gate, and every empirical statement the module makes about the market. Not
 OFI-specific.
 
