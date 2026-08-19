@@ -36,6 +36,10 @@ to strategies that pin the package.
   unchanged second set. The limit is therefore socket-scoped under that load. A 2+2 control
   accepted both same-socket messages, correcting the broader prior claim that every second
   message is always ignored.
+- Live-verified DAT-13 with an order-rotation control over the four front-month index futures.
+  The first-subscribed future received 328 packets and every later future received 2 in both
+  orderings; moving NIFTY from first to last moved dominance to BANKNIFTY. The 164× skew is a
+  genuine subscription-order throttle/bias, not ordinary liquidity variation.
 
 - Added historical bar fetch and local storage: Dhan minute and daily responses normalize into a
   strict versioned observed-bar schema on a stable on-disk layout. Bars only; no broker API
@@ -58,7 +62,7 @@ to strategies that pin the package.
   20-level per-message instrument ceiling, a reconnect test for
   whether the first-message limit is per socket or per account, and a same-liquidity control for
   the 200-level packet skew. DAT-11 is live verified at 50 instruments and DAT-12 is live
-  verified as socket-scoped at 50+50; DAT-13 still requires its market-hours experiment.
+  verified as socket-scoped at 50+50; DAT-13 is live verified with order rotation.
 
 ### SUR-01, SUR-02, SUR-05, SUR-06, SUR-07, and SUR-08 — eSSVI surfaces
 
