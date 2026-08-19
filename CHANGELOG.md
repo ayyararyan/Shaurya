@@ -5,6 +5,45 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### `X-CKS-L1-OFI-DAT20-04` — Cont-Kukanov-Stoikov level-one OFI versus future returns, depth-controlled
+
+- Added the canonical CKS best-quote event increment
+  `e = 1{P^B_n >= P^B_{n-1}} q^B_n - 1{P^B_n <= P^B_{n-1}} q^B_{n-1} - 1{P^A_n <= P^A_{n-1}} q^A_n
+  + 1{P^A_n >= P^A_{n-1}} q^A_{n-1}` in `src/shaurya/signals/cks_l1_ofi.py`, with an eight-component
+  auditable decomposition (price improvement, same-price displayed addition, same-price displayed
+  removal, price worsening, on each side) that is asserted to reconstruct the increment exactly.
+- Frozen 25-cell grid: 5 accumulation windows (0.5-10 s) x 5 return horizons (1-30 s), 0.5 s causal
+  gap, same publication clock, completeness rule, 70/30 within-tape split and 120 s embargo as
+  `X-OFI-DAT20-03`. Six models per cell plus a comparison arm carrying that scan's price-keyed
+  top-10 construction against the identical depth control.
+- Depth control is measured at or before the OFI window end (`log1p` of best-bid + best-ask
+  displayed size); depth scaling divides OFI by the causal average level-one depth with a
+  one-contract floor. `assert_no_lookahead` and a test enforce that no window starts after its own
+  observation or reaches back beyond its own length. Zero observations hit the scaling floor.
+- **Identification held explicit:** Dhan publishes snapshots, so gross limit arrivals and gross
+  cancellations are unidentified. Same-price changes are labelled displayed additions and displayed
+  removals throughout. The coalesced trade fields (310 packets, 52,715 identified executed
+  contracts) exceed level-one same-price displayed removals (29,120 contracts), so no clean
+  execution-versus-cancellation split is identified and the artifact records a saturated upper
+  bound rather than a fabricated share.
+- **Result:** raw level-one OFI adds at most +1.44 pp of held-out R² over the depth control
+  (1 s -> 2 s); depth scaling helps in 22 of 25 cells with a best increment of +6.01 pp
+  (2 s -> 2 s, pressure-only OOS R² 6.31%, +0.84 ticks per unit pressure). Only 2 of 25 raw and
+  1 of 25 pressure cells clear Newey-West, block bootstrap and non-overlapping blocks together, and
+  the one substantive survivor flips coefficient sign across the two tapes (+1.72 vs -0.32 ticks per
+  training SD). The best pressure cell scores higher out of sample than in sample (5.30% vs 1.36%).
+- **Comparison:** `X-OFI-DAT20-03`'s lead survives an independent depth control at +7.16 pp
+  incremental (8.40% OOS R²) while level-one OFI contributes -0.54 pp at that cell with a negative
+  coefficient — confirming that lead is a levels-2-10 phenomenon, not a best-quote one.
+- Measured object characteristics: 5,470 valid transitions over 1,305 s (4.19/s); best-quote price
+  moves carry 80.9% of absolute contribution and same-price displayed size changes only 19.1%;
+  81.4% of contribution is ask-side; median best-bid/best-ask spread is 100 and 134 ticks on the two
+  tapes, so level one here is a lone quote at the front of a wide gap rather than a contested queue.
+- Added 31 tests in `tests/test_cks_l1_ofi.py`, the `scripts/cks_l1_ofi_scan.py` CLI, the frozen
+  specification `docs/CKS-L1-OFI-SPEC-2026-08-19.md`, and the plain-English report
+  `docs/CKS-L1-OFI-2026-08-19.md`. Deterministic replay reproduces all three artifacts byte for
+  byte. Exploratory observation only; `confirmatory_eligible: false`; not part of `H-SIG21`.
+
 ### `X-OFI-DAT20-03` — price-keyed OFI versus future returns
 
 - Added a frozen exploratory grid over five OFI accumulation windows (0.5–10 s), seven cumulative
