@@ -59,8 +59,8 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--feed-slow-seconds", type=float, default=1.0)
     parser.add_argument("--feed-dead-seconds", type=float, default=2.0)
-    parser.add_argument("--moneyness-half-width", type=float, default=0.12)
-    parser.add_argument("--moneyness-points", type=int, default=41)
+    parser.add_argument("--moneyness-half-width", type=float, default=0.08)
+    parser.add_argument("--moneyness-points", type=int, default=33)
     parser.add_argument("--min-quotes-per-slice", type=int, default=5)
     parser.add_argument("--risk-free-rate", type=float, default=0.0)
     parser.add_argument("--serve-seconds", type=float, default=0.0,

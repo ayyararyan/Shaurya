@@ -387,13 +387,24 @@ class SurfaceEngine:
         }
 
     def _grid(self, surface: ESSVISurface, maturities: dict[date, float]) -> SurfaceGrid:
+        """Evaluate on the surface's own fitted maturities.
+
+        `ESSVISurface.evaluate` matches an exact maturity to within 1e-10 years, and the
+        SUR-07 smoother blends slices whose maturities came from earlier valuation times, so
+        recomputing a maturity from the clock would miss the exact match and silently demote
+        every row to maturity interpolation.
+        """
+
         reasons: set[str] = set()
         rows: list[tuple[float | None, ...]] = []
         unsupported = 0
         maturity_days: list[float] = []
         labels: list[str] = []
+        fitted = {item.expiry: item.maturity_years for item in surface.slices}
         for expiry in self.expiries:
-            maturity = maturities[expiry]
+            maturity = fitted.get(expiry, maturities[expiry])
+            if expiry not in fitted:
+                reasons.add(f"{expiry.isoformat()} has no fitted slice in this frame")
             maturity_days.append(maturity * 365.0)
             labels.append(expiry.isoformat())
             row: list[float | None] = []
@@ -422,6 +433,7 @@ class SurfaceEngine:
         self, surface: ESSVISurface, forwards: ForwardSelection, maturities: dict[date, float]
     ) -> tuple[MarketPoint, ...]:
         forward_by_expiry = forwards.forward_by_expiry
+        fitted_maturities = {item.expiry: item.maturity_years for item in surface.slices}
         points: list[MarketPoint] = []
         for instrument_id, row in self._latest.items():
             expiry = _option_expiry(instrument_id)
@@ -436,7 +448,10 @@ class SurfaceEngine:
             if bid is None or ask is None or bid <= 0 or ask < bid:
                 continue
             log_moneyness = math.log(strike / forward_by_expiry[expiry])
-            evaluation = surface.evaluate(log_moneyness=log_moneyness, maturity_years=maturity)
+            evaluation = surface.evaluate(
+                log_moneyness=log_moneyness,
+                maturity_years=fitted_maturities.get(expiry, maturity),
+            )
             if evaluation.status is EvaluationStatus.DATA_INSUFFICIENT:
                 continue
             fitted = evaluation.implied_volatility
@@ -632,7 +647,7 @@ class SurfaceEngine:
 
 
 def default_log_moneyness_grid(
-    *, half_width: float = 0.12, points: int = 41
+    *, half_width: float = 0.08, points: int = 33
 ) -> tuple[float, ...]:
     """A fixed grid; the axis must not move just because the market did."""
 
