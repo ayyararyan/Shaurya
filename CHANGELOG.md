@@ -5,6 +5,36 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### ANL-03 — live implied-volatility surface dashboard (surface scope only)
+
+- Added a read-only surface dashboard and server (`shaurya.analytics.{forward,universe,
+  surface_feed,dashboard,server}`, `shaurya.cli.{capture_chain,surface_dashboard}`) serving
+  `GET /`, `GET /api/state` and `GET /api/history` on `http://127.0.0.1:8765/`. No write
+  method is implemented and no order path is imported, per D19 and `ANL.md`.
+- Drove it from a DAT-05 replay first and then from one live Dhan Quote/Full connection:
+  116 snapshots over 11:27–11:37 IST 2026-08-19 on 452 NIFTY instruments, 116/116 fits
+  converged, 0 reconnects, aggregate feed age p50 4.7 ms / p95 30.8 ms, fit duration p50
+  0.159 s, and `SUR-05` butterfly and calendar checks passing on all 116 snapshots.
+- Feed death is shown, not inferred: health is sampled on every dashboard read rather than
+  only when a fit lands, so a stopped feed keeps ageing on screen. A 45 s post-stream window
+  rendered status DEAD, 0.0 packets/second, and three named threshold breaches while the last
+  good surface remained drawn.
+- Staleness thresholds are calibrated to DAT-16's measured cadence and to this run, not
+  chosen by taste: feed slow/dead 1 s / 2 s, fit stale 20 s against a measured 5.16–5.20 s
+  fit gap, and `SUR-07` surface staleness 480 s because surface age is the age of the oldest
+  contributing quote (measured p50 200 s, p95 421 s on a 452-instrument chain).
+- Forward source is a stated model choice per expiry — traded future where the expiry matches,
+  put-call parity otherwise — carried as a `CON-06`/§7.1 `ObjectLabel` with construction,
+  assumptions and limitations, and displayed on screen.
+- Measured the Quote/Full (`RequestCode` 21) instrument ceiling empirically rather than
+  assuming it: 402, 1,203 and 3,003 instruments on one socket all returned packets for every
+  requested instrument. The ceiling is a **lower bound of 3,003**, and unlike the 20-level
+  depth channel, multiple subscription messages on one Quote/Full socket all take effect.
+- Scope limits recorded rather than generalized away: the ANL-01/ANL-02 P&L, markout and
+  reporting views are not built; no live reconnect, no observed arbitrage violation, no
+  non-NIFTY underlying, and no afternoon or expiry-day session were exercised.
+
+
 ### DAT-15 — cross-channel alignment-error measurement
 
 - Added a reproducible retained-tape analyzer for causal quote-age distributions, a clearly
