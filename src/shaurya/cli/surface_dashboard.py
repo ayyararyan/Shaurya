@@ -120,6 +120,16 @@ def _summarise(engine: SurfaceEngine) -> dict[str, Any]:
         index = min(len(values) - 1, max(0, round(fraction * (len(values) - 1))))
         return values[index]
 
+    surface_ages = sorted(
+        snapshot.surface_age_seconds
+        for snapshot in fits
+        if snapshot.surface_age_seconds is not None
+    )
+    smoothing_states: set[str] = set()
+    for snapshot in fits:
+        state = snapshot.diagnostics.get("temporal_smoothing")
+        status = state.get("status") if isinstance(state, dict) else None
+        smoothing_states.add(str(status).split(":")[0])
     arbitrage_failures = [
         snapshot.sequence
         for snapshot in fits
@@ -136,6 +146,10 @@ def _summarise(engine: SurfaceEngine) -> dict[str, Any]:
         "feed_age_p50": quantile(ages, 0.5),
         "feed_age_p95": quantile(ages, 0.95),
         "feed_age_max": ages[-1] if ages else None,
+        "surface_age_p50": quantile(surface_ages, 0.5),
+        "surface_age_p95": quantile(surface_ages, 0.95),
+        "surface_age_max": surface_ages[-1] if surface_ages else None,
+        "temporal_smoothing_states": sorted(smoothing_states),
         "arbitrage_failing_snapshots": arbitrage_failures,
         "instruments_tracked": (
             history[-1].health.tracked_instrument_count if history else 0
