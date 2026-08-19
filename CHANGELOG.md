@@ -57,13 +57,22 @@ to strategies that pin the package.
   moves carry 80.9% of absolute contribution and same-price displayed size changes only 19.1%;
   81.4% of contribution is ask-side; median best-bid/best-ask spread is 100 and 134 ticks on the two
   tapes, so level one here is a lone quote at the front of a wide gap rather than a contested queue.
-- Added 31 tests in `tests/test_cks_l1_ofi.py`, the `scripts/cks_l1_ofi_scan.py` CLI, the frozen
+- Added 33 tests in `tests/test_cks_l1_ofi.py`, the `scripts/cks_l1_ofi_scan.py` CLI, the frozen
   specification `docs/CKS-L1-OFI-SPEC-2026-08-19.md`, its Amendment 1, the plain-English report
   `docs/CKS-L1-OFI-2026-08-19.md`, and the primary-literature benchmark
   `docs/research/OFI-LITERATURE-BENCHMARK-2026-08-19.md` separating signed trade imbalance, VPIN,
   exact CKS L1 OFI, static queue imbalance and multi-level OFI. Deterministic replay reproduces the
   grid and component artifacts byte for byte, and the scan JSON byte for byte except for its
   embedded `protocol.code_commit` field. Exploratory observation only; `confirmatory_eligible: false`; not part of `H-SIG21`.
+- Hardened the Amendment 1 horizon coverage: the 0.5 s response horizon is now exercised **end to
+  end on its measured value**, not only by membership in `CKS_RETURN_HORIZONS_SECONDS`. On a
+  synthetic tape whose mid advances exactly one futures tick per 0.5 s publication, each horizon's
+  future target and past mirror must equal `2 x horizon` ticks, and the 0.5 s target is asserted not
+  to alias the 1 s one; a second test asserts all five 0.5 s cells are fitted and bootstrapped. Both
+  guard the sub-second conversion `int(horizon * NANOSECONDS_PER_SECOND)` and the integer
+  block-bootstrap seed `int(horizon * 10_000)`, and both were mutation-checked against the
+  truncating and float-seed variants. Re-running the scan reproduces both commit-independent
+  artifacts byte for byte, so no reported figure changes.
 
 ### `X-OFI-DAT20-03` — price-keyed OFI versus future returns
 

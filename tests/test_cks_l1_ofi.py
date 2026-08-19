@@ -6,6 +6,7 @@ import pytest
 
 from shaurya.data.depth_thinning_analysis import DEPTH20, DEPTH200, BookState
 from shaurya.signals.cks_l1_ofi import (
+    CELL_MODELS,
     CKS_RETURN_HORIZONS_SECONDS,
     DEPTH_BASELINE_FEATURE,
     L1_COMPONENTS,
@@ -24,6 +25,7 @@ from shaurya.signals.cks_l1_ofi import (
     pressure_feature,
 )
 from shaurya.signals.deep_book_normal_activity import chronological_embargoed_split
+from shaurya.signals.deep_book_ofi import FUTURES_TICK_SIZE
 
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
@@ -223,6 +225,28 @@ def _synthetic_tape(
     return depth200, depth20
 
 
+def _one_tick_per_publication_tape(
+    count: int = 2400, *, step_ns: int = 500_000_000
+) -> tuple[list[BookState], list[BookState]]:
+    """A tape whose mid advances exactly one futures tick per 0.5 s publication.
+
+    Today's feed clock is ~0.4-0.5 s, so 0.5 s is one publication step.  Pinning the mid to
+    one tick per step makes every horizon's target exactly ``2 * horizon`` ticks, which is
+    what lets the sub-second horizon be checked against a value rather than against itself.
+    """
+
+    depth200: list[BookState] = []
+    depth20: list[BookState] = []
+    for index in range(count):
+        stamp = 10_000_000_000 + index * step_ns
+        drift = FUTURES_TICK_SIZE * index
+        bids = ((100.0 + drift, 400, 3), (99.95 + drift, 500, 4), (99.9 + drift, 500, 4))
+        asks = ((100.05 + drift, 600, 3), (100.1 + drift, 500, 4), (100.15 + drift, 500, 4))
+        depth200.append(_state(stamp, bids, asks))
+        depth20.append(_state(stamp, bids[:1], asks[:1], channel=DEPTH20))
+    return depth200, depth20
+
+
 def test_observations_carry_every_window_and_a_causal_depth_control() -> None:
     depth200, depth20 = _synthetic_tape()
 
@@ -380,6 +404,49 @@ def test_the_grid_emits_every_one_of_the_thirty_cells() -> None:
     for row in grid:
         assert set(row["models"]) == {"M1", "M2", "M3", "M4", "M4b", "R1", "C1"}
         assert set(row["past_mirror_models"]) == set(row["models"])
+
+
+def test_the_half_second_horizon_is_measured_at_exactly_half_a_second() -> None:
+    depth200, depth20 = _one_tick_per_publication_tape()
+
+    observations, _, _ = build_cks_l1_observations(
+        depth200_states=depth200, depth20_states=depth20, tape_index=0, run_id="run"
+    )
+
+    assert observations
+    observation = observations[len(observations) // 2]
+    # The mid advances one tick per 0.5 s publication, so an h-second horizon must move
+    # exactly 2h ticks.  A truncating cast (``int(horizon) * NANOSECONDS_PER_SECOND``)
+    # would collapse 0.5 s to a zero-length interval and drop the horizon entirely.
+    assert 0.5 in observation.future_ticks
+    assert 0.5 in observation.past_ticks
+    assert isclose(observation.future_ticks[0.5], 1.0, abs_tol=1e-6)
+    assert isclose(observation.past_ticks[0.5], 1.0, abs_tol=1e-6)
+    for horizon in CKS_RETURN_HORIZONS_SECONDS:
+        assert isclose(observation.future_ticks[horizon], 2.0 * horizon, abs_tol=1e-6)
+        assert isclose(observation.past_ticks[horizon], 2.0 * horizon, abs_tol=1e-6)
+    # 0.5 s must be its own measurement, not an alias of the 1 s target.
+    assert not isclose(observation.future_ticks[0.5], observation.future_ticks[1], abs_tol=1e-6)
+
+
+def test_every_half_second_cell_is_fitted_and_bootstrapped_like_the_others() -> None:
+    artifact = _artifact()
+    grid = artifact["grid"]
+    assert isinstance(grid, list)
+
+    rows = [row for row in grid if row["return_horizon_seconds"] == 0.5]
+
+    assert len(rows) == len(OFI_WINDOWS_SECONDS)
+    for row in rows:
+        assert row["train_n"] > 0
+        assert row["test_n"] > 0
+        assert set(row["models"]) == set(CELL_MODELS)
+        for payload in (row["ofi_over_depth_inference"], row["pressure_over_depth_inference"]):
+            # Reaching here at all proves the bootstrap seed stayed an int: the block
+            # bootstrap seeds a NumPy generator, which rejects a float seed outright.
+            assert payload["n"] == row["test_n"]
+            assert payload["naive_inference_valid"] is False
+            assert "block_bootstrap_t" in payload
 
 
 def test_the_split_embargoes_the_boundary_and_keeps_training_strictly_earlier() -> None:
