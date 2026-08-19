@@ -135,9 +135,11 @@ Let bid/ask prices, quantities and displayed order counts at level `l` be
 
 ## EST — common sample and chronological prediction
 
-The primary complete-case sample is the intersection of the future target and **all** numeric
-features needed by S, quality, L and O at the 5 s lookback. Every primary model is evaluated on
-these identical rows:
+The primary complete-case sample is the intersection of the future target and all required
+surface-economic, LOB and OFI features at the 5 s lookback. Optional quality diagnostics do not
+silently collapse that sample: quality has a fixed declared schema, each missing numeric diagnostic
+is training-median imputed with its own missing indicator, and categorical reasons use the
+training-only vocabulary described above. Every primary model is evaluated on these identical rows:
 
 - **N:** training-mean response benchmark (also report the literal zero/no-price-change RMSE).
 - **S:** surface economic block.
