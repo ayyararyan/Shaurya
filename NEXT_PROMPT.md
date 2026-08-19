@@ -1,9 +1,158 @@
 # Shaurya — Next-Session Prompt
 
-**Prepared:** 2026-08-17, last updated 2026-08-19 ~10:52 IST
-**Use on return:** after the 2026-08-19 DAT market-hours session
+**Prepared:** 2026-08-17, last updated 2026-08-19 ~11:20 IST (session reset by Aryan)
+**Use on return:** immediately after the 2026-08-19 mid-session reset; NSE is still open until 15:30 IST
 **Repository:** private `ayyararyan/Shaurya`
 **Canonical status ledger:** `TASKS.md`
+
+## STATE AT THE 2026-08-19 ~11:20 IST RESET — READ THIS FIRST
+
+**`origin/main` is at the commit recorded by the final push of this session. Working tree clean.
+Nothing of mine is unpushed.**
+
+### One agent was running when the reset happened
+
+`shaurya_anl03_surface_opus` — run `d0bce3c8-a6b7-49dc-a0b7-ff311efbd33c`, session
+`agent:main:subagent:6405307b-41cd-459f-9814-f0082de7c629`, model **`anthropic/claude-opus-5`**,
+working in a **separate clone** at `/Users/maheit/Documents/Shaurya-anl`. Building `ANL-03`, the
+live 3D implied-volatility surface dashboard, on Aryan's instruction. Do **not** spawn a
+replacement, do not summarise partial output, and do not edit `/Users/maheit/Documents/Shaurya-anl`.
+
+**Two known hazards with that agent, both already handled but both recurring:**
+
+1. **Its `origin` is the local clone, not GitHub.** `Shaurya-anl` was cloned from
+   `/Users/maheit/Documents/Shaurya`, so `git push` there does not reach
+   `github.com/ayyararyan/Shaurya`. Its commits must be relayed: from the main clone,
+   `git fetch /Users/maheit/Documents/Shaurya-anl main`, reconcile, then push. It has been told.
+2. **Histories diverge.** Its line and the main clone's ledger line both descend from `4f51e32`
+   and were reconciled once already by rebasing the ledger commit onto its line — **no force-push,
+   and do not force-push to fix this.** Expect to do it again. There is no file overlap in
+   practice: it writes `src/shaurya/analytics/**`, `src/shaurya/cli/**` and its own evidence doc;
+   the ledger work touches `TASKS.md`, `CHANGELOG.md`, `NEXT_PROMPT.md`, `docs/`.
+
+**Its verified findings so far, which are real and should not be re-derived:**
+- **No retained tape contains options.** Every capture is index-futures only
+  (`NSE:NSE_FNO:NIFTY:future:2026-08-25`). The eSSVI fitter needs option quotes, so replay-first
+  cannot mean replaying existing tape — an option chain must be captured today, then replayed.
+  It has already shipped a Quote/Full chain-capture CLI, forward selection and a chain universe.
+
+### Why ANL-03 was commissioned, in Aryan's words
+
+Before SIG, make the ingestion visible by fitting and displaying the surface live. Three things he
+wants answered by **watching**, not by analysis: (1) do we come to know if the data dies or stalls;
+(2) what latency is sustained continuously across the whole day; (3) he wants to watch the **3D
+surface evolve** in the browser as the session progresses. `D19` governs: **watching only**, on
+SUR's existing fit/smoothing cadence, no latency-engineered fit path, never on a quoting path.
+
+**Standing expectation, set with Aryan up front:** `SUR-02` is Dry-run verified against *synthetic*
+option books. The eSSVI fitter has never met a real NIFTY chain. Fit failures, arbitrage-gate
+rejections and data-insufficient cells on first live contact are **the finding, not a setback**.
+The agent is explicitly barred from widening tolerances to make the picture look clean — that would
+be a specification change requiring approval.
+
+### The runtime lesson from this session — apply it
+
+**Codex (`openai/gpt-5.6-sol`) stalled twice on this task and produced nothing.**
+`shaurya_anl03_live_surface`: 11m08s, 107k prompt/cache, **502 output tokens**, zero commits.
+`shaurya_anl03_surface_v2`: 6m, **126 output tokens**, zero commits. Both died after bulk-reading
+large source files. The `shaurya_dat11_15_live` agent also ended `timeout` at 1h04m — though it had
+committed and pushed everything first, so its work survived.
+
+**Aryan's standing instruction:** if Codex chokes, escalate to `anthropic/claude-opus-5` (alias
+`opus5`) rather than retrying the same runtime a third time. **And sequence it** — do not run a
+`claude-cli` subagent concurrently with other agents, because the main Telegram session is itself
+`claude-cli` and `openclaw/openclaw#113149` lets one session's empty-response recovery kill
+unrelated concurrent `claude-cli` processes. The gateway-log signature count was **16** at
+11:00 IST on 2026-08-19, up from 14 the previous day — roughly one a day, live and ongoing.
+Re-check: `grep -c "outBytes=0 outHash=e3b0c44298fc" ~/Library/Logs/openclaw/gateway.log`
+
+Also give any agent an explicit **commit-within-15-minutes** rule and forbid multi-hundred-line
+bulk file dumps. Both stalls followed oversized reads, and both had nothing to show because they
+had committed nothing.
+
+### What landed today, all pushed and independently verified
+
+**DAT-11 — 20-level per-message ceiling is exactly 50 instruments.** Monotone acceptance: 2, 27,
+40, 46, 49, 50 accepted; 51, 52, 53, 54, 56, 61, 71, 90, 129 all rejected wholesale with zero
+packets. Corrects 2026-08-18's claim that 52 worked. Not the documented 5,000.
+
+**DAT-12 — socket-scoped, load-dependent.** 50+50 on one socket: first message delivered all 50,
+second delivered nothing; the identical second set on a fresh socket delivered all 50. But a 2+2
+run delivered both on one socket, so the old blanket phrase "only the first message is ever
+honoured" is too broad.
+
+**DAT-13 — a genuine first-subscription throttle, not liquidity.** Four comparable front-month
+index futures on one 200-level socket; rotating the subscription order moved the 328-vs-2 packet
+dominance with position. Later instruments got 2 packets in 40 s. A multi-instrument 200-level
+socket is **not** a full-rate feed for anything after the first instrument.
+
+**DAT-14 — Live verified** for depth20 alignment on two front-month futures, 10:23–10:33 IST.
+313 positive-volume prints (up from 12): 158 buy, 154 sell, 1 unclassified; 311 quote-rule,
+**1 live tick-rule fallback** — closing the gap where the fallback had never fired on real data.
+Version stamps 313/313. Coalesced 36.1%; signed last prints cover only **44.3%** of increment
+volume, worse than the 63% anecdote.
+
+**DAT-15 — Live verified** on all eight retained tapes: 38,572 rows, 482 prints. Healthy-core
+median quote age **238.7 ms** (p95 462.6, max 567.4). Proxy flip rate 5/320 = 1.6%. It correctly
+separated a healthy core from one reconnect-heavy run (p95 blows to 3.8 s, max 24 s) instead of
+averaging the mess away, and correctly labelled its flip statistic a **proxy, not truth**, because
+the post-print quote may already reflect the trade.
+
+**DAT-16 — the premise correction, and the most consequential result of the day.**
+**Dhan's depth20 channel is a fixed 500 ms snapshot feed, not an event feed.** Grouping by distinct
+receive timestamp: **1,195 bursts in 597.9 s on both NIFTY and BANKNIFTY** — 2.00/s, gap
+p05/p50/p95 **496/501/506 ms**, a metronome not a distribution, ~4.17 tape rows per burst. The
+~8 packets/s figure is an encoding artifact. Confirmed by reconciliation: DAT-15's median causal
+quote age 238.7 ms + median post-print delay 258.5 ms = **497.2 ms** against a 501 ms cadence,
+exactly as uniform arrival inside a fixed interval predicts.
+- **`D23`'s premise is amended**: the blind window is **500 ms, not ~125 ms**. D23's structure —
+  bounded, not unidentified — survives; the bound is **four times wider** than assumed.
+- **`EXE-10` is harder than scoped**: a queue-position estimator on 2 Hz snapshots sees only the
+  net delta across 500 ms, never the add/cancel/trade sequence inside it.
+- **`EXE-09` inputs are degraded**: HLR intensities come from 500 ms-netted level deltas.
+- **The touch is nearly static at this resolution**: best bid/ask *price* moves 0.24–0.67 times/s.
+- Quote/Full is **not** a metronome: 1.22–1.66 updates/s, dispersed gaps. Prints and depth run on
+  genuinely different clocks.
+- Found by OpenClaw while verifying DAT-15, **not** by the run agent. The run agent's own solo-rate
+  addendum concluded a "125–129 ms delivered view", which is wrong by 4x and wrong in the
+  flattering direction; it is preserved verbatim (`2b3cdbd`) then corrected (`4f51e32`) so the
+  correction is auditable.
+
+### Decisions taken today — D25, D26, D27, all in `TASKS.md`
+
+- **D25 — `EXE` enters the build order; a far-from-touch Kotak latency probe is authorised in
+  principle.** Both **scheduled later this week, explicitly NOT today**, and the live-order step
+  needs a **fresh explicit go at the time it runs** (§17.2). Driver: the maker report's Priority 0
+  gates MK-01–MK-04 all require a live Kotak order path, every EXE row is Not started, and EXE was
+  missing from the agreed build order entirely. EXE-09/EXE-10 move up because `MK-05` is not
+  computable without them.
+- **D26 — the ₹21 premium regime split is pre-registered now** as a stratification variable in
+  MK-05 and MK-06, before results are inspected, per D22. Does **not** choose a regime; that stays
+  with the data.
+- **D27 — admissible strategy speed is bounded below by the slowest relevant feed cadence.**
+  Aryan, on DAT-16: a strategy whose edge requires reacting faster than the slowest feed it
+  consumes is **inadmissible by construction**. Truncates D20's empirical horizon set from below.
+  Opens **`DAT-17`**: cadence is measured for depth20 only — the 5-level block inside Full and the
+  whole depth200 channel are uncharacterised, and DAT-13's throttle means depth200's effective
+  cadence beyond the first instrument may be far worse than nominal.
+
+### Open, in priority order
+
+1. **`ANL-03`** — in flight with the Opus agent. Its report is the next conversation.
+2. **`DAT-17`** — needs market hours for a clean depth200 sample; the 5-level question may be
+   answerable offline from retained tape.
+3. **The story-by-story SIG debate** against the maker report's MK-01–MK-13, producing the D22
+   claim ledger. This is still the main unstarted intellectual work.
+4. **D25's EXE work** — later this week.
+5. **`DAT-09`'s final strike-band and connection-count choice** — Aryan's, now computable against
+   the measured 50/socket ceiling.
+6. **Still open from the spread debate (Aryan, 09:53 IST):** which premium regime to target is a
+   data question, not yet answered; and whether the spread level is set by his tax mechanism or by
+   a fixed implied-vol spread (vega × Δσ) is **undecided** — the discriminating test needs IV/vega
+   on the capture path, since premium and vega decouple only deep ITM, and that is **not yet a
+   specified task**.
+
+---
 
 ## START HERE — both commissioned agents have landed and been verified
 
