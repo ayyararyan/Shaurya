@@ -1,0 +1,50 @@
+{
+  "distinct_receive_timestamps": 730,
+  "event_span_seconds": 599.095866,
+  "event_type": "full",
+  "first_receive_ts": "2026-08-19T04:53:27.971010+00:00",
+  "full_book_changes": {
+    "count": 642,
+    "denominator_transitions": 729,
+    "fraction": 0.8806584362139918,
+    "rate_per_second": 1.0716148056344625
+  },
+  "gap_ms": {
+    "max": 1339.151,
+    "min": 252.25199999999998,
+    "p05": 495.22299999999996,
+    "p50": 874.3149999999999,
+    "p95": 1111.7498
+  },
+  "last_receive_ts": "2026-08-19T05:03:27.066876+00:00",
+  "modal_gap_bin_ms": {
+    "count": 141,
+    "fraction_of_gaps": 0.1934156378600823,
+    "lower_inclusive": 700.0,
+    "upper_exclusive": 750.0
+  },
+  "rows": 730,
+  "rows_per_burst": {
+    "max": 1,
+    "mean": 1.0,
+    "min": 1,
+    "p50": 1.0
+  },
+  "rows_with_at_least_5_bid_and_5_ask_levels": 730,
+  "source_tape": "data/live-captures/dat14-nifty/sha-20260819T045327.814784Z-51e8caeb/tape_sha-20260819T045327.814784Z-51e8caeb.jsonl",
+  "task": "DAT-17",
+  "top_of_book_any_field_changes": {
+    "count": 316,
+    "denominator_transitions": 729,
+    "fraction": 0.4334705075445816,
+    "rate_per_second": 0.5274614931160283
+  },
+  "top_of_book_price_changes": {
+    "count": 124,
+    "denominator_transitions": 729,
+    "fraction": 0.1700960219478738,
+    "rate_per_second": 0.20697856058983388
+  },
+  "transition_count": 729,
+  "transition_rate_per_second": 1.2168336344353943
+}

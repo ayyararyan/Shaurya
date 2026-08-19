@@ -85,22 +85,22 @@ def analyse_tape(tape: Path, event_type: str, gap_bin_ms: float) -> dict[str, An
         raise ValueError("receive timestamps are not non-decreasing")
     gaps_ms = [
         (later - earlier).total_seconds() * 1_000.0
-        for earlier, later in zip(timestamps, timestamps[1:], strict=True)
+        for earlier, later in zip(timestamps, timestamps[1:], strict=False)
     ]
     row_counts = [int(value["row_count"]) for value in bursts.values()]
     states = [value["final_row"] for value in bursts.values()]
     transition_count = len(states) - 1
     price_changes = sum(
         _top_price(previous) != _top_price(current)
-        for previous, current in zip(states, states[1:], strict=True)
+        for previous, current in zip(states, states[1:], strict=False)
     )
     top_field_changes = sum(
         _top_fields(previous) != _top_fields(current)
-        for previous, current in zip(states, states[1:], strict=True)
+        for previous, current in zip(states, states[1:], strict=False)
     )
     book_changes = sum(
         _book_fingerprint(previous) != _book_fingerprint(current)
-        for previous, current in zip(states, states[1:], strict=True)
+        for previous, current in zip(states, states[1:], strict=False)
     )
     bins = Counter(math.floor(value / gap_bin_ms) for value in gaps_ms)
     modal_index, modal_count = min(bins.items(), key=lambda item: (-item[1], item[0]))
