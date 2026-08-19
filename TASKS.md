@@ -485,7 +485,8 @@ blocked until each old strategy is decided individually, when it is next touched
   depth20 states cannot enter the anomaly detector; and wrote
   `docs/SIG-21-CALIBRATION-RUNBOOK.md`. Five new focused tests pass and the complete 197-test suite,
   Ruff and strict mypy pass. The registered 384-cell family is unchanged; calibration may estimate
-  support and power but may not select a new grid.
+  support and power but may not select a new grid. Pushed and remotely verified at
+  `4cdbb12e7796d8f25ccaa47416d995f42ac4f0a1`.
 
 - **2026-08-19 — D31 post-registration synthetic pipeline implemented and tested.** After remote
   verification of `f2cf65011d02882191b5cfda566c1024119964d7`, delegated implementation added

@@ -29,8 +29,10 @@ registration. Calibration estimates candidate support, projected `N_eff`, critic
 After five accepted sessions, write/push/verify the numeric power artifact. Only adequately powered
 cells may then enter the separate 20-session evaluation sample.
 
-Verified repository state before this handoff began: registration/construction commit `f2cf6501`;
-synthetic response/power/inference commit `4e5aee9`; no predictive result exists.
+Verified implementation sequence: registration/construction `f2cf6501`; synthetic
+response/power/inference `4e5aee9`; D32 depth200 scope lock, calibration profile, tests and runbook
+`4cdbb12e7796d8f25ccaa47416d995f42ac4f0a1`. The D32 commit is on GitHub `main` with exact
+local/remote hash equality. No predictive result exists.
 
 The older “PP next” handoff below is superseded by D31–D32 and remains historical only.
 
