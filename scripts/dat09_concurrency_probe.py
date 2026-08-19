@@ -72,6 +72,56 @@ class ProbeObservation:
 
 
 @dataclass(frozen=True, slots=True)
+class SoloRateAddendum:
+    """Repeated fresh-socket comparison against a prior many-instrument packet count."""
+
+    security_id: str
+    reference_packet_count: int
+    observations: tuple[ProbeObservation, ...]
+
+    def __post_init__(self) -> None:
+        if self.reference_packet_count < 1 or len(self.observations) < 2:
+            raise ValueError("solo-rate addendum requires a positive reference and two runs")
+        if any(
+            value.requested_count != 1
+            or value.control_security_ids != (self.security_id,)
+            for value in self.observations
+        ):
+            raise ValueError("every solo-rate observation must contain only the target security")
+
+    @property
+    def packet_counts(self) -> tuple[int, ...]:
+        return tuple(value.packet_counts.get(self.security_id, 0) for value in self.observations)
+
+    @property
+    def ratios_to_reference(self) -> tuple[float, ...]:
+        return tuple(value / self.reference_packet_count for value in self.packet_counts)
+
+    @property
+    def conclusion(self) -> str:
+        ratios = self.ratios_to_reference
+        if all(0.9 <= value <= 1.1 for value in ratios):
+            return "per-instrument-rate-cap"
+        if all(value >= 1.25 for value in ratios):
+            return "genuine-event-rate"
+        return "not-discriminated"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "security_id": self.security_id,
+            "reference_packet_count": self.reference_packet_count,
+            "comparison_rule": (
+                "both solo counts within +/-10% of the reference => per-instrument-rate-cap; "
+                "both at least 25% above => genuine-event-rate; otherwise not-discriminated"
+            ),
+            "packet_counts": list(self.packet_counts),
+            "ratios_to_reference": list(self.ratios_to_reference),
+            "conclusion": self.conclusion,
+            "observations": [value.to_dict() for value in self.observations],
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class CeilingSearchResult:
     known_working: int
     known_failing: int
@@ -376,6 +426,10 @@ def _parser() -> argparse.ArgumentParser:
     reconnect.add_argument("--second-security-ids", type=_csv_ids, required=True)
     control = commands.add_parser("control", aliases=["depth200-control"])
     control.add_argument("--comparable-liquid-security-ids", type=_csv_ids, required=True)
+    solo_rate = commands.add_parser("solo-rate")
+    solo_rate.add_argument("--security-id", required=True)
+    solo_rate.add_argument("--reference-packet-count", type=int, required=True)
+    solo_rate.add_argument("--runs", type=int, default=2)
     return parser
 
 
@@ -429,6 +483,33 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             fresh_counts,
         )
         return {"task": "DAT-12", **reconnect_result.to_dict()}
+    if args.command == "solo-rate":
+        if args.runs < 2:
+            raise ValueError("solo-rate requires at least two runs")
+        mapping = _load_mappings(args.security_master, (args.security_id,))[0]
+        observations: list[ProbeObservation] = []
+        for _ in range(args.runs):
+            started_at = datetime.now(IST)
+            counts = await client.observe_twenty(
+                ((mapping,),), duration_seconds=args.duration_seconds
+            )
+            finished_at = datetime.now(IST)
+            observations.append(
+                ProbeObservation(
+                    1,
+                    counts,
+                    (args.security_id,),
+                    args.duration_seconds,
+                    started_at.isoformat(),
+                    finished_at.isoformat(),
+                )
+            )
+        result = SoloRateAddendum(
+            args.security_id,
+            args.reference_packet_count,
+            tuple(observations),
+        )
+        return {"task": "DAT-11-addendum", **result.to_dict()}
     instruments = _load_mappings(args.security_master, args.comparable_liquid_security_ids)
     counts = await client.observe_200(instruments, duration_seconds=args.duration_seconds)
     control_result = Depth200Control(tuple(args.comparable_liquid_security_ids), counts)
