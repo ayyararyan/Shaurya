@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from math import isclose
 
-from shaurya.data.depth_thinning_analysis import DEPTH200, BookState
+from shaurya.data.depth_thinning_analysis import DEPTH20, DEPTH200, BookState
 from shaurya.signals.deep_book_normal_activity import chronological_embargoed_split
 from shaurya.signals.deep_book_ofi import (
     DEPTH_CUTOFFS,
     OFI_WINDOWS_SECONDS,
     RETURN_HORIZONS_SECONDS,
     OFIObservation,
+    build_ofi_observations,
     evaluate_grid,
     ofi_feature,
     price_keyed_ofi_transition,
@@ -85,6 +86,43 @@ def test_connection_epoch_boundary_refuses_the_transition() -> None:
 
     assert transition.invalid_reason == "connection_epoch_boundary"
     assert all(value == 0.0 for value in transition.cumulative_by_depth.values())
+
+
+def test_observation_builder_aligns_n_states_to_n_minus_one_transitions() -> None:
+    depth200 = []
+    depth20 = []
+    for index in range(51):
+        stamp = index * 1_000_000_000
+        mid = 100.0 + index * 0.01
+        depth200.append(
+            _state(
+                stamp,
+                ((round(mid - 0.05, 2), 10 + index, 1),),
+                ((round(mid + 0.05, 2), 12, 1),),
+            )
+        )
+        depth20.append(
+            _state(
+                stamp,
+                ((round(mid - 0.05, 2), 10 + index, 1),),
+                ((round(mid + 0.05, 2), 12, 1),),
+                channel=DEPTH20,
+            )
+        )
+
+    observations, failures = build_ofi_observations(
+        depth200_states=depth200,
+        depth20_states=depth20,
+        tape_index=0,
+        run_id="alignment",
+    )
+
+    assert observations
+    assert failures["invalid_transition"] == 0
+    assert all(
+        set(RETURN_HORIZONS_SECONDS) >= set(observation.future_ticks)
+        for observation in observations
+    )
 
 
 def test_complete_grid_is_emitted_without_ranking_away_null_cells() -> None:

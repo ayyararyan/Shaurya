@@ -226,7 +226,7 @@ def build_ofi_observations(
         return [], failures
     transitions = [
         price_keyed_ofi_transition(previous, current)
-        for previous, current in zip(depth200_states, depth200_states[1:], strict=True)
+        for previous, current in zip(depth200_states[:-1], depth200_states[1:], strict=True)
     ]
     stamps = [transition.receive_ts_ns for transition in transitions]
     invalid_prefix = [0]
