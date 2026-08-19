@@ -1,7 +1,9 @@
 # Frozen-spec coverage — displayed eSSVI to five-second futures move
 
-**Scan:** `X-SURFACE-FUT5-20260819-06`  
-**Frozen design:** `docs/SURFACE-FUTURES-PREDICTIVE-SPEC-2026-08-19.md`  
+**Scan:** `X-SURFACE-FUT5-20260819-06`
+
+**Frozen design:** `docs/SURFACE-FUTURES-PREDICTIVE-SPEC-2026-08-19.md`
+
 **Evidence class:** permanently exploratory; `confirmatory_eligible=false`
 
 This is the pre-execution static audit. It maps every frozen requirement to implementation, a
