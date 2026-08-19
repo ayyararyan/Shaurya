@@ -305,9 +305,7 @@ def test_depth_scaling_divides_by_the_causal_average_depth() -> None:
 
     observation = observations[len(observations) // 2]
     for window in OFI_WINDOWS_SECONDS:
-        denominator = max(
-            observation.mean_depth_by_window[window], MINIMUM_MEAN_DEPTH_CONTRACTS
-        )
+        denominator = max(observation.mean_depth_by_window[window], MINIMUM_MEAN_DEPTH_CONTRACTS)
         assert isclose(
             observation.features[pressure_feature(window)],
             observation.features[ofi_feature(window)] / denominator,
@@ -375,9 +373,7 @@ def test_the_grid_emits_every_one_of_the_twenty_five_cells() -> None:
     assert len(grid) == len(OFI_WINDOWS_SECONDS) * len(RETURN_HORIZONS_SECONDS)
     seen = {(row["ofi_window_seconds"], row["return_horizon_seconds"]) for row in grid}
     assert seen == {
-        (window, horizon)
-        for window in OFI_WINDOWS_SECONDS
-        for horizon in RETURN_HORIZONS_SECONDS
+        (window, horizon) for window in OFI_WINDOWS_SECONDS for horizon in RETURN_HORIZONS_SECONDS
     }
     for row in grid:
         assert set(row["models"]) == {"M1", "M2", "M3", "M4", "M4b", "R1", "C1"}

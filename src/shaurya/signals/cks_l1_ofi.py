@@ -483,9 +483,7 @@ def _evaluate_model(
         if in_sample is None or degrees <= 0
         else 1.0 - (1.0 - in_sample) * (len(train_positions) - 1) / degrees
     )
-    coefficients = {
-        feature: float(fit.coefficients[index]) for index, feature in enumerate(names)
-    }
+    coefficients = {feature: float(fit.coefficients[index]) for index, feature in enumerate(names)}
     per_100: float | None = None
     if ofi_name is not None and ofi_name in coefficients:
         index = tuple(names).index(ofi_name)
@@ -837,12 +835,8 @@ def component_intensity_table(
         }
         for name in L1_COMPONENTS
     }
-    displayed_removal = (
-        absolute["bid_same_price_removal"] + absolute["ask_same_price_removal"]
-    )
-    price_move_depletion = (
-        absolute["bid_price_worsening"] + absolute["ask_price_worsening"]
-    )
+    displayed_removal = absolute["bid_same_price_removal"] + absolute["ask_same_price_removal"]
+    price_move_depletion = absolute["bid_price_worsening"] + absolute["ask_price_worsening"]
     payload: dict[str, Any] = {
         "valid_transitions": intensities["valid_transitions"],
         "valid_span_seconds": intensities["valid_span_seconds"],
