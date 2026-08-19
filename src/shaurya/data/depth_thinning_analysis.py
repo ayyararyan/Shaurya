@@ -107,6 +107,17 @@ def _days_from_civil(year: int, month: int, day: int) -> int:
     return era * 146_097 + day_of_era - 719_468
 
 
+# Prices must be quantised before any cross-tier equality test. The Full packet encodes its
+# 5-level block prices as IEEE-754 binary32 (`FIVE_LEVEL_STRUCT` = "<IIHHff") while both depth
+# channels encode binary64 (`DEEP_LEVEL` = "<dII"). A price such as 24118.9 therefore arrives as
+# 24118.900390625 on Full and as 24118.9 on depth200, so exact float equality between the tiers
+# is structurally impossible and would fabricate a 100% disagreement rate that has nothing to do
+# with book content. Quantising to 2 decimal places is exact for the NSE 0.05-rupee tick: the
+# binary32 representation error near 24,000 is about 0.002 rupees, far inside the 0.005 rounding
+# half-width, so no genuine one-tick difference can be masked.
+PRICE_DECIMALS = 2
+
+
 def _levels(raw: Any) -> tuple[tuple[float, int, int], ...]:
     if not isinstance(raw, list):
         return ()
@@ -119,7 +130,7 @@ def _levels(raw: Any) -> tuple[tuple[float, int, int], ...]:
         orders = item.get("orders")
         if price is None or quantity is None or orders is None:
             continue
-        result.append((float(price), int(quantity), int(orders)))
+        result.append((round(float(price), PRICE_DECIMALS), int(quantity), int(orders)))
     return tuple(result)
 
 
@@ -171,9 +182,7 @@ def build_states(rows: Iterable[dict[str, Any]], channel: str) -> list[BookState
 # --------------------------------------------------------------------------------------
 
 
-def _compare(
-    witness: BookState, comparand: BookState, levels: int
-) -> dict[str, Any] | None:
+def _compare(witness: BookState, comparand: BookState, levels: int) -> dict[str, Any] | None:
     """Compare `levels` levels of two states. Returns None if either lacks the depth."""
     detail: dict[str, Any] = {
         "price_equal_by_level": [],
@@ -344,9 +353,7 @@ def agreement_pass(
                 "pass_a_disagreements": len(failures),
                 "resolved_by_phase": resolved,
                 "genuine_content_difference": len(failures) - resolved,
-                "pass_b_rate": (
-                    ((counts[name] + resolved) / comparisons) if comparisons else None
-                ),
+                "pass_b_rate": (((counts[name] + resolved) / comparisons) if comparisons else None),
             }
         phase[f"tolerance_{int(tolerance)}ms"] = entry
     result["pass_b_phase_tolerant"] = phase
@@ -497,7 +504,7 @@ def skip_window_test(
     *,
     skip_threshold_ms: float = SKIP_GAP_THRESHOLD_MS,
 ) -> dict[str, Any]:
-    """Ask whether a witness tier saw a state inside a depth200 window that depth200 never published.
+    """Did a witness tier see a state inside a depth200 window that depth200 never published?
 
     A window is bounded by two successive depth200 publications. `skip` windows exceed the
     threshold (at least one ~200 ms base slot produced nothing); `control` windows do not.
@@ -519,10 +526,7 @@ def skip_window_test(
             witness_cursor += 1
         local = witness_cursor
         found = 0
-        while (
-            local < len(witnesses)
-            and witnesses[local].receive_ts_ns < closing.receive_ts_ns
-        ):
+        while local < len(witnesses) and witnesses[local].receive_ts_ns < closing.receive_ts_ns:
             witness = witnesses[local]
             local += 1
             open_detail = _compare(witness, opening, levels)
@@ -599,8 +603,7 @@ def _normal_two_sided(z: float) -> float | None:
     x = abs(z) / sqrt(2.0)
     t = 1.0 / (1.0 + 0.3275911 * x)
     erf = 1.0 - (
-        ((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t
-        + 0.254829592
+        ((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592
     ) * t * pow(2.718281828459045, -x * x)
     return 1.0 - erf
 
@@ -608,6 +611,12 @@ def _normal_two_sided(z: float) -> float | None:
 # --------------------------------------------------------------------------------------
 # Measurement 4 — occupancy and price span
 # --------------------------------------------------------------------------------------
+
+
+# Rupee distances at which the occupied level index is reported. This converts the price-keyed
+# activity profile of measurement 2b into the level-count language DAT-09's width-versus-depth
+# decision is stated in.
+LEVEL_INDEX_AT_RUPEES = (1.0, 2.0, 5.0, 10.0, 20.0, 50.0)
 
 
 def occupancy_and_span(
@@ -618,6 +627,9 @@ def occupancy_and_span(
     total_span: list[float] = []
     contiguity_ratio = {"bid": [], "ask": []}
     missing_ticks = {"bid": [], "ask": []}
+    level_index_at = {
+        side: {distance: [] for distance in LEVEL_INDEX_AT_RUPEES} for side in ("bid", "ask")
+    }
     zero_price_levels = {"bid": 0, "ask": 0}
     zero_quantity_levels = {"bid": 0, "ask": 0}
     measured = 0
@@ -642,6 +654,13 @@ def occupancy_and_span(
         span["ask"].append(ask_levels[-1][0] - mid)
         total_span.append(ask_levels[-1][0] - bid_levels[-1][0])
         for side, levels in (("bid", bid_levels), ("ask", ask_levels)):
+            best = levels[0][0]
+            for distance in LEVEL_INDEX_AT_RUPEES:
+                count = sum(1 for level in levels if abs(level[0] - best) <= distance)
+                # None means the ladder does not reach this distance at all at this instant.
+                level_index_at[side][distance].append(
+                    count if abs(levels[-1][0] - best) >= distance else None
+                )
             price_range = abs(levels[-1][0] - levels[0][0])
             contiguous = round(price_range / tick_rupees) + 1
             contiguity_ratio[side].append(len(levels) / contiguous if contiguous else None)
@@ -656,8 +675,393 @@ def occupancy_and_span(
             side: _quantiles([value for value in contiguity_ratio[side] if value is not None])
             for side in contiguity_ratio
         },
-        "missing_ticks_within_span": {side: _quantiles(missing_ticks[side]) for side in missing_ticks},
+        "missing_ticks_within_span": {
+            side: _quantiles(missing_ticks[side]) for side in missing_ticks
+        },
+        "occupied_levels_within_rupees_of_same_side_best": {
+            side: {
+                f"{distance:g}": (
+                    _quantiles([v for v in level_index_at[side][distance] if v is not None])
+                    | {
+                        "instants_ladder_did_not_reach_this_distance": sum(
+                            1 for v in level_index_at[side][distance] if v is None
+                        )
+                    }
+                )
+                for distance in LEVEL_INDEX_AT_RUPEES
+            }
+            for side in ("bid", "ask")
+        },
         "padding_levels_zero_price": zero_price_levels,
         "padding_levels_zero_quantity": zero_quantity_levels,
         "tick_rupees_assumed_for_contiguity_only": tick_rupees,
+    }
+
+
+# --------------------------------------------------------------------------------------
+# Measurement 1b — set containment (the direct test of the superset claim)
+# --------------------------------------------------------------------------------------
+
+
+def containment_pass(
+    witnesses: Sequence[BookState],
+    comparands: Sequence[BookState],
+    levels: int,
+    *,
+    label: str,
+    max_lag_ms: float = STRICT_STALENESS_BOUND_MS,
+) -> dict[str, Any]:
+    """Test whether the witness ladder is *contained* in the comparand ladder.
+
+    Positional equality is the wrong test for a superset claim: a single price point present in
+    one feed and absent from the other shifts every level below it, so one extra level makes all
+    deeper positions mismatch. Containment asks the question `H-DAT20` actually poses — is every
+    level the cheaper tier reports also reported by depth200?
+
+    `missing_in_comparand` is the quantity that bears on falsifier `F2`: a level the cheaper tier
+    published that depth200 never carried at all.
+    """
+    if not comparands:
+        return {"label": label, "levels": levels, "pairs": 0, "note": "no comparand states"}
+    stats: dict[str, dict[str, list[float]]] = {
+        side: {
+            "price_containment": [],
+            "triple_containment": [],
+            "positional_prefix_match": [],
+            "missing_prices": [],
+            "extra_prices_inside_witness_range": [],
+        }
+        for side in ("bid", "ask")
+    }
+    perfect_price = {"bid": 0, "ask": 0}
+    perfect_triple = {"bid": 0, "ask": 0}
+    lags: list[float] = []
+    pairs = 0
+    cursor = 0
+    for witness in witnesses:
+        index, cursor = _last_at_or_before(comparands, witness.receive_ts_ns, cursor)
+        if index < 0:
+            continue
+        comparand = comparands[index]
+        lag_ms = (witness.receive_ts_ns - comparand.receive_ts_ns) / 1_000_000
+        if lag_ms > max_lag_ms:
+            continue
+        witness_bid = witness.ladder("bid", levels)
+        witness_ask = witness.ladder("ask", levels)
+        if witness_bid is None or witness_ask is None:
+            continue
+        pairs += 1
+        lags.append(lag_ms)
+        for side, witness_ladder, comparand_ladder in (
+            ("bid", witness_bid, comparand.bids),
+            ("ask", witness_ask, comparand.asks),
+        ):
+            comparand_prices = {level[0] for level in comparand_ladder}
+            comparand_triples = set(comparand_ladder)
+            witness_prices = {level[0] for level in witness_ladder}
+            found_price = sum(1 for level in witness_ladder if level[0] in comparand_prices)
+            found_triple = sum(1 for level in witness_ladder if level in comparand_triples)
+            size = len(witness_ladder)
+            stats[side]["price_containment"].append(found_price / size)
+            stats[side]["triple_containment"].append(found_triple / size)
+            stats[side]["missing_prices"].append(size - found_price)
+            if found_price == size:
+                perfect_price[side] += 1
+            if found_triple == size:
+                perfect_triple[side] += 1
+            best = witness_ladder[0][0]
+            worst = witness_ladder[-1][0]
+            low, high = (worst, best) if side == "bid" else (best, worst)
+            extra = sum(
+                1
+                for level in comparand_ladder
+                if low <= level[0] <= high and level[0] not in witness_prices
+            )
+            stats[side]["extra_prices_inside_witness_range"].append(extra)
+            prefix = 0
+            for witness_level, comparand_level in zip(
+                witness_ladder, comparand_ladder, strict=False
+            ):
+                if witness_level == comparand_level:
+                    prefix += 1
+                else:
+                    break
+            stats[side]["positional_prefix_match"].append(prefix)
+    return {
+        "label": label,
+        "levels": levels,
+        "max_lag_ms": max_lag_ms,
+        "pairs": pairs,
+        "receive_lag_ms": _quantiles(lags),
+        "by_side": {
+            side: {key: _quantiles(values) for key, values in stats[side].items()}
+            | {
+                "pairs_with_full_price_containment": perfect_price[side],
+                "pairs_with_full_price_containment_rate": (
+                    perfect_price[side] / pairs if pairs else None
+                ),
+                "pairs_with_full_triple_containment": perfect_triple[side],
+                "pairs_with_full_triple_containment_rate": (
+                    perfect_triple[side] / pairs if pairs else None
+                ),
+            }
+            for side in ("bid", "ask")
+        },
+    }
+
+
+# --------------------------------------------------------------------------------------
+# Measurement 2b — price-keyed activity by distance from mid
+# --------------------------------------------------------------------------------------
+
+# Rupee distance bands from mid. Chosen to straddle the measured NIFTY-future spread rather
+# than to fit a result: the median spread on this tape is about Rs 5, so the first band is
+# entirely inside the spread and the later bands cover the visible ladder.
+DISTANCE_BANDS_RUPEES: tuple[tuple[float, float], ...] = (
+    (0.0, 1.0),
+    (1.0, 2.0),
+    (2.0, 5.0),
+    (5.0, 10.0),
+    (10.0, 20.0),
+    (20.0, 50.0),
+    (50.0, float("inf")),
+)
+
+
+def _band_index(distance: float) -> int:
+    for index, (low, high) in enumerate(DISTANCE_BANDS_RUPEES):
+        if low <= distance < high:
+            return index
+    return len(DISTANCE_BANDS_RUPEES) - 1
+
+
+def activity_by_distance(
+    states: Sequence[BookState],
+    side: str,
+    *,
+    reference: str = "mid",
+    exclude_boundary_levels: int = 0,
+) -> dict[str, Any]:
+    """Price-keyed activity as a function of rupee distance from mid.
+
+    Position-keyed change counting (measurement 2) cannot separate two different things: real
+    activity at a price point, and the positional shift that a single insertion or deletion
+    higher in the book forces onto every level beneath it. A price-keyed measurement is the only
+    one that answers the question `H-DAT20` actually asks — does a given *price point* become
+    quieter as it moves away from the BBO?
+
+    Events are classified as modification (the price survived and its quantity or order count
+    changed), insertion (a new price point appeared) or deletion (a price point vanished).
+    `events_per_second_per_price_point` normalises by exposure, so a band containing many price
+    points is not credited with more activity merely for being wide.
+
+    `reference` selects the origin for the distance measure. ``"mid"`` measures distance from the
+    mid price; ``"same_side_best"`` measures distance from the best quote on the same side. The
+    second is the one that tests `H-DAT20` directly: with a median spread of about Rs 5 on this
+    instrument, every band closer to mid than the best quote is almost always empty, so mid-keyed
+    near bands carry almost no exposure and their rates are not comparable to the rest.
+
+    `exclude_boundary_levels` drops the deepest N levels of each snapshot from the comparison. The
+    200-level ladder is a sliding window: when the book shifts, the deepest levels leave and new
+    ones enter purely because the window moved, and those are not order-book events. Excluding a
+    boundary margin removes that artifact.
+    """
+    sequence = [
+        state
+        for state in states
+        if state.channel and state.bids and state.asks and state.rows_in_burst
+    ]
+    if len(sequence) < 2:
+        return {"side": side, "transitions": 0, "note": "insufficient states"}
+    span_seconds = (sequence[-1].receive_ts_ns - sequence[0].receive_ts_ns) / 1_000_000_000
+    bands = [
+        {
+            "band_rupees": f"[{low:g},{high:g})",
+            "price_point_exposure": 0,
+            "modifications": 0,
+            "insertions": 0,
+            "deletions": 0,
+        }
+        for low, high in DISTANCE_BANDS_RUPEES
+    ]
+    transitions = 0
+    for earlier, later in zip(sequence, sequence[1:], strict=False):
+        best_bid = earlier.best_bid
+        best_ask = earlier.best_ask
+        if best_bid is None or best_ask is None:
+            continue
+        if reference == "same_side_best":
+            origin = best_bid if side == "bid" else best_ask
+        else:
+            origin = (best_bid + best_ask) / 2
+        earlier_levels = [
+            level for level in (earlier.bids if side == "bid" else earlier.asks) if level[0] > 0
+        ]
+        later_levels = [
+            level for level in (later.bids if side == "bid" else later.asks) if level[0] > 0
+        ]
+        if exclude_boundary_levels > 0:
+            earlier_levels = earlier_levels[: max(len(earlier_levels) - exclude_boundary_levels, 0)]
+            later_levels = later_levels[: max(len(later_levels) - exclude_boundary_levels, 0)]
+            if not earlier_levels or not later_levels:
+                continue
+            # Only the price range both snapshots actually cover can be compared, otherwise a
+            # window shift reappears as an insertion or deletion at the truncated edge.
+            if side == "bid":
+                floor_price = max(earlier_levels[-1][0], later_levels[-1][0])
+                earlier_levels = [lv for lv in earlier_levels if lv[0] >= floor_price]
+                later_levels = [lv for lv in later_levels if lv[0] >= floor_price]
+            else:
+                ceiling_price = min(earlier_levels[-1][0], later_levels[-1][0])
+                earlier_levels = [lv for lv in earlier_levels if lv[0] <= ceiling_price]
+                later_levels = [lv for lv in later_levels if lv[0] <= ceiling_price]
+        before = {level[0]: (level[1], level[2]) for level in earlier_levels}
+        after = {level[0]: (level[1], level[2]) for level in later_levels}
+        if not before or not after:
+            continue
+        transitions += 1
+        for price, value in before.items():
+            band = bands[_band_index(abs(price - origin))]
+            band["price_point_exposure"] += 1
+            if price not in after:
+                band["deletions"] += 1
+            elif after[price] != value:
+                band["modifications"] += 1
+        for price in after:
+            if price not in before:
+                bands[_band_index(abs(price - origin))]["insertions"] += 1
+    for band in bands:
+        events = band["modifications"] + band["insertions"] + band["deletions"]
+        exposure = band["price_point_exposure"]
+        band["total_events"] = events
+        band["mean_price_points_present"] = (exposure / transitions) if transitions else None
+        band["events_per_second"] = (events / span_seconds) if span_seconds else None
+        band["events_per_second_per_price_point"] = (
+            (events / span_seconds) / (exposure / transitions)
+            if span_seconds and exposure and transitions
+            else None
+        )
+        band["modification_rate_per_price_point_per_second"] = (
+            (band["modifications"] / span_seconds) / (exposure / transitions)
+            if span_seconds and exposure and transitions
+            else None
+        )
+    normalised = [
+        band["events_per_second_per_price_point"]
+        for band in bands
+        if band["events_per_second_per_price_point"] is not None
+    ]
+    grand_total = sum(band["total_events"] for band in bands)
+    for band in bands:
+        band["share_of_all_events"] = (band["total_events"] / grand_total) if grand_total else None
+    cumulative = 0.0
+    share_within: dict[str, float | None] = {}
+    for index, (band, (_low, high)) in enumerate(zip(bands, DISTANCE_BANDS_RUPEES, strict=False)):
+        cumulative += band["total_events"]
+        if index < len(bands) - 1:
+            share_within[f"within_{high:g}_rupees"] = (
+                (cumulative / grand_total) if grand_total else None
+            )
+    return {
+        "side": side,
+        "reference": reference,
+        "exclude_boundary_levels": exclude_boundary_levels,
+        "transitions": transitions,
+        "span_seconds": span_seconds,
+        "bands": bands,
+        "total_events": grand_total,
+        "cumulative_event_share_within_distance": share_within,
+        "spearman_band_index_vs_events_per_price_point": spearman(normalised),
+        "note": (
+            "A negative Spearman coefficient means a price point does get quieter with "
+            "distance from mid, which is the H-DAT20 mechanism. A positive coefficient "
+            "refutes it."
+        ),
+    }
+
+
+# --------------------------------------------------------------------------------------
+# Measurement 3b — duration-matched skip test
+# --------------------------------------------------------------------------------------
+
+# Duration band used to match a single skipped ~400 ms window against a ~400 ms span that
+# depth200 actually covered with two ~200 ms publications.
+MATCHED_DURATION_BAND_MS = (340.0, 460.0)
+
+
+def duration_matched_skip_test(
+    depth200: Sequence[BookState],
+    witnesses: Sequence[BookState],
+    levels: int,
+    granularity: str,
+    *,
+    duration_band_ms: tuple[float, float] = MATCHED_DURATION_BAND_MS,
+    max_steps: int = 3,
+) -> dict[str, Any]:
+    """Isolate the missing publication from the longer elapsed time.
+
+    Measurement 3's skip-versus-control contrast is confounded: a skipped window is about 400 ms
+    long and a control window about 200 ms, so a witness landing inside a skip window has twice as
+    long for the book to move away from both endpoints even if nothing was lost.
+
+    This test holds duration fixed instead. Both arms are spans of roughly the same length, taken
+    between depth200 publications *k* steps apart:
+
+    - **arm without interior publication** (`k = 1`): a genuine skip. depth200 published nothing
+      inside the span.
+    - **arm with interior publication** (`k >= 2`): depth200 did publish inside the span, and that
+      interior state is deliberately ignored when scoring.
+
+    If the missing publication carried information, the no-interior arm must show a higher
+    unseen-state rate. If the rates match, the skipped tick carried nothing — that is `C3`.
+    """
+    low, high = duration_band_ms
+    arms: dict[str, dict[str, Any]] = {
+        "no_interior_publication": {"spans": 0, "measured": 0, "unseen": 0, "durations": []},
+        "with_interior_publication": {"spans": 0, "measured": 0, "unseen": 0, "durations": []},
+    }
+    stamps = [state.receive_ts_ns for state in witnesses]
+    for start in range(len(depth200)):
+        for steps in range(1, max_steps + 1):
+            end = start + steps
+            if end >= len(depth200):
+                break
+            opening = depth200[start]
+            closing = depth200[end]
+            duration_ms = (closing.receive_ts_ns - opening.receive_ts_ns) / 1_000_000
+            if duration_ms > high:
+                break
+            if duration_ms < low:
+                continue
+            arm = arms["no_interior_publication" if steps == 1 else "with_interior_publication"]
+            arm["spans"] += 1
+            arm["durations"].append(duration_ms)
+            index = bisect_left(stamps, opening.receive_ts_ns + 1)
+            while index < len(witnesses) and stamps[index] < closing.receive_ts_ns:
+                witness = witnesses[index]
+                index += 1
+                open_detail = _compare(witness, opening, levels)
+                close_detail = _compare(witness, closing, levels)
+                if open_detail is None or close_detail is None:
+                    continue
+                arm["measured"] += 1
+                if not open_detail[granularity] and not close_detail[granularity]:
+                    arm["unseen"] += 1
+    for arm in arms.values():
+        arm["unseen_state_rate"] = (arm["unseen"] / arm["measured"]) if arm["measured"] else None
+        arm["duration_ms"] = _quantiles(arm["durations"])
+        del arm["durations"]
+    without = arms["no_interior_publication"]
+    with_interior = arms["with_interior_publication"]
+    return {
+        "levels": levels,
+        "granularity": granularity,
+        "duration_band_ms": list(duration_band_ms),
+        "arms": arms,
+        "two_proportion_test": _two_proportion_test(
+            without["unseen"],
+            without["measured"],
+            with_interior["unseen"],
+            with_interior["measured"],
+        ),
     }

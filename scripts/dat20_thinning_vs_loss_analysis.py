@@ -21,10 +21,13 @@ from shaurya.data.depth_thinning_analysis import (
     PHASE_TOLERANCES_MS,
     SKIP_GAP_THRESHOLD_MS,
     STRICT_STALENESS_BOUND_MS,
+    activity_by_distance,
     agreement_pass,
     build_states,
     change_rate_by_level,
+    containment_pass,
     crossing_level,
+    duration_matched_skip_test,
     occupancy_and_span,
     percentile,
     skip_window_test,
@@ -41,7 +44,11 @@ FULL_CADENCE_HIGH_PER_SECOND = 1.7
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--tape", required=True, action="append", type=Path, help="Retained tape JSONL (repeatable)."
+        "--tape",
+        required=True,
+        action="append",
+        type=Path,
+        help="Retained tape JSONL (repeatable).",
     )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument(
@@ -163,6 +170,43 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
     }
 
+    # Measurement 1b — set containment, the direct test of the superset claim. Reported at a
+    # tight receive-lag band (where the two feeds are near-simultaneous) and at the full
+    # 1,000 ms bound, because receive-time alignment cannot remove snapshot-phase staleness.
+    containment: dict[str, Any] = {}
+    for lag in (30.0, 250.0, STRICT_STALENESS_BOUND_MS):
+        containment[f"max_lag_{int(lag)}ms"] = {
+            "depth20_contained_in_depth200": containment_pass(
+                depth20,
+                depth200,
+                args.levels_vs_depth20,
+                label="is depth20's top-20 contained in depth200's 200 levels?",
+                max_lag_ms=lag,
+            ),
+            "full_contained_in_depth200": containment_pass(
+                full,
+                depth200,
+                args.levels_vs_full,
+                label="is Full's 5-level block contained in depth200's 200 levels?",
+                max_lag_ms=lag,
+            ),
+            "depth200_top20_contained_in_depth20": containment_pass(
+                depth200,
+                depth20,
+                args.levels_vs_depth20,
+                label="reverse control: is depth200's top-20 contained in depth20's 20 levels?",
+                max_lag_ms=lag,
+            ),
+            "depth200_top5_contained_in_full": containment_pass(
+                depth200,
+                full,
+                args.levels_vs_full,
+                label="reverse control: is depth200's top-5 contained in Full's 5-level block?",
+                max_lag_ms=lag,
+            ),
+        }
+    result["measurement_1b_set_containment"] = containment
+
     # Measurement 2 — change rate by level index.
     measurement_2: dict[str, Any] = {}
     for side in ("bid", "ask"):
@@ -188,6 +232,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         measurement_2[side] = curve
     result["measurement_2_change_rate_by_level"] = measurement_2
 
+    # Measurement 2b — price-keyed activity by distance from mid. Required because the
+    # position-keyed curve above cannot separate genuine activity at a price point from the
+    # positional cascade a single insertion forces onto every deeper level.
+    result["measurement_2b_price_keyed_activity_by_distance"] = {
+        f"{reference}_boundary_excluded_{boundary}": {
+            side: activity_by_distance(
+                depth200, side, reference=reference, exclude_boundary_levels=boundary
+            )
+            for side in ("bid", "ask")
+        }
+        for reference in ("mid", "same_side_best")
+        for boundary in (0, 5)
+    }
+
     # Measurement 3 — skip explanation.
     result["measurement_3_skip_explanation"] = {
         "full_witness_top5_price": skip_window_test(
@@ -204,6 +262,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "depth20_witness_level1_price": skip_window_test(
             depth200, depth20, args.levels_vs_depth20, "level1_price_equal"
+        ),
+    }
+
+    # Measurement 3b — duration-matched skip test, which removes the window-length confound in
+    # measurement 3 by comparing equal-length spans that differ only in whether depth200
+    # published anything inside them.
+    result["measurement_3b_duration_matched_skip_test"] = {
+        "full_witness_level1_price": duration_matched_skip_test(
+            depth200, full, args.levels_vs_full, "level1_price_equal"
+        ),
+        "full_witness_top5_price": duration_matched_skip_test(
+            depth200, full, args.levels_vs_full, "all_levels_price_equal"
+        ),
+        "full_witness_top5_all_fields": duration_matched_skip_test(
+            depth200, full, args.levels_vs_full, "all_levels_all_fields_equal"
+        ),
+        "depth20_witness_level1_price": duration_matched_skip_test(
+            depth200, depth20, args.levels_vs_depth20, "level1_price_equal"
+        ),
+        "depth20_witness_top20_price": duration_matched_skip_test(
+            depth200, depth20, args.levels_vs_depth20, "all_levels_price_equal"
         ),
     }
 

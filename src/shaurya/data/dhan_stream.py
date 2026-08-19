@@ -133,9 +133,7 @@ def parse_standard_packet(data: bytes) -> ParsedMarketPacket | ParsedDisconnect 
     if packet_struct is None:
         return None
     if len(data) < packet_struct.size:
-        raise DhanProtocolError(
-            f"truncated Dhan response code {response_code}: {len(data)} bytes"
-        )
+        raise DhanProtocolError(f"truncated Dhan response code {response_code}: {len(data)} bytes")
     values = packet_struct.unpack(data[: packet_struct.size])
     segment = int(values[2])
     security_id = int(values[3]) if response_code != 7 else 0
@@ -337,6 +335,7 @@ class StreamMetrics:
         if not values:
             return {"min": None, "mean": None, "p50": None, "p95": None, "max": None}
         ordered = sorted(values)
+
         def percentile(proportion: float) -> int:
             return ordered[max(0, math.ceil(proportion * len(ordered)) - 1)]
 
@@ -500,8 +499,7 @@ class DhanLiveStream:
             deep = [
                 mapping
                 for mapping in self.instruments
-                if mapping.exchange_segment
-                in {ExchangeSegment.NSE_EQ, ExchangeSegment.NSE_FNO}
+                if mapping.exchange_segment in {ExchangeSegment.NSE_EQ, ExchangeSegment.NSE_FNO}
             ]
             if not deep:
                 raise ValueError("20-level depth requires an NSE_EQ or NSE_FNO instrument")
@@ -516,8 +514,7 @@ class DhanLiveStream:
             deep200 = [
                 mapping
                 for mapping in self.instruments
-                if mapping.exchange_segment
-                in {ExchangeSegment.NSE_EQ, ExchangeSegment.NSE_FNO}
+                if mapping.exchange_segment in {ExchangeSegment.NSE_EQ, ExchangeSegment.NSE_FNO}
             ]
             if not deep200:
                 raise ValueError("200-level depth requires an NSE_EQ or NSE_FNO instrument")
@@ -635,9 +632,7 @@ class DhanLiveStream:
             heartbeat_task = asyncio.create_task(self._heartbeat_loop(websocket, channel))
             child_tasks = {receive_task, heartbeat_task}
             try:
-                done, pending = await asyncio.wait(
-                    child_tasks, return_when=asyncio.FIRST_COMPLETED
-                )
+                done, pending = await asyncio.wait(child_tasks, return_when=asyncio.FIRST_COMPLETED)
                 error: BaseException | None = None
                 for task in done:
                     if not task.cancelled():
@@ -704,9 +699,7 @@ class DhanLiveStream:
         # ignored. Each stream therefore sends exactly one message; larger universes are split
         # across DhanDepth20CapturePool sockets.
         await websocket.send(
-            json.dumps(
-                {"RequestCode": 23, "InstrumentCount": len(items), "InstrumentList": items}
-            )
+            json.dumps({"RequestCode": 23, "InstrumentCount": len(items), "InstrumentList": items})
         )
 
     async def _heartbeat_loop(self, websocket: Any, channel: str) -> None:
