@@ -22,7 +22,9 @@ to strategies that pin the package.
 - Reproduced DAT-13's first-subscription throttle with timed evidence. Position 1 delivered
   742 packets / 372 receive timestamps over 91.003 s; positions 2–4 delivered only an initial
   two-packet pair and then no update for approximately 89.9 s. The observed usable recurring
-  ceiling is one depth200 instrument per socket.
+  ceiling is one depth200 instrument per socket. A 600.987 s replication strengthened this:
+  position 1 delivered 4,984 packets / 2,493 timestamps, while positions 2–4 again delivered
+  two bootstrap packets each and then remained silent for 599.789 s.
 - Verified from retained healthy tapes that all 730/730 NIFTY and 993/993 BANKNIFTY Full rows
   carry complete five-level books, so the block is republished on the dispersed Full clock
   (1.217–1.656/s), not a separately observable clock.
