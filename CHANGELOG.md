@@ -7,6 +7,13 @@ to strategies that pin the package.
 
 ### DAT-14 / CON-01 — causal trade-direction classification at capture
 
+- Live-verified the capture-time classifier on simultaneous Standard+depth20 feeds for NIFTY and
+  BANKNIFTY front-month futures over 10 minutes. The 313 positive-volume prints yielded 158 buy,
+  154 sell, and 1 unclassified; the real stream exercised 311 quote-rule classifications and the
+  first live tick-rule fallback. One print degraded for no prevailing quote, all 313 carried both
+  version stamps, and 113 were explicitly coalesced. Scope remains two futures/depth20/one morning
+  window; options, depth200 selection, and other times of day are not represented.
+
 - Added the pure, versioned `quote-mid-tick-v1` classifier: prints above/below the prevailing
   midpoint are buys/sells, exact-midpoint prints use the last differing trade price, and absence
   of that price remains explicitly unclassified.
@@ -19,10 +26,11 @@ to strategies that pin the package.
   `1.0.0` tapes. Classified rows retain the last price/quantity, cumulative-volume increment,
   exact BBO used, freshness bound, side/reason, classifier and alignment versions, and explicit
   degraded/coalesced flags; a coalesced sign is never assigned to unseen increment volume.
-- Dry-run verified on all 21,279 retained rows: 12 positive-volume print intervals classified
+- Earlier dry-run verification on all 21,279 retained rows found 12 positive-volume print intervals
+  classified
   (3 buy, 8 sell, 1 unclassified), of which 1 was degraded and 5 were coalesced. Both pytest entry
   points pass 100 tests; strict mypy and Ruff are clean. No live DAT-14 capture was attempted while
-  the market was closed, and DAT-15 remains unimplemented.
+  the market was closed. DAT-15 remains separate from this live-verification claim.
 
 ### DAT-03, DAT-04, DAT-05, DAT-06, DAT-07, DAT-09, and DAT-11-13 — storage, replay, quality, identity, capacity
 

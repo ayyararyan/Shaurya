@@ -137,9 +137,12 @@ the capture-time sign together with its version stamp. D23's queue-ahead bounds 
 trades from cancellations at a level, which is exactly what the signed, flagged print record makes
 possible.
 
-**Evidence as of 2026-08-19.** Dry-run verified: both pytest entry points pass 100 tests, strict mypy
-and Ruff are clean, and replay consumed all 21,279 retained rows. The one mixed standard/depth tape
-contained 12 positive-volume print intervals: 3 buy, 8 sell, 1 unclassified, including 1 degraded
-and 5 coalesced. Depth-only tapes correctly produced no print classifications. No live DAT-14
-capture was attempted while the market was closed. DAT-15's error-distribution/flip-rate study is
-still separate and unimplemented.
+**Evidence as of 2026-08-19.** Live verified for depth20 alignment on NIFTY and BANKNIFTY
+front-month futures in one 10-minute morning window. Two simultaneous Standard+depth20 captures
+produced 11,691 rows and 313 positive-volume prints: 158 buy, 154 sell, 1 unclassified; 311
+quote-rule, 1 live tick-rule fallback, and 1 degraded because no prevailing quote existed. Every
+print row carried both version stamps. Quote age n=312 was 7.4–567.4 ms (median 238.7, p95 462.6)
+against the 1 s bound; 113/313 intervals were coalesced and observed last quantities covered only
+44.3% of increment volume. The earlier retained-tape dry run remains valid. Live evidence does not
+cover options, depth200 selection, other times of day, or stale/crossed degraded causes. DAT-15's
+error-distribution/flip-rate study remains a separate requirement.
