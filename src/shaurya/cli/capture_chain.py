@@ -38,7 +38,12 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--credentials", required=True, type=Path)
     parser.add_argument("--security-master", required=True, type=Path)
-    parser.add_argument("--underlying", default="NIFTY")
+    parser.add_argument(
+        "--underlying",
+        action="append",
+        default=None,
+        help="Repeat to probe a universe wider than one underlying can supply.",
+    )
     parser.add_argument(
         "--expiry",
         action="append",
@@ -69,15 +74,27 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         raise ValueError("duration-seconds must be positive")
     credentials = DhanCredentials.from_env_file(args.credentials)
     master = DhanInstrumentMaster(args.security_master)
-    universe = select_chain_universe(
-        master.mappings(),
-        underlying=args.underlying,
-        expiries=[date.fromisoformat(value) for value in args.expiry],
-        spot_reference=args.spot,
-        strike_window_fraction=args.strike_window_fraction,
-        max_options=args.max_options,
-    )
-    instruments = list(universe.instruments)
+    underlyings = args.underlying or ["NIFTY"]
+    mappings = list(master.mappings())
+    universes = [
+        select_chain_universe(
+            mappings,
+            underlying=underlying,
+            expiries=[date.fromisoformat(value) for value in args.expiry],
+            spot_reference=args.spot,
+            strike_window_fraction=args.strike_window_fraction,
+            max_options=args.max_options,
+        )
+        for underlying in underlyings
+    ]
+    instruments: list[Any] = []
+    seen_ids: set[str] = set()
+    for universe in universes:
+        for mapping in universe.instruments:
+            if mapping.security_id in seen_ids:
+                continue
+            seen_ids.add(mapping.security_id)
+            instruments.append(mapping)
     if not instruments:
         raise ValueError("the requested universe selected no instruments")
 
@@ -132,7 +149,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         "channel": "standard_quote_full_request_code_21",
         "subscription_batch_size": 100,
         "elapsed_seconds": elapsed,
-        "universe": universe.to_dict(),
+        "universes": [item.to_dict() for item in universes],
         "requested_instruments": len(requested),
         "instruments_with_packets": len(covered),
         "instruments_without_packets": len(silent),
