@@ -112,6 +112,7 @@ class PriceKeyedOFITransition:
     receive_ts_ns: int
     cumulative_by_depth: Mapping[int, float]
     boundary_excluded_quantity: float
+    included_absolute_quantity: float
     included_price_keys: int
     invalid_reason: str | None = None
 
@@ -130,11 +131,13 @@ def price_keyed_ofi_transition(previous: BookState, current: BookState) -> Price
             current.receive_ts_ns,
             {depth: 0.0 for depth in DEPTH_CUTOFFS},
             0.0,
+            0.0,
             0,
             invalid,
         )
     signed_by_rank: dict[int, float] = {}
     excluded_quantity = 0.0
+    included_absolute_quantity = 0.0
     included = 0
     for side in ("bid", "ask"):
         typed_side: Literal["bid", "ask"] = side
@@ -153,6 +156,7 @@ def price_keyed_ofi_transition(previous: BookState, current: BookState) -> Price
                 continue
             delta = float(new.get(price, (0, 0))[0] - old.get(price, (0, 0))[0])
             signed_by_rank[rank] = signed_by_rank.get(rank, 0.0) + sign * delta
+            included_absolute_quantity += abs(delta)
             included += 1
     cumulative: dict[int, float] = {}
     running = 0.0
@@ -164,6 +168,7 @@ def price_keyed_ofi_transition(previous: BookState, current: BookState) -> Price
         current.receive_ts_ns,
         cumulative,
         excluded_quantity,
+        included_absolute_quantity,
         included,
         None,
     )
@@ -204,6 +209,7 @@ class OFIObservation:
     contemporaneous_ticks: Mapping[int, float]
     same_window_ticks: Mapping[float, float]
     boundary_excluded_quantity: Mapping[float, float]
+    included_absolute_quantity: Mapping[float, float]
 
 
 def build_ofi_observations(
@@ -232,6 +238,7 @@ def build_ofi_observations(
     invalid_prefix = [0]
     ofi_prefix = {depth: [0.0] for depth in DEPTH_CUTOFFS}
     excluded_prefix = [0.0]
+    included_prefix = [0.0]
     for transition in transitions:
         invalid_prefix.append(invalid_prefix[-1] + int(transition.invalid_reason is not None))
         if transition.invalid_reason is not None:
@@ -239,6 +246,7 @@ def build_ofi_observations(
         for depth in DEPTH_CUTOFFS:
             ofi_prefix[depth].append(ofi_prefix[depth][-1] + transition.cumulative_by_depth[depth])
         excluded_prefix.append(excluded_prefix[-1] + transition.boundary_excluded_quantity)
+        included_prefix.append(included_prefix[-1] + transition.included_absolute_quantity)
     series = build_depth20_mid_series(depth20_states)
     observations: list[OFIObservation] = []
     max_window_ns = int(max(OFI_WINDOWS_SECONDS) * NANOSECONDS_PER_SECOND)
@@ -257,6 +265,7 @@ def build_ofi_observations(
             continue
         features = dict(controls)
         boundary_by_window: dict[float, float] = {}
+        included_by_window: dict[float, float] = {}
         complete = True
         for window in OFI_WINDOWS_SECONDS:
             start = state.receive_ts_ns - int(window * NANOSECONDS_PER_SECOND)
@@ -279,6 +288,7 @@ def build_ofi_observations(
                 previous_depth = depth
                 previous_value = cumulative[depth]
             boundary_by_window[window] = excluded_prefix[right] - excluded_prefix[left]
+            included_by_window[window] = included_prefix[right] - included_prefix[left]
         if not complete:
             failures["incomplete_ofi_history"] += 1
             continue
@@ -320,6 +330,7 @@ def build_ofi_observations(
                 contemporaneous_ticks={},
                 same_window_ticks=same_window,
                 boundary_excluded_quantity=boundary_by_window,
+                included_absolute_quantity=included_by_window,
             )
         )
     return observations, failures
@@ -712,6 +723,72 @@ def build_ofi_artifact(
     grid = evaluate_grid(observations, split, replicates=replicates, seed=seed)
     nested = evaluate_nested_depth(observations, split, replicates=replicates, seed=seed)
     same_window = evaluate_same_window(observations, split)
+    per_tape_grid: list[dict[str, Any]] = []
+    stratified_lookup: dict[tuple[str, float, int, int], dict[str, Any]] = {}
+    for tape in tapes:
+        tape_observations = list(tape.observations)
+        tape_split = chronological_embargoed_split(
+            [as_normal_observation(observation) for observation in tape_observations],
+            embargo_seconds=EMBARGO_SECONDS,
+        )
+        tape_rows = evaluate_grid(
+            tape_observations,
+            tape_split,
+            replicates=min(replicates, 100),
+            seed=seed + 2_000_000 + tape.tape_index,
+        )
+        for row in tape_rows:
+            stratified_lookup[
+                (
+                    tape.run_id,
+                    float(row["ofi_window_seconds"]),
+                    int(row["depth_levels"]),
+                    int(row["return_horizon_seconds"]),
+                )
+            ] = row
+        per_tape_grid.append(
+            {
+                "run_id": tape.run_id,
+                "train_n": len(tape_split.train),
+                "test_n": len(tape_split.test),
+                "grid": tape_rows,
+            }
+        )
+    for row in grid:
+        strata: list[dict[str, Any]] = []
+        for tape in tapes:
+            stratum = stratified_lookup[
+                (
+                    tape.run_id,
+                    float(row["ofi_window_seconds"]),
+                    int(row["depth_levels"]),
+                    int(row["return_horizon_seconds"]),
+                )
+            ]
+            strata.append(
+                {
+                    "run_id": tape.run_id,
+                    "state_plus_ofi_oos_r2": stratum["state_plus_ofi_oos_r2"],
+                    "incremental_oos_r2_over_state": stratum["incremental_oos_r2_over_state"],
+                    "standardised_ofi_coefficient_ticks": stratum[
+                        "standardised_ofi_coefficient_ticks"
+                    ],
+                }
+            )
+        coefficients = [
+            float(stratum["standardised_ofi_coefficient_ticks"])
+            for stratum in strata
+            if stratum["standardised_ofi_coefficient_ticks"] is not None
+        ]
+        row["per_tape"] = strata
+        row["coefficient_sign_consistent_across_tapes"] = bool(coefficients) and (
+            all(value > 0 for value in coefficients) or all(value < 0 for value in coefficients)
+        )
+        row["positive_increment_in_both_tapes"] = all(
+            stratum["incremental_oos_r2_over_state"] is not None
+            and float(stratum["incremental_oos_r2_over_state"]) > 0
+            for stratum in strata
+        )
     ranked = sorted(
         grid,
         key=lambda row: (
@@ -738,6 +815,20 @@ def build_ofi_artifact(
             observation.boundary_excluded_quantity[window] for observation in observations
         )
         for window in OFI_WINDOWS_SECONDS
+    }
+    included_absolute = {
+        str(window): sum(
+            observation.included_absolute_quantity[window] for observation in observations
+        )
+        for window in OFI_WINDOWS_SECONDS
+    }
+    boundary_share = {
+        key: (
+            boundary[key] / (boundary[key] + included_absolute[key])
+            if boundary[key] + included_absolute[key] > 0
+            else None
+        )
+        for key in boundary
     }
     if not all(isfinite(value) for value in boundary.values()):
         raise ValueError("non-finite boundary exclusion total")
@@ -773,6 +864,8 @@ def build_ofi_artifact(
             "test_n": len(split.test),
             "embargoed_n": len(split.embargoed),
             "boundary_excluded_quantity_by_window": boundary,
+            "included_absolute_quantity_by_window": included_absolute,
+            "boundary_excluded_share_by_window": boundary_share,
         },
         "plain_summary_inputs": {
             "best_cells_by_state_plus_ofi_r2": ranked[:10],
@@ -781,6 +874,7 @@ def build_ofi_artifact(
             "grid_cells": len(grid),
         },
         "grid": grid,
+        "per_tape_grid": per_tape_grid,
         "nested_depth": nested,
         "same_window_diagnostic": same_window,
     }

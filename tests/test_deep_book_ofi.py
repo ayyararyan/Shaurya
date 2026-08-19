@@ -167,6 +167,9 @@ def test_complete_grid_is_emitted_without_ranking_away_null_cells() -> None:
                     contemporaneous_ticks={},
                     same_window_ticks={window: signal for window in OFI_WINDOWS_SECONDS},
                     boundary_excluded_quantity={window: 0.0 for window in OFI_WINDOWS_SECONDS},
+                    included_absolute_quantity={
+                        window: abs(signal) for window in OFI_WINDOWS_SECONDS
+                    },
                 )
             )
     split = chronological_embargoed_split(observations, embargo_seconds=120.0)
