@@ -52,8 +52,10 @@ Labels must survive serialization and downstream transformations. An estimated o
 - Backward-incompatible changes require a schema version and release/changelog entry.
 - Missing timestamps, mappings, labels, or data-insufficient states are explicit, never coerced to zero.
 - Existing live-verified slices (`CON-01`, Dhan slice of `CON-05`, `CON-08`) retain their evidence;
-  the CON-01 DAT-14 extension is schema `1.1.0`, accepts retained `1.0.0` rows, and is Dry-run
-  verified rather than Live verified. Unfinished slices do not inherit another slice's status.
+  the CON-01 DAT-14 extension is schema `1.1.0`, accepts retained `1.0.0` rows, and is Live
+  verified for two front-month futures with simultaneous Standard+depth20 in one morning window.
+  Options, healthy depth200 alignment, and other times remain unverified. Unfinished slices do not
+  inherit another slice's status.
 
 ## Exclusions
 
