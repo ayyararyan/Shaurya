@@ -118,6 +118,22 @@ over clock x pooling x horizon x feature set is correctly annihilated by Romano-
 Sharpe, the plausible ranges of the three axes must be narrowed from theory and prior evidence
 before the sweep begins, never by inspecting outcomes.
 
+## Deep-book anomalies are a prediction question, not a feed question (D28)
+
+`DAT-20` establishes that depth200 can observe the far NIFTY-futures ladder reliably enough for
+research: its long publication gaps were not associated with excess witness states missing from
+depth200, and all 200 levels were populated. The same evidence shows that ordinary activity is
+thin in the far tail. Under D28 that quietness is the baseline that makes an unusual event
+potentially informative; it is not a reason to discard the levels.
+
+`SIG-21` owns the separate, still-unanswered question: whether a causal, price-keyed deep-book
+addition, removal, relocation, quantity shock or order-count shock predicts a later mid-price
+response. It must exclude mechanical level-index cascades, define unusualness from past data only
+conditional on side/distance/time/liquidity state, separate contemporaneous from predictive
+response, obey D27's cadence floor, and place every event type, threshold and horizon in one
+declared SIG-12 family. The two short DAT-20 tapes establish feasibility only; prediction requires
+a pre-registered multi-session sample and ex-ante power gate before outcomes are inspected.
+
 ## Requirements and traceability
 
 | Requirement | Normative statement | TASKS.md trace | Code target | Test / output target |
@@ -142,6 +158,7 @@ before the sweep begins, never by inspecting outcomes.
 | REQ-SIG-18 | Measure the OOS gap between raw-book and engineered-feature models and diagnose residuals by time, regime, and raw-book slices; unexplained gaps create missing-feature tickets. | SIG-18, D11, D12 | TBD coverage module | Golden-tape residual-gap report and ticket output |
 | REQ-SIG-19 | Log every tested configuration — including sampling clock, pooling coordinate, and horizon (D20) — and report a performance distribution using combinatorially purged CV and deflated Sharpe. | SIG-19, D20 | TBD trial registry | Append-only/completeness tests; trial log |
 | REQ-SIG-20 | Require each permanent-tier feature to be computable in one bounded-state forward pass without future data or same-day refit. | SIG-20, DAT-09 | TBD streaming feature API | Streaming/batch parity, bounded-state, leakage tests |
+| REQ-SIG-21 | Pre-register and test whether causal price-keyed anomalies in the normally quiet far depth200 ladder predict future mid-price responses. Separate event types and contemporaneous/predictive effects; exclude mechanical index cascades; condition past-only baselines on side, distance, time and liquidity/regime; enforce D27-admissible horizons, overlap/dependence controls, full-grid multiplicity, multi-session support and ex-ante MDE before inspecting outcomes. | SIG-21, D20, D22, D27, D28, DAT-20 | TBD deep-book event-study module | Construction/leakage fixtures; pre-registration artifact; power gate; dependence-aware response report and `CON-09` finding |
 
 ## Outputs and acceptance tests
 

@@ -5,7 +5,22 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### Traceability repair — follow-up tasks added after the original module-spec draft
+
+- A full ID-set audit triggered while adding `SIG-21` found that four previously opened,
+  non-dropped follow-up tasks — `DAT-18`, `DAT-19`, `DAT-20`, and `ANL-05` — had no corresponding
+  `REQ-*` row. Added `REQ-DAT-18/19/20` and `REQ-ANL-05`, then mapped `SIG-21` as
+  `REQ-SIG-21`. The resulting trace is exact: 119 task IDs, 3 intentionally dropped, and all
+  **116 non-dropped task IDs mapped once with no duplicate or orphan requirement IDs**.
+
 ### DAT-20 — depth200 activity thinning versus feed loss (H-DAT20)
+
+- Recorded Aryan's interpretation correction as D28: the quiet far depth200 tail is retained as
+  an anomaly-monitoring research object, not dismissed because ordinary activity is sparse.
+  DAT-20 proves observability, not that rare deep events forecast price. Opened `SIG-21` as the
+  next pre-registered task to test deep-book anomalies against future mid-price responses with
+  causal baselines, overlap/dependence controls, full-grid multiplicity and a multi-session
+  sample/power gate before outcomes are inspected.
 
 - Pre-registered `H-DAT20` under `D22` at `bc458d4`, before the analyser existed (`fedb2b2`)
   and before any capture ran. §1 of the evidence document has not been edited since.

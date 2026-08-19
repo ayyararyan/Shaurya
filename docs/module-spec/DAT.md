@@ -47,6 +47,9 @@ Every tape row retains its `CON-06` category and data-quality flags. Missing pro
 | REQ-DAT-15 | Measure the DAT-14 cross-channel alignment error and coalescing empirically from retained tape as distributions and classification flip rates by activity, depth tier, and time of day; never assume the error is small. | DAT-15, D24 | `src/shaurya/data/alignment_analysis.py`; `scripts/dat15_alignment_analysis.py` | `tests/test_alignment_analysis.py`; dated distribution/flip-rate artifact; Live verified on retained eight-tape sample with explicit coverage limits |
 | REQ-DAT-16 | Measure depth delivery by distinct receive-timestamp bursts, rows per burst, burst-gap distribution, and BBO-change rate; never infer event cadence from parsed-row count. | DAT-16, D23 | Retained-tape cadence analysis | `docs/live-evidence/DAT-16-2026-08-19.md`; 500 ms depth20 snapshot cadence live-verified at stated scope |
 | REQ-DAT-17 | Measure Full/5-level and depth200 clocks with the DAT-16 method, measure first-versus-later depth200 cadence and usable per-socket capacity, and state D27's binding lower bound for every pair of depth tiers without guessing the upstream mechanism. | DAT-17, D27 | `scripts/dat17_cadence_analysis.py`; `scripts/dat17_depth200_operational_probe.py` | `tests/test_cadence_analysis.py`; `docs/live-evidence/DAT-17-2026-08-19.md`; two 600 s zero-reconnect depth200 tapes and a timed four-future throttle artifact |
+| REQ-DAT-18 | Produce the consolidated multi-tier interpretation required for the DAT-09 width-versus-depth decision: admissible layouts, D27 horizon floors, the information gained/lost by Full versus depth20 versus depth200, and explicit separation of measured facts from owner choices. DAT-20's quiet-skip and active-band evidence must amend the earlier implication that depth200 cadence gaps themselves are information loss. | DAT-18, DAT-16, DAT-17, DAT-20, D27, D28 | Dated synthesis under `docs/live-evidence/` and DAT-09 plan update | Evidence-to-claim audit; owner-decision table; no unsupported generalisation beyond measured instruments/windows |
+| REQ-DAT-19 | Design lossless permanent raw-tape storage with stable schema, compression, partition/file granularity, seekable DAT-05 replay index, checksums/integrity, warm/cold tiering and explicit physical placement. Storage optimisation must preserve the raw level-by-level book needed by SIG-18 and SIG-21; lossy feature-only substitution requires explicit change control. | DAT-19, DAT-05, DAT-09, D12, D28 | TBD storage/partition/index modules and architecture record | Round-trip/checksum/seek tests; compression and replay benchmarks; retention and location manifest |
+| REQ-DAT-20 | Pre-register and test whether depth200 cadence gaps represent quiet-book intervals or feed loss by simultaneous single-clock Full, depth20 and depth200 capture; compare cross-tier containment, price-keyed change intensity, duration-matched skip windows and actual occupancy/span. Preserve residual phase-versus-content differences as not discriminated where exchange time/source sequence is unavailable, and do not infer rare-event predictability from feed observability. | DAT-20, D22, D27, D28 | `src/shaurya/data/depth_thinning_analysis.py`; `scripts/dat20_thinning_vs_loss_analysis.py` | `tests/test_depth_thinning_analysis.py`; `docs/live-evidence/DAT-20-2026-08-19.md`; retained three-tier tapes and result artifacts |
 
 Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded by D18.
 
@@ -72,8 +75,10 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 - Reconnect tests preserve a visible gap boundary and resubscribe semantics.
 - Deterministic replay produces the same ordered rows, quality flags, and consumer-visible events from the same tape.
 - Existing evidence remains scoped: DAT-01/03/04/07 are Tested; DAT-02 and DAT-10-17 are Live
-  verified at their stated scopes; DAT-05 is Dry-run verified end to end (its writer retains
-  earlier live evidence); DAT-06 is Dry-run verified; DAT-09 planning/pooling is Tested.
+  verified at their stated scopes; DAT-20 is Live verified for its central feed-observability
+  claim at its stated scope; DAT-05 is Dry-run verified end to end (its writer retains earlier
+  live evidence); DAT-06 is Dry-run verified; DAT-09 planning/pooling is Tested. DAT-18 and
+  DAT-19 remain not started.
 
 ## Exclusions
 
@@ -95,6 +100,8 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 - **DAT-15 coverage expansion:** options, midday, and a healthy simultaneous depth200-aligned
   capture remain unmeasured; the existing stressed cross-tier comparison does not identify a
   general depth-tier ranking.
+- **DAT-18/DAT-19:** the consolidated feed interpretation and lossless storage architecture remain
+  owner-discussion items; neither is silently satisfied by DAT-20 or by the existing JSONL writer.
 
 ## Trade-direction classification at capture (D24)
 

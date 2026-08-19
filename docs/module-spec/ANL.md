@@ -30,6 +30,7 @@ Gross P&L alone is insufficient: delta, gamma, vega, theta, spread capture, adve
 | REQ-ANL-02 | Produce per-run and per-day summaries from canonical attribution. | ANL-02 | TBD reporting module | Aggregate/reconciliation tests; run/day reports |
 | REQ-ANL-03 | Provide a read-only dashboard/server for surface and trading analytics. | ANL-03 | TBD dashboard/server | Read-only and rendering/API tests; dashboard views |
 | REQ-ANL-04 | Provide notifications and alerts with explicit component/run state. | ANL-04 | TBD notifier | Routing/deduplication/lifecycle tests; alert record |
+| REQ-ANL-05 | Redesign ANL-03's presentation using the approved muted visual system while preserving every measured field, object label, threshold, arbitrage banner and forward-source disclosure exactly. Aesthetic work may change layout, typography, colour and hierarchy only; it may not change model meaning or suppress diagnostics. | ANL-05, ANL-03 | `src/shaurya/analytics/dashboard.py` | Rendering/snapshot/accessibility tests; before/after field-parity audit; dashboard screenshots |
 
 ## Outputs and acceptance tests
 
@@ -48,4 +49,5 @@ Gross P&L alone is insufficient: delta, gamma, vega, theta, spread capture, adve
 
 ## Deferred items
 
-- All ANL implementation remains not started; D15 fixes the ownership and decomposition.
+- ANL-03 is Live verified for the surface-dashboard scope; ANL-05 remains not started. ANL-01,
+  ANL-02 and ANL-04 remain not started; D15 fixes attribution/markout ownership and decomposition.
