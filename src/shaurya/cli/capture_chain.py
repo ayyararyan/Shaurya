@@ -1,0 +1,165 @@
+"""Read-only Dhan option-chain capture on the Quote/Full channel (`RequestCode` 21).
+
+Two jobs in one command, because they need the same subscription:
+
+1. Capture an option-chain tape that the ANL-03 surface dashboard can replay.
+2. Measure the Quote/Full channel's *empirical* instrument ceiling. Dhan's documented
+   5,000 was disproved for the 20-level depth channel on 2026-08-19 (real ceiling: 50 per
+   subscription message), so this command reports, per requested instrument, whether any
+   packet ever arrived — the ceiling is read off that coverage, never assumed.
+
+This command never places, modifies, or influences an order.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import os
+import sys
+import time
+from collections import Counter
+from datetime import date, datetime
+from pathlib import Path
+from typing import Any
+
+from shaurya.analytics.universe import select_chain_universe
+from shaurya.contracts.artifacts import ArtifactManifest
+from shaurya.contracts.instruments import DhanInstrumentMaster
+from shaurya.contracts.tape import TapeRow
+from shaurya.contracts.timing import IST
+from shaurya.data.dhan_client import DhanCredentials
+from shaurya.data.dhan_stream import DhanLiveStream, DhanStreamConfig, StreamMetrics
+from shaurya.data.tape import JsonlTapeWriter
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--credentials", required=True, type=Path)
+    parser.add_argument("--security-master", required=True, type=Path)
+    parser.add_argument("--underlying", default="NIFTY")
+    parser.add_argument(
+        "--expiry",
+        action="append",
+        required=True,
+        help="ISO expiry date; repeat for several maturities.",
+    )
+    parser.add_argument("--spot", required=True, type=float)
+    parser.add_argument("--strike-window-fraction", type=float, default=0.06)
+    parser.add_argument("--max-options", type=int, default=120)
+    parser.add_argument("--duration-seconds", type=float, default=120.0)
+    parser.add_argument("--output-root", type=Path, default=Path("data/live-captures/anl03"))
+    parser.add_argument("--heartbeat-interval-seconds", type=float, default=10.0)
+    parser.add_argument("--heartbeat-timeout-seconds", type=float, default=5.0)
+    return parser
+
+
+def _exclusive_json(path: Path, value: dict[str, Any]) -> None:
+    encoded = (json.dumps(value, sort_keys=True, indent=2) + "\n").encode()
+    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    with os.fdopen(descriptor, "wb") as handle:
+        handle.write(encoded)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
+    if args.duration_seconds <= 0:
+        raise ValueError("duration-seconds must be positive")
+    credentials = DhanCredentials.from_env_file(args.credentials)
+    master = DhanInstrumentMaster(args.security_master)
+    universe = select_chain_universe(
+        master.mappings(),
+        underlying=args.underlying,
+        expiries=[date.fromisoformat(value) for value in args.expiry],
+        spot_reference=args.spot,
+        strike_window_fraction=args.strike_window_fraction,
+        max_options=args.max_options,
+    )
+    instruments = list(universe.instruments)
+    if not instruments:
+        raise ValueError("the requested universe selected no instruments")
+
+    manifest = ArtifactManifest.create(args.output_root)
+    metrics = StreamMetrics()
+    writer = JsonlTapeWriter(manifest, fsync_every=200)
+    seen: Counter[str] = Counter()
+    first_seen: dict[str, str] = {}
+
+    def consume(row: TapeRow) -> None:
+        writer.write(row)
+        seen[row.instrument_id] += 1
+        first_seen.setdefault(row.instrument_id, row.receive_ts.astimezone(IST).isoformat())
+
+    config = DhanStreamConfig(
+        enable_standard_feed=True,
+        enable_20_level_depth=False,
+        enable_200_level_depth=False,
+        heartbeat_interval_seconds=args.heartbeat_interval_seconds,
+        heartbeat_timeout_seconds=args.heartbeat_timeout_seconds,
+    )
+    stream = DhanLiveStream(
+        credentials,
+        instruments,
+        consume,
+        run_id=str(manifest.run_id),
+        config=config,
+        metrics=metrics,
+    )
+    started = time.monotonic()
+    stream_error: BaseException | None = None
+    task = asyncio.create_task(stream.run())
+    done, _ = await asyncio.wait({task}, timeout=args.duration_seconds)
+    elapsed = time.monotonic() - started
+    if task not in done:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+    else:
+        try:
+            task.result()
+            stream_error = RuntimeError("Dhan stream ended unexpectedly")
+        except BaseException as exc:  # noqa: BLE001 - recorded, then reported
+            stream_error = exc
+    writer.close(failed_error_type=type(stream_error).__name__ if stream_error else None)
+
+    requested = [mapping.instrument.canonical for mapping in instruments]
+    covered = [name for name in requested if seen[name] > 0]
+    silent = [name for name in requested if seen[name] == 0]
+    report: dict[str, Any] = {
+        "run_id": str(manifest.run_id),
+        "generated_at": datetime.now(tz=IST).isoformat(),
+        "channel": "standard_quote_full_request_code_21",
+        "subscription_batch_size": 100,
+        "elapsed_seconds": elapsed,
+        "universe": universe.to_dict(),
+        "requested_instruments": len(requested),
+        "instruments_with_packets": len(covered),
+        "instruments_without_packets": len(silent),
+        "first_silent_request_index": (
+            requested.index(silent[0]) if silent else None
+        ),
+        "silent_instruments": silent,
+        "rows": metrics.rows,
+        "reconnect_attempts": dict(metrics.reconnect_attempts),
+        "connections": dict(metrics.connections),
+        "heartbeat_timeouts": dict(metrics.heartbeat_timeouts),
+        "packets_per_instrument": dict(seen),
+        "first_packet_ist_per_instrument": first_seen,
+        "stream_error": type(stream_error).__name__ if stream_error else None,
+        "tape_path": str(writer.path),
+    }
+    _exclusive_json(manifest.run_dir / "chain_coverage.json", report)
+    return (0 if covered else 1), report
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
+    code, report = asyncio.run(_capture(args))
+    json.dump(report, sys.stdout, indent=2, sort_keys=True)
+    sys.stdout.write("\n")
+    return code
+
+
+if __name__ == "__main__":  # pragma: no cover - CLI entry point
+    raise SystemExit(main())
