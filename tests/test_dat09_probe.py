@@ -103,18 +103,21 @@ def test_depth200_control_surfaces_zero_and_packet_skew_without_guessing_cause()
     assert missing.max_min_packet_ratio is None
 
 
-def test_solo_rate_addendum_predeclares_cap_event_rate_and_ambiguous_regions() -> None:
+def test_solo_rate_addendum_compares_rows_without_calling_them_events() -> None:
     def observation(count: int) -> ProbeObservation:
         return ProbeObservation(1, {"58072": count}, ("58072",), 15.0)
 
     capped = SoloRateAddendum("58072", 116, (observation(116), observation(114)))
-    assert capped.conclusion == "per-instrument-rate-cap"
+    assert capped.row_rate_result == "unchanged-solo-row-rate"
+    assert capped.conclusion == "not-discriminated"
     assert capped.ratios_to_reference == (1.0, 114 / 116)
     faster = SoloRateAddendum("58072", 116, (observation(150), observation(160)))
-    assert faster.conclusion == "genuine-event-rate"
+    assert faster.row_rate_result == "materially-higher-solo-row-rate"
+    assert faster.conclusion == "not-discriminated"
     ambiguous = SoloRateAddendum("58072", 116, (observation(116), observation(150)))
+    assert ambiguous.row_rate_result == "mixed-solo-row-rate"
     assert ambiguous.conclusion == "not-discriminated"
-    assert "+/-10%" in ambiguous.to_dict()["comparison_rule"]
+    assert "do not identify" in ambiguous.to_dict()["comparison_rule"]
 
 
 async def test_probe_client_uses_injected_socket_and_parses_packet_counts() -> None:

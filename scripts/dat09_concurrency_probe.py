@@ -98,12 +98,19 @@ class SoloRateAddendum:
         return tuple(value / self.reference_packet_count for value in self.packet_counts)
 
     @property
-    def conclusion(self) -> str:
+    def row_rate_result(self) -> str:
         ratios = self.ratios_to_reference
         if all(0.9 <= value <= 1.1 for value in ratios):
-            return "per-instrument-rate-cap"
+            return "unchanged-solo-row-rate"
         if all(value >= 1.25 for value in ratios):
-            return "genuine-event-rate"
+            return "materially-higher-solo-row-rate"
+        return "mixed-solo-row-rate"
+
+    @property
+    def conclusion(self) -> str:
+        # A parsed depth row is not necessarily a distinct publication event. DAT-16 found
+        # multiple same-timestamp rows per fixed 500 ms snapshot, so row counts alone cannot
+        # discriminate a packet cap from a true event rate.
         return "not-discriminated"
 
     def to_dict(self) -> dict[str, Any]:
@@ -111,11 +118,13 @@ class SoloRateAddendum:
             "security_id": self.security_id,
             "reference_packet_count": self.reference_packet_count,
             "comparison_rule": (
-                "both solo counts within +/-10% of the reference => per-instrument-rate-cap; "
-                "both at least 25% above => genuine-event-rate; otherwise not-discriminated"
+                "both solo counts within +/-10% of the reference => unchanged-solo-row-rate; "
+                "both at least 25% above => materially-higher-solo-row-rate; otherwise mixed. "
+                "Parsed row counts do not identify publication bursts or exchange event rate."
             ),
             "packet_counts": list(self.packet_counts),
             "ratios_to_reference": list(self.ratios_to_reference),
+            "row_rate_result": self.row_rate_result,
             "conclusion": self.conclusion,
             "observations": [value.to_dict() for value in self.observations],
         }

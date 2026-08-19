@@ -72,7 +72,10 @@ and a connection gap or reconnect discards the quote state instead of carrying i
 ### 3. DAT-11 through DAT-15 market-hours outcomes — landed
 
 - **DAT-11:** exact observed 20-level one-message ceiling is **50**. Fresh 50 worked; 51, 52,
-  and 53 failed wholesale. This corrects the prior-day statement that 52 worked.
+  and 53 failed wholesale. This corrects the prior-day statement that 52 worked. A later
+  fresh-socket solo addendum delivered 116 and 120 NIFTY packets/15 s versus 116 inside the
+  50-instrument run, identifying an observed per-instrument cap near 8 packets/s and an
+  approximately 125–129 ms coalesced-view bound for D23.
 - **DAT-12:** **socket-scoped** at the reproduced 50+50 load. Message two failed on the loaded
   socket and succeeded unchanged on a fresh socket. A 2+2 control accepted both messages, so the
   effect is load-dependent rather than a universal first-message-only rule.
@@ -102,7 +105,7 @@ Canonical details, denominators, identification limits and residual gaps are in 
    than one process has committed to this clone concurrently before.
 5. **Current state as of 2026-08-19 ~10:52 IST**, superseding the 2026-08-17 line that said no
    code had been harvested: real code exists and is pushed. CON contracts, INF packaging, the
-   DAT component through DAT-15, and the SUR eSSVI surface stack are implemented, with 106 tests,
+   DAT component through DAT-15, and the SUR eSSVI surface stack are implemented, with 107 tests,
    strict mypy clean on 31 package files plus live-analysis scripts, and Ruff clean. Per-component
    specs live in `docs/module-spec/*.md`; `MODULE_SPEC.md` is the index over them.
 6. **Market-hours work DAT-11 through DAT-15 completed on 2026-08-19.** Read the dated evidence

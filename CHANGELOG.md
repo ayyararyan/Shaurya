@@ -53,6 +53,11 @@ to strategies that pin the package.
   prior-day 52-working bound, which did not reproduce. The probe now freshly validates both
   bracket endpoints, timestamps every candidate, exposes tested-candidate monotonicity, and
   bounds socket-close latency; the dated acceptance table is retained under `docs/live-evidence/`.
+- Added a fresh-socket solo-rate mode and ran NIFTY-Aug2026-FUT alone twice for 15 seconds. It
+  delivered 116 and 120 packets versus 116 inside the 50-instrument subscription. Removing 49
+  instruments did not materially raise its rate, identifying the observed ~8 packets/s cadence as
+  a per-instrument delivery cap under the predeclared comparison rule, not shared socket bandwidth.
+  D23 must therefore treat the approximately 125–129 ms delivered view as a coalescing bound.
 - Live-verified DAT-12 at the reproduced 50+50 load: one socket delivered all 50 instruments
   from message one and none from message two, while a fresh socket delivered all 50 from the
   unchanged second set. The limit is therefore socket-scoped under that load. A 2+2 control

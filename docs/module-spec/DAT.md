@@ -52,6 +52,12 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 
 - **20-level socket behaviour:** DAT-12 discriminates the reproduced 50+50 failure as **socket-scoped**: the second 50-instrument message failed on the occupied socket and succeeded unchanged on a fresh socket. A 2+2 control accepted both messages on one socket, so the effect is load-dependent rather than a universal first-message-only rule.
 - **Measured per-message ceiling:** **50 instruments** in the 2026-08-19 live probe. Fresh one-message sockets accepted every tested count through 50 and rejected 51, 52 and 53 wholesale; the prior-day statement that 52 worked did not reproduce and is superseded by the same-day boundary evidence. This is an observed endpoint constraint, not a broker guarantee across future protocol/account changes.
+- **Measured per-instrument 20-level cadence:** NIFTY-Aug2026-FUT received 116 packets in 15
+  seconds inside the 50-instrument subscription, then 116 and 120 in two fresh-socket solo runs.
+  Removing 49 instruments did not materially raise the delivered rate. Under the predeclared
+  comparison rule this identifies an observed per-instrument cap near 8 packets/s, not shared
+  socket bandwidth. D23 must preserve an approximately 125–129 ms coalesced-view identification
+  bound; the number and ordering of exchange events inside that interval remain unidentified.
 - **200-level evidence:** multiple subscriptions receive at least minimal packets, but DAT-13's order-rotation control shows a genuine first-subscription throttle/bias. With the same four front-month futures, whichever instrument was sent first received 328 packets and each later instrument received 2; max/min skew was 164× in both orderings. This is not explained by ordinary instrument liquidity.
 - **Retention:** permanent. Once captured, raw data is kept; there is no rolling deletion or expiry window.
 - **Universe:** NSE index F&O only—NIFTY, BANKNIFTY, FINNIFTY, and MIDCPNIFTY. Single-stock depth and BSE deep book are out of current scope. Exact depth-tier strike bands such as ATM±7 remain illustrative, not committed.
@@ -76,9 +82,9 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 
 ## Deferred and open items
 
-- **DAT-11/12/13:** the 2026-08-19 market-hours probes are complete at their stated scopes; see
-  the dated evidence files. The optional DAT-11 solo-rate addendum is separate and does not alter
-  the measured 50-instrument per-message ceiling.
+- **DAT-11/12/13:** the 2026-08-19 market-hours probes and DAT-11 solo-rate addendum are complete
+  at their stated scopes; see the dated evidence files. The addendum does not alter the measured
+  50-instrument per-message ceiling.
 - **DAT-09:** derive the exact depth bands and connection-count plan from the completed capacity
   measurements; retention is already permanently settled. The exact 200-level instrument-count
   ceiling remains unmeasured.
