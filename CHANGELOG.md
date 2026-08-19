@@ -5,6 +5,19 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### Session planning — 2026-08-19 afternoon agenda opened
+
+- Opened `DAT-18` (consolidated multi-tier feed interpretation), `DAT-19` (storage and
+  retention architecture) and `ANL-05` (dashboard visual design), all scheduled by Aryan for
+  the 2026-08-19 evening session with discussion explicitly preceding decision.
+- Recorded the `ANL-03` continuing afternoon run (12:04 to approximately 15:47 IST, 452 NIFTY
+  instruments) which supplies the afternoon and market-close coverage the morning window
+  lacked, and measured its tape cost at approximately 40 MB/minute — the concrete number
+  forcing `DAT-19`.
+- Recorded a provenance caveat on `DAT-17`: two agents ran the task concurrently from two
+  OpenClaw sessions, both completed, the tree was deduplicated at `b4a2975`, and the socket
+  overlap of approximately 35 seconds did not affect the authoritative capture.
+
 ### DAT-17 — depth-tier cadence and operational bounds
 
 - Live-measured depth200 twice on NIFTY August futures in independent 600-second,

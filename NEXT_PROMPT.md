@@ -1,9 +1,70 @@
 # Shaurya — Next-Session Prompt
 
-**Prepared:** 2026-08-17, last updated 2026-08-19 ~11:20 IST (session reset by Aryan)
-**Use on return:** immediately after the 2026-08-19 mid-session reset; NSE is still open until 15:30 IST
+**Prepared:** 2026-08-17, last updated 2026-08-19 ~12:35 IST (second session reset by Aryan)
+**Use on return:** the 2026-08-19 **afternoon** session. Aryan set the agenda himself — see § AFTERNOON AGENDA below.
 **Repository:** private `ayyararyan/Shaurya`
 **Canonical status ledger:** `TASKS.md`
+
+## AFTERNOON AGENDA — SET BY ARYAN 2026-08-19 ~12:24 IST, READ THIS FIRST
+
+He reset the session after `ANL-03` and `DAT-17` both landed, and named three items for the
+afternoon/evening, **in this order**. His sequencing was explicit: *"Today afternoon, we discuss
+first on the feed and then take some decisions."* Discussion precedes decision. Do not arrive with
+decisions pre-made.
+
+1. **`DAT-18` — interpret the level-wise feed properly.** His words: *"the level wise feed thing
+   needs to be seriously interpreted well."* All three tiers are now measured; the numbers are not
+   the interpretation. What the width-versus-depth trade actually costs in information is the
+   question. This is a conversation with him, not an agent task.
+2. **`DAT-19` — how to store the data well.** *"the data will not start becoming big"* — read in
+   context as *is about to become big*: the live dashboard is writing ~40 MB/minute. Format,
+   compression, partitioning, seekable replay index, integrity, tiering. Retention stays permanent
+   (2026-08-18); this is about cost and access, never about deleting the raw tape, which `D12`
+   retains specifically so `SIG-18` remains possible.
+3. **`ANL-05` — dashboard aesthetics.** He called it *"minor but worthy"*. Presentation only;
+   thresholds, labels and displayed quantities are specification and must survive untouched.
+
+`DAT-09` becomes answerable once `DAT-18` is discussed — the width/depth numbers it was waiting on
+now exist. The SIG story-by-story debate against MK-01–MK-13 remains the main unstarted
+intellectual work and sits behind these three.
+
+### Live at the moment of the reset
+
+**The `ANL-03` dashboard is running and should be left running** — `http://127.0.0.1:8765/`,
+started 12:04 IST, PID recorded in the session log, NIFTY 452 instruments across 2026-08-25 /
+2026-09-01 / 2026-09-29, `--serve-seconds 13200 --post-stream-seconds 900`, so it stops itself at
+about 15:47 IST. Aryan asked to *"keep seeing the feed for the rest of the day"* and separately
+gave permission to kill it if it proved heavy. It is **not** heavy — measured 3.7% CPU and 147 MB
+RSS — so it stays up. Two reasons beyond his request: it is the only run that will cover an
+afternoon session and a real market close, both of which `ANL-03` lists as unverified; and it will
+render post-close feed death, exercising the same path that was demonstrated by hand this morning.
+Cost is disk only: ~40 MB/min into `data/live-captures/anl03-live/`, about 8 GB more by the close,
+against 1.4 TB free. If it must be stopped, stopping it loses the afternoon coverage — say so
+rather than killing it silently.
+
+### The operational mess of the late morning, resolved — do not re-diagnose it
+
+**Two DAT-17 agents ran concurrently.** Two OpenClaw main sessions were live on the same Telegram
+chat and each spawned its own `shaurya_dat17_depth200_bounds`: `673f8911` at 11:49:05 (28m22s) and
+`2033be0d` at 11:51:05 (16m44s). Both completed, both wrote to this clone, and the tree was
+deduplicated at `b4a2975`. This is why Aryan received the DAT-17 report three times in slightly
+different words. Consequence recorded in the `DAT-17` ledger row: sockets briefly hit three for
+~35 s, the authoritative capture was already complete and unaffected, the duplicate tape was
+excluded. **Nothing needs re-running.**
+
+**No agent died.** Every subagent today ended `done` or `timeout` with its work committed; the
+`shaurya_anl03_surface_opus`, `673f8911` and `2033be0d` runs all ended `done`. What died were
+*turns*: the "Something went wrong" at 12:24:29 was the known `openclaw/openclaw#113149`
+empty-response fallback restart. Gateway-log signature count is now **17**, up from 16 at 11:00
+and 14 the previous day — still roughly one a day and unfixed upstream. Re-check:
+`grep -c "outBytes=0 outHash=e3b0c44298fc" ~/Library/Logs/openclaw/gateway.log`
+
+**The cron gate was retired.** DAT-17 was first queued as an `on-exit` cron job to sequence it
+behind `ANL-03`. The gate fired correctly; the payload failed twice with
+`CronSessionLifecycleClaimError`, and because the job carried `deleteAfterRun` it had already been
+removed at fire time, leaving nothing to retry. Full write-up in the workspace `TOOLS.md`. **Rule:
+do not use cron to sequence one agent behind another — use `sessions_spawn`.**
+
 
 ## STATE AT THE 2026-08-19 ~11:20 IST RESET — READ THIS FIRST
 
