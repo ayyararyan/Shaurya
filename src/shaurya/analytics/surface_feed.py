@@ -1,0 +1,564 @@
+"""ANL-03 surface engine: tape rows in, labelled surface snapshots out.
+
+Read-only by construction (D19). The engine consumes `CON-01` tape rows from either a
+DAT-05 replay or one live Dhan connection, refits the `SUR-02` eSSVI surface on a cadence,
+smooths it with `SUR-07`'s temporal smoother, and emits a snapshot carrying the `CON-03`
+frame, the `SUR-05` arbitrage report, the `SUR-06` diagnostics, the per-expiry forward
+choice, and feed-health measurements.
+
+Nothing here filters points, widens tolerances, or retries a fit to make the surface look
+clean: a failed fit and a failed arbitrage check are both first-class snapshot states.
+"""
+
+from __future__ import annotations
+
+import math
+import time
+from collections import deque
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
+from datetime import time as clock_time
+from enum import StrEnum
+from typing import Any
+
+from shaurya.analytics.forward import ForwardSelection, select_forwards
+from shaurya.contracts.surface import SurfaceFrame
+from shaurya.contracts.tape import TapeRow
+from shaurya.contracts.timing import IST
+from shaurya.surfaces.base import EvaluationStatus, SurfaceFitRequest, SurfaceUse
+from shaurya.surfaces.essvi import ESSVISurface, SurfaceCalibrationError
+from shaurya.surfaces.state import ESSVITemporalSmoother, staleness_measurement
+
+SECONDS_PER_YEAR = 365.0 * 24.0 * 3600.0
+NSE_EXPIRY_CLOSE = clock_time(hour=15, minute=30)
+
+
+class FeedStatus(StrEnum):
+    """Feed liveness verdict under the measured Quote/Full cadence (DAT-16)."""
+
+    LIVE = "live"
+    SLOW = "slow"
+    DEAD = "dead"
+    NO_DATA = "no_data"
+
+
+@dataclass(frozen=True, slots=True)
+class StalenessPolicy:
+    """Thresholds calibrated to DAT-16's measured cadence, not to taste.
+
+    DAT-16 measured the Quote/Full channel at roughly 1.2-1.7 updates per second per liquid
+    instrument, with per-instrument gap p95 near 1,140 ms. Aggregate feed age across a
+    subscribed chain is therefore normally far below one second, and a few hundred
+    milliseconds is healthy rather than faulty. The dead threshold is set where a liquid
+    chain has demonstrably stopped: two seconds is more than 1.75x the single-instrument p95
+    gap, so on a universe of dozens of instruments it cannot be produced by ordinary gaps.
+    """
+
+    feed_slow_seconds: float = 1.0
+    feed_dead_seconds: float = 2.0
+    instrument_slow_seconds: float = 3.0
+    instrument_dead_seconds: float = 6.0
+    surface_staleness_seconds: float = 15.0
+    rate_window_seconds: float = 10.0
+
+    def __post_init__(self) -> None:
+        if not 0 < self.feed_slow_seconds < self.feed_dead_seconds:
+            raise ValueError("feed thresholds must satisfy 0 < slow < dead")
+        if not 0 < self.instrument_slow_seconds < self.instrument_dead_seconds:
+            raise ValueError("instrument thresholds must satisfy 0 < slow < dead")
+        if self.surface_staleness_seconds <= 0 or self.rate_window_seconds <= 0:
+            raise ValueError("surface staleness and rate windows must be positive")
+
+    def to_dict(self) -> dict[str, float]:
+        return {
+            "feed_slow_seconds": self.feed_slow_seconds,
+            "feed_dead_seconds": self.feed_dead_seconds,
+            "instrument_slow_seconds": self.instrument_slow_seconds,
+            "instrument_dead_seconds": self.instrument_dead_seconds,
+            "surface_staleness_seconds": self.surface_staleness_seconds,
+            "rate_window_seconds": self.rate_window_seconds,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class FeedHealth:
+    """Everything needed to see that the feed died, not just that the surface looks fine."""
+
+    status: FeedStatus
+    observation_timestamp: datetime
+    last_update_timestamp: datetime | None
+    feed_age_seconds: float | None
+    worst_instrument_age_seconds: float | None
+    worst_instrument_id: str | None
+    stale_instrument_count: int
+    tracked_instrument_count: int
+    packets_per_second: float
+    rows_total: int
+    reconnect_count: int
+    connection_epoch: int
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "status": self.status.value,
+            "observation_timestamp": self.observation_timestamp.isoformat(),
+            "last_update_timestamp": (
+                self.last_update_timestamp.isoformat() if self.last_update_timestamp else None
+            ),
+            "feed_age_seconds": self.feed_age_seconds,
+            "worst_instrument_age_seconds": self.worst_instrument_age_seconds,
+            "worst_instrument_id": self.worst_instrument_id,
+            "stale_instrument_count": self.stale_instrument_count,
+            "tracked_instrument_count": self.tracked_instrument_count,
+            "packets_per_second": self.packets_per_second,
+            "rows_total": self.rows_total,
+            "reconnect_count": self.reconnect_count,
+            "connection_epoch": self.connection_epoch,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class SurfaceGrid:
+    """A fixed-axis evaluation grid. Unsupported cells stay null; nothing is filled in."""
+
+    log_moneyness: tuple[float, ...]
+    maturity_days: tuple[float, ...]
+    expiry_labels: tuple[str, ...]
+    implied_volatility: tuple[tuple[float | None, ...], ...]
+    unsupported_cells: int
+    reasons: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "log_moneyness": list(self.log_moneyness),
+            "maturity_days": list(self.maturity_days),
+            "expiry_labels": list(self.expiry_labels),
+            "implied_volatility": [list(row) for row in self.implied_volatility],
+            "unsupported_cells": self.unsupported_cells,
+            "reasons": list(self.reasons),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class MarketPoint:
+    """One observed option mid expressed in the surface's own coordinates."""
+
+    instrument_id: str
+    expiry: str
+    log_moneyness: float
+    maturity_days: float
+    implied_volatility: float
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "instrument_id": self.instrument_id,
+            "expiry": self.expiry,
+            "log_moneyness": self.log_moneyness,
+            "maturity_days": self.maturity_days,
+            "implied_volatility": self.implied_volatility,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class SurfaceSnapshot:
+    """One dashboard-ready observation of the whole chain: fit or explicit failure."""
+
+    sequence: int
+    fit_timestamp: datetime
+    fit_duration_seconds: float
+    fit_ok: bool
+    failure_reason: str | None
+    health: FeedHealth
+    forwards: ForwardSelection
+    frame: SurfaceFrame | None
+    grid: SurfaceGrid | None
+    market_points: tuple[MarketPoint, ...]
+    arbitrage: dict[str, object] | None
+    diagnostics: dict[str, object]
+    surface_age_seconds: float | None
+    surface_is_stale: bool
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "sequence": self.sequence,
+            "fit_timestamp": self.fit_timestamp.isoformat(),
+            "fit_duration_seconds": self.fit_duration_seconds,
+            "fit_ok": self.fit_ok,
+            "failure_reason": self.failure_reason,
+            "health": self.health.to_dict(),
+            "forwards": self.forwards.to_dict(),
+            "grid": self.grid.to_dict() if self.grid else None,
+            "market_points": [point.to_dict() for point in self.market_points],
+            "arbitrage": self.arbitrage,
+            "diagnostics": self.diagnostics,
+            "surface_age_seconds": self.surface_age_seconds,
+            "surface_is_stale": self.surface_is_stale,
+            "frame": self.frame.model_dump(mode="json") if self.frame else None,
+        }
+
+
+def expiry_timestamp(expiry: date) -> datetime:
+    """NSE index options expire at the 15:30 IST close on their expiry date."""
+
+    return datetime.combine(expiry, NSE_EXPIRY_CLOSE, tzinfo=IST)
+
+
+def _option_expiry(instrument_id: str) -> date | None:
+    parts = instrument_id.split(":")
+    if len(parts) != 7 or parts[3].lower() != "option":
+        return None
+    try:
+        return date.fromisoformat(parts[4])
+    except ValueError:
+        return None
+
+
+def _option_strike(instrument_id: str) -> float | None:
+    parts = instrument_id.split(":")
+    if len(parts) != 7:
+        return None
+    try:
+        return float(parts[5])
+    except ValueError:
+        return None
+
+
+@dataclass
+class SurfaceEngine:
+    """Stateful chain-to-surface engine driven by tape rows.
+
+    ``run_id`` and ``surface_id`` identify the emitted `CON-03` frames. ``expiries`` fixes
+    the maturity axis for the whole session so the 3D view does not re-scale on every fit.
+    """
+
+    run_id: str
+    surface_id: str
+    expiries: tuple[date, ...]
+    log_moneyness_grid: tuple[float, ...]
+    policy: StalenessPolicy = field(default_factory=StalenessPolicy)
+    fit_interval_seconds: float = 5.0
+    risk_free_rate: float = 0.0
+    min_quotes_per_slice: int = 5
+    history_limit: int = 720
+    smoother: ESSVITemporalSmoother = field(default_factory=ESSVITemporalSmoother)
+
+    _latest: dict[str, TapeRow] = field(default_factory=dict, init=False, repr=False)
+    _recent_receipts: deque[datetime] = field(default_factory=deque, init=False, repr=False)
+    _history: list[SurfaceSnapshot] = field(default_factory=list, init=False, repr=False)
+    _rows_total: int = field(default=0, init=False)
+    _last_row_timestamp: datetime | None = field(default=None, init=False)
+    _connection_epoch: int = field(default=0, init=False)
+    _max_connection_epoch: int = field(default=0, init=False)
+    _sequence: int = field(default=0, init=False)
+    _last_fit_timestamp: datetime | None = field(default=None, init=False)
+    _previous_surface: ESSVISurface | None = field(default=None, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        if not self.expiries:
+            raise ValueError("at least one expiry is required")
+        if len(self.log_moneyness_grid) < 2:
+            raise ValueError("the log-moneyness grid needs at least two points")
+        if self.fit_interval_seconds <= 0:
+            raise ValueError("fit_interval_seconds must be positive")
+        self.expiries = tuple(sorted(set(self.expiries)))
+
+    @property
+    def history(self) -> tuple[SurfaceSnapshot, ...]:
+        return tuple(self._history)
+
+    @property
+    def latest(self) -> SurfaceSnapshot | None:
+        return self._history[-1] if self._history else None
+
+    def ingest(self, row: TapeRow) -> None:
+        """Absorb one tape row. Only two-sided option and future books matter here."""
+
+        self._rows_total += 1
+        receive = row.receive_ts.astimezone(IST)
+        if self._last_row_timestamp is None or receive > self._last_row_timestamp:
+            self._last_row_timestamp = receive
+        self._recent_receipts.append(receive)
+        self._connection_epoch = row.connection_epoch
+        self._max_connection_epoch = max(self._max_connection_epoch, row.connection_epoch)
+        incumbent = self._latest.get(row.instrument_id)
+        if incumbent is None or (row.receive_ts, row.receive_sequence) > (
+            incumbent.receive_ts,
+            incumbent.receive_sequence,
+        ):
+            self._latest[row.instrument_id] = row
+
+    def _trim_rate_window(self, now: datetime) -> None:
+        cutoff = now - timedelta(seconds=self.policy.rate_window_seconds)
+        while self._recent_receipts and self._recent_receipts[0] < cutoff:
+            self._recent_receipts.popleft()
+
+    def health(self, now: datetime) -> FeedHealth:
+        self._trim_rate_window(now)
+        feed_age: float | None = None
+        if self._last_row_timestamp is not None:
+            feed_age = (now - self._last_row_timestamp).total_seconds()
+        worst_age: float | None = None
+        worst_id: str | None = None
+        stale_instruments = 0
+        for instrument_id, row in self._latest.items():
+            age = (now - row.receive_ts.astimezone(IST)).total_seconds()
+            if age >= self.policy.instrument_slow_seconds:
+                stale_instruments += 1
+            if worst_age is None or age > worst_age:
+                worst_age = age
+                worst_id = instrument_id
+        if feed_age is None:
+            status = FeedStatus.NO_DATA
+        elif feed_age >= self.policy.feed_dead_seconds:
+            status = FeedStatus.DEAD
+        elif feed_age >= self.policy.feed_slow_seconds:
+            status = FeedStatus.SLOW
+        else:
+            status = FeedStatus.LIVE
+        return FeedHealth(
+            status=status,
+            observation_timestamp=now,
+            last_update_timestamp=self._last_row_timestamp,
+            feed_age_seconds=feed_age,
+            worst_instrument_age_seconds=worst_age,
+            worst_instrument_id=worst_id,
+            stale_instrument_count=stale_instruments,
+            tracked_instrument_count=len(self._latest),
+            packets_per_second=len(self._recent_receipts) / self.policy.rate_window_seconds,
+            rows_total=self._rows_total,
+            reconnect_count=max(self._max_connection_epoch - 1, 0),
+            connection_epoch=self._connection_epoch,
+        )
+
+    def due_for_fit(self, now: datetime) -> bool:
+        if self._last_fit_timestamp is None:
+            return True
+        return (now - self._last_fit_timestamp).total_seconds() >= self.fit_interval_seconds
+
+    def _maturities(self, now: datetime) -> dict[date, float]:
+        return {
+            expiry: (expiry_timestamp(expiry) - now).total_seconds() / SECONDS_PER_YEAR
+            for expiry in self.expiries
+        }
+
+    def _grid(self, surface: ESSVISurface, maturities: dict[date, float]) -> SurfaceGrid:
+        reasons: set[str] = set()
+        rows: list[tuple[float | None, ...]] = []
+        unsupported = 0
+        maturity_days: list[float] = []
+        labels: list[str] = []
+        for expiry in self.expiries:
+            maturity = maturities[expiry]
+            maturity_days.append(maturity * 365.0)
+            labels.append(expiry.isoformat())
+            row: list[float | None] = []
+            for log_moneyness in self.log_moneyness_grid:
+                evaluation = surface.evaluate(
+                    log_moneyness=log_moneyness, maturity_years=maturity
+                )
+                if evaluation.status is EvaluationStatus.DATA_INSUFFICIENT:
+                    unsupported += 1
+                    if evaluation.reason:
+                        reasons.add(evaluation.reason)
+                    row.append(None)
+                else:
+                    row.append(evaluation.implied_volatility)
+            rows.append(tuple(row))
+        return SurfaceGrid(
+            log_moneyness=self.log_moneyness_grid,
+            maturity_days=tuple(maturity_days),
+            expiry_labels=tuple(labels),
+            implied_volatility=tuple(rows),
+            unsupported_cells=unsupported,
+            reasons=tuple(sorted(reasons)),
+        )
+
+    def _market_points(
+        self, surface: ESSVISurface, forwards: ForwardSelection, maturities: dict[date, float]
+    ) -> tuple[MarketPoint, ...]:
+        forward_by_expiry = forwards.forward_by_expiry
+        points: list[MarketPoint] = []
+        for instrument_id, row in self._latest.items():
+            expiry = _option_expiry(instrument_id)
+            strike = _option_strike(instrument_id)
+            if expiry is None or strike is None or expiry not in forward_by_expiry:
+                continue
+            maturity = maturities.get(expiry)
+            if maturity is None or maturity <= 0:
+                continue
+            bid = row.best_bid
+            ask = row.best_ask
+            if bid is None or ask is None or bid <= 0 or ask < bid:
+                continue
+            log_moneyness = math.log(strike / forward_by_expiry[expiry])
+            evaluation = surface.evaluate(log_moneyness=log_moneyness, maturity_years=maturity)
+            if evaluation.status is EvaluationStatus.DATA_INSUFFICIENT:
+                continue
+            fitted = evaluation.implied_volatility
+            if fitted is None:
+                continue
+            points.append(
+                MarketPoint(
+                    instrument_id=instrument_id,
+                    expiry=expiry.isoformat(),
+                    log_moneyness=log_moneyness,
+                    maturity_days=maturity * 365.0,
+                    implied_volatility=fitted,
+                )
+            )
+        return tuple(points)
+
+    def _record(self, snapshot: SurfaceSnapshot) -> SurfaceSnapshot:
+        self._history.append(snapshot)
+        if len(self._history) > self.history_limit:
+            del self._history[0 : len(self._history) - self.history_limit]
+        return snapshot
+
+    def fit(self, now: datetime) -> SurfaceSnapshot:
+        """Refit and emit one snapshot. A failure is emitted, never swallowed."""
+
+        started = time.monotonic()
+        self._last_fit_timestamp = now
+        self._sequence += 1
+        health = self.health(now)
+        maturities = self._maturities(now)
+        usable_expiries = [
+            expiry for expiry in self.expiries if maturities[expiry] > 0
+        ]
+        rows = tuple(
+            row
+            for row in self._latest.values()
+            if row.receive_ts.astimezone(IST) <= now
+        )
+        forwards = select_forwards(
+            rows=rows,
+            expiries=usable_expiries,
+            maturity_years_by_expiry=maturities,
+            risk_free_rate=self.risk_free_rate,
+        )
+
+        def failure(reason: str) -> SurfaceSnapshot:
+            return self._record(
+                SurfaceSnapshot(
+                    sequence=self._sequence,
+                    fit_timestamp=now,
+                    fit_duration_seconds=time.monotonic() - started,
+                    fit_ok=False,
+                    failure_reason=reason,
+                    health=health,
+                    forwards=forwards,
+                    frame=None,
+                    grid=None,
+                    market_points=(),
+                    arbitrage=None,
+                    diagnostics={"fit_status": "failed", "reason": reason},
+                    surface_age_seconds=None,
+                    surface_is_stale=True,
+                )
+            )
+
+        if not rows:
+            return failure("no tape rows have arrived yet")
+        if not forwards.choices:
+            return failure("no expiry resolved a forward from a future or from put-call parity")
+        forward_by_expiry = forwards.forward_by_expiry
+        request = SurfaceFitRequest(
+            tape_rows=rows,
+            valuation_timestamp=now,
+            forward_by_expiry=forward_by_expiry,
+            expiry_timestamp_by_expiry={
+                expiry: expiry_timestamp(expiry) for expiry in forward_by_expiry
+            },
+            risk_free_rate=self.risk_free_rate,
+            min_quotes_per_slice=self.min_quotes_per_slice,
+            previous_surface=self._previous_surface,
+        )
+        try:
+            raw = ESSVISurface.fit(request)
+        except (SurfaceCalibrationError, ValueError) as error:
+            return failure(f"{type(error).__name__}: {error}")
+        self._previous_surface = raw
+        smoothed = self.smoother.update(raw)
+        smoothed.assert_ready_for(SurfaceUse.RESEARCH)
+        frame = smoothed.to_frame(
+            run_id=self.run_id,
+            surface_id=self.surface_id,
+            decision_timestamp=now,
+            staleness_threshold_seconds=self.policy.surface_staleness_seconds,
+        )
+        surface_age = float(frame.surface_age_seconds)
+        grid = self._grid(smoothed, maturities)
+        diagnostics: dict[str, object] = {
+            diagnostic.name: diagnostic.value for diagnostic in smoothed.diagnostics
+        }
+        return self._record(
+            SurfaceSnapshot(
+                sequence=self._sequence,
+                fit_timestamp=now,
+                fit_duration_seconds=time.monotonic() - started,
+                fit_ok=True,
+                failure_reason=None,
+                health=health,
+                forwards=forwards,
+                frame=frame,
+                grid=grid,
+                market_points=self._market_points(smoothed, forwards, maturities),
+                arbitrage=smoothed.arb_check().to_dict(),
+                diagnostics=diagnostics,
+                surface_age_seconds=surface_age,
+                surface_is_stale=staleness_measurement(
+                    age_seconds=surface_age,
+                    threshold_seconds=self.policy.surface_staleness_seconds,
+                ),
+            )
+        )
+
+    def latency_trace(self) -> dict[str, list[Any]]:
+        """Session-long traces: an instantaneous readout hides its own tails."""
+
+        return {
+            "timestamps": [snapshot.fit_timestamp.isoformat() for snapshot in self._history],
+            "feed_age_seconds": [
+                snapshot.health.feed_age_seconds for snapshot in self._history
+            ],
+            "worst_instrument_age_seconds": [
+                snapshot.health.worst_instrument_age_seconds for snapshot in self._history
+            ],
+            "surface_age_seconds": [
+                snapshot.surface_age_seconds for snapshot in self._history
+            ],
+            "fit_duration_seconds": [
+                snapshot.fit_duration_seconds for snapshot in self._history
+            ],
+            "packets_per_second": [
+                snapshot.health.packets_per_second for snapshot in self._history
+            ],
+            "fit_ok": [snapshot.fit_ok for snapshot in self._history],
+            "arbitrage_passed": [
+                bool(snapshot.arbitrage["passed"]) if snapshot.arbitrage else None
+                for snapshot in self._history
+            ],
+        }
+
+
+def default_log_moneyness_grid(
+    *, half_width: float = 0.12, points: int = 41
+) -> tuple[float, ...]:
+    """A fixed grid; the axis must not move just because the market did."""
+
+    if half_width <= 0 or points < 2:
+        raise ValueError("half_width must be positive and points at least two")
+    step = (2.0 * half_width) / (points - 1)
+    return tuple(-half_width + step * index for index in range(points))
+
+
+def replay_rows(rows: Iterable[TapeRow], engine: SurfaceEngine) -> Sequence[SurfaceSnapshot]:
+    """Drive the engine off a retained tape in tape time (DAT-05 replay)."""
+
+    produced: list[SurfaceSnapshot] = []
+    for row in rows:
+        engine.ingest(row)
+        stamp = row.receive_ts.astimezone(IST)
+        if engine.due_for_fit(stamp):
+            produced.append(engine.fit(stamp))
+    return produced
