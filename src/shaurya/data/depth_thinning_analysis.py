@@ -423,10 +423,10 @@ def change_rate_by_level(
 def crossing_level(per_level: Sequence[dict[str, Any]], threshold_per_second: float) -> int | None:
     """First level index whose change rate is below `threshold_per_second` and stays below."""
     for entry in per_level:
-        if entry["change_rate_per_second"] < threshold_per_second:
-            index = entry["level"]
+        if float(entry["change_rate_per_second"]) < threshold_per_second:
+            index = int(entry["level"])
             if all(
-                later["change_rate_per_second"] < threshold_per_second
+                float(later["change_rate_per_second"]) < threshold_per_second
                 for later in per_level[index - 1 :]
             ):
                 return index
@@ -605,7 +605,7 @@ def _normal_two_sided(z: float) -> float | None:
     erf = 1.0 - (
         ((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592
     ) * t * pow(2.718281828459045, -x * x)
-    return 1.0 - erf
+    return float(1.0 - erf)
 
 
 # --------------------------------------------------------------------------------------
@@ -622,12 +622,12 @@ LEVEL_INDEX_AT_RUPEES = (1.0, 2.0, 5.0, 10.0, 20.0, 50.0)
 def occupancy_and_span(
     states: Sequence[BookState], *, tick_rupees: float = NSE_FNO_TICK_RUPEES
 ) -> dict[str, Any]:
-    populated = {"bid": [], "ask": []}
-    span = {"bid": [], "ask": []}
+    populated: dict[str, list[float]] = {"bid": [], "ask": []}
+    span: dict[str, list[float]] = {"bid": [], "ask": []}
     total_span: list[float] = []
-    contiguity_ratio = {"bid": [], "ask": []}
-    missing_ticks = {"bid": [], "ask": []}
-    level_index_at = {
+    contiguity_ratio: dict[str, list[float | None]] = {"bid": [], "ask": []}
+    missing_ticks: dict[str, list[float]] = {"bid": [], "ask": []}
+    level_index_at: dict[str, dict[float, list[int | None]]] = {
         side: {distance: [] for distance in LEVEL_INDEX_AT_RUPEES} for side in ("bid", "ask")
     }
     zero_price_levels = {"bid": 0, "ask": 0}
@@ -874,7 +874,7 @@ def activity_by_distance(
     if len(sequence) < 2:
         return {"side": side, "transitions": 0, "note": "insufficient states"}
     span_seconds = (sequence[-1].receive_ts_ns - sequence[0].receive_ts_ns) / 1_000_000_000
-    bands = [
+    bands: list[dict[str, Any]] = [
         {
             "band_rupees": f"[{low:g},{high:g})",
             "price_point_exposure": 0,
@@ -931,8 +931,8 @@ def activity_by_distance(
             if price not in before:
                 bands[_band_index(abs(price - origin))]["insertions"] += 1
     for band in bands:
-        events = band["modifications"] + band["insertions"] + band["deletions"]
-        exposure = band["price_point_exposure"]
+        events = int(band["modifications"]) + int(band["insertions"]) + int(band["deletions"])
+        exposure = int(band["price_point_exposure"])
         band["total_events"] = events
         band["mean_price_points_present"] = (exposure / transitions) if transitions else None
         band["events_per_second"] = (events / span_seconds) if span_seconds else None
@@ -942,7 +942,7 @@ def activity_by_distance(
             else None
         )
         band["modification_rate_per_price_point_per_second"] = (
-            (band["modifications"] / span_seconds) / (exposure / transitions)
+            (int(band["modifications"]) / span_seconds) / (exposure / transitions)
             if span_seconds and exposure and transitions
             else None
         )

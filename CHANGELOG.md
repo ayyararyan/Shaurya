@@ -5,6 +5,53 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### DAT-20 — depth200 activity thinning versus feed loss (H-DAT20)
+
+- Pre-registered `H-DAT20` under `D22` at `bc458d4`, before the analyser existed (`fedb2b2`)
+  and before any capture ran. §1 of the evidence document has not been edited since.
+- Captured two clean 660-second three-tier NIFTY August future runs (Standard/Full + depth20 +
+  depth200 simultaneously, one process writing one tape so every receive timestamp shares one
+  clock): 11,770 and 11,802 rows, zero reconnects, zero heartbeat timeouts, 65/65 heartbeats per
+  channel. Held the four-socket budget exactly against the concurrent `ANL-03` dashboard, with
+  sequential bring-up recorded per run.
+- **Confirmed the central claim: depth200's skips are empty.** Holding span duration fixed at
+  approximately 400 ms, the rate at which a witness tier shows a state depth200 never published is
+  statistically indistinguishable between spans depth200 published nothing inside and spans it did
+  — 10 of 10 comparisons non-significant across both runs, smallest p = 0.067. The pre-registered
+  skip-versus-control contrast appeared to fire on the deep ladder but was entirely a window-length
+  confound (400 ms skip windows against 200 ms controls) and vanishes under duration matching.
+- Confirmed top-of-book consistency: level-1 price agreement 98.00%/99.54% against depth20 and
+  96.46%/99.00% against Full under the phase-tolerant rule, clearing the pre-registered 95% bar in
+  both runs. Median missing price points is zero in every containment direction, and all three
+  tiers agree on the spread distribution to within 0.04 rupees at the mean.
+- Confirmed activity thinning only after correcting the measurement: the pre-registered
+  position-keyed change rate *rises* with level index (Spearman +0.41 to +0.91) because one
+  insertion cascades onto every deeper position, while the price-keyed rate keyed to the same-side
+  best quote decays as predicted (Spearman −0.64 to −0.93, both runs, both sides). Activity per
+  price point peaks a few rupees behind the touch rather than at it.
+- Produced the direct `DAT-09` width-versus-depth input: 86.6–99.0% of all book events fall within
+  Rs 20 of the same-side best quote, which is a median of 74–90 occupied levels. Beyond that a price
+  point runs at 0.05–0.08/s on the bid and 0.002–0.003/s on the ask against 1.2–2.8/s near the
+  touch. depth20's 20 levels reach only Rs 7.4–10.1 from mid and capture 57–84%.
+- Settled the occupancy question by measurement: all 200 levels are always populated with zero
+  padding, and the median span is Rs 136.0–136.8 from deepest bid to deepest ask — about 3.4x the
+  ±Rs 20 working assumption and 6.8x the 200-contiguous-tick arithmetic — because only 13.3–18.4%
+  of the 0.05-rupee tick grid inside the span is occupied.
+- Fixed a real measurement bug found mid-analysis and disclosed it: the Full packet encodes its
+  five-level prices as IEEE-754 binary32 while both depth channels use binary64, so exact float
+  equality initially reported 0 of 791 price agreement for reasons unrelated to book content.
+  Prices are now quantised to two decimal places, exact for the 0.05-rupee tick, with regression
+  tests in both directions.
+- Added `DhanStreamConfig.channel_start_stagger_seconds` for sequential channel socket bring-up
+  under a hard socket budget; the default of 0.0 preserves the previous simultaneous behaviour.
+- `F1`/`F2` are **not discriminated**: no channel in this tape carries an exchange timestamp or
+  source sequence, so snapshot-instant alignment is unidentified and the residual 1–6% (bid) /
+  6–18% (ask) cross-tier level difference cannot be attributed to phase or to content. The upstream
+  publication mechanism remains **unidentified**, unchanged from `DAT-17`.
+- **`DAT-17`'s one-instrument-per-socket recurring depth200 ceiling is unaffected and stands
+  unchanged.** DAT-20 tested a single subscribed instrument on a dedicated socket and found no
+  evidence bearing on the ceiling.
+
 ### Session planning — 2026-08-19 afternoon agenda opened
 
 - Opened `DAT-18` (consolidated multi-tier feed interpretation), `DAT-19` (storage and

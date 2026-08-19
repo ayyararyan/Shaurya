@@ -101,19 +101,17 @@ def _cadence(states: list[Any]) -> dict[str, Any]:
 
 
 def _band_shares(per_level: list[dict[str, Any]]) -> dict[str, Any]:
-    total = sum(entry["changed_publications"] for entry in per_level)
+    total = sum(int(entry["changed_publications"]) for entry in per_level)
     if total == 0:
         return {"note": "no changes observed"}
 
     def share(low: int, high: int) -> float:
-        return (
-            sum(
-                entry["changed_publications"]
-                for entry in per_level
-                if low <= entry["level"] <= high
-            )
-            / total
+        matched = sum(
+            int(entry["changed_publications"])
+            for entry in per_level
+            if low <= int(entry["level"]) <= high
         )
+        return matched / total
 
     return {
         "total_level_change_events": total,
