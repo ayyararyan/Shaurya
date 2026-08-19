@@ -6,7 +6,9 @@ from typing import Any
 import numpy as np
 import pytest
 
+from scripts.ofi_horserace import _ablation_csv, _gate_csv, _intensity_csv, _support_csv
 from shaurya.data.depth_thinning_analysis import DEPTH20, DEPTH200, BookState, parse_receive_ts_ns
+from shaurya.data.trade_direction import TRADE_ALIGNMENT_VERSION, TRADE_CLASSIFIER_VERSION
 from shaurya.signals.deep_book_normal_activity import SplitIndex
 from shaurya.signals.ofi_horserace import (
     BANDS,
@@ -77,8 +79,8 @@ def _trade_row(index: int, side: str, *, coalesced: bool = False) -> dict[str, A
         "cumulative_volume_increment": 10,
         "last_quantity": 4,
         "trade_side": side,
-        "trade_classifier_version": "quote-mid-tick-v1",
-        "trade_alignment_version": "latest-complete-depth-before-print-v1",
+        "trade_classifier_version": TRADE_CLASSIFIER_VERSION,
+        "trade_alignment_version": TRADE_ALIGNMENT_VERSION,
         "trade_coalesced": coalesced,
         "trade_classification_degraded": False,
     }
@@ -103,6 +105,34 @@ def test_absent_trade_schema_is_unidentified_not_fabricated_zero() -> None:
     assert not series.identified
     assert series.schema_packets == 0
     assert series.qualified_packets == 0
+
+
+def test_trade_series_requires_exact_classifier_and_alignment_versions() -> None:
+    rows = [_trade_row(index, "buy") for index in range(MINIMUM_TRADE_PACKETS)]
+    rows.extend(
+        [
+            {**_trade_row(41, "buy"), "trade_classifier_version": "wrong"},
+            {
+                key: value
+                for key, value in _trade_row(42, "buy").items()
+                if key != "trade_classifier_version"
+            },
+            {**_trade_row(43, "buy"), "trade_alignment_version": "wrong"},
+            {
+                key: value
+                for key, value in _trade_row(44, "buy").items()
+                if key != "trade_alignment_version"
+            },
+        ]
+    )
+    series = build_trade_series(rows)
+    assert series.identified
+    assert series.schema_packets == MINIMUM_TRADE_PACKETS + 4
+    assert series.qualified_packets == MINIMUM_TRADE_PACKETS
+    assert series.excluded_wrong_classifier_version == 1
+    assert series.excluded_missing_classifier_version == 1
+    assert series.excluded_wrong_alignment_version == 1
+    assert series.excluded_missing_alignment_version == 1
 
 
 def test_construction_uses_canonical_cks_and_causal_depth_adjustment(
@@ -142,7 +172,28 @@ def test_construction_uses_canonical_cks_and_causal_depth_adjustment(
         adjusted = final.features[adjusted_band_feature(0.5, lower, upper)]
         assert abs(adjusted) <= abs(flow) or flow == 0
     assert final.features[trade_feature(10.0)] == 0.0  # no print in the final 10 seconds
+    assert normalised_trade_feature(10.0) not in final.features
     assert_no_lookahead(observations)
+
+
+def test_empty_depth_band_is_missing_not_divided_by_floor() -> None:
+    depth200 = [
+        replace(_state(index), bids=_state(index).bids[:100], asks=_state(index).asks[:100])
+        for index in range(100)
+    ]
+    depth20 = [_state(index, channel=DEPTH20) for index in range(170)]
+    observations, _ = build_horserace_observations(
+        depth200_states=depth200,
+        depth20_states=depth20,
+        rows=[_trade_row(index, "buy") for index in range(MINIMUM_TRADE_PACKETS + 5)],
+        tape_index=0,
+        run_id="empty-band",
+    )
+    assert observations
+    for observation in observations:
+        for window in OFI_WINDOWS_SECONDS:
+            assert pk_band_feature(window, 101, 200) in observation.features
+            assert adjusted_band_feature(window, 101, 200) not in observation.features
 
 
 def test_no_lookahead_guard_rejects_open_boundary_or_future_window() -> None:
@@ -262,6 +313,44 @@ def test_evaluation_emits_complete_common_sample_and_training_standardisation() 
     assert all(row["support_by_tape"]["0"]["train_n"] == 40 for row in rows)
     assert all(row["training_standardisation"]["source"] == "training_only" for row in rows)
     assert all(set(row["per_tape"]) == {"0", "1"} for row in rows)
+    for row in rows:
+        if row["model"] in {"M4", "M5"}:
+            diagnostics = row["band_contribution_diagnostics"]
+            assert len(diagnostics["bands"]) == len(BANDS)
+            assert "held-out contribution" in diagnostics["definition"]
+            assert all(band["test_n"] == 30 for band in diagnostics["bands"])
+
+
+def test_empty_adjusted_band_enforces_primary_common_complete_case() -> None:
+    observations = [_synthetic_observation(index) for index in range(120)]
+    feature = adjusted_band_feature(1.0, *BANDS[-1])
+    for index in range(0, len(observations), 4):
+        features = dict(observations[index].features)
+        del features[feature]
+        observations[index] = replace(observations[index], features=features)
+    split = SplitIndex(
+        train=tuple(range(80)),
+        embargoed=tuple(range(80, 90)),
+        test=tuple(range(90, 120)),
+        embargo_seconds=120.0,
+        boundaries=(),
+    )
+    rows = evaluate_cells(
+        observations,
+        split,
+        horizons=(1.0,),
+        source="future",
+        trade_identified=True,
+        replicates=3,
+        seed=11,
+    )
+    one_second = [row for row in rows if row["h1_seconds"] == 1.0]
+    assert {row["train_n"] for row in one_second} == {60}
+    assert {row["test_n"] for row in one_second} == {23}
+    baseline = next(row for row in one_second if row["model"] == "M0")
+    adjusted = next(row for row in one_second if row["model"] == "M5")
+    assert baseline["support_loss_to_common_sample"]["total_n"] == 30
+    assert adjusted["support_loss_to_common_sample"]["total_n"] == 0
 
 
 def test_normalised_subarms_and_combined_ablations_are_complete() -> None:
@@ -274,7 +363,12 @@ def test_normalised_subarms_and_combined_ablations_are_complete() -> None:
         boundaries=(),
     )
     subarms = evaluate_normalised_subarms(
-        observations, split, source="future", trade_identified=True
+        observations,
+        split,
+        source="future",
+        trade_identified=True,
+        replicates=3,
+        seed=17,
     )
     assert len(subarms) == 2 * len(OFI_WINDOWS_SECONDS) * len(RETURN_HORIZONS_SECONDS)
     assert {row["subarm"] for row in subarms} == {
@@ -284,6 +378,80 @@ def test_normalised_subarms_and_combined_ablations_are_complete() -> None:
     ablations = evaluate_combined_ablations(observations, split, trade_identified=True)
     assert len(ablations) == 5 * len(OFI_WINDOWS_SECONDS) * len(RETURN_HORIZONS_SECONDS)
     assert all(row["status"] == "estimated" for row in ablations)
+
+
+def test_normalised_trade_subarm_uses_only_positive_denominator_support() -> None:
+    observations = [_synthetic_observation(index) for index in range(120)]
+    feature = normalised_trade_feature(1.0)
+    for index in range(0, len(observations), 4):
+        features = dict(observations[index].features)
+        del features[feature]
+        observations[index] = replace(observations[index], features=features)
+    split = SplitIndex(
+        train=tuple(range(80)),
+        embargoed=tuple(range(80, 90)),
+        test=tuple(range(90, 120)),
+        embargo_seconds=120.0,
+        boundaries=(),
+    )
+    rows = evaluate_normalised_subarms(
+        observations,
+        split,
+        source="future",
+        trade_identified=True,
+        replicates=3,
+        seed=23,
+    )
+    row = next(
+        item
+        for item in rows
+        if item["subarm"] == "M2b_normalised_trade"
+        and item["h1_seconds"] == 1.0
+        and item["h2_seconds"] == 1.0
+    )
+    assert row["status"] == "estimated"
+    assert row["total_n"] == 90
+    assert row["train_n"] == 60
+    assert row["test_n"] == 23
+
+
+def test_compact_csv_artifacts_are_complete_and_deterministic() -> None:
+    ablations = [
+        {
+            "h1_seconds": 1.0,
+            "h2_seconds": 2.0,
+            "excluded_family": "M1_static_queue",
+            "status": "estimated",
+            "family_incremental_oos_r2": 0.01,
+        }
+    ]
+    intensities = [{"h1_seconds": 1.0, "feature": "x", "n": 3, "missing_n": 1, "mean": 0.5}]
+    support = [
+        {
+            "source": "future",
+            "category": "primary",
+            "label": "M0",
+            "h1_seconds": 1.0,
+            "h2_seconds": 2.0,
+            "status": "estimated",
+            "common_test_n": 30,
+        }
+    ]
+    gate = resolve_30_second_gate(
+        [_gate_row("future", model, 0.2) for model in MODEL_ORDER[1:6]],
+        [_gate_row("past", model, 0.1) for model in MODEL_ORDER[1:6]],
+    )
+    renderers = (
+        (_ablation_csv, ablations, "excluded_family"),
+        (_intensity_csv, intensities, "missing_n"),
+        (_support_csv, support, "common_test_n"),
+        (_gate_csv, gate, "all_conditions"),
+    )
+    for renderer, payload, required_header in renderers:
+        first = renderer(payload)  # type: ignore[arg-type]
+        assert first == renderer(payload)  # type: ignore[arg-type]
+        assert required_header in first.splitlines()[0]
+        assert len(first.splitlines()) >= 2
 
 
 def _gate_row(

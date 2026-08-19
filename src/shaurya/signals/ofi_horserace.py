@@ -16,6 +16,7 @@ from typing import Any, Literal
 import numpy as np
 
 from shaurya.data.depth_thinning_analysis import BookState, parse_receive_ts_ns
+from shaurya.data.trade_direction import TRADE_ALIGNMENT_VERSION, TRADE_CLASSIFIER_VERSION
 from shaurya.signals.cks_l1_ofi import cks_l1_transition
 from shaurya.signals.deep_book_normal_activity import (
     BLOCK_BOOTSTRAP_REPLICATES,
@@ -85,6 +86,10 @@ class TradeSeries:
     absolute_prefix: tuple[float, ...]
     schema_packets: int
     qualified_packets: int
+    excluded_missing_classifier_version: int
+    excluded_wrong_classifier_version: int
+    excluded_missing_alignment_version: int
+    excluded_wrong_alignment_version: int
     excluded_coalesced: int
     excluded_degraded_or_unclassified: int
 
@@ -106,16 +111,43 @@ def build_trade_series(rows: Sequence[Mapping[str, Any]]) -> TradeSeries:
 
     values: list[tuple[int, float, float]] = []
     schema_packets = 0
+    missing_classifier = 0
+    wrong_classifier = 0
+    missing_alignment = 0
+    wrong_alignment = 0
     coalesced = 0
     degraded = 0
     for row in rows:
         if row.get("event_type") != "full" or row.get("cumulative_volume_increment") is None:
             continue
-        if row.get("trade_classifier_version") is None:
+        if not any(
+            key in row
+            for key in (
+                "trade_side",
+                "trade_classifier_version",
+                "trade_alignment_version",
+                "trade_classification_degraded",
+                "trade_coalesced",
+            )
+        ):
             continue
         schema_packets += 1
         increment = float(row["cumulative_volume_increment"])
         if increment <= 0:
+            continue
+        classifier_version = row.get("trade_classifier_version")
+        if classifier_version is None:
+            missing_classifier += 1
+            continue
+        if classifier_version != TRADE_CLASSIFIER_VERSION:
+            wrong_classifier += 1
+            continue
+        alignment_version = row.get("trade_alignment_version")
+        if alignment_version is None:
+            missing_alignment += 1
+            continue
+        if alignment_version != TRADE_ALIGNMENT_VERSION:
+            wrong_alignment += 1
             continue
         if row.get("trade_coalesced"):
             coalesced += 1
@@ -149,6 +181,10 @@ def build_trade_series(rows: Sequence[Mapping[str, Any]]) -> TradeSeries:
         absolute_prefix=tuple(absolute_prefix),
         schema_packets=schema_packets,
         qualified_packets=len(values),
+        excluded_missing_classifier_version=missing_classifier,
+        excluded_wrong_classifier_version=wrong_classifier,
+        excluded_missing_alignment_version=missing_alignment,
+        excluded_wrong_alignment_version=wrong_alignment,
         excluded_coalesced=coalesced,
         excluded_degraded_or_unclassified=degraded,
     )
@@ -166,13 +202,11 @@ class HorseRaceObservation:
     window_start_ts_ns: Mapping[float, int]
 
 
-def _band_depths(state: BookState) -> dict[tuple[int, int], float]:
-    result: dict[tuple[int, int], float] = {}
+def _band_depths(state: BookState) -> dict[tuple[int, int], float | None]:
+    result: dict[tuple[int, int], float | None] = {}
     for lower, upper in BANDS:
-        result[(lower, upper)] = float(
-            sum(level[1] for level in state.bids[lower - 1 : upper])
-            + sum(level[1] for level in state.asks[lower - 1 : upper])
-        )
+        levels = (*state.bids[lower - 1 : upper], *state.asks[lower - 1 : upper])
+        result[(lower, upper)] = float(sum(level[1] for level in levels)) if levels else None
     return result
 
 
@@ -197,6 +231,10 @@ def build_horserace_observations(
     failures["trade_support"] = {
         "schema_packets": trades.schema_packets,
         "qualified_packets": trades.qualified_packets,
+        "excluded_missing_classifier_version": trades.excluded_missing_classifier_version,
+        "excluded_wrong_classifier_version": trades.excluded_wrong_classifier_version,
+        "excluded_missing_alignment_version": trades.excluded_missing_alignment_version,
+        "excluded_wrong_alignment_version": trades.excluded_wrong_alignment_version,
         "excluded_coalesced": trades.excluded_coalesced,
         "excluded_degraded_or_unclassified": trades.excluded_degraded_or_unclassified,
         "identified": trades.identified,
@@ -217,6 +255,7 @@ def build_horserace_observations(
     l1_depth_prefix = [0.0]
     pk_prefix = {band: [0.0] for band in BANDS}
     depth_prefix = {band: [0.0] for band in BANDS}
+    band_presence_prefix = {band: [0] for band in BANDS}
     count_prefix = [0]
     for transition, pk_transition, state in zip(cks, pk, depth200_states[1:], strict=True):
         valid = transition.invalid_reason is None and pk_transition.invalid_reason is None
@@ -234,7 +273,13 @@ def build_horserace_observations(
             cumulative = pk_transition.cumulative_by_depth[upper] if valid else 0.0
             marginal = cumulative - previous_depth_value
             pk_prefix[band].append(pk_prefix[band][-1] + marginal)
-            depth_prefix[band].append(depth_prefix[band][-1] + (depths[band] if valid else 0.0))
+            depth = depths[band]
+            depth_prefix[band].append(
+                depth_prefix[band][-1] + (depth if valid and depth is not None else 0.0)
+            )
+            band_presence_prefix[band].append(
+                band_presence_prefix[band][-1] + int(valid and depth is not None)
+            )
             previous_depth_value = cumulative
             previous_cutoff = upper
         del previous_cutoff
@@ -284,15 +329,18 @@ def build_horserace_observations(
             features[cks_pressure_feature(window)] = cks_value / max(mean_l1_half_depth, 1.0)
             signed_trade, absolute_trade = trades.window(start, state.receive_ts_ns)
             features[trade_feature(window)] = signed_trade
-            features[normalised_trade_feature(window)] = (
-                signed_trade / absolute_trade if absolute_trade > 0 else 0.0
-            )
+            if absolute_trade > 0:
+                features[normalised_trade_feature(window)] = signed_trade / absolute_trade
             for band in BANDS:
                 lower, upper = band
                 flow = pk_prefix[band][right] - pk_prefix[band][left]
-                mean_depth = (depth_prefix[band][right] - depth_prefix[band][left]) / covered
                 features[pk_band_feature(window, lower, upper)] = flow
-                features[adjusted_band_feature(window, lower, upper)] = flow / max(mean_depth, 1.0)
+                band_support = band_presence_prefix[band][right] - band_presence_prefix[band][left]
+                if band_support == covered:
+                    mean_depth = (depth_prefix[band][right] - depth_prefix[band][left]) / covered
+                    features[adjusted_band_feature(window, lower, upper)] = flow / max(
+                        mean_depth, 1.0
+                    )
             window_starts[window] = stamps[left]
         if not complete:
             failures["incomplete_history"] += 1
@@ -415,11 +463,20 @@ def _design(
     ).reshape(len(positions), len(names))
 
 
+def _has_features(observation: HorseRaceObservation, names: Sequence[str]) -> bool:
+    return all(
+        name in observation.features and isfinite(float(observation.features[name]))
+        for name in names
+    )
+
+
 def _positions(
     observations: Sequence[HorseRaceObservation],
     candidates: Sequence[int],
     horizon: float,
     source: Literal["future", "past"],
+    *,
+    names: Sequence[str] = (),
 ) -> tuple[int, ...]:
     return tuple(
         position
@@ -430,6 +487,7 @@ def _positions(
             if source == "future"
             else observations[position].past_ticks
         )
+        and _has_features(observations[position], names)
     )
 
 
@@ -650,6 +708,94 @@ def _direction_by_tape(
     return result
 
 
+def _band_contribution_diagnostics(
+    observations: Sequence[HorseRaceObservation],
+    train: Sequence[int],
+    test: Sequence[int],
+    *,
+    names: Sequence[str],
+    model: Literal["M4", "M5"],
+    horizon: float,
+    source: Literal["future", "past"],
+    score: FittedScore,
+) -> dict[str, Any]:
+    """Decompose a fitted Ridge family into auditable per-band held-out contributions."""
+
+    prefix = "pk_ofi_" if model == "M4" else "depth_adjusted_pk_ofi_"
+    feature_indices = [index for index, name in enumerate(names) if name.startswith(prefix)]
+    test_design = _design(observations, test, names)
+    standardised_test = (test_design - score.fit.centre) / score.fit.scale
+    tape_fits: dict[int, Any] = {}
+    for tape in sorted({observations[position].tape_index for position in train}):
+        positions = [position for position in train if observations[position].tape_index == tape]
+        if len(positions) < len(names) + 3:
+            continue
+        target = _target(observations, positions, horizon, source)
+        tape_fits[tape] = fit_ridge(
+            _design(observations, positions, names),
+            target - target.mean(),
+            feature_names=names,
+            penalty=float(score.payload["selected_alpha"]),
+        )
+
+    rows: list[dict[str, Any]] = []
+    for feature_index, band in zip(feature_indices, BANDS, strict=True):
+        feature = names[feature_index]
+        contribution = standardised_test[:, feature_index] * score.fit.coefficients[feature_index]
+        per_tape: dict[str, Any] = {}
+        tape_coefficients: list[float] = []
+        for tape in sorted({observations[position].tape_index for position in test}):
+            selection = np.asarray(
+                [observations[position].tape_index == tape for position in test], dtype=bool
+            )
+            tape_fit = tape_fits.get(tape)
+            coefficient = None if tape_fit is None else float(tape_fit.coefficients[feature_index])
+            if coefficient is not None:
+                tape_coefficients.append(coefficient)
+            values = contribution[selection]
+            per_tape[str(tape)] = {
+                "test_n": int(selection.sum()),
+                "coefficient_ticks_per_tape_training_sd": coefficient,
+                "mean_test_contribution_ticks": float(values.mean()) if len(values) else None,
+                "mean_absolute_test_contribution_ticks": (
+                    float(np.mean(np.abs(values))) if len(values) else None
+                ),
+            }
+        signs = [int(value > 0) - int(value < 0) for value in tape_coefficients]
+        rows.append(
+            {
+                "band": [band[0], band[1]],
+                "feature": feature,
+                "train_n": len(train),
+                "test_n": len(test),
+                "coefficient_ticks_per_pooled_training_sd": float(
+                    score.fit.coefficients[feature_index]
+                ),
+                "raw_coefficient_ticks_per_unit": float(
+                    score.fit.coefficients[feature_index] / score.fit.scale[feature_index]
+                ),
+                "mean_test_contribution_ticks": float(contribution.mean()),
+                "mean_absolute_test_contribution_ticks": float(np.mean(np.abs(contribution))),
+                "rms_test_contribution_ticks": sqrt(float(np.mean(contribution**2))),
+                "coefficient_sign_stable_across_tapes": (
+                    len(signs) == len(per_tape)
+                    and len(signs) >= 2
+                    and len(set(signs)) == 1
+                    and signs[0] != 0
+                ),
+                "per_tape": per_tape,
+            }
+        )
+    return {
+        "definition": (
+            "held-out contribution = pooled Ridge coefficient (ticks per pooled training SD) "
+            "times the feature standardised by pooled training centre/scale; per-tape "
+            "coefficient stability refits the same selected alpha on each tape's training rows"
+        ),
+        "bands": rows,
+    }
+
+
 def _inference(
     baseline: FittedScore,
     score: FittedScore,
@@ -678,6 +824,7 @@ def _support_by_tape(
     *,
     horizon: float,
     source: Literal["future", "past"],
+    names: Sequence[str] = (),
 ) -> dict[str, dict[str, int]]:
     result: dict[str, dict[str, int]] = {}
     for tape in sorted({observation.tape_index for observation in observations}):
@@ -691,6 +838,7 @@ def _support_by_tape(
                     if source == "future"
                     else observations[position].past_ticks
                 )
+                and _has_features(observations[position], names)
                 for position in candidates
             )
 
@@ -699,6 +847,7 @@ def _support_by_tape(
                 observation.tape_index == tape
                 and horizon
                 in (observation.future_ticks if source == "future" else observation.past_ticks)
+                and _has_features(observation, names)
                 for observation in observations
             ),
             "train_n": count(split.train),
@@ -741,17 +890,43 @@ def evaluate_cells(
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for horizon in horizons:
-        train = _positions(observations, split.train, horizon, source)
-        test = _positions(observations, split.test, horizon, source)
-        embargoed = _positions(observations, split.embargoed, horizon, source)
-        total = _positions(observations, tuple(range(len(observations))), horizon, source)
-        support_by_tape = _support_by_tape(observations, split, horizon=horizon, source=source)
-        if min(len(train), len(test)) < MINIMUM_FIT_OBSERVATIONS:
-            raise ValueError(f"insufficient common support at horizon {horizon}")
         for window in OFI_WINDOWS_SECONDS:
+            feature_sets = {
+                model: model_features(model, window, trade_identified=trade_identified)
+                for model in MODEL_ORDER
+            }
+            common_names = tuple(
+                dict.fromkeys(
+                    name
+                    for model in MODEL_ORDER
+                    for name in feature_sets[model]
+                    if feature_sets[model]
+                )
+            )
+            train = _positions(observations, split.train, horizon, source, names=common_names)
+            test = _positions(observations, split.test, horizon, source, names=common_names)
+            embargoed = _positions(
+                observations, split.embargoed, horizon, source, names=common_names
+            )
+            total = _positions(
+                observations,
+                tuple(range(len(observations))),
+                horizon,
+                source,
+                names=common_names,
+            )
+            support_by_tape = _support_by_tape(
+                observations,
+                split,
+                horizon=horizon,
+                source=source,
+                names=common_names,
+            )
+            if min(len(train), len(test)) < MINIMUM_FIT_OBSERVATIONS:
+                raise ValueError(f"insufficient common support at h1={window}, h2={horizon}")
             scores: dict[str, FittedScore] = {}
             for model in MODEL_ORDER:
-                names = model_features(model, window, trade_identified=trade_identified)
+                names = feature_sets[model]
                 if not names:
                     rows.append(
                         {
@@ -768,6 +943,31 @@ def evaluate_cells(
                         }
                     )
                     continue
+                model_total = _positions(
+                    observations,
+                    tuple(range(len(observations))),
+                    horizon,
+                    source,
+                    names=names,
+                )
+                model_train = _positions(observations, split.train, horizon, source, names=names)
+                model_embargoed = _positions(
+                    observations, split.embargoed, horizon, source, names=names
+                )
+                model_test = _positions(observations, split.test, horizon, source, names=names)
+                model_specific_support = {
+                    "total_n": len(model_total),
+                    "train_n": len(model_train),
+                    "embargoed_n": len(model_embargoed),
+                    "test_n": len(model_test),
+                    "support_by_tape": _support_by_tape(
+                        observations,
+                        split,
+                        horizon=horizon,
+                        source=source,
+                        names=names,
+                    ),
+                }
                 score = _fit_score(
                     observations,
                     train,
@@ -792,6 +992,16 @@ def evaluate_cells(
                         "total_n": len(total),
                         "embargoed_n": len(embargoed),
                         "support_by_tape": support_by_tape,
+                        "common_sample_feature_count": len(common_names),
+                        "model_specific_support_before_common_intersection": (
+                            model_specific_support
+                        ),
+                        "support_loss_to_common_sample": {
+                            "total_n": len(model_total) - len(total),
+                            "train_n": len(model_train) - len(train),
+                            "embargoed_n": len(model_embargoed) - len(embargoed),
+                            "test_n": len(model_test) - len(test),
+                        },
                         "incremental_oos_r2_over_m0": _difference(current_r2, baseline_r2),
                         "incremental_oos_r2_over_prior_model": (
                             _difference(current_r2, scores["M4"].payload["oos_r2_training_mean"])
@@ -824,6 +1034,17 @@ def evaluate_cells(
                         "collinearity": _collinearity(observations, train, names[2:]),
                     }
                 )
+                if model in {"M4", "M5"}:
+                    payload["band_contribution_diagnostics"] = _band_contribution_diagnostics(
+                        observations,
+                        train,
+                        test,
+                        names=names,
+                        model="M4" if model == "M4" else "M5",
+                        horizon=horizon,
+                        source=source,
+                        score=score,
+                    )
                 if model != "M0":
                     payload["error_improvement_inference_over_m0"] = _inference(
                         baseline,
@@ -846,18 +1067,29 @@ def evaluate_same_window(
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for window in OFI_WINDOWS_SECONDS:
+        feature_sets = {
+            model: model_features(model, window, trade_identified=trade_identified)
+            for model in MODEL_ORDER
+        }
+        common_names = tuple(
+            dict.fromkeys(
+                name for model in MODEL_ORDER for name in feature_sets[model] if feature_sets[model]
+            )
+        )
         train = tuple(
             position
             for position in split.train
             if window in observations[position].same_window_ticks
+            and _has_features(observations[position], common_names)
         )
         test = tuple(
             position
             for position in split.test
             if window in observations[position].same_window_ticks
+            and _has_features(observations[position], common_names)
         )
         for model in MODEL_ORDER:
-            names = model_features(model, window, trade_identified=trade_identified)
+            names = feature_sets[model]
             if not names:
                 rows.append({"h1_seconds": window, "model": model, "status": "blocked"})
                 continue
@@ -892,23 +1124,14 @@ def evaluate_normalised_subarms(
     *,
     source: Literal["future", "past"],
     trade_identified: bool,
+    replicates: int,
+    seed: int,
 ) -> list[dict[str, Any]]:
     """Evaluate the two frozen normalised robustness sub-arms outside the primary ranking."""
 
     rows: list[dict[str, Any]] = []
     baseline_names = ("log1p_l1_depth", "spread_ticks")
     for horizon in RETURN_HORIZONS_SECONDS:
-        train = _positions(observations, split.train, horizon, source)
-        test = _positions(observations, split.test, horizon, source)
-        baseline = _fit_score(
-            observations,
-            train,
-            test,
-            model="M0",
-            names=baseline_names,
-            horizon=horizon,
-            source=source,
-        )
         for window in OFI_WINDOWS_SECONDS:
             subarms = (
                 ("M2b_normalised_trade", normalised_trade_feature(window), trade_identified),
@@ -926,12 +1149,51 @@ def evaluate_normalised_subarms(
                         }
                     )
                     continue
+                names = (*baseline_names, feature)
+                train = _positions(observations, split.train, horizon, source, names=names)
+                test = _positions(observations, split.test, horizon, source, names=names)
+                embargoed = _positions(observations, split.embargoed, horizon, source, names=names)
+                total = _positions(
+                    observations,
+                    tuple(range(len(observations))),
+                    horizon,
+                    source,
+                    names=names,
+                )
+                support_by_tape = _support_by_tape(
+                    observations, split, horizon=horizon, source=source, names=names
+                )
+                if min(len(train), len(test)) < MINIMUM_FIT_OBSERVATIONS:
+                    rows.append(
+                        {
+                            "source": source,
+                            "h1_seconds": window,
+                            "h2_seconds": horizon,
+                            "subarm": label,
+                            "status": "data_insufficient_feature_support",
+                            "total_n": len(total),
+                            "train_n": len(train),
+                            "embargoed_n": len(embargoed),
+                            "test_n": len(test),
+                            "support_by_tape": support_by_tape,
+                        }
+                    )
+                    continue
+                baseline = _fit_score(
+                    observations,
+                    train,
+                    test,
+                    model="M0",
+                    names=baseline_names,
+                    horizon=horizon,
+                    source=source,
+                )
                 score = _fit_score(
                     observations,
                     train,
                     test,
                     model="M3",
-                    names=(*baseline_names, feature),
+                    names=names,
                     horizon=horizon,
                     source=source,
                 )
@@ -942,8 +1204,13 @@ def evaluate_normalised_subarms(
                         "h2_seconds": horizon,
                         "subarm": label,
                         "status": "estimated",
+                        "total_n": len(total),
                         "train_n": len(train),
+                        "embargoed_n": len(embargoed),
                         "test_n": len(test),
+                        "support_by_tape": support_by_tape,
+                        "in_sample_r2": score.payload["in_sample_r2"],
+                        "in_sample_adjusted_r2": score.payload["in_sample_adjusted_r2"],
                         "oos_r2_training_mean": score.payload["oos_r2_training_mean"],
                         "incremental_oos_r2_over_m0": _difference(
                             score.payload["oos_r2_training_mean"],
@@ -955,6 +1222,10 @@ def evaluate_normalised_subarms(
                         "raw_coefficient_ticks_per_unit": score.payload[
                             "raw_coefficients_ticks_per_unit"
                         ][feature],
+                        "rmse_ticks": score.payload["rmse_ticks"],
+                        "mae_ticks": score.payload["mae_ticks"],
+                        "selected_alpha": score.payload["selected_alpha"],
+                        "training_standardisation": score.payload["training_standardisation"],
                         "per_tape": _per_tape_scores(
                             observations,
                             test,
@@ -966,11 +1237,26 @@ def evaluate_normalised_subarms(
                         "direction_by_tape": _direction_by_tape(
                             observations,
                             train,
-                            names=(*baseline_names, feature),
+                            names=names,
                             model=label,
                             horizon=horizon,
                             source=source,
                             alpha=0.0,
+                        ),
+                        "error_improvement_inference_over_m0": _inference(
+                            baseline,
+                            score,
+                            observations,
+                            test,
+                            horizon=horizon,
+                            seed=(
+                                seed
+                                + int(horizon * 1000)
+                                + int(window * 100)
+                                + (20_000 if label.startswith("M2b") else 30_000)
+                                + (0 if source == "future" else 1_000_000)
+                            ),
+                            replicates=replicates,
                         ),
                     }
                 )
@@ -987,10 +1273,10 @@ def evaluate_combined_ablations(
 
     rows: list[dict[str, Any]] = []
     for horizon in RETURN_HORIZONS_SECONDS:
-        train = _positions(observations, split.train, horizon, "future")
-        test = _positions(observations, split.test, horizon, "future")
         for window in OFI_WINDOWS_SECONDS:
             full_names = model_features("M6", window, trade_identified=trade_identified)
+            train = _positions(observations, split.train, horizon, "future", names=full_names)
+            test = _positions(observations, split.test, horizon, "future", names=full_names)
             full = _fit_score(
                 observations,
                 train,
@@ -1060,19 +1346,68 @@ def feature_intensity_table(
         names.extend(pk_band_feature(window, *band) for band in BANDS)
         names.extend(adjusted_band_feature(window, *band) for band in BANDS)
         for name in names:
-            values = np.asarray([observation.features[name] for observation in observations])
+            values = np.asarray(
+                [
+                    observation.features[name]
+                    for observation in observations
+                    if name in observation.features
+                ]
+            )
             rows.append(
                 {
                     "h1_seconds": window,
                     "feature": name,
                     "n": len(values),
-                    "mean": float(values.mean()),
-                    "standard_deviation": float(values.std()),
-                    "mean_absolute": float(np.mean(np.abs(values))),
-                    "zero_share": float(np.mean(values == 0.0)),
+                    "missing_n": len(observations) - len(values),
+                    "mean": float(values.mean()) if len(values) else None,
+                    "standard_deviation": float(values.std()) if len(values) else None,
+                    "mean_absolute": float(np.mean(np.abs(values))) if len(values) else None,
+                    "zero_share": float(np.mean(values == 0.0)) if len(values) else None,
                 }
             )
     return rows
+
+
+def compact_support_table(
+    primary_rows: Sequence[Mapping[str, Any]],
+    normalised_rows: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Flatten common and model-specific support for compact artifact export."""
+
+    result: list[dict[str, Any]] = []
+    for category, rows, label_key in (
+        ("primary", primary_rows, "model"),
+        ("normalised_subarm", normalised_rows, "subarm"),
+    ):
+        for row in rows:
+            support_by_tape = row.get("support_by_tape", {})
+            model_support = row.get("model_specific_support_before_common_intersection", {})
+            support_loss = row.get("support_loss_to_common_sample", {})
+            result.append(
+                {
+                    "source": row.get("source"),
+                    "category": category,
+                    "label": row.get(label_key),
+                    "h1_seconds": row.get("h1_seconds"),
+                    "h2_seconds": row.get("h2_seconds"),
+                    "status": row.get("status"),
+                    "common_total_n": row.get("total_n"),
+                    "common_train_n": row.get("train_n"),
+                    "common_embargoed_n": row.get("embargoed_n"),
+                    "common_test_n": row.get("test_n"),
+                    "tape_0_test_n": support_by_tape.get("0", {}).get("test_n"),
+                    "tape_1_test_n": support_by_tape.get("1", {}).get("test_n"),
+                    "model_specific_total_n": model_support.get("total_n"),
+                    "model_specific_train_n": model_support.get("train_n"),
+                    "model_specific_embargoed_n": model_support.get("embargoed_n"),
+                    "model_specific_test_n": model_support.get("test_n"),
+                    "loss_to_common_total_n": support_loss.get("total_n"),
+                    "loss_to_common_train_n": support_loss.get("train_n"),
+                    "loss_to_common_embargoed_n": support_loss.get("embargoed_n"),
+                    "loss_to_common_test_n": support_loss.get("test_n"),
+                }
+            )
+    return result
 
 
 def resolve_30_second_gate(
@@ -1232,10 +1567,20 @@ def build_horserace_artifact(
         seed=seed + 10_000_000,
     )
     normalised_future = evaluate_normalised_subarms(
-        observations, split, source="future", trade_identified=trade_identified
+        observations,
+        split,
+        source="future",
+        trade_identified=trade_identified,
+        replicates=replicates,
+        seed=seed + 30_000_000,
     )
     normalised_past = evaluate_normalised_subarms(
-        observations, split, source="past", trade_identified=trade_identified
+        observations,
+        split,
+        source="past",
+        trade_identified=trade_identified,
+        replicates=replicates,
+        seed=seed + 40_000_000,
     )
     ablations = evaluate_combined_ablations(observations, split, trade_identified=trade_identified)
     gate = resolve_30_second_gate(future, past)
@@ -1250,8 +1595,10 @@ def build_horserace_artifact(
             replicates=replicates,
             seed=seed + 20_000_000,
         )
+    intensity = feature_intensity_table(observations, trade_identified=trade_identified)
+    support = compact_support_table([*future, *past], [*normalised_future, *normalised_past])
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "scan_id": EXPLORATORY_SCAN_ID,
         "confirmatory_eligible": CONFIRMATORY_ELIGIBLE,
         "design_document": DESIGN_DOCUMENT,
@@ -1296,9 +1643,8 @@ def build_horserace_artifact(
         "normalised_subarms_future": normalised_future,
         "normalised_subarms_past": normalised_past,
         "combined_ablations": ablations,
-        "feature_intensity": feature_intensity_table(
-            observations, trade_identified=trade_identified
-        ),
+        "feature_intensity": intensity,
+        "support_table": support,
         "gate_30_seconds": gate,
         "conditional_30_second_cells": conditional,
         "multiplicity": {

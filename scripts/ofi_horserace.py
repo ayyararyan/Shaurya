@@ -112,6 +112,118 @@ def _ranking_csv(rows: list[dict[str, Any]]) -> str:
     return output.getvalue()
 
 
+def _flat_csv(rows: list[dict[str, Any]], fields: tuple[str, ...]) -> str:
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    return output.getvalue()
+
+
+def _ablation_csv(rows: list[dict[str, Any]]) -> str:
+    return _flat_csv(
+        rows,
+        (
+            "h1_seconds",
+            "h2_seconds",
+            "excluded_family",
+            "status",
+            "full_m6_oos_r2",
+            "without_family_oos_r2",
+            "family_incremental_oos_r2",
+            "full_alpha",
+            "reduced_alpha",
+        ),
+    )
+
+
+def _intensity_csv(rows: list[dict[str, Any]]) -> str:
+    return _flat_csv(
+        rows,
+        (
+            "h1_seconds",
+            "feature",
+            "n",
+            "missing_n",
+            "mean",
+            "standard_deviation",
+            "mean_absolute",
+            "zero_share",
+        ),
+    )
+
+
+def _support_csv(rows: list[dict[str, Any]]) -> str:
+    fields = (
+        "source",
+        "category",
+        "label",
+        "h1_seconds",
+        "h2_seconds",
+        "status",
+        "common_total_n",
+        "common_train_n",
+        "common_embargoed_n",
+        "common_test_n",
+        "tape_0_test_n",
+        "tape_1_test_n",
+        "model_specific_total_n",
+        "model_specific_train_n",
+        "model_specific_embargoed_n",
+        "model_specific_test_n",
+        "loss_to_common_total_n",
+        "loss_to_common_train_n",
+        "loss_to_common_embargoed_n",
+        "loss_to_common_test_n",
+    )
+    return _flat_csv(rows, fields)
+
+
+def _gate_csv(gate: dict[str, Any]) -> str:
+    rows: list[dict[str, Any]] = []
+    for candidate in gate["evaluated_candidates"]:
+        conditions = candidate.get("conditions", {})
+        rows.append(
+            {
+                "gate_passed": gate["gate_passed"],
+                "model": candidate.get("model"),
+                "status": candidate.get("status", "evaluated"),
+                "h1_seconds": candidate.get("h1_seconds"),
+                "future_incremental_oos_r2_over_m0": candidate.get(
+                    "future_incremental_oos_r2_over_m0"
+                ),
+                "past_incremental_oos_r2_over_m0": candidate.get("past_incremental_oos_r2_over_m0"),
+                "pooled_increment_strictly_positive": conditions.get(
+                    "pooled_increment_strictly_positive"
+                ),
+                "per_tape_increment_non_negative": conditions.get(
+                    "per_tape_increment_non_negative"
+                ),
+                "direction_stable_across_tapes": conditions.get("direction_stable_across_tapes"),
+                "future_increment_stronger_than_past_mirror": conditions.get(
+                    "future_increment_stronger_than_past_mirror"
+                ),
+                "all_conditions": candidate.get("all_conditions"),
+            }
+        )
+    return _flat_csv(
+        rows,
+        (
+            "gate_passed",
+            "model",
+            "status",
+            "h1_seconds",
+            "future_incremental_oos_r2_over_m0",
+            "past_incremental_oos_r2_over_m0",
+            "pooled_increment_strictly_positive",
+            "per_tape_increment_non_negative",
+            "direction_stable_across_tapes",
+            "future_increment_stronger_than_past_mirror",
+            "all_conditions",
+        ),
+    )
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tape", action="append", required=True, type=Path)
@@ -119,6 +231,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--cells-output", required=True, type=Path)
     parser.add_argument("--past-output", required=True, type=Path)
     parser.add_argument("--ranking-output", required=True, type=Path)
+    parser.add_argument("--ablation-output", required=True, type=Path)
+    parser.add_argument("--intensity-output", required=True, type=Path)
+    parser.add_argument("--support-output", required=True, type=Path)
+    parser.add_argument("--gate-output", required=True, type=Path)
     parser.add_argument("--replicates", type=int, default=400)
     parser.add_argument("--seed", type=int, default=20260819)
     return parser
@@ -138,6 +254,10 @@ def main(argv: list[str] | None = None) -> int:
     _write(args.cells_output, _jsonl(artifact["future_cells"]))
     _write(args.past_output, _jsonl(artifact["past_mirror_cells"]))
     _write(args.ranking_output, _ranking_csv(artifact["rankings"]))
+    _write(args.ablation_output, _ablation_csv(artifact["combined_ablations"]))
+    _write(args.intensity_output, _intensity_csv(artifact["feature_intensity"]))
+    _write(args.support_output, _support_csv(artifact["support_table"]))
+    _write(args.gate_output, _gate_csv(artifact["gate_30_seconds"]))
     print(
         json.dumps(
             {
