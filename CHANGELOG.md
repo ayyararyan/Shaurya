@@ -16,6 +16,20 @@ to strategies that pin the package.
   gap, same publication clock, completeness rule, 70/30 within-tape split and 120 s embargo as
   `X-OFI-DAT20-03`. Six models per cell plus a comparison arm carrying that scan's price-keyed
   top-10 construction against the identical depth control.
+- **Amendment 1 (`docs/CKS-L1-OFI-SPEC-AMENDMENT-1-2026-08-19.md`), pre-report and outcome-blind but
+  not pre-artifact, corrects the response-horizon scope**: `h2 = 0.5 s` is admitted after measuring
+  that the depth20 response clock is a hard 500.7 ms metronome whose two as-of endpoints resolve to
+  different snapshots in 99.4-99.5% of cases. The core response family is 0.5/1/2/5/10 s and the
+  30 s horizon is retained as a separately labelled longer robustness arm, taking the grid from 25
+  to 30 cells. The frozen specification is **not** rewritten; the amendment is additive and
+  separately timestamped. `h1` keeps its 0.5 s floor on restated grounds — depth200 publishes every
+  ~200 ms, but best-quote changes arrive only 1.42/s and 0.77/s, so below half a second the
+  regressor is zero in a majority of windows and degenerates into a near-binary indicator. No 0.1 s
+  or 0.25 s arm was constructed or claimed.
+- Admitting the shorter horizon lets six end-of-tape observations qualify that previously had no
+  covered future horizon, moving the sample from 5,204 to **5,210** (3,646 train, 960 embargoed,
+  604 test). All 30 cells were recomputed on the amended sample; no figure in the report is carried
+  over from the 25-cell run.
 - Depth control is measured at or before the OFI window end (`log1p` of best-bid + best-ask
   displayed size); depth scaling divides OFI by the causal average level-one depth with a
   one-contract floor. `assert_no_lookahead` and a test enforce that no window starts after its own
@@ -26,23 +40,30 @@ to strategies that pin the package.
   contracts) exceed level-one same-price displayed removals (29,120 contracts), so no clean
   execution-versus-cancellation split is identified and the artifact records a saturated upper
   bound rather than a fabricated share.
-- **Result:** raw level-one OFI adds at most +1.44 pp of held-out R² over the depth control
-  (1 s -> 2 s); depth scaling helps in 22 of 25 cells with a best increment of +6.01 pp
-  (2 s -> 2 s, pressure-only OOS R² 6.31%, +0.84 ticks per unit pressure). Only 2 of 25 raw and
-  1 of 25 pressure cells clear Newey-West, block bootstrap and non-overlapping blocks together, and
-  the one substantive survivor flips coefficient sign across the two tapes (+1.72 vs -0.32 ticks per
-  training SD). The best pressure cell scores higher out of sample than in sample (5.30% vs 1.36%).
-- **Comparison:** `X-OFI-DAT20-03`'s lead survives an independent depth control at +7.16 pp
-  incremental (8.40% OOS R²) while level-one OFI contributes -0.54 pp at that cell with a negative
+- **Result (amended 30-cell grid):** raw level-one OFI adds at most +1.44 pp of held-out R² over the
+  depth control (1 s -> 2 s) and is positive in 16 of 30 cells; depth scaling helps in 27 of 30 cells
+  with a best increment of +6.00 pp (2 s -> 2 s, pressure-only OOS R² 6.30%, +0.84 ticks per unit
+  pressure, +1.70 ticks per training SD). Only 1 of 30 raw and 0 of 30 pressure cells clear
+  Newey-West, block bootstrap and non-overlapping blocks together; that single survivor flips
+  coefficient sign across the two tapes (+1.72 vs -0.32 ticks per training SD) and its entire
+  increment comes from the first tape. The best pressure cell scores higher out of sample than in
+  sample (5.30% vs 1.36%). The amended h2 = 0.5 s arm is a clean negative: no cell clears the checks
+  and the past-return mirror beats the future increment in all five of its cells, because over
+  0.5 s the futures mid is unchanged in 59.8% and 78.0% of observations on the two tapes.
+- **Comparison:** `X-OFI-DAT20-03`'s lead survives an independent depth control at +7.12 pp
+  incremental (8.38% OOS R²) while level-one OFI contributes -0.55 pp at that cell with a negative
   coefficient — confirming that lead is a levels-2-10 phenomenon, not a best-quote one.
 - Measured object characteristics: 5,470 valid transitions over 1,305 s (4.19/s); best-quote price
   moves carry 80.9% of absolute contribution and same-price displayed size changes only 19.1%;
   81.4% of contribution is ask-side; median best-bid/best-ask spread is 100 and 134 ticks on the two
   tapes, so level one here is a lone quote at the front of a wide gap rather than a contested queue.
 - Added 31 tests in `tests/test_cks_l1_ofi.py`, the `scripts/cks_l1_ofi_scan.py` CLI, the frozen
-  specification `docs/CKS-L1-OFI-SPEC-2026-08-19.md`, and the plain-English report
-  `docs/CKS-L1-OFI-2026-08-19.md`. Deterministic replay reproduces all three artifacts byte for
-  byte. Exploratory observation only; `confirmatory_eligible: false`; not part of `H-SIG21`.
+  specification `docs/CKS-L1-OFI-SPEC-2026-08-19.md`, its Amendment 1, the plain-English report
+  `docs/CKS-L1-OFI-2026-08-19.md`, and the primary-literature benchmark
+  `docs/research/OFI-LITERATURE-BENCHMARK-2026-08-19.md` separating signed trade imbalance, VPIN,
+  exact CKS L1 OFI, static queue imbalance and multi-level OFI. Deterministic replay reproduces the
+  grid and component artifacts byte for byte, and the scan JSON byte for byte except for its
+  embedded `protocol.code_commit` field. Exploratory observation only; `confirmatory_eligible: false`; not part of `H-SIG21`.
 
 ### `X-OFI-DAT20-03` — price-keyed OFI versus future returns
 

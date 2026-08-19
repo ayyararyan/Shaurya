@@ -1,6 +1,6 @@
 # Amendment 1 to `X-CKS-L1-OFI-DAT20-04` — response-horizon floor, window-floor justification, and two disclosed identification findings
 
-**Amends:** `docs/CKS-L1-OFI-SPEC-2026-08-19.md` (frozen 2026-08-19 20:03, commit `1e3ba42`)
+**Amends:** `docs/CKS-L1-OFI-SPEC-2026-08-19.md` (frozen 2026-08-19 20:03, commit `b829321`)
 **Status:** open amendment, recorded rather than applied by rewriting the frozen spec.
 **Confirmatory eligible:** `false` (unchanged).
 
@@ -188,3 +188,36 @@ the 5,210-observation run; no figure in it is carried over from the 25-cell run.
 dependence checks, and the past-return mirror beats the future increment in **all five**. The arm is
 a clean negative. Two headline counts also moved against the earlier run: cells clearing all three
 checks fell from 2 to **1 of 30** for raw OFI and from 1 to **0 of 30** for depth-scaled pressure.
+
+## A7 Correction record — figures carried over from the 25-cell run
+
+The first amended edition of `docs/CKS-L1-OFI-2026-08-19.md` shipped with a correct 30-cell table
+but with several **prose figures still carried over from the pre-amendment 25-cell run**, in direct
+contradiction of the "no figure carried over" statement above. Every numerical claim in the report
+was then re-derived from `artifacts/cks-l1-ofi/cks_l1_ofi_grid_2026-08-19.jsonl` and
+`cks_l1_ofi_scan_2026-08-19.json` and corrected. The corrections, all in the amended (5,210
+observation) direction:
+
+| Claim | Shipped | Correct |
+|---|---|---|
+| Dependence statistics at the one surviving cell (2 s → 2 s) | 2.27 / 2.36 / 2.53 | **2.27 / 2.41 / 1.97** |
+| Its per-tape increments | +0.036 / −0.005 "points" | **+3.60 / −0.48 points** (the shipped pair were fractions mislabelled as points) |
+| A claimed "second surviving cell" (0.5 s → 10 s) | present | **removed** — its non-overlapping statistic is 1.90, so it never cleared; exactly one raw cell clears, as the summary table already said |
+| Statistics at the strongest raw cell (1 s → 2 s) | 1.95 / 1.85 / 2.14 | **1.956 / 1.833 / 1.822** — misses on all three, the first by 0.004 |
+| Same-window diagnostic, all five rows | 0.91/1.16, 0.45/3.02, −0.12/3.18, 6.92/14.99, 11.85/27.70 | **0.87/1.11, 0.62/3.08, 0.09/3.41, 6.28/14.37, 11.68/27.53** |
+| `X-OFI-DAT20-03` comparison at 10 s → 10 s | +7.16 pp, −0.54 pp, 8.40% | **+7.12 pp, −0.55 pp, 8.38%** |
+| Level-one coefficient at that cell | −3.03 pooled; −2.08 / −6.29 | **−3.09 pooled; −2.20 / −6.28** |
+| Object split across the grid | top-10 wins 13, level one 12 | **top-10 wins 13, level one 17** (the shipped pair summed to 25, not 30) |
+| `R1` best cells | 2.08% / 1.96% / 1.79% | **2.30% / 2.20% / 2.00%** |
+| Bottom line, best pressure cell | "fails two of three checks" | **fails all three** (1.74 / 1.76 / 1.59) |
+
+**No conclusion changes.** Every correction moves a number, not a verdict: the scan still finds one
+raw cell clearing all three checks out of 30, zero pressure cells, a sign flip across the two
+recordings at that cell, depth scaling helping in 27 of 30, and the `X-OFI-DAT20-03` lead surviving
+the depth control while level one contributes negatively. Two corrections make the result slightly
+*worse* than shipped (one survivor rather than two; the surviving cell's non-overlapping statistic
+is 1.97 rather than 2.53, i.e. it barely clears).
+
+Two stale pre-rebase commit hashes were also repaired: the frozen-spec reference above (`1e3ba42` →
+`b829321`) and the artifact-digest pin in the report (`2cf3383` → `0279988`). Both originals were
+orphaned by a rebase onto `origin/main` and were unresolvable in the published history.
