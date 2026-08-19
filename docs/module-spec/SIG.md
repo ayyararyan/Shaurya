@@ -88,6 +88,11 @@ SIG-19's trial log is checked: anything tested appears in the ledger first, and 
 recorded before results are inspected. Literature seeds claims; it does not settle them, and the
 ledger stays open to mechanisms the literature does not anticipate.
 
+The ledger lives in `docs/sig-claims/`, one file per SIG-01 taxonomy cell, with the ID
+scheme and required per-claim fields in `docs/sig-claims/README.md`. Event flow (`EF`,
+SIG-03) was opened 2026-08-19 in the story-by-story debate; its claims are `Proposed`
+until Aryan accepts them.
+
 ## Measurement design is empirical (D20)
 
 The sampling clock (event / calendar / volume time), the pooling coordinate (instrument identity
