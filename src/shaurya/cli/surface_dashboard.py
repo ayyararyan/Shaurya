@@ -49,7 +49,14 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--expiry", action="append", required=True)
     parser.add_argument("--fit-interval-seconds", type=float, default=5.0)
-    parser.add_argument("--surface-staleness-seconds", type=float, default=15.0)
+    parser.add_argument("--surface-staleness-seconds", type=float, default=60.0)
+    parser.add_argument("--fit-stale-seconds", type=float, default=20.0)
+    parser.add_argument(
+        "--post-stream-seconds",
+        type=float,
+        default=0.0,
+        help="live mode: keep serving after the stream stops, so feed death is observable.",
+    )
     parser.add_argument("--feed-slow-seconds", type=float, default=1.0)
     parser.add_argument("--feed-dead-seconds", type=float, default=2.0)
     parser.add_argument("--moneyness-half-width", type=float, default=0.12)
@@ -79,6 +86,7 @@ def _engine(args: argparse.Namespace, run_id: str, source: str) -> SurfaceEngine
         feed_slow_seconds=args.feed_slow_seconds,
         feed_dead_seconds=args.feed_dead_seconds,
         surface_staleness_seconds=args.surface_staleness_seconds,
+        fit_stale_seconds=args.fit_stale_seconds,
     )
     return SurfaceEngine(
         run_id=run_id,
@@ -91,6 +99,7 @@ def _engine(args: argparse.Namespace, run_id: str, source: str) -> SurfaceEngine
         fit_interval_seconds=args.fit_interval_seconds,
         risk_free_rate=args.risk_free_rate,
         min_quotes_per_slice=args.min_quotes_per_slice,
+        wall_clock=source == "live",
     )
 
 
@@ -245,6 +254,15 @@ async def _run_live(args: argparse.Namespace) -> dict[str, Any]:
                 task.cancel()
         await asyncio.gather(stream_task, fit_task, return_exceptions=True)
         writer.close(failed_error_type=type(error).__name__ if error else None)
+        if args.post_stream_seconds > 0:
+            print(
+                "stream stopped; serving for "
+                f"{args.post_stream_seconds:.0f}s so feed death is observable",
+                flush=True,
+            )
+            await asyncio.sleep(args.post_stream_seconds)
+            summary_health = engine.sample_health(datetime.now(tz=IST))
+            print(json.dumps({"post_stream_health": summary_health.to_dict()}), flush=True)
         server.shutdown()
     summary = _summarise(engine)
     summary["universe"] = universe.to_dict()
