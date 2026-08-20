@@ -73,6 +73,11 @@ SESSION_ID = "2026-08-19"
 def code_commit() -> str | None:
     """The current repository commit, recorded in the artifact so the run is reproducible."""
 
+    pinned = os.environ.get("SHAURYA_CODE_COMMIT")
+    if pinned:
+        if len(pinned) != 40 or any(character not in "0123456789abcdef" for character in pinned):
+            raise ValueError("SHAURYA_CODE_COMMIT must be a lowercase 40-character Git SHA")
+        return pinned
     try:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],

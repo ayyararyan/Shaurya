@@ -102,3 +102,26 @@ def test_partial_scan_provenance_resolves_repo_commit_from_other_cwd(
 
     assert commit is not None
     assert len(commit) == 40
+
+
+@pytest.mark.parametrize(
+    "commit_reader",
+    [scalar_code_commit, cks_code_commit, horse_code_commit],
+)
+def test_partial_scan_provenance_honours_validated_pinned_commit(
+    monkeypatch: pytest.MonkeyPatch,
+    commit_reader: object,
+) -> None:
+    pinned = "a" * 40
+    monkeypatch.setenv("SHAURYA_CODE_COMMIT", pinned)
+
+    assert commit_reader() == pinned  # type: ignore[operator]
+
+
+def test_partial_scan_provenance_rejects_invalid_pinned_commit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("SHAURYA_CODE_COMMIT", "not-a-commit")
+
+    with pytest.raises(ValueError, match="lowercase 40-character"):
+        scalar_code_commit()

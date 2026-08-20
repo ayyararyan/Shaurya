@@ -49,6 +49,11 @@ EXPECTED_HORSE_HASHES = {
 
 
 def code_commit() -> str | None:
+    pinned = os.environ.get("SHAURYA_CODE_COMMIT")
+    if pinned:
+        if len(pinned) != 40 or any(character not in "0123456789abcdef" for character in pinned):
+            raise ValueError("SHAURYA_CODE_COMMIT must be a lowercase 40-character Git SHA")
+        return pinned
     try:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
