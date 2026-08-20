@@ -344,14 +344,14 @@ def test_reference_jump_is_rejected_by_stability_gate() -> None:
     assert jumped["active"] == []
 
 
-def test_default_six_frame_reference_warmup_precedes_any_opportunity() -> None:
-    detector = _detector(smoothing_min_frames=6, stability_frames=6)
-    for seconds in (0, 5, 10, 15, 20, 25):
+def test_default_one_minute_reference_warmup_precedes_any_opportunity() -> None:
+    detector = _detector(smoothing_min_frames=12, stability_frames=12)
+    for seconds in range(0, 60, 5):
         now = VALUATION + timedelta(seconds=seconds)
         frame = _evaluate(detector, now, _chain(now))
         assert frame["active"] == []
 
-    first_time = VALUATION + timedelta(seconds=30)
+    first_time = VALUATION + timedelta(seconds=60)
     first = _evaluate(
         detector,
         first_time,
@@ -361,7 +361,7 @@ def test_default_six_frame_reference_warmup_precedes_any_opportunity() -> None:
     assert first["pending_count"] >= 1
     assert first["active"] == []
 
-    confirmed_time = VALUATION + timedelta(seconds=35)
+    confirmed_time = VALUATION + timedelta(seconds=65)
     confirmed = _evaluate(
         detector,
         confirmed_time,
@@ -371,7 +371,7 @@ def test_default_six_frame_reference_warmup_precedes_any_opportunity() -> None:
         item for item in confirmed["active"] if item["instrument_id"] == TARGET_ID
     )
     assert episode["reference_stable"] is True
-    assert episode["reference_smoothing_components"] >= 6
+    assert episode["reference_smoothing_components"] >= 12
 
 
 def test_reference_closed_episode_is_invalidated_not_corrected() -> None:
@@ -408,6 +408,7 @@ def test_reference_closed_episode_is_invalidated_not_corrected() -> None:
     assert episode.invalidated_at == VALUATION + timedelta(seconds=20)
     assert episode.gap_close_trace.attribution == "reference_market_led"
     assert episode.gap_close_trace.target_correction_achieved is False
+    assert len(detector._reference_iv_history[TARGET_ID]) == 0
 
 
 def test_dislocation_below_one_lot_never_becomes_actionable() -> None:

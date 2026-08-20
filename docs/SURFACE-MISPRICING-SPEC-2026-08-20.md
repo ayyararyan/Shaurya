@@ -18,6 +18,14 @@ when the target executable quote itself closes the frozen entry after-cost gap; 
 by reference movement, mixed movement that misses that target, or benchmark instability is
 `INVALIDATED`, not a corrected opportunity.
 
+**Owner-amendment-2 live calibration revision, 2026-08-20:** the initial 30-second/six-frame
+implementation still admitted the same 1 September 24450 CE twice; both episodes then resolved
+reference-led without meeting the frozen target test. The binding defaults are therefore one
+minute: 60-second half-life, twenty-four-fit cap, twelve consecutive fits/readings, and 0.10
+volatility-point smoothed-range, raw-smoothed, and exact-smoothed limits. Any invalidation clears
+that contract's reference history and forces a fresh twelve-frame warm-up before re-entry. The two
+superseded live episodes remain retained as calibration evidence and are not opportunity results.
+
 ## 1. Objective and exact object
 
 The monitor identifies and times **confirmed surface-relative executable mispricing** in the
@@ -47,8 +55,8 @@ after the cost, multiplicity, displayed-quantity, exact-refit, and persistence g
 |---|---|---|
 | Contract BBO, displayed quantity, receive timestamp | Observed | Latest causal CON-01 row at or before `t`; never forward-filled past the freshness gate. |
 | Strike-held-out eSSVI parameters and fair IV | Estimated | The target strike's CE and PE are absent from the reference fit. |
-| Temporally smoothed held-out eSSVI | Estimated | Past-and-current raw fold fits only; 30-second half-life, twelve-fit cap, six consecutive fits before eligibility, no raw fallback. |
-| Reference stability | Deterministically derived gate | Six-frame range of smoothed held-out fair IV and current raw-versus-smoothed fair-IV distance. |
+| Temporally smoothed held-out eSSVI | Estimated | Past-and-current raw fold fits only; 60-second half-life, twenty-four-fit cap, twelve consecutive fits before eligibility, no raw fallback. |
+| Reference stability | Deterministically derived gate | Twelve-frame range of smoothed held-out fair IV and current raw-versus-smoothed fair-IV distance. |
 | Black-76 fair price | Estimated | Inherits held-out surface, forward, maturity, rate, and model assumptions. |
 | Fair-value uncertainty band | Estimated | Past-only empirical held-out residual plus forward/asynchrony stress and a tick floor. |
 | Gross executable edge | Deterministically derived | Fair-band boundary minus executable quote, never midpoint-minus-fit. |
@@ -96,18 +104,18 @@ after the cost, multiplicity, displayed-quantity, exact-refit, and persistence g
   complete strike pair. A fold-screen candidate that fails or changes direction is rejected.
 - `MIS-EST-06`: update a separate causal eSSVI parameter smoother for every deterministic
   cross-fit fold. Use the fit decision timestamp as the decay clock while retaining the oldest
-  contributing quote as the source/staleness timestamp. The default half-life is 30 seconds and
-  at most twelve raw fits are retained.
-- `MIS-EST-07`: a fold is in smoothing warm-up until six consecutive accepted raw fits have been
+  contributing quote as the source/staleness timestamp. The default half-life is 60 seconds and
+  at most twenty-four raw fits are retained.
+- `MIS-EST-07`: a fold is in smoothing warm-up until twelve consecutive accepted raw fits have been
   incorporated. Reset its smoother after a gap above 15 seconds, an instrument-scope change, or
   an expiry-set change. A raw or reset-first fit can populate diagnostics but cannot generate an
   opportunity.
-- `MIS-EST-08`: before testing an observation, require six consecutive smoothed fair-IV readings
-  for that contract, a maximum-to-minimum range no larger than 0.25 volatility points, and a
-  current raw-versus-smoothed fair-IV distance no larger than 0.50 volatility points. All limits
+- `MIS-EST-08`: before testing an observation, require twelve consecutive smoothed fair-IV readings
+  for that contract, a maximum-to-minimum range no larger than 0.10 volatility points, and a
+  current raw-versus-smoothed fair-IV distance no larger than 0.10 volatility points. All limits
   are payload-visible policy, not hidden constants.
 - `MIS-EST-09`: the exact leave-strike raw refit must retain the same direction and its fair IV
-  must lie within 0.50 volatility points of the stable fold-smoothed fair IV. The actionable fair
+  must lie within 0.10 volatility points of the stable fold-smoothed fair IV. The actionable fair
   price and band remain those of the stable smoothed fold; an isolated exact raw refit may confirm
   robustness but may not replace the stable benchmark.
 
@@ -173,6 +181,8 @@ ACTIVE -- stale/missing/failed/unsupported --> CENSORED
   `MIS-STATE-08` is not met, close the episode as `INVALIDATED`. Reference-led, mixed, stability-
   lost, multiplicity-lost and exact-confirmation-lost resolutions remain visible but cannot enter
   the corrected-opportunity count or correction-duration sample.
+- `MIS-STATE-10`: after invalidation, clear that contract's reference-stability history. It cannot
+  become pending again until a new twelve-frame stable history has accumulated.
 
 ## 9. Required dashboard and API output (`MIS-OUT-*`)
 
@@ -187,7 +197,7 @@ The ANL-03 screen adds a full-width panel below the surface with:
 - entry gap, signed target-option contribution, signed held-out reference-market contribution,
   net gap closed, frozen target-correction requirement/achievement, categorical attribution,
   corrected/invalidated outcome, closing gate, or censor reason;
-- smoothed fair IV, contemporaneous raw fair IV, raw-smoothed IV distance, six-frame smoothed-IV
+- smoothed fair IV, contemporaneous raw fair IV, raw-smoothed IV distance, twelve-frame smoothed-IV
   range, smoothing component count, and benchmark-stability state.
 
 `/api/state` and `/api/history` must carry the full policy, lifecycle, assumptions and rows.
@@ -207,6 +217,7 @@ History playback must show the episode state frozen into that frame rather than 
   causally rather than falling back to a raw surface.
 - A residual that disappears solely because the reference boundary moves is `INVALIDATED`, has no
   correction timestamp, and does not enter the corrected-opportunity duration sample.
+- An invalidated contract cannot immediately reactivate; it must rebuild all twelve stable frames.
 - A displayed quantity below one lot never becomes actionable.
 - A missing target quote censors an active episode rather than calling it corrected.
 - Base-fit/arbitrage/support failure paths remain explicit.

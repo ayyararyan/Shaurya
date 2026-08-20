@@ -332,7 +332,7 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert "reference warming" in html
     assert "reference unstable" in html
     assert "raw-smooth pp" in html
-    assert "6-fit range pp" in html
+    assert "12-fit range pp" in html
     assert "target required t" in html
     assert "entry gap t" in html
     assert "target Δ t" in html
@@ -355,8 +355,8 @@ def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> N
         "confirmed_surface_relative_executable_mispricing"
     )
     assert monitor["policy"]["order_authority"] == "none_read_only_research_monitor"
-    assert monitor["policy"]["reference_smoothing_half_life_seconds"] == 30.0
-    assert monitor["policy"]["reference_smoothing_min_frames"] == 6
+    assert monitor["policy"]["reference_smoothing_half_life_seconds"] == 60.0
+    assert monitor["policy"]["reference_smoothing_min_frames"] == 12
     assert monitor["surface_mode"] == "causal_smoothed_strike_cross_fit_research_only"
     assert "target-option" in monitor["correction_semantics"]
     assert "reference-market" in monitor["correction_semantics"]

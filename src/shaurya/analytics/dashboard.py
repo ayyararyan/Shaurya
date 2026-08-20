@@ -1001,8 +1001,8 @@ _BODY = """<!doctype html>
 <section class="mispricing-panel" id="mispricingPanel">
   <div class="mispricing-head">
     <h2>Stable held-out option dislocations</h2>
-    <p>read-only research monitor &middot; 30 s causal surface smoothing &middot;
-      six-frame stability
+    <p>read-only research monitor &middot; 60 s causal surface smoothing &middot;
+      twelve-frame stability
       &middot; exact held-out check &middot; frozen-entry target correction</p>
   </div>
   <div class="kv" id="mispricingSummary"></div>
@@ -1013,7 +1013,7 @@ _BODY = """<!doctype html>
       <table><thead><tr><th>contract</th><th>side</th><th class="num">market</th>
         <th class="num">fair</th><th class="num">fair band</th>
         <th class="num">smooth IV %</th><th class="num">raw IV %</th>
-        <th class="num">raw-smooth pp</th><th class="num">6-fit range pp</th>
+        <th class="num">raw-smooth pp</th><th class="num">12-fit range pp</th>
         <th class="num">smooth n</th><th>reference stable</th>
         <th class="num">gross ticks</th><th class="num">net ticks</th>
         <th class="num">net / lot</th><th class="num">IV resid pp</th>
@@ -1034,7 +1034,7 @@ _BODY = """<!doctype html>
       <table><thead><tr><th>contract</th><th>side</th><th class="num">market</th>
         <th class="num">fair</th><th class="num">fair band</th>
         <th class="num">smooth IV %</th><th class="num">raw IV %</th>
-        <th class="num">raw-smooth pp</th><th class="num">6-fit range pp</th>
+        <th class="num">raw-smooth pp</th><th class="num">12-fit range pp</th>
         <th class="num">smooth n</th><th>reference stable</th>
         <th class="num">gross ticks</th><th class="num">net ticks</th>
         <th class="num">net / lot</th><th class="num">IV resid pp</th>

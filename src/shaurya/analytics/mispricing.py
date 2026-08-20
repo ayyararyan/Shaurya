@@ -82,13 +82,13 @@ class MispricingPolicy:
     fdr_level: float = 0.01
     confirmation_frames: int = 2
     correction_frames: int = 2
-    reference_smoothing_half_life_seconds: float = 30.0
-    reference_smoothing_max_history: int = 12
-    reference_smoothing_min_frames: int = 6
+    reference_smoothing_half_life_seconds: float = 60.0
+    reference_smoothing_max_history: int = 24
+    reference_smoothing_min_frames: int = 12
     reference_smoothing_max_gap_seconds: float = 15.0
-    reference_stability_frames: int = 6
-    reference_max_iv_range_points: float = 0.25
-    reference_max_raw_smoothed_iv_gap_points: float = 0.50
+    reference_stability_frames: int = 12
+    reference_max_iv_range_points: float = 0.10
+    reference_max_raw_smoothed_iv_gap_points: float = 0.10
     default_tick_size: float = 0.05
     default_lot_size: int | None = None
     buy_turnover_rate: float = 0.0004504340
@@ -164,6 +164,7 @@ class MispricingPolicy:
             "reference_max_raw_smoothed_iv_gap_points": (
                 self.reference_max_raw_smoothed_iv_gap_points
             ),
+            "reference_rewarm_after_invalidation": True,
             "default_tick_size": self.default_tick_size,
             "default_lot_size": self.default_lot_size,
             "fee_schedule_version": FEE_SCHEDULE_VERSION,
@@ -1191,6 +1192,7 @@ class SurfaceMispricingDetector:
                 )
                 self._recent.appendleft(closed)
                 del self._active[instrument_id]
+                self._reference_iv_history[instrument_id].clear()
                 continue
             active.latest = current
             active.peak_gross_edge = max(active.peak_gross_edge, current.gross_edge)
@@ -1218,6 +1220,7 @@ class SurfaceMispricingDetector:
                 )
                 self._recent.appendleft(closed)
                 del self._active[instrument_id]
+                self._reference_iv_history[instrument_id].clear()
 
         for instrument_id, observation in qualified.items():
             if instrument_id in self._active or observation.direction is None:

@@ -22,16 +22,16 @@ to strategies that pin the package.
   closed, exact identity residual, closing gate, and target-option-led/reference-market-led/mixed
   attribution are carried in every episode and rendered in both tables.
 - Owner amendment 2 removes raw five-second fits from opportunity identification. Every held-out
-  fold now uses a causal 30-second-half-life eSSVI parameter smoother keyed to the fit decision
-  clock, requires six consecutive smoothed frames, rejects a six-frame fair-IV range above 0.25
-  volatility points or a raw-versus-smoothed distance above 0.50 points, and keeps the exact raw
+  fold now uses a causal 60-second-half-life eSSVI parameter smoother keyed to the fit decision
+  clock, requires twelve consecutive smoothed frames, rejects a twelve-frame fair-IV range above
+  0.10 volatility points or a raw-versus-smoothed distance above 0.10 points, and keeps the exact raw
   leave-strike fit as a direction/agreement check rather than letting it replace the stable
   benchmark. The displayed ANL-03 smoother now also uses decision time, fixing its live
   `raw_unsmoothed` fallback when the oldest contributing quote timestamp did not advance.
 - Episode interpretation is now fixed-entry and target-specific: the entry after-cost gap is
   frozen, only two frames in which the target executable quote closes that gap are `corrected`,
   and reference-led, mixed, or stability-lost disappearances are `invalidated`. Dashboard/API
-  expose raw/smoothed IV, their distance, six-frame range, smoothing count/stability, the frozen
+  expose raw/smoothed IV, their distance, twelve-frame range, smoothing count/stability, the frozen
   target requirement, and corrected/invalidated/censored outcomes.
 - Added full policy and lifecycle state to every surface snapshot, `/api/state`, and
   `/api/history`; the ANL-05 screen now has full-width Active confirmed and Recently
@@ -49,8 +49,13 @@ to strategies that pin the package.
 - Owner-amendment-2 validation: 47 focused surface/smoother/detector/dashboard tests and 554
   full-suite tests pass; whole-repository Ruff, strict mypy on 59 source files, compileall, and
   diff checks are clean. Regression coverage includes fixed source timestamps with advancing fit
-  decisions, six-frame warm-up, abrupt reference rejection, frozen target correction, and
+  decisions, twelve-frame warm-up, abrupt reference rejection, frozen target correction, and
   reference-only invalidation. Live restart and fresh market outcomes remain a separate gate.
+- The first live calibration under the superseded 30-second/six-frame defaults admitted the same
+  1 September 24450 CE twice; both episodes invalidated reference-led and never met the frozen
+  target test. They are retained as calibration evidence, not opportunity results. The binding
+  one-minute defaults above and mandatory twelve-frame re-warm after invalidation prevent that
+  immediate transient re-entry; their replacement live run is a separate acceptance gate.
 
 ### `X-OFI-DASHBOARD-2026-08-20` — dynamic read-only OFI horse-race dashboard (`ANL-06`)
 
