@@ -115,6 +115,8 @@ class TradePrint:
     side: str | None
     displayed_bid: float | None
     displayed_ask: float | None
+    quote_channel: str | None
+    quote_age_ms: float | None
     location: PrintLocation | None
     spread_ticks: float | None
     degraded: bool
@@ -224,8 +226,13 @@ def build_trade_prints(rows: Sequence[Mapping[str, Any]]) -> TradePrintSeries:
             without_quote += 1
         else:
             location = classify_print_location(price=price, displayed_bid=bid, displayed_ask=ask)
-            spread = (ask - bid) / FUTURES_TICK_SIZE
+            # On the quantised grid, as in ``classify_print_location``: the raw float difference
+            # of two binary64 prices puts a genuine two-tick spread at 1.9999 ticks and into the
+            # wrong bucket.
+            spread = float(round(ask / FUTURES_TICK_SIZE) - round(bid / FUTURES_TICK_SIZE))
         side = row.get("trade_side")
+        channel = row.get("trade_quote_channel")
+        age = row.get("trade_quote_age_ms")
         collected.append(
             TradePrint(
                 receive_ts_ns=parse_receive_ts_ns(stamp),
@@ -234,6 +241,8 @@ def build_trade_prints(rows: Sequence[Mapping[str, Any]]) -> TradePrintSeries:
                 side=side if side in {"buy", "sell"} else None,
                 displayed_bid=bid,
                 displayed_ask=ask,
+                quote_channel=channel if isinstance(channel, str) else None,
+                quote_age_ms=float(age) if isinstance(age, int | float) else None,
                 location=location,
                 spread_ticks=spread,
                 degraded=bool(row.get("trade_classification_degraded")),
@@ -274,6 +283,9 @@ def _distribution(group: Sequence[TradePrint]) -> dict[str, Any]:
         if item.location is not None:
             counts[item.location.value] += 1
     total = sum(counts.values())
+    signed = sum(1 for item in group if item.signed and item.location is not None)
+    degraded = sum(1 for item in group if item.degraded and item.location is not None)
+    coalesced = sum(1 for item in group if item.coalesced and item.location is not None)
     return {
         "n": total,
         "counts": counts,
@@ -286,9 +298,10 @@ def _distribution(group: Sequence[TradePrint]) -> dict[str, Any]:
             if total
             else None
         ),
-        "outside_share": (
-            counts[PrintLocation.STRICTLY_OUTSIDE.value] / total if total else None
-        ),
+        "outside_share": (counts[PrintLocation.STRICTLY_OUTSIDE.value] / total if total else None),
+        "signed_prints": signed,
+        "degraded_prints": degraded,
+        "coalesced_prints": coalesced,
     }
 
 
@@ -329,7 +342,13 @@ def print_location_diagnostics(
     ]
     for label in sorted({key for key, _ in labelled}):
         by_bucket[label] = _distribution([item for key, item in labelled if key == label])
+    by_channel: dict[str, Any] = {}
+    for channel in sorted({item.quote_channel or "unknown" for item in quoted}):
+        by_channel[channel] = _distribution(
+            [item for item in quoted if (item.quote_channel or "unknown") == channel]
+        )
     spreads = [float(item.spread_ticks) for item in quoted if item.spread_ticks is not None]
+    ages = [float(item.quote_age_ms) for item in quoted if item.quote_age_ms is not None]
     return {
         "requirement": "TOUCH-01",
         "specification_id": SPECIFICATION_ID,
@@ -341,6 +360,12 @@ def print_location_diagnostics(
         "overall": _distribution(quoted),
         "by_ist_hour": by_hour,
         "by_displayed_spread_bucket_ticks": by_bucket,
+        "by_displayed_quote_channel": by_channel,
+        "displayed_quote_age_ms": {
+            "n": len(ages),
+            "mean": (sum(ages) / len(ages)) if ages else None,
+            **_quantiles(ages, (0.5, 0.9, 0.99)),
+        },
         "displayed_spread_ticks": {
             "n": len(spreads),
             "mean": (sum(spreads) / len(spreads)) if spreads else None,
