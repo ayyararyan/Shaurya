@@ -10,6 +10,7 @@ import pytest
 
 from shaurya.data.depth_thinning_analysis import FULL, BookState
 from shaurya.signals.surface_futures_predictive import (
+    CCZ_SURFACE_LEVELS,
     DECISION_GAP_SECONDS,
     EXPIRIES,
     FIT_INTERVAL_SECONDS,
@@ -24,6 +25,8 @@ from shaurya.signals.surface_futures_predictive import (
     build_ofi_prefix,
     build_predictive_observations,
     build_scan_artifact,
+    ccz_surface_features,
+    ccz_surface_suffixes,
     chronological_split,
     essvi_atm_shape,
     essvi_implied_volatility,
@@ -131,10 +134,7 @@ def _observation(index: int) -> SurfacePredictiveObservation:
             (
                 "cks_l1_raw",
                 "cks_l1_depth_adjusted",
-                "pk_level1_raw",
-                "pk_levels2_5_raw",
-                "pk_level1_depth_adjusted",
-                "pk_levels2_5_depth_adjusted",
+                *ccz_surface_suffixes(),
             ),
             start=1,
         )
@@ -253,11 +253,11 @@ def test_horse_aligned_mapping_restores_exact_m0_m3b_and_labels_five_level_analo
         "lob__spread_ticks",
         ofi_feature(1.0, "cks_l1_depth_adjusted"),
     )
+    # CCZ Eq. (19) PI^[5]: every level is its own regressor, never summed into a band.
     names = horse_aligned_five_level_names("H4_5L", 2.0, observations)
-    assert names[-2:] == (
-        ofi_feature(2.0, "pk_level1_raw"),
-        ofi_feature(2.0, "pk_levels2_5_raw"),
-    )
+    assert names[-CCZ_SURFACE_LEVELS:] == ccz_surface_features(2.0, "raw")
+    scaled = horse_aligned_five_level_names("H5_5L", 2.0, observations)
+    assert scaled[-CCZ_SURFACE_LEVELS:] == ccz_surface_features(2.0, "depth_scaled")
     with pytest.raises(ValueError, match="unknown horse-aligned"):
         horse_aligned_five_level_names("M4", 2.0, observations)
 
@@ -267,7 +267,7 @@ def test_missing_lob_denominators_are_missing_not_zero() -> None:
     assert lob_features(state) is None
 
 
-def test_ofi_reuses_canonical_sign_and_price_keyed_marginal_bands() -> None:
+def test_ofi_reuses_canonical_sign_and_ccz_per_level_flow() -> None:
     states = [_state(float(index)) for index in range(12)]
     states[-1] = _state(
         11.0,
@@ -281,8 +281,18 @@ def test_ofi_reuses_canonical_sign_and_price_keyed_marginal_bands() -> None:
     )
     assert features is not None
     assert features[ofi_feature(5.0, "cks_l1_raw")] == pytest.approx(20.0)
-    assert features[ofi_feature(5.0, "pk_level1_raw")] == pytest.approx(20.0)
-    assert features[ofi_feature(5.0, "pk_levels2_5_raw")] == pytest.approx(15.0)
+    # Bid level 1 +10 against ask level 1 -10 is +20; bid level 2 +10 against ask level 2 -5
+    # is +15.  A cumulative construction would have reported 35 at level 2.
+    assert features[ofi_feature(5.0, "ccz_level1_raw")] == pytest.approx(20.0)
+    assert features[ofi_feature(5.0, "ccz_level2_raw")] == pytest.approx(15.0)
+    assert features[ofi_feature(5.0, "ccz_level3_raw")] == pytest.approx(0.0)
+    # CCZ Eq. (3): one common denominator, so scaled/raw is the same scalar at every level.
+    ratios = [
+        features[ofi_feature(5.0, f"ccz_level{level}_depth_scaled")]
+        / features[ofi_feature(5.0, f"ccz_level{level}_raw")]
+        for level in (1, 2)
+    ]
+    assert ratios[0] == pytest.approx(ratios[1])
     assert features[ofi_feature(5.0, "cks_l1_depth_adjusted")] > 0.0
     assert all(
         ofi_feature(window, "cks_l1_raw") in features

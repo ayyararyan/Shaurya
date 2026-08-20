@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""Durable read-only controller for R-OFI-FULLSESSION-2026-08-20."""
+"""Durable read-only controller for R-OFI-FULLSESSION-2026-08-20.
+
+`CCZ-IMPL-08` / `OPS-CCZ-01`.  The pinned code commit and worktree cleanliness are re-checked
+before **every** analysis unit and fail closed, not once in ``preflight``.  Each unit records the
+HEAD actually observed at its own start rather than the constant passed on the command line, so a
+repository that moves mid-run can never leave an artifact carrying a false provenance label.
+
+`CCZ-IMPL-02`.  The retired ``scalar_ofi`` stage ran the price-keyed cumulative scan
+``X-OFI-DAT20-03``.  That estimator was removed by ``D37 / CCZ-OFI-MIGRATION-2026-08-20``; the
+multi-level content is now produced by the horse-race stage's CCZ families and its CCZ
+aggregation arms, which span ``M in {1, 5, 10, 20, 200}``.
+"""
 
 from __future__ import annotations
 
@@ -128,14 +139,17 @@ def _cell(rows: Sequence[Mapping[str, Any]], **wanted: Any) -> dict[str, Any]:
 def build_fixed_lead_summary(
     scalar: Mapping[str, Any], horse: Mapping[str, Any]
 ) -> dict[str, Any]:
-    """Extract only the two leads named before the replication tape existed."""
+    """Extract only the two leads named before the replication tape existed.
 
-    scalar_cell = _cell(
-        scalar["grid"],
-        depth_levels=10,
-        ofi_window_seconds=10,
-        return_horizon_seconds=10,
-    )
+    `CCZ-IMPL-02` consequence, stated rather than patched around.  The first pre-named lead —
+    top-10 price-keyed OFI over a 10 s window against the next 10 s return — is defined on the
+    estimator that ``D37 / CCZ-OFI-MIGRATION-2026-08-20`` removed as defective.  It is therefore
+    **not reproducible** after the migration and is reported as retired with its reason.  It is
+    deliberately *not* silently re-pointed at a CCZ quantity: that would change the estimand of a
+    lead registered before the tape existed, which needs Aryan's approval, not an engineering
+    decision.  The second lead, depth-normalised CKS `M3b`, is unaffected and still reported.
+    """
+
     horse_future = _cell(
         horse["normalised_subarms_future"],
         subarm="M3b_depth_normalised_cks",
@@ -148,9 +162,6 @@ def build_fixed_lead_summary(
         h1_seconds=2.0,
         h2_seconds=2.0,
     )
-    scalar_increment = float(scalar_cell["incremental_oos_r2_over_state"])
-    scalar_coefficient = float(scalar_cell["standardised_ofi_coefficient_ticks"])
-    scalar_past = float(scalar_cell["past_incremental_oos_r2_over_state"])
     horse_increment = float(horse_future["incremental_oos_r2_over_m0"])
     horse_coefficient = float(horse_future["coefficient_ticks_per_training_sd"])
     horse_past_increment = float(horse_past["incremental_oos_r2_over_m0"])
@@ -161,18 +172,26 @@ def build_fixed_lead_summary(
         "sample_role": "prospective_full_session_replication",
         "confirmatory_eligible": False,
         "scalar_top10_10s_to_10s": {
+            "status": "estimator_retired",
             "prior_incremental_oos_r2": 0.0791,
-            "incremental_oos_r2": scalar_increment,
-            "coefficient_ticks_per_training_sd": scalar_coefficient,
-            "past_incremental_oos_r2": scalar_past,
-            "positive_increment": scalar_increment > 0,
-            "same_positive_sign": scalar_coefficient > 0,
-            "future_stronger_than_past": scalar_increment > scalar_past,
-            "replicates_all_frozen_conditions": (
-                scalar_increment > 0 and scalar_coefficient > 0 and scalar_increment > scalar_past
+            "incremental_oos_r2": None,
+            "coefficient_ticks_per_training_sd": None,
+            "past_incremental_oos_r2": None,
+            "positive_increment": None,
+            "same_positive_sign": None,
+            "future_stronger_than_past": None,
+            "replicates_all_frozen_conditions": None,
+            "dependence_inference": None,
+            "test_n": None,
+            "retired_by": "D37 / CCZ-OFI-MIGRATION-2026-08-20",
+            "reason": (
+                "this lead is defined on the price-keyed OFI cumulated across levels, which is "
+                "not the CCZ estimator and was removed as defective; re-pointing it at a CCZ "
+                "quantity would change a pre-registered estimand and needs explicit approval"
             ),
-            "dependence_inference": scalar_cell["future_error_improvement_inference"],
-            "test_n": scalar_cell["test_n"],
+            "cks_estimator_note": scalar.get("protocol", {}).get(
+                "level_one_is_ccz_base_case"
+            ),
         },
         "horse_m3b_2s_to_2s": {
             "prior_incremental_oos_r2": 0.062036652388938185,
@@ -205,10 +224,11 @@ def fixed_lead_markdown(summary: Mapping[str, Any]) -> str:
         "Status: selection-aware prospective replication; not confirmatory and not SIG-21.\n\n"
         "## Pre-named scalar lead\n\n"
         "Top-10 price-keyed OFI, 10 s accumulation to next 10 s return.\n\n"
-        f"- incremental held-out R²: {100 * scalar['incremental_oos_r2']:.3f} pp\n"
-        f"- coefficient: {scalar['coefficient_ticks_per_training_sd']:.6g} ticks/training SD\n"
-        f"- past-mirror increment: {100 * scalar['past_incremental_oos_r2']:.3f} pp\n"
-        f"- all frozen replication conditions: {scalar['replicates_all_frozen_conditions']}\n\n"
+        f"- status: **{scalar['status']}** (retired by `{scalar['retired_by']}`)\n"
+        f"- prior incremental held-out R²: {100 * scalar['prior_incremental_oos_r2']:.3f} pp\n"
+        f"- reason: {scalar['reason']}\n"
+        "- no replacement number is reported here: substituting a CCZ quantity would change a "
+        "pre-registered estimand.\n\n"
         "## Pre-named horse-race lead\n\n"
         "Depth-normalised CKS (`M3b`), 2 s accumulation to next 2 s return.\n\n"
         f"- incremental held-out R² over M0: {100 * horse['incremental_oos_r2']:.3f} pp\n"
@@ -233,6 +253,7 @@ class Controller:
         self.partial_analysis = args.analysis_output_root.resolve() / f".{PROTOCOL_ID}.partial"
         self.final_analysis = args.analysis_output_root.resolve() / PROTOCOL_ID
         self.python = self.repo / ".venv/bin/python"
+        self.observed_commits: dict[str, str] = {}
         initial_state: dict[str, Any] = {
             "schema_version": "1.0.0",
             "protocol_id": PROTOCOL_ID,
@@ -278,6 +299,29 @@ class Controller:
         except BlockingIOError as exc:
             raise RuntimeError("another full-session controller holds the run lock") from exc
 
+    def assert_on_pin(self, unit: str) -> str:
+        """`OPS-CCZ-01`: re-check the pin before every unit and fail closed if it moved.
+
+        Checking only in ``preflight`` let the repository move between units while artifacts kept
+        recording the commit passed on the command line.  This returns the HEAD actually observed
+        now, which the caller records against that unit.
+        """
+
+        head = _git(self.repo, "rev-parse", "HEAD")
+        if head != self.args.expected_code_commit:
+            raise ValueError(
+                f"code commit mismatch before {unit}: expected "
+                f"{self.args.expected_code_commit}, got {head}"
+            )
+        if _git(self.repo, "status", "--porcelain"):
+            raise ValueError(f"repository worktree is not clean before {unit}")
+        if not _git_commit_is_remote_ancestor(self.repo, head):
+            raise ValueError(
+                f"pinned code commit is not in fetched origin/main history before {unit}"
+            )
+        self.observed_commits[unit] = head
+        return head
+
     def preflight(self) -> tuple[Path, str, str]:
         self.update(stage="preflight", status="running")
         if date.fromisoformat(self.args.trading_date) != TRADING_DATE:
@@ -286,15 +330,7 @@ class Controller:
             raise FileNotFoundError(self.python)
         if shutil.which("tmux") is None or shutil.which("git") is None:
             raise RuntimeError("tmux and git are required")
-        head = _git(self.repo, "rev-parse", "HEAD")
-        if head != self.args.expected_code_commit:
-            raise ValueError(
-                f"code commit mismatch: expected {self.args.expected_code_commit}, got {head}"
-            )
-        if _git(self.repo, "status", "--porcelain"):
-            raise ValueError("repository worktree is not clean")
-        if not _git_commit_is_remote_ancestor(self.repo, head):
-            raise ValueError("pinned code commit is not present in fetched origin/main history")
+        head = self.assert_on_pin("preflight")
         credentials = self.args.credentials.resolve()
         if not credentials.is_file():
             raise FileNotFoundError(credentials)
@@ -480,6 +516,8 @@ class Controller:
         if checkpoint_valid(checkpoint):
             self.log(f"checkpoint verified; skipping {stage}")
             return
+        # OPS-CCZ-01: re-check the pin per unit, and record the HEAD this unit actually saw.
+        observed_commit = self.assert_on_pin(stage)
         existing_pid = self.existing_child_pid(stage)
         if existing_pid is not None:
             self.monitor_existing_child(stage, existing_pid)
@@ -494,6 +532,7 @@ class Controller:
                     "stage": stage,
                     "accepted_at": datetime.now(IST).isoformat(),
                     "recovered_existing_child": True,
+                    "observed_code_commit": observed_commit,
                     "outputs": hash_files(outputs),
                 },
             )
@@ -502,11 +541,16 @@ class Controller:
         missing = [path for path in outputs if not path.is_file()]
         if missing:
             raise FileNotFoundError(f"stage {stage} omitted outputs: {missing}")
+        # OPS-CCZ-01: the pin must still hold after the unit, otherwise the outputs straddle
+        # two revisions and the recorded provenance would be false.
+        completion_commit = self.assert_on_pin(f"{stage}_completion")
         atomic_json(
             checkpoint,
             {
                 "stage": stage,
                 "accepted_at": datetime.now(IST).isoformat(),
+                "observed_code_commit": observed_commit,
+                "observed_code_commit_at_completion": completion_commit,
                 "outputs": hash_files(outputs),
             },
         )
@@ -518,32 +562,6 @@ class Controller:
         self.partial_analysis.mkdir(mode=0o700, parents=True, exist_ok=True)
         seed = "20260820"
         replicates = str(self.args.replicates)
-        scalar_outputs = [
-            self.partial_analysis / "scalar_ofi.json",
-            self.partial_analysis / "scalar_ofi_grid.jsonl",
-            self.partial_analysis / "scalar_ofi_nested.jsonl",
-        ]
-        self.analysis_stage(
-            "scalar_ofi",
-            [
-                str(self.python),
-                "scripts/deepbook_ofi_scan.py",
-                "--tape",
-                str(tape),
-                "--output",
-                str(scalar_outputs[0]),
-                "--grid-output",
-                str(scalar_outputs[1]),
-                "--nested-output",
-                str(scalar_outputs[2]),
-                "--replicates",
-                replicates,
-                "--seed",
-                seed,
-                "--full-session-replication",
-            ],
-            scalar_outputs,
-        )
         cks_outputs = [
             self.partial_analysis / "cks_l1.json",
             self.partial_analysis / "cks_l1_grid.jsonl",
@@ -579,6 +597,7 @@ class Controller:
             self.partial_analysis / "horse_intensity.csv",
             self.partial_analysis / "horse_support.csv",
             self.partial_analysis / "horse_gate.csv",
+            self.partial_analysis / "horse_ccz_arms.csv",
         ]
         self.analysis_stage(
             "horse_race",
@@ -603,6 +622,8 @@ class Controller:
                 str(horse_outputs[6]),
                 "--gate-output",
                 str(horse_outputs[7]),
+                "--ccz-arm-output",
+                str(horse_outputs[8]),
                 "--replicates",
                 replicates,
                 "--seed",
@@ -611,7 +632,7 @@ class Controller:
             ],
             horse_outputs,
         )
-        scalar = json.loads(scalar_outputs[0].read_text(encoding="utf-8"))
+        scalar = json.loads(cks_outputs[0].read_text(encoding="utf-8"))
         horse = json.loads(horse_outputs[0].read_text(encoding="utf-8"))
         summary = build_fixed_lead_summary(scalar, horse)
         summary_path = self.partial_analysis / "fixed_leads.json"
@@ -624,6 +645,7 @@ class Controller:
             "protocol_id": PROTOCOL_ID,
             "registration_commit": REGISTRATION_COMMIT,
             "code_commit": self.args.expected_code_commit,
+            "observed_code_commit_by_unit": dict(self.observed_commits),
             "source_spec": SOURCE_SPEC,
             "source_amendment": SOURCE_AMENDMENT,
             "tape": str(tape),

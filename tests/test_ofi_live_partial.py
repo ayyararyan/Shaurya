@@ -8,8 +8,6 @@ import pytest
 
 from scripts.cks_l1_ofi_scan import _parser as cks_parser
 from scripts.cks_l1_ofi_scan import code_commit as cks_code_commit
-from scripts.deepbook_ofi_scan import _parser as scalar_parser
-from scripts.deepbook_ofi_scan import code_commit as scalar_code_commit
 from scripts.ofi_horserace import _parser as horse_parser
 from scripts.ofi_horserace import code_commit as horse_code_commit
 from shaurya.contracts.timing import IST
@@ -80,7 +78,7 @@ def test_partial_snapshot_rejects_mixed_run_identity(tmp_path: Path) -> None:
         inspect_late_partial_snapshot(tape)
 
 
-@pytest.mark.parametrize("parser_factory", [scalar_parser, cks_parser, horse_parser])
+@pytest.mark.parametrize("parser_factory", [cks_parser, horse_parser])
 def test_partial_and_registered_scopes_are_mutually_exclusive(parser_factory: object) -> None:
     parser = parser_factory()  # type: ignore[operator]
     with pytest.raises(SystemExit):
@@ -89,7 +87,7 @@ def test_partial_and_registered_scopes_are_mutually_exclusive(parser_factory: ob
 
 @pytest.mark.parametrize(
     "commit_reader",
-    [scalar_code_commit, cks_code_commit, horse_code_commit],
+    [cks_code_commit, horse_code_commit],
 )
 def test_partial_scan_provenance_resolves_repo_commit_from_other_cwd(
     tmp_path: Path,
@@ -106,7 +104,7 @@ def test_partial_scan_provenance_resolves_repo_commit_from_other_cwd(
 
 @pytest.mark.parametrize(
     "commit_reader",
-    [scalar_code_commit, cks_code_commit, horse_code_commit],
+    [cks_code_commit, horse_code_commit],
 )
 def test_partial_scan_provenance_honours_validated_pinned_commit(
     monkeypatch: pytest.MonkeyPatch,
@@ -124,4 +122,4 @@ def test_partial_scan_provenance_rejects_invalid_pinned_commit(
     monkeypatch.setenv("SHAURYA_CODE_COMMIT", "not-a-commit")
 
     with pytest.raises(ValueError, match="lowercase 40-character"):
-        scalar_code_commit()
+        cks_code_commit()

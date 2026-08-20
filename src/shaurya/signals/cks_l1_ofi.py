@@ -22,6 +22,12 @@ from typing import Any, Literal
 import numpy as np
 
 from shaurya.data.depth_thinning_analysis import BookState
+from shaurya.signals.ccz_ofi import (
+    PRIMARY_LEVEL_COUNT,
+    CczFlowSeries,
+    average_feature,
+    ccz_metadata,
+)
 from shaurya.signals.deep_book_normal_activity import (
     BLOCK_BOOTSTRAP_REPLICATES,
     BOOTSTRAP_SEED,
@@ -42,7 +48,6 @@ from shaurya.signals.deep_book_ofi import (
     _invalid_transition,
     _label,
     _mid_return,
-    price_keyed_ofi_transition,
 )
 from shaurya.signals.deep_book_response import NANOSECONDS_PER_SECOND
 
@@ -50,6 +55,7 @@ EXPLORATORY_SCAN_ID = "X-CKS-L1-OFI-DAT20-04"
 CONFIRMATORY_ELIGIBLE = False
 DESIGN_DOCUMENT = "docs/CKS-L1-OFI-SPEC-2026-08-19.md"
 AMENDMENT_DOCUMENT = "docs/CKS-L1-OFI-SPEC-AMENDMENT-1-2026-08-19.md"
+MIGRATION_DOCUMENT = "docs/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
 
 #: Response horizons for this scan.  Amendment 1 admits the 0.5 s arm after confirming that the
 #: depth-20 mid resolves to two *different* snapshots at both endpoints in 99.4-99.5% of cases.
@@ -87,14 +93,18 @@ def pressure_feature(window_seconds: float) -> str:
     return f"cks_pressure_w{_label(window_seconds)}"
 
 
-#: Depth cutoff of the `X-OFI-DAT20-03` construction carried alongside purely for comparison.
-COMPARISON_DEPTH_LEVELS = 10
+#: Level count of the CCZ multi-level object carried alongside purely for comparison.
+#: `CCZ-IMPL-05`.  The comparison used to be the retired `X-OFI-DAT20-03` price-keyed top-10 sum;
+#: that construction cumulated across levels and is gone.  The comparator is now the CCZ Appendix
+#: A simple average across the primary ten levels, which needs no fitted component and so can be
+#: materialised at construction time without leaking any training information.
+COMPARISON_DEPTH_LEVELS = PRIMARY_LEVEL_COUNT
 
 
 def comparison_feature(window_seconds: float) -> str:
-    """The `X-OFI-DAT20-03` price-keyed top-10 OFI, carried only to compare the two objects."""
+    """The CCZ ten-level simple-average OFI, carried only to compare the two objects."""
 
-    return f"pk_ofi_w{_label(window_seconds)}__depth_{COMPARISON_DEPTH_LEVELS}"
+    return average_feature(window_seconds, COMPARISON_DEPTH_LEVELS)
 
 
 @dataclass(frozen=True, slots=True)
@@ -244,17 +254,17 @@ def build_cks_l1_observations(
         cks_l1_transition(previous, current)
         for previous, current in zip(depth200_states[:-1], depth200_states[1:], strict=True)
     ]
-    comparison = [
-        price_keyed_ofi_transition(previous, current)
-        for previous, current in zip(depth200_states[:-1], depth200_states[1:], strict=True)
-    ]
+    comparison = CczFlowSeries.from_states(
+        depth200_states,
+        level_counts=(COMPARISON_DEPTH_LEVELS,),
+        invalid_reasons=[transition.invalid_reason for transition in transitions],
+    )
     stamps = [transition.receive_ts_ns for transition in transitions]
     invalid_prefix = [0]
     event_prefix = [0.0]
     depth_prefix = [0.0]
     count_prefix = [0]
-    comparison_prefix = [0.0]
-    for transition, pk in zip(transitions, comparison, strict=True):
+    for transition in transitions:
         invalid_prefix.append(invalid_prefix[-1] + int(transition.invalid_reason is not None))
         valid = transition.invalid_reason is None
         if not valid:
@@ -273,10 +283,6 @@ def build_cks_l1_observations(
         event_prefix.append(event_prefix[-1] + (transition.event if valid else 0.0))
         depth_prefix.append(depth_prefix[-1] + (transition.half_total_depth if valid else 0.0))
         count_prefix.append(count_prefix[-1] + int(valid))
-        comparison_prefix.append(
-            comparison_prefix[-1]
-            + (pk.cumulative_by_depth[COMPARISON_DEPTH_LEVELS] if valid else 0.0)
-        )
     intensities["valid_span_seconds"] = (
         depth200_states[-1].receive_ts_ns - depth200_states[0].receive_ts_ns
     ) / NANOSECONDS_PER_SECOND
@@ -317,9 +323,11 @@ def build_cks_l1_observations(
                 floor_hits.append(window)
             features[ofi_feature(window)] = value
             features[pressure_feature(window)] = value / denominator
-            features[comparison_feature(window)] = (
-                comparison_prefix[right] - comparison_prefix[left]
+            evaluated = comparison.window(
+                left, right, levels=COMPARISON_DEPTH_LEVELS, window_seconds=window
             )
+            if evaluated is not None:
+                features[comparison_feature(window)] = evaluated.simple_average
             mean_depth_by_window[window] = mean_depth
             window_start[window] = stamps[left]
         if not complete:
@@ -1077,7 +1085,12 @@ def build_cks_l1_artifact(
             "code_commit": code_commit,
             "design_document": DESIGN_DOCUMENT,
             "amendment_document": AMENDMENT_DOCUMENT,
-            "compared_against_scan_id": "X-OFI-DAT20-03",
+            "migration_document": MIGRATION_DOCUMENT,
+            "level_one_is_ccz_base_case": "CCZ Eq. (1); retained unchanged by CCZ-IMPL-05",
+            "compared_against": (
+                "CCZ multi-level simple average over the primary ten levels; the retired "
+                "X-OFI-DAT20-03 price-keyed cumulative comparator was removed by D37"
+            ),
             "grid_size": len(grid),
             "models": list(CELL_MODELS),
             "ofi_windows_seconds": list(OFI_WINDOWS_SECONDS),
@@ -1086,6 +1099,11 @@ def build_cks_l1_artifact(
             "minimum_mean_depth_contracts": MINIMUM_MEAN_DEPTH_CONTRACTS,
             "depth_baseline_feature": DEPTH_BASELINE_FEATURE,
         },
+        "ccz": ccz_metadata(
+            level_counts=(COMPARISON_DEPTH_LEVELS,),
+            primary_levels=COMPARISON_DEPTH_LEVELS,
+            aggregation_arms=("simple_average",),
+        ),
         "tapes": [
             {
                 "run_id": tape.run_id,

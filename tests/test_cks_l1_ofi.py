@@ -194,6 +194,18 @@ def test_wrong_channel_is_rejected() -> None:
 # ------------------------------------------------------------------------------------------
 
 
+#: The CCZ comparison arm is defined at ten levels, matching the depth200 feed the scan runs on,
+#: so the synthetic ladder carries ten levels a side rather than three.
+DEEP_LEVELS = 10
+
+
+def _deep_side(best: float, side: str) -> tuple[tuple[float, int, int], ...]:
+    step = -FUTURES_TICK_SIZE if side == "bid" else FUTURES_TICK_SIZE
+    return tuple(
+        (round(best + step * level, 2), 500, 4) for level in range(1, DEEP_LEVELS)
+    )
+
+
 def _synthetic_tape(
     count: int = 2400, *, step_ns: int = 500_000_000, invalid_at: int | None = None
 ) -> tuple[list[BookState], list[BookState]]:
@@ -208,8 +220,14 @@ def _synthetic_tape(
         depth200.append(
             _state(
                 stamp,
-                ((100.0 + drift, quantity, 3), (99.95 + drift, 500, 4), (99.9 + drift, 500, 4)),
-                ((100.05 + drift, 600, 3), (100.1 + drift, 500, 4), (100.15 + drift, 500, 4)),
+                (
+                    (100.0 + drift, quantity, 3),
+                    *_deep_side(100.0 + drift, "bid"),
+                ),
+                (
+                    (100.05 + drift, 600, 3),
+                    *_deep_side(100.05 + drift, "ask"),
+                ),
                 epoch=epoch,
             )
         )
@@ -240,8 +258,8 @@ def _one_tick_per_publication_tape(
     for index in range(count):
         stamp = 10_000_000_000 + index * step_ns
         drift = FUTURES_TICK_SIZE * index
-        bids = ((100.0 + drift, 400, 3), (99.95 + drift, 500, 4), (99.9 + drift, 500, 4))
-        asks = ((100.05 + drift, 600, 3), (100.1 + drift, 500, 4), (100.15 + drift, 500, 4))
+        bids = ((100.0 + drift, 400, 3), *_deep_side(100.0 + drift, "bid"))
+        asks = ((100.05 + drift, 600, 3), *_deep_side(100.05 + drift, "ask"))
         depth200.append(_state(stamp, bids, asks))
         depth20.append(_state(stamp, bids[:1], asks[:1], channel=DEPTH20))
     return depth200, depth20
@@ -485,7 +503,12 @@ def test_the_artifact_refuses_a_confirmatory_reading() -> None:
     assert isinstance(protocol, dict)
     assert protocol["confirmatory_eligible"] is False
     assert protocol["part_of_h_sig21"] is False
-    assert protocol["compared_against_scan_id"] == "X-OFI-DAT20-03"
+    assert "CCZ multi-level simple average" in protocol["compared_against"]
+    assert protocol["level_one_is_ccz_base_case"].startswith("CCZ Eq. (1)")
+    # VAL-CCZ-08: every artifact carries the estimator, its level count and the limitation.
+    assert artifact["ccz"]["estimator"] == "CCZ"
+    assert artifact["ccz"]["primary_level_count"] == 10
+    assert "ID-CCZ-01" in artifact["ccz"]["limitation"]
 
 
 def test_grid_refuses_a_sample_too_small_to_fit() -> None:

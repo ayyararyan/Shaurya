@@ -9,27 +9,39 @@ import pytest
 from scripts.ofi_horserace import _ablation_csv, _gate_csv, _intensity_csv, _support_csv
 from shaurya.data.depth_thinning_analysis import DEPTH20, DEPTH200, BookState, parse_receive_ts_ns
 from shaurya.data.trade_direction import TRADE_ALIGNMENT_VERSION, TRADE_CLASSIFIER_VERSION
+from shaurya.signals.ccz_ofi import (
+    average_feature,
+    best_level_feature,
+    denominator_feature,
+    fit_integrated_weights,
+    level_feature,
+    normalised_level_feature,
+)
 from shaurya.signals.deep_book_normal_activity import SplitIndex
 from shaurya.signals.ofi_horserace import (
-    BANDS,
+    CCZ_LEVEL_COUNTS,
+    CCZ_PRIMARY_LEVELS,
     MINIMUM_TRADE_PACKETS,
     MODEL_ORDER,
     OFI_WINDOWS_SECONDS,
     RETURN_HORIZONS_SECONDS,
     HorseRaceObservation,
     _direction_by_tape,
-    adjusted_band_feature,
     assert_no_lookahead,
+    build_ccz_arm_design,
     build_horserace_observations,
     build_trade_series,
+    ccz_feature_schema,
+    ccz_normalised_features,
+    ccz_raw_features,
     cks_feature,
     cks_pressure_feature,
+    evaluate_ccz_aggregation_arms,
     evaluate_cells,
     evaluate_combined_ablations,
     evaluate_normalised_subarms,
     model_features,
     normalised_trade_feature,
-    pk_band_feature,
     resolve_30_second_gate,
     select_ridge_alpha,
     trade_feature,
@@ -169,33 +181,42 @@ def test_construction_uses_canonical_cks_and_causal_depth_adjustment(
     final = observations[-1]
     assert final.features[cks_feature(0.5)] > 0
     assert final.features[cks_pressure_feature(0.5)] > 0
-    for lower, upper in BANDS:
-        flow = final.features[pk_band_feature(0.5, lower, upper)]
-        adjusted = final.features[adjusted_band_feature(0.5, lower, upper)]
-        assert abs(adjusted) <= abs(flow) or flow == 0
+    # CCZ Eq. (3): one common denominator divides every level, so the ratio of any two scaled
+    # levels equals the ratio of their raw flows.  A per-band denominator would break this.
+    denominator = final.features[denominator_feature(0.5, CCZ_PRIMARY_LEVELS)]
+    assert denominator > 0.0
+    for level in range(1, CCZ_PRIMARY_LEVELS + 1):
+        raw = final.features[level_feature(0.5, level)]
+        scaled = final.features[normalised_level_feature(0.5, level, CCZ_PRIMARY_LEVELS)]
+        assert scaled == pytest.approx(raw / denominator)
     assert final.features[trade_feature(10.0)] == 0.0  # no print in the final 10 seconds
     assert normalised_trade_feature(10.0) not in final.features
     assert_no_lookahead(observations)
 
 
-def test_empty_depth_band_is_missing_not_divided_by_floor() -> None:
+def test_unsupported_level_count_is_missing_not_zero_filled() -> None:
     depth200 = [
         replace(_state(index), bids=_state(index).bids[:100], asks=_state(index).asks[:100])
         for index in range(100)
     ]
     depth20 = [_state(index, channel=DEPTH20) for index in range(170)]
-    observations, _ = build_horserace_observations(
+    observations, failures = build_horserace_observations(
         depth200_states=depth200,
         depth20_states=depth20,
         rows=[_trade_row(index, "buy") for index in range(MINIMUM_TRADE_PACKETS + 5)],
         tape_index=0,
-        run_id="empty-band",
+        run_id="shallow-book",
     )
     assert observations
+    assert failures["ccz_level_support_missing"]["200"] > 0
     for observation in observations:
         for window in OFI_WINDOWS_SECONDS:
-            assert pk_band_feature(window, 101, 200) in observation.features
-            assert adjusted_band_feature(window, 101, 200) not in observation.features
+            # A hundred-level book supports every declared arm through M = 20 and none at 200.
+            assert denominator_feature(window, 20) in observation.features
+            assert denominator_feature(window, 200) not in observation.features
+            # Raw levels are materialised only up to the deepest supported declared M.
+            assert level_feature(window, 20) in observation.features
+            assert level_feature(window, 21) not in observation.features
 
 
 def test_no_lookahead_guard_rejects_open_boundary_or_future_window() -> None:
@@ -230,9 +251,16 @@ def _synthetic_observation(index: int, *, test_shift: float = 0.0) -> HorseRaceO
         features[normalised_trade_feature(window)] = signal / 5
         features[cks_feature(window)] = signal * 3
         features[cks_pressure_feature(window)] = signal / 4
-        for band_index, band in enumerate(BANDS, start=1):
-            features[pk_band_feature(window, *band)] = signal * band_index
-            features[adjusted_band_feature(window, *band)] = signal / band_index
+        for count in CCZ_LEVEL_COUNTS:
+            features[denominator_feature(window, count)] = 40.0 + count
+            features[average_feature(window, count)] = signal / (count + 1)
+        features[best_level_feature(window)] = signal / 40.0
+        for level in range(1, max(CCZ_LEVEL_COUNTS) + 1):
+            features[level_feature(window, level)] = signal * level / 10.0
+        for level in range(1, CCZ_PRIMARY_LEVELS + 1):
+            features[normalised_level_feature(window, level, CCZ_PRIMARY_LEVELS)] = (
+                signal * level / 500.0
+            )
     targets = {
         horizon: 0.4 * signal + horizon / 20 + test_shift for horizon in RETURN_HORIZONS_SECONDS
     }
@@ -317,15 +345,18 @@ def test_evaluation_emits_complete_common_sample_and_training_standardisation() 
     assert all(set(row["per_tape"]) == {"0", "1"} for row in rows)
     for row in rows:
         if row["model"] in {"M4", "M5"}:
-            diagnostics = row["band_contribution_diagnostics"]
-            assert len(diagnostics["bands"]) == len(BANDS)
+            diagnostics = row["level_contribution_diagnostics"]
+            assert len(diagnostics["levels"]) == CCZ_PRIMARY_LEVELS
             assert "held-out contribution" in diagnostics["definition"]
-            assert all(band["test_n"] == 30 for band in diagnostics["bands"])
+            assert all(level["test_n"] == 30 for level in diagnostics["levels"])
+            assert [level["level"] for level in diagnostics["levels"]] == list(
+                range(1, CCZ_PRIMARY_LEVELS + 1)
+            )
 
 
-def test_empty_adjusted_band_enforces_primary_common_complete_case() -> None:
+def test_missing_scaled_level_enforces_primary_common_complete_case() -> None:
     observations = [_synthetic_observation(index) for index in range(120)]
-    feature = adjusted_band_feature(1.0, *BANDS[-1])
+    feature = normalised_level_feature(1.0, CCZ_PRIMARY_LEVELS, CCZ_PRIMARY_LEVELS)
     for index in range(0, len(observations), 4):
         features = dict(observations[index].features)
         del features[feature]
@@ -515,11 +546,83 @@ def test_fixed_seed_cell_output_is_deterministic() -> None:
     assert first == second
 
 
-def test_depth_adjusted_features_remain_finite() -> None:
+def test_depth_scaled_features_remain_finite() -> None:
     observation = _synthetic_observation(3)
     values = [
-        observation.features[adjusted_band_feature(window, *band)]
+        observation.features[name]
         for window in OFI_WINDOWS_SECONDS
-        for band in BANDS
+        for name in ccz_normalised_features(window, CCZ_PRIMARY_LEVELS)
     ]
     assert np.isfinite(values).all()
+
+
+def test_ccz_aggregation_arms_cover_every_declared_arm_and_level_count() -> None:
+    """`EST-CCZ-05` and `EST-CCZ-06`: no declared arm or level count is dropped."""
+
+    observations = [_synthetic_observation(index) for index in range(120)]
+    split = SplitIndex(
+        train=tuple(range(80)),
+        embargoed=tuple(range(80, 90)),
+        test=tuple(range(90, 120)),
+        embargo_seconds=120.0,
+        boundaries=(),
+    )
+
+    rows = evaluate_ccz_aggregation_arms(
+        observations,
+        split,
+        horizons=(1.0,),
+        level_counts=(1, 5, 10),
+        replicates=3,
+        seed=5,
+    )
+
+    assert {row["levels"] for row in rows} == {1, 5, 10}
+    assert {row["arm"] for row in rows} == {
+        "per_level_pi",
+        "integrated",
+        "simple_average",
+        "best_level",
+    }
+    assert all(row["estimator"] == "CCZ" for row in rows)
+    assert len(rows) == len(OFI_WINDOWS_SECONDS) * 3 * 4
+    estimated = [row for row in rows if row["status"] == "estimated"]
+    assert estimated
+    assert all(0.0 <= row["explained_variance_ratio"] <= 1.0 for row in estimated)
+    integrated = [row for row in estimated if row["arm"] == "integrated"]
+    assert all(row["primary_arm"] for row in integrated)
+    assert all(row["integrated_weights"]["fitted_on"] == "training_rows_only" for row in integrated)
+
+
+def test_integrated_weights_ignore_test_rows_entirely() -> None:
+    """`VAL-CCZ-04`: mutating held-out rows cannot move the fitted first component."""
+
+    observations = [_synthetic_observation(index) for index in range(120)]
+    train = tuple(range(80))
+    design = build_ccz_arm_design(observations, train, window=1.0, levels=CCZ_PRIMARY_LEVELS)
+    before = fit_integrated_weights(design.normalised)
+
+    contaminated = list(observations)
+    for index in range(90, 120):
+        features = dict(contaminated[index].features)
+        for level in range(1, CCZ_PRIMARY_LEVELS + 1):
+            features[level_feature(1.0, level)] = 10_000.0
+        contaminated[index] = replace(contaminated[index], features=features)
+    after_design = build_ccz_arm_design(
+        contaminated, train, window=1.0, levels=CCZ_PRIMARY_LEVELS
+    )
+    after = fit_integrated_weights(after_design.normalised)
+
+    assert before.weights == after.weights
+
+
+def test_feature_schema_declares_every_name_the_builder_writes() -> None:
+    schema = ccz_feature_schema(CCZ_LEVEL_COUNTS)
+    for window in OFI_WINDOWS_SECONDS:
+        for name in (
+            *ccz_raw_features(window, max(CCZ_LEVEL_COUNTS)),
+            *ccz_normalised_features(window, CCZ_PRIMARY_LEVELS),
+            best_level_feature(window),
+            cks_feature(window),
+        ):
+            assert schema.position(name) is not None

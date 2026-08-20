@@ -1,5 +1,11 @@
 """ANL-06 dynamic order-flow-imbalance walk-forward dashboard.
 
+`CCZ-IMPL-06`.  Every order-flow quantity this dashboard consumes is the Cont-Cucuringu-Zhang
+estimator from :mod:`shaurya.signals.ccz_ofi`: ``M4`` is Eq. (2) per level with no sum across
+levels, ``M5`` is Eq. (3) with one common depth denominator for all levels, and ``M3`` is the
+Eq. (1) level-one CKS base case.  The published payload carries the estimator name, the level
+count, the integrated arm's explained-variance ratio, and the ``ID-CCZ-01`` limitation.
+
 This module is deliberately file driven and read-only.  It imports the frozen horse-race
 implementation for observation construction, model feature selection, fitting, regularisation,
 dependence estimates and collinearity diagnostics.  It contains no broker, credential, socket or
@@ -34,6 +40,7 @@ from shaurya.data.depth_thinning_analysis import (
     build_states,
     parse_receive_ts_ns,
 )
+from shaurya.signals.ccz_ofi import ccz_metadata, fit_integrated_weights
 from shaurya.signals.deep_book_normal_activity import (
     SplitIndex,
     _r_squared,
@@ -43,11 +50,14 @@ from shaurya.signals.deep_book_normal_activity import (
 from shaurya.signals.deep_book_ofi import CAUSAL_GAP_SECONDS, OFI_WINDOWS_SECONDS, _mid_return
 from shaurya.signals.deep_book_response import NANOSECONDS_PER_SECOND
 from shaurya.signals.ofi_horserace import (
+    CCZ_LEVEL_COUNTS,
+    CCZ_PRIMARY_LEVELS,
     MODEL_ORDER,
     RETURN_HORIZONS_SECONDS,
     HorseRaceObservation,
     _collinearity,
     _fit_score,
+    build_ccz_arm_design,
     build_horserace_observations,
     evaluate_cells,
     evaluate_same_window,
@@ -56,6 +66,7 @@ from shaurya.signals.ofi_horserace import (
 
 SCAN_ID = "X-OFI-DASHBOARD-2026-08-20"
 DESIGN_DOCUMENT = "docs/OFI-DASHBOARD-SPEC-2026-08-20.md"
+MIGRATION_DOCUMENT = "docs/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
 CELL_COUNT = len(MODEL_ORDER) * len(OFI_WINDOWS_SECONDS) * len(RETURN_HORIZONS_SECONDS)
 DEFAULT_TEST_BLOCK_SECONDS = 120.0
 DEFAULT_REFIT_CADENCE_SECONDS = 60.0
@@ -1142,6 +1153,7 @@ class OfiDashboardEngine:
         self.last_completed_refit_wall_clock: str | None = None
         self.last_completed_refit_monotonic: float | None = None
         self.refits_completed = 0
+        self.ccz_integrated: dict[str, Any] = {}
         self.refits_skipped = 0
         self.fit_in_progress = False
         self.history: list[dict[str, Any]] = []
@@ -1245,6 +1257,7 @@ class OfiDashboardEngine:
                         partitions[0].as_split_index(),
                         trade_identified=self.trade_identified,
                     )
+                    self.ccz_integrated = self._integrated_arm_diagnostics(partitions)
                     self._record_snapshot(
                         block_index=partitions[0].block_index,
                         tape_refit_ts_ns=partitions[0].test_end_ts_ns,
@@ -1268,6 +1281,32 @@ class OfiDashboardEngine:
                 self.refits_skipped += overrun
                 self.fit_in_progress = False
         return snapshots
+
+    def _integrated_arm_diagnostics(
+        self, partitions: Sequence[BlockPartition]
+    ) -> dict[str, Any]:
+        """`EST-CCZ-04`: fit ``w_1`` on this block's training rows only and report the EVR.
+
+        The weights are never fitted on, and never see, a test row.  A window without complete
+        primary-level support is reported as unavailable rather than given a fabricated ratio.
+        """
+
+        partition = partitions[0]
+        result: dict[str, Any] = {}
+        for h1 in OFI_WINDOWS_SECONDS:
+            key = f"w{h1:g}__m{CCZ_PRIMARY_LEVELS}"
+            design = build_ccz_arm_design(
+                self.observations,
+                partition.train,
+                window=float(h1),
+                levels=CCZ_PRIMARY_LEVELS,
+            )
+            if len(design.positions) < 2:
+                result[key] = {"status": "INSUFFICIENT", "explained_variance_ratio": None}
+                continue
+            weights = fit_integrated_weights(design.normalised)
+            result[key] = {"status": "ESTIMATED", **weights.to_dict()}
+        return result
 
     def _record_snapshot(self, *, block_index: int | None, tape_refit_ts_ns: int | None) -> None:
         self._update_churn()
@@ -1371,6 +1410,19 @@ class OfiDashboardEngine:
                         "schema_version": 1,
                         "scan_id": SCAN_ID,
                         "design_document": DESIGN_DOCUMENT,
+                        "migration_document": MIGRATION_DOCUMENT,
+                        "ccz": ccz_metadata(
+                            level_counts=CCZ_LEVEL_COUNTS,
+                            primary_levels=CCZ_PRIMARY_LEVELS,
+                            explained_variance_ratio={
+                                key: value.get("explained_variance_ratio")
+                                for key, value in self.ccz_integrated.items()
+                            },
+                            denominator_floor_events=self.construction_failures.get(
+                                "ccz_depth_denominator_floored"
+                            ),
+                        ),
+                        "ccz_integrated_weights": self.ccz_integrated,
                         "confirmatory_eligible": False,
                         "read_only": True,
                         "no_socket": True,
@@ -1434,6 +1486,14 @@ class OfiDashboardEngine:
         with self._lock:
             return {
                 "scan_id": SCAN_ID,
+                "ccz": ccz_metadata(
+                    level_counts=CCZ_LEVEL_COUNTS,
+                    primary_levels=CCZ_PRIMARY_LEVELS,
+                    explained_variance_ratio={
+                        key: value.get("explained_variance_ratio")
+                        for key, value in self.ccz_integrated.items()
+                    },
+                ),
                 "cell_count": len(self.cells),
                 "trade_support": _json_safe(self.construction_failures.get("trade_support", {})),
                 "cells": _json_safe(self.cells),
@@ -1444,8 +1504,16 @@ class OfiDashboardEngine:
             return None
         return self.artifact_sink.close(
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "scan_id": SCAN_ID,
+                "ccz": ccz_metadata(
+                    level_counts=CCZ_LEVEL_COUNTS,
+                    primary_levels=CCZ_PRIMARY_LEVELS,
+                    explained_variance_ratio={
+                        key: value.get("explained_variance_ratio")
+                        for key, value in self.ccz_integrated.items()
+                    },
+                ),
                 "run_id": self.run_id,
                 "drive_mode": self.drive_mode,
                 "tape_identity": self.tape_identity,

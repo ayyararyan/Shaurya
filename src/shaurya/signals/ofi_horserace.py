@@ -1,8 +1,26 @@
 """Frozen exploratory predictor horse race `X-OFI-HORSERACE-DAT20-05`.
 
 The module compares depth, static imbalance, identified signed trades, canonical CKS L1 OFI,
-price-keyed multi-level OFI, depth-adjusted multi-level OFI, and a regularised combination.  It
+raw multi-level CCZ OFI, depth-scaled multi-level CCZ OFI, and a regularised combination.  It
 uses only information available at each depth200 anchor and is permanently non-confirmatory.
+
+`CCZ-IMPL-03` and `CCZ-IMPL-04`.  The multi-level families were migrated to Cont-Cucuringu-Zhang
+(arXiv:2112.13213v4) under `D37 / CCZ-OFI-MIGRATION-2026-08-20`.  Two defects were removed:
+
+* `M4` no longer consumes price-keyed flow accumulated across levels; it is CCZ Eq. (2) per level,
+  with no sum over levels anywhere, and
+* `M5` no longer divides each disjoint band by *that band's own* mean depth; it is CCZ Eq. (3),
+  where a **single common** ``Q^{M,h}`` divides every level so relative cross-level magnitudes
+  survive the scaling.
+
+`M3` remains the level-one CKS (2014) event increment, which is CCZ Eq. (1)'s base case and the
+best-level arm of `EST-CCZ-05`.  The remaining declared aggregation arms — Eq. (19) ``PI^[m]``,
+the Eq. (4) integrated OFI, and the Appendix A simple average — are evaluated across every
+declared level count by :func:`evaluate_ccz_aggregation_arms`.
+
+Pre-migration and post-migration numbers are **not** comparable and must never be pooled without
+an explicit estimator column.  The snapshot relabelling limitation `ID-CCZ-01` is carried in every
+artifact this module produces.
 """
 
 from __future__ import annotations
@@ -17,6 +35,23 @@ import numpy as np
 
 from shaurya.data.depth_thinning_analysis import BookState, parse_receive_ts_ns
 from shaurya.data.trade_direction import TRADE_ALIGNMENT_VERSION, TRADE_CLASSIFIER_VERSION
+from shaurya.signals.ccz_ofi import (
+    DECLARED_LEVEL_COUNTS,
+    PRIMARY_AGGREGATION_ARM,
+    PRIMARY_LEVEL_COUNT,
+    CczFeatureSchema,
+    CczFeatureVector,
+    CczFlowSeries,
+    IntegratedWeights,
+    average_feature,
+    best_level_feature,
+    ccz_metadata,
+    denominator_feature,
+    fit_integrated_weights,
+    integrated_feature,
+    level_feature,
+    normalised_level_feature,
+)
 from shaurya.signals.cks_l1_ofi import cks_l1_transition
 from shaurya.signals.deep_book_normal_activity import (
     BLOCK_BOOTSTRAP_REPLICATES,
@@ -35,32 +70,47 @@ from shaurya.signals.deep_book_ofi import (
     OFI_WINDOWS_SECONDS,
     _controls,
     _mid_return,
-    price_keyed_ofi_transition,
 )
 from shaurya.signals.deep_book_response import NANOSECONDS_PER_SECOND
 
 EXPLORATORY_SCAN_ID = "X-OFI-HORSERACE-DAT20-05"
 CONFIRMATORY_ELIGIBLE = False
 DESIGN_DOCUMENT = "docs/OFI-HORSERACE-SPEC-2026-08-19.md"
+MIGRATION_DOCUMENT = "docs/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
 RETURN_HORIZONS_SECONDS = (0.5, 1.0, 2.0, 5.0, 10.0)
 CONDITIONAL_HORIZON_SECONDS = 30.0
-BANDS = ((1, 1), (2, 5), (6, 10), (11, 20), (21, 50), (51, 100), (101, 200))
+
+#: `EST-CCZ-06`.  ``M = 10`` is primary; ``M in {1, 5, 20, 200}`` are declared robustness arms.
+CCZ_LEVEL_COUNTS = DECLARED_LEVEL_COUNTS
+CCZ_PRIMARY_LEVELS = PRIMARY_LEVEL_COUNT
+
+#: `EST-CCZ-05`.  The scalar aggregation arms evaluated at every declared level count.
+CCZ_SCALAR_ARMS = ("integrated", "simple_average", "best_level")
+CCZ_AGGREGATION_ARMS = ("per_level_pi", *CCZ_SCALAR_ARMS)
+
 RIDGE_ALPHAS = (0.0, 0.01, 0.1, 1.0, 10.0, 100.0)
 MODEL_ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6")
+#: Families whose design matrix is wide enough to need the inner-CV ridge penalty.
+REGULARISED_MODELS = ("M4", "M5", "M6", "ccz_per_level_pi")
 MINIMUM_FIT_OBSERVATIONS = 20
 MINIMUM_TRADE_PACKETS = 20
+BASELINE_FEATURES = ("log1p_l1_depth", "spread_ticks")
 
 
 def _label(value: float) -> str:
     return str(value).replace(".", "p").rstrip("0").rstrip("p")
 
 
-def pk_band_feature(window: float, lower: int, upper: int) -> str:
-    return f"pk_ofi_w{_label(window)}__band_{lower}_{upper}"
+def ccz_raw_features(window: float, levels: int = CCZ_PRIMARY_LEVELS) -> tuple[str, ...]:
+    """`EST-CCZ-02`: raw ``OFI^{m,h}`` for each level, entered separately, never cumulated."""
+
+    return tuple(level_feature(window, level) for level in range(1, levels + 1))
 
 
-def adjusted_band_feature(window: float, lower: int, upper: int) -> str:
-    return f"depth_adjusted_pk_ofi_w{_label(window)}__band_{lower}_{upper}"
+def ccz_normalised_features(window: float, levels: int = CCZ_PRIMARY_LEVELS) -> tuple[str, ...]:
+    """`EST-CCZ-03`: ``ofi^{m,h}`` for each level, all divided by one common ``Q^{M,h}``."""
+
+    return tuple(normalised_level_feature(window, level, levels) for level in range(1, levels + 1))
 
 
 def cks_feature(window: float) -> str:
@@ -206,12 +256,31 @@ class HorseRaceObservation:
     connection_epoch: int = 1
 
 
-def _band_depths(state: BookState) -> dict[tuple[int, int], float | None]:
-    result: dict[tuple[int, int], float | None] = {}
-    for lower, upper in BANDS:
-        levels = (*state.bids[lower - 1 : upper], *state.asks[lower - 1 : upper])
-        result[(lower, upper)] = float(sum(level[1] for level in levels)) if levels else None
-    return result
+def ccz_feature_schema(level_counts: Sequence[int] = CCZ_LEVEL_COUNTS) -> CczFeatureSchema:
+    """Declare every feature name once so per-anchor vectors stay dense and interned.
+
+    The ``M = 200`` arm alone declares one thousand per-level names across five windows, so a
+    plain per-anchor ``dict`` would dominate live-dashboard memory.  The schema is shared.
+    """
+
+    counts = tuple(sorted({int(value) for value in level_counts}))
+    names: list[str] = [*BASELINE_FEATURES, "l1_queue_imbalance", "microprice_tilt_ticks"]
+    for window in OFI_WINDOWS_SECONDS:
+        names.extend(
+            (
+                cks_feature(window),
+                cks_pressure_feature(window),
+                trade_feature(window),
+                normalised_trade_feature(window),
+                best_level_feature(window),
+            )
+        )
+        names.extend(level_feature(window, level) for level in range(1, counts[-1] + 1))
+        for count in counts:
+            names.append(denominator_feature(window, count))
+            names.append(average_feature(window, count))
+        names.extend(ccz_normalised_features(window, CCZ_PRIMARY_LEVELS))
+    return CczFeatureSchema(names)
 
 
 def build_horserace_observations(
@@ -221,15 +290,22 @@ def build_horserace_observations(
     rows: Sequence[Mapping[str, Any]],
     tape_index: int,
     run_id: str,
+    level_counts: Sequence[int] = CCZ_LEVEL_COUNTS,
 ) -> tuple[list[HorseRaceObservation], dict[str, Any]]:
     """Construct all predictors and responses at one common causal anchor clock."""
 
+    counts = tuple(sorted({int(value) for value in level_counts}))
+    if CCZ_PRIMARY_LEVELS not in counts:
+        raise ValueError("the primary CCZ level count must be declared")
+    schema = ccz_feature_schema(counts)
     failures: dict[str, Any] = {
         "invalid_transition": 0,
         "incomplete_history": 0,
         "unusable_state": 0,
         "no_response_anchor": 0,
         "no_future_coverage": 0,
+        "ccz_depth_denominator_floored": 0,
+        "ccz_level_support_missing": {str(count): 0 for count in counts},
     }
     trades = build_trade_series(rows)
     failures["trade_support"] = {
@@ -249,44 +325,23 @@ def build_horserace_observations(
         cks_l1_transition(previous, current)
         for previous, current in zip(depth200_states[:-1], depth200_states[1:], strict=True)
     ]
-    pk = [
-        price_keyed_ofi_transition(previous, current)
-        for previous, current in zip(depth200_states[:-1], depth200_states[1:], strict=True)
-    ]
+    reasons = [transition.invalid_reason for transition in cks]
+    series = CczFlowSeries.from_states(
+        depth200_states, level_counts=counts, invalid_reasons=reasons
+    )
     stamps = [transition.receive_ts_ns for transition in cks]
     invalid_prefix = [0]
     cks_prefix = [0.0]
     l1_depth_prefix = [0.0]
-    pk_prefix = {band: [0.0] for band in BANDS}
-    depth_prefix = {band: [0.0] for band in BANDS}
-    band_presence_prefix = {band: [0] for band in BANDS}
     count_prefix = [0]
-    for transition, pk_transition, state in zip(cks, pk, depth200_states[1:], strict=True):
-        valid = transition.invalid_reason is None and pk_transition.invalid_reason is None
+    for transition in cks:
+        valid = transition.invalid_reason is None
         invalid_prefix.append(invalid_prefix[-1] + int(not valid))
         failures["invalid_transition"] += int(not valid)
         cks_prefix.append(cks_prefix[-1] + (transition.event if valid else 0.0))
         l1_depth_prefix.append(
             l1_depth_prefix[-1] + (transition.half_total_depth if valid else 0.0)
         )
-        depths = _band_depths(state)
-        previous_depth_value = 0.0
-        previous_cutoff = 0
-        for band in BANDS:
-            _, upper = band
-            cumulative = pk_transition.cumulative_by_depth[upper] if valid else 0.0
-            marginal = cumulative - previous_depth_value
-            pk_prefix[band].append(pk_prefix[band][-1] + marginal)
-            depth = depths[band]
-            depth_prefix[band].append(
-                depth_prefix[band][-1] + (depth if valid and depth is not None else 0.0)
-            )
-            band_presence_prefix[band].append(
-                band_presence_prefix[band][-1] + int(valid and depth is not None)
-            )
-            previous_depth_value = cumulative
-            previous_cutoff = upper
-        del previous_cutoff
         count_prefix.append(count_prefix[-1] + int(valid))
     mid_series = build_depth20_mid_series(depth20_states)
     observations: list[HorseRaceObservation] = []
@@ -311,6 +366,7 @@ def build_horserace_observations(
             continue
         features: dict[str, float] = {
             "spread_ticks": controls["spread_ticks"],
+            "microprice_tilt_ticks": controls["microprice_tilt_ticks"],
             "log1p_l1_depth": log1p(total_l1),
             "l1_queue_imbalance": (bid_quantity - ask_quantity) / total_l1,
         }
@@ -335,16 +391,26 @@ def build_horserace_observations(
             features[trade_feature(window)] = signed_trade
             if absolute_trade > 0:
                 features[normalised_trade_feature(window)] = signed_trade / absolute_trade
-            for band in BANDS:
-                lower, upper = band
-                flow = pk_prefix[band][right] - pk_prefix[band][left]
-                features[pk_band_feature(window, lower, upper)] = flow
-                band_support = band_presence_prefix[band][right] - band_presence_prefix[band][left]
-                if band_support == covered:
-                    mean_depth = (depth_prefix[band][right] - depth_prefix[band][left]) / covered
-                    features[adjusted_band_feature(window, lower, upper)] = flow / max(
-                        mean_depth, 1.0
-                    )
+            primary = None
+            for count in counts:
+                evaluated = series.window(left, right, levels=count, window_seconds=window)
+                if evaluated is None:
+                    failures["ccz_level_support_missing"][str(count)] += 1
+                    continue
+                if evaluated.denominator_floored:
+                    failures["ccz_depth_denominator_floored"] += 1
+                features[denominator_feature(window, count)] = evaluated.denominator
+                features[average_feature(window, count)] = evaluated.simple_average
+                for level, raw_value in enumerate(evaluated.raw, start=1):
+                    features[level_feature(window, level)] = raw_value
+                if count == CCZ_PRIMARY_LEVELS:
+                    primary = evaluated
+                    features[best_level_feature(window)] = evaluated.best_level
+                    for level, scaled in enumerate(evaluated.normalised, start=1):
+                        features[normalised_level_feature(window, level, count)] = scaled
+            if primary is None:
+                complete = False
+                break
             window_starts[window] = stamps[left]
         if not complete:
             failures["incomplete_history"] += 1
@@ -380,7 +446,7 @@ def build_horserace_observations(
                 tape_index=tape_index,
                 run_id=run_id,
                 receive_ts_ns=state.receive_ts_ns,
-                features=features,
+                features=CczFeatureVector.build(schema, features),
                 future_ticks=future,
                 past_ticks=past,
                 same_window_ticks=same,
@@ -416,23 +482,30 @@ def assert_no_lookahead(observations: Sequence[HorseRaceObservation]) -> None:
 
 
 def model_features(model: str, window: float, *, trade_identified: bool) -> tuple[str, ...]:
-    baseline = ("log1p_l1_depth", "spread_ticks")
-    pk_names = tuple(pk_band_feature(window, *band) for band in BANDS)
-    adjusted = tuple(adjusted_band_feature(window, *band) for band in BANDS)
+    """Feature sets for the frozen horse race, with the multi-level families now CCZ.
+
+    ``M4`` is CCZ Eq. (2) per level and ``M5`` is CCZ Eq. (3) per level under one common
+    denominator.  Neither cumulates across levels and neither uses a per-band denominator.
+    ``M3`` is the level-one CKS increment, which is Eq. (1)'s base case.
+    """
+
+    baseline = BASELINE_FEATURES
+    raw = ccz_raw_features(window, CCZ_PRIMARY_LEVELS)
+    normalised = ccz_normalised_features(window, CCZ_PRIMARY_LEVELS)
     specifications = {
         "M0": baseline,
         "M1": (*baseline, "l1_queue_imbalance"),
         "M2": (*baseline, trade_feature(window)) if trade_identified else (),
         "M3": (*baseline, cks_feature(window)),
-        "M4": (*baseline, *pk_names),
-        "M5": (*baseline, *adjusted),
+        "M4": (*baseline, *raw),
+        "M5": (*baseline, *normalised),
         "M6": (
             *baseline,
             "l1_queue_imbalance",
             *((trade_feature(window),) if trade_identified else ()),
             cks_feature(window),
-            *pk_names,
-            *adjusted,
+            *raw,
+            *normalised,
         ),
     }
     if model not in specifications:
@@ -589,7 +662,7 @@ def _fit_score(
     test_target = raw_test - drift
     train_design = _design(observations, train, names)
     test_design = _design(observations, test, names)
-    regularised = model in {"M4", "M5", "M6"}
+    regularised = model in REGULARISED_MODELS
     alpha, cv = (
         select_ridge_alpha(observations, train, names=names, horizon=horizon, source=source)
         if regularised
@@ -713,7 +786,7 @@ def _direction_by_tape(
     return result
 
 
-def _band_contribution_diagnostics(
+def _level_contribution_diagnostics(
     observations: Sequence[HorseRaceObservation],
     train: Sequence[int],
     test: Sequence[int],
@@ -724,10 +797,19 @@ def _band_contribution_diagnostics(
     source: Literal["future", "past"],
     score: FittedScore,
 ) -> dict[str, Any]:
-    """Decompose a fitted Ridge family into auditable per-band held-out contributions."""
+    """Decompose a fitted Ridge family into auditable per-CCZ-level held-out contributions.
 
-    prefix = "pk_ofi_" if model == "M4" else "depth_adjusted_pk_ofi_"
-    feature_indices = [index for index, name in enumerate(names) if name.startswith(prefix)]
+    Levels are reported individually because CCZ never cumulate; a level's contribution here is
+    that level's own flow, not a running total through it.
+    """
+
+    family = ccz_raw_features(0.0) if model == "M4" else ccz_normalised_features(0.0)
+    suffix = tuple(name.split("__", 1)[1] for name in family)
+    feature_indices = [
+        index
+        for index, name in enumerate(names)
+        if name.startswith("ccz_ofi_") and name.split("__", 1)[-1] in suffix
+    ]
     test_design = _design(observations, test, names)
     standardised_test = (test_design - score.fit.centre) / score.fit.scale
     tape_fits: dict[int, Any] = {}
@@ -744,7 +826,7 @@ def _band_contribution_diagnostics(
         )
 
     rows: list[dict[str, Any]] = []
-    for feature_index, band in zip(feature_indices, BANDS, strict=True):
+    for level, feature_index in enumerate(feature_indices, start=1):
         feature = names[feature_index]
         contribution = standardised_test[:, feature_index] * score.fit.coefficients[feature_index]
         per_tape: dict[str, Any] = {}
@@ -769,7 +851,7 @@ def _band_contribution_diagnostics(
         signs = [int(value > 0) - int(value < 0) for value in tape_coefficients]
         rows.append(
             {
-                "band": [band[0], band[1]],
+                "level": level,
                 "feature": feature,
                 "train_n": len(train),
                 "test_n": len(test),
@@ -795,9 +877,10 @@ def _band_contribution_diagnostics(
         "definition": (
             "held-out contribution = pooled Ridge coefficient (ticks per pooled training SD) "
             "times the feature standardised by pooled training centre/scale; per-tape "
-            "coefficient stability refits the same selected alpha on each tape's training rows"
+            "coefficient stability refits the same selected alpha on each tape's training rows; "
+            "levels are individual CCZ levels, never cumulative through a depth cutoff"
         ),
-        "bands": rows,
+        "levels": rows,
     }
 
 
@@ -1040,7 +1123,7 @@ def evaluate_cells(
                     }
                 )
                 if model in {"M4", "M5"}:
-                    payload["band_contribution_diagnostics"] = _band_contribution_diagnostics(
+                    payload["level_contribution_diagnostics"] = _level_contribution_diagnostics(
                         observations,
                         train,
                         test,
@@ -1268,6 +1351,277 @@ def evaluate_normalised_subarms(
     return rows
 
 
+@dataclass(frozen=True, slots=True)
+class CczArmDesign:
+    """Materialised CCZ level block for one ``(window, M)`` cell.
+
+    ``normalised[:, m-1]`` is ``ofi^{m,h} = OFI^{m,h} / Q^{M,h}``.  It is derived from the stored
+    raw level flow and the stored single common denominator rather than pre-stored per level, so
+    every declared level count shares exactly one denominator by construction.
+    """
+
+    window: float
+    levels: int
+    positions: tuple[int, ...]
+    index: Mapping[int, int]
+    baseline: np.ndarray[Any, np.dtype[np.float64]]
+    normalised: np.ndarray[Any, np.dtype[np.float64]]
+    average: np.ndarray[Any, np.dtype[np.float64]]
+    best_level: np.ndarray[Any, np.dtype[np.float64]]
+
+
+def build_ccz_arm_design(
+    observations: Sequence[HorseRaceObservation],
+    candidates: Sequence[int],
+    *,
+    window: float,
+    levels: int,
+) -> CczArmDesign:
+    """Collect every candidate anchor that has complete ``M``-level CCZ support."""
+
+    raw_names = ccz_raw_features(window, levels)
+    denominator_name = denominator_feature(window, levels)
+    required = (*BASELINE_FEATURES, denominator_name, *raw_names)
+    positions = tuple(
+        position
+        for position in candidates
+        if _has_features(observations[position], required)
+    )
+    baseline = _design(observations, positions, BASELINE_FEATURES)
+    raw = _design(observations, positions, raw_names)
+    denominator = _design(observations, positions, (denominator_name,)).reshape(-1, 1)
+    normalised = raw / denominator
+    average = normalised.mean(axis=1) if levels else np.zeros(len(positions), dtype=np.float64)
+    best = normalised[:, 0] if levels else np.zeros(len(positions), dtype=np.float64)
+    return CczArmDesign(
+        window=window,
+        levels=levels,
+        positions=positions,
+        index={position: row for row, position in enumerate(positions)},
+        baseline=baseline,
+        normalised=normalised,
+        average=average,
+        best_level=best,
+    )
+
+
+def _arm_columns(
+    design: CczArmDesign,
+    arm: str,
+    weights: IntegratedWeights | None,
+    rows: Sequence[int],
+) -> tuple[np.ndarray[Any, np.dtype[np.float64]], tuple[str, ...]]:
+    selected = np.asarray(rows, dtype=np.intp)
+    if arm == "per_level_pi":
+        return design.normalised[selected], ccz_normalised_features(design.window, design.levels)
+    if arm == "simple_average":
+        return (
+            design.average[selected].reshape(-1, 1),
+            (average_feature(design.window, design.levels),),
+        )
+    if arm == "best_level":
+        return (
+            design.best_level[selected].reshape(-1, 1),
+            (best_level_feature(design.window),),
+        )
+    if arm == "integrated":
+        if weights is None:
+            raise ValueError("the integrated arm needs weights fitted on training rows")
+        projected = weights.project(design.normalised[selected]).reshape(-1, 1)
+        return projected, (integrated_feature(design.window, design.levels),)
+    raise ValueError(f"unknown CCZ aggregation arm {arm}")
+
+
+def _ccz_arm_design_matrix(
+    design: CczArmDesign,
+    arm: str,
+    weights: IntegratedWeights | None,
+    rows: Sequence[int],
+) -> tuple[np.ndarray[Any, np.dtype[np.float64]], tuple[str, ...]]:
+    columns, names = _arm_columns(design, arm, weights, rows)
+    selected = np.asarray(rows, dtype=np.intp)
+    return np.hstack([design.baseline[selected], columns]), (*BASELINE_FEATURES, *names)
+
+
+def _select_alpha_for_arm(
+    observations: Sequence[HorseRaceObservation],
+    design: CczArmDesign,
+    train_positions: Sequence[int],
+    *,
+    arm: str,
+    weights: IntegratedWeights | None,
+    horizon: float,
+    source: Literal["future", "past"],
+) -> float:
+    """Choose the ridge penalty inside training only, on the same expanding folds as the race."""
+
+    if arm not in REGULARISED_MODELS and arm != "per_level_pi":
+        return 0.0
+    scores: dict[float, list[float]] = {alpha: [] for alpha in RIDGE_ALPHAS}
+    for inner_train, validation in _inner_folds(observations, train_positions):
+        inner_rows = [
+            design.index[position] for position in inner_train if position in design.index
+        ]
+        validation_rows = [
+            design.index[position] for position in validation if position in design.index
+        ]
+        if len(inner_rows) < MINIMUM_FIT_OBSERVATIONS or not validation_rows:
+            continue
+        inner_positions = [design.positions[row] for row in inner_rows]
+        validation_positions = [design.positions[row] for row in validation_rows]
+        raw_train = _target(observations, inner_positions, horizon, source)
+        raw_validation = _target(observations, validation_positions, horizon, source)
+        drift = float(raw_train.mean())
+        train_design, names = _ccz_arm_design_matrix(design, arm, weights, inner_rows)
+        validation_design, _ = _ccz_arm_design_matrix(design, arm, weights, validation_rows)
+        for alpha in RIDGE_ALPHAS:
+            fit = fit_ridge(train_design, raw_train - drift, feature_names=names, penalty=alpha)
+            residual = raw_validation - drift - fit.predict(validation_design)
+            scores[alpha].append(float(np.mean(residual**2)))
+    means = {
+        alpha: (float(np.mean(values)) if values else float("inf"))
+        for alpha, values in scores.items()
+    }
+    selected = min(RIDGE_ALPHAS, key=lambda alpha: (means[alpha], alpha))
+    return selected if isfinite(means[selected]) else RIDGE_ALPHAS[0]
+
+
+def evaluate_ccz_aggregation_arms(
+    observations: Sequence[HorseRaceObservation],
+    split: SplitIndex,
+    *,
+    source: Literal["future", "past"] = "future",
+    level_counts: Sequence[int] = CCZ_LEVEL_COUNTS,
+    horizons: Sequence[float] = RETURN_HORIZONS_SECONDS,
+    replicates: int = BLOCK_BOOTSTRAP_REPLICATES,
+    seed: int = BOOTSTRAP_SEED,
+) -> list[dict[str, Any]]:
+    """`EST-CCZ-04`, `EST-CCZ-05`, `EST-CCZ-06`: every declared arm at every declared ``M``.
+
+    ``w_1`` for the integrated arm is fitted on **training rows only** and applied unchanged out
+    of sample; the explained-variance ratio and the applied sign are reported for every fit.  No
+    declared arm is dropped: an arm without complete level support is emitted with an explicit
+    data-insufficient status rather than omitted.
+    """
+
+    rows: list[dict[str, Any]] = []
+    for horizon in horizons:
+        for window in OFI_WINDOWS_SECONDS:
+            for levels in sorted({int(value) for value in level_counts}):
+                design = build_ccz_arm_design(
+                    observations, tuple(range(len(observations))), window=window, levels=levels
+                )
+                available = set(design.positions)
+                train = tuple(
+                    position
+                    for position in _positions(observations, split.train, horizon, source)
+                    if position in available
+                )
+                test = tuple(
+                    position
+                    for position in _positions(observations, split.test, horizon, source)
+                    if position in available
+                )
+                common = {
+                    "source": source,
+                    "estimator": "CCZ",
+                    "h1_seconds": window,
+                    "h2_seconds": horizon,
+                    "levels": levels,
+                    "causal_gap_seconds": CAUSAL_GAP_SECONDS,
+                    "train_n": len(train),
+                    "test_n": len(test),
+                }
+                if min(len(train), len(test)) < MINIMUM_FIT_OBSERVATIONS:
+                    rows.extend(
+                        {**common, "arm": arm, "status": "data_insufficient_level_support"}
+                        for arm in CCZ_AGGREGATION_ARMS
+                    )
+                    continue
+                train_rows = [design.index[position] for position in train]
+                test_rows = [design.index[position] for position in test]
+                weights = fit_integrated_weights(design.normalised[np.asarray(train_rows)])
+                baseline = _fit_score(
+                    observations,
+                    train,
+                    test,
+                    model="M0",
+                    names=BASELINE_FEATURES,
+                    horizon=horizon,
+                    source=source,
+                )
+                for arm in CCZ_AGGREGATION_ARMS:
+                    alpha = _select_alpha_for_arm(
+                        observations,
+                        design,
+                        train,
+                        arm=arm,
+                        weights=weights,
+                        horizon=horizon,
+                        source=source,
+                    )
+                    train_design, names = _ccz_arm_design_matrix(design, arm, weights, train_rows)
+                    test_design, _ = _ccz_arm_design_matrix(design, arm, weights, test_rows)
+                    raw_train = _target(observations, train, horizon, source)
+                    raw_test = _target(observations, test, horizon, source)
+                    drift = float(raw_train.mean())
+                    fit = fit_ridge(
+                        train_design, raw_train - drift, feature_names=names, penalty=alpha
+                    )
+                    predicted = fit.predict(test_design)
+                    target = raw_test - drift
+                    benchmark = np.zeros(target.shape, dtype=np.float64)
+                    arm_r2 = _r_squared(target, predicted, benchmark)
+                    errors = tuple(float(value) for value in (target - predicted) ** 2)
+                    estimate = estimate_mean(
+                        [
+                            left - right
+                            for left, right in zip(baseline.errors, errors, strict=True)
+                        ],
+                        [observations[position].receive_ts_ns for position in test],
+                        [observations[position].tape_index for position in test],
+                        overlap_seconds=horizon + CAUSAL_GAP_SECONDS,
+                        replicates=replicates,
+                        seed=seed
+                        + int(horizon * 1000)
+                        + int(window * 100)
+                        + levels * 7
+                        + CCZ_AGGREGATION_ARMS.index(arm),
+                    )
+                    rows.append(
+                        {
+                            **common,
+                            "arm": arm,
+                            "status": "estimated",
+                            "primary_arm": arm == PRIMARY_AGGREGATION_ARM,
+                            "primary_level_count": levels == CCZ_PRIMARY_LEVELS,
+                            "features": list(names),
+                            "selected_alpha": alpha,
+                            "oos_r2_training_mean": arm_r2,
+                            "baseline_oos_r2_training_mean": (
+                                baseline.payload["oos_r2_training_mean"]
+                            ),
+                            "incremental_oos_r2_over_m0": _difference(
+                                arm_r2, baseline.payload["oos_r2_training_mean"]
+                            ),
+                            "rmse_ticks": sqrt(float(np.mean((target - predicted) ** 2))),
+                            "coefficients_ticks_per_training_sd": {
+                                name: float(fit.coefficients[index])
+                                for index, name in enumerate(names)
+                            },
+                            "integrated_weights": (
+                                weights.to_dict() if arm == "integrated" else None
+                            ),
+                            "explained_variance_ratio": weights.explained_variance_ratio,
+                            "error_improvement_inference_over_m0": {
+                                **asdict(estimate),
+                                "naive_inference_valid": False,
+                            },
+                        }
+                    )
+    return rows
+
+
 def evaluate_combined_ablations(
     observations: Sequence[HorseRaceObservation],
     split: SplitIndex,
@@ -1295,10 +1649,10 @@ def evaluate_combined_ablations(
                 "M1_static_queue": {"l1_queue_imbalance"},
                 "M2_signed_trades": {trade_feature(window)} if trade_identified else set(),
                 "M3_cks_l1": {cks_feature(window)},
-                "M4_multilevel_ofi": {pk_band_feature(window, *band) for band in BANDS},
-                "M5_depth_adjusted_multilevel": {
-                    adjusted_band_feature(window, *band) for band in BANDS
-                },
+                "M4_ccz_raw_per_level_ofi": set(ccz_raw_features(window, CCZ_PRIMARY_LEVELS)),
+                "M5_ccz_depth_scaled_per_level_ofi": set(
+                    ccz_normalised_features(window, CCZ_PRIMARY_LEVELS)
+                ),
             }
             for family, excluded in families.items():
                 if not excluded:
@@ -1352,8 +1706,10 @@ def feature_intensity_table(
         ]
         if trade_identified:
             names.extend((trade_feature(window), normalised_trade_feature(window)))
-        names.extend(pk_band_feature(window, *band) for band in BANDS)
-        names.extend(adjusted_band_feature(window, *band) for band in BANDS)
+        names.extend(best_level_feature(window) for _ in (0,))
+        names.extend(average_feature(window, count) for count in CCZ_LEVEL_COUNTS)
+        names.extend(ccz_raw_features(window, CCZ_PRIMARY_LEVELS))
+        names.extend(ccz_normalised_features(window, CCZ_PRIMARY_LEVELS))
         for name in names:
             values = np.asarray(
                 [
@@ -1592,6 +1948,30 @@ def build_horserace_artifact(
         seed=seed + 40_000_000,
     )
     ablations = evaluate_combined_ablations(observations, split, trade_identified=trade_identified)
+    ccz_arms = evaluate_ccz_aggregation_arms(
+        observations,
+        split,
+        source="future",
+        replicates=replicates,
+        seed=seed + 50_000_000,
+    )
+    ccz_arms_past = evaluate_ccz_aggregation_arms(
+        observations,
+        split,
+        source="past",
+        replicates=replicates,
+        seed=seed + 60_000_000,
+    )
+    explained = {
+        f"w{_label(float(row['h1_seconds']))}__m{row['levels']}": row["explained_variance_ratio"]
+        for row in ccz_arms
+        if row.get("status") == "estimated"
+    }
+    floored = 0
+    for tape in tapes:
+        value = tape.failures.get("ccz_depth_denominator_floored")
+        if isinstance(value, int):
+            floored += value
     gate = resolve_30_second_gate(future, past)
     conditional: list[dict[str, Any]] = []
     if gate["gate_passed"]:
@@ -1607,10 +1987,17 @@ def build_horserace_artifact(
     intensity = feature_intensity_table(observations, trade_identified=trade_identified)
     support = compact_support_table([*future, *past], [*normalised_future, *normalised_past])
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "scan_id": EXPLORATORY_SCAN_ID,
         "confirmatory_eligible": CONFIRMATORY_ELIGIBLE,
         "design_document": DESIGN_DOCUMENT,
+        "migration_document": MIGRATION_DOCUMENT,
+        "ccz": ccz_metadata(
+            level_counts=CCZ_LEVEL_COUNTS,
+            primary_levels=CCZ_PRIMARY_LEVELS,
+            explained_variance_ratio=explained,
+            denominator_floor_events=floored,
+        ),
         "code_commit": code_commit,
         "tapes": [
             {
@@ -1640,7 +2027,9 @@ def build_horserace_artifact(
             "h2_seconds": RETURN_HORIZONS_SECONDS,
             "causal_gap_seconds": CAUSAL_GAP_SECONDS,
             "models": MODEL_ORDER,
-            "bands": BANDS,
+            "ccz_level_counts": CCZ_LEVEL_COUNTS,
+            "ccz_primary_levels": CCZ_PRIMARY_LEVELS,
+            "ccz_aggregation_arms": CCZ_AGGREGATION_ARMS,
             "ridge_alphas": RIDGE_ALPHAS,
         },
         "future_cells": future,
@@ -1652,11 +2041,14 @@ def build_horserace_artifact(
         "normalised_subarms_future": normalised_future,
         "normalised_subarms_past": normalised_past,
         "combined_ablations": ablations,
+        "ccz_aggregation_arms_future": ccz_arms,
+        "ccz_aggregation_arms_past": ccz_arms_past,
         "feature_intensity": intensity,
         "support_table": support,
         "gate_30_seconds": gate,
         "conditional_30_second_cells": conditional,
         "multiplicity": {
+            "ccz_aggregation_arm_cells_per_direction": len(ccz_arms),
             "future_ranked_cells": len(future),
             "past_mirror_cells": len(past),
             "same_window_diagnostic_cells": 5 * len(MODEL_ORDER),

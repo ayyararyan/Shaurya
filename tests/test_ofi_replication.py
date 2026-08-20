@@ -11,6 +11,7 @@ import pytest
 from scripts.ofi_full_session_controller import (
     _git_commit_is_remote_ancestor,
     build_fixed_lead_summary,
+    fixed_lead_markdown,
 )
 from shaurya.contracts.instruments import DhanInstrumentMaster
 from shaurya.contracts.timing import IST, nse_equity_derivatives_session_bounds
@@ -32,7 +33,6 @@ from shaurya.data.ofi_replication import (
     "script_name",
     [
         "ofi_full_session_controller.py",
-        "deepbook_ofi_scan.py",
         "cks_l1_ofi_scan.py",
         "ofi_horserace.py",
         "surface_ofi_reconciliation.py",
@@ -206,24 +206,9 @@ def test_streaming_state_collapse_matches_existing_builder() -> None:
 
 def test_fixed_lead_report_does_not_substitute_a_new_full_grid_argmax() -> None:
     scalar = {
-        "grid": [
-            {
-                "depth_levels": 10,
-                "ofi_window_seconds": 10,
-                "return_horizon_seconds": 10,
-                "incremental_oos_r2_over_state": 0.02,
-                "standardised_ofi_coefficient_ticks": 0.4,
-                "past_incremental_oos_r2_over_state": 0.01,
-                "future_error_improvement_inference": {"newey_west_t": 2.1},
-                "test_n": 100,
-            },
-            {
-                "depth_levels": 200,
-                "ofi_window_seconds": 5,
-                "return_horizon_seconds": 5,
-                "incremental_oos_r2_over_state": 0.90,
-            },
-        ]
+        "protocol": {
+            "level_one_is_ccz_base_case": "CCZ Eq. (1); retained unchanged by CCZ-IMPL-05"
+        }
     }
     future = {
         "subarm": "M3b_depth_normalised_cks",
@@ -247,10 +232,21 @@ def test_fixed_lead_report_does_not_substitute_a_new_full_grid_argmax() -> None:
 
     summary = build_fixed_lead_summary(scalar, horse)
 
-    assert summary["scalar_top10_10s_to_10s"]["incremental_oos_r2"] == 0.02
-    assert summary["scalar_top10_10s_to_10s"]["replicates_all_frozen_conditions"] is True
+    # CCZ-IMPL-02: this pre-named lead is defined on the retired price-keyed estimator.  It is
+    # reported as retired with its reason and no substitute number, because re-pointing a
+    # pre-registered estimand at a CCZ quantity would need explicit approval.
+    scalar_lead = summary["scalar_top10_10s_to_10s"]
+    assert scalar_lead["status"] == "estimator_retired"
+    assert scalar_lead["incremental_oos_r2"] is None
+    assert scalar_lead["replicates_all_frozen_conditions"] is None
+    assert scalar_lead["prior_incremental_oos_r2"] == 0.0791
+    assert scalar_lead["retired_by"] == "D37 / CCZ-OFI-MIGRATION-2026-08-20"
     assert summary["horse_m3b_2s_to_2s"]["replicates_all_frozen_conditions"] is True
     assert summary["cross_tape_stability_supported"] is False
+
+    report = fixed_lead_markdown(summary)
+    assert "estimator_retired" in report
+    assert "no replacement number" in report
 
 
 def test_pinned_commit_may_be_behind_remote_main_but_must_be_in_its_history(

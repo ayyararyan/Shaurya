@@ -28,18 +28,24 @@ from shaurya.analytics.ofi_dashboard_server import (
     render_html,
 )
 from shaurya.data.depth_thinning_analysis import DEPTH20, BookState
+from shaurya.signals.ccz_ofi import (
+    average_feature,
+    best_level_feature,
+    denominator_feature,
+    level_feature,
+    normalised_level_feature,
+)
 from shaurya.signals.deep_book_normal_activity import SplitIndex
 from shaurya.signals.deep_book_ofi import OFI_WINDOWS_SECONDS
 from shaurya.signals.ofi_horserace import (
-    BANDS,
+    CCZ_LEVEL_COUNTS,
+    CCZ_PRIMARY_LEVELS,
     MODEL_ORDER,
     RETURN_HORIZONS_SECONDS,
     HorseRaceObservation,
-    adjusted_band_feature,
     cks_feature,
     model_features,
     normalised_trade_feature,
-    pk_band_feature,
     trade_feature,
 )
 
@@ -64,9 +70,16 @@ def _observation(
         features[trade_feature(window)] = signal * (1.0 + window / 20.0)
         features[normalised_trade_feature(window)] = signal / 12.0
         features[cks_feature(window)] = signal * (2.0 + window / 20.0)
-        for band_index, band in enumerate(BANDS, start=1):
-            features[pk_band_feature(window, *band)] = signal * band_index + noise
-            features[adjusted_band_feature(window, *band)] = signal / band_index + noise / 10
+        for count in CCZ_LEVEL_COUNTS:
+            features[denominator_feature(window, count)] = 40.0 + count
+            features[average_feature(window, count)] = signal / (count + 1) + noise / 20
+        features[best_level_feature(window)] = signal / 40.0 + noise / 40
+        for level in range(1, max(CCZ_LEVEL_COUNTS) + 1):
+            features[level_feature(window, level)] = signal * level / 10.0 + noise
+        for level in range(1, CCZ_PRIMARY_LEVELS + 1):
+            features[normalised_level_feature(window, level, CCZ_PRIMARY_LEVELS)] = (
+                signal * level / 500.0 + noise / 10
+            )
     if future_only:
         future = {horizon: 1.2 * signal + noise for horizon in RETURN_HORIZONS_SECONDS}
         past = {horizon: noise for horizon in RETURN_HORIZONS_SECONDS}

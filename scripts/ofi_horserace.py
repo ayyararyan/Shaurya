@@ -241,6 +241,33 @@ def _support_csv(rows: list[dict[str, Any]]) -> str:
     return _flat_csv(rows, fields)
 
 
+def _ccz_arm_csv(rows: list[dict[str, Any]]) -> str:
+    """`EST-CCZ-05` / `EST-CCZ-06`: one row per declared aggregation arm and level count."""
+
+    return _flat_csv(
+        rows,
+        (
+            "source",
+            "estimator",
+            "arm",
+            "levels",
+            "h1_seconds",
+            "h2_seconds",
+            "status",
+            "primary_arm",
+            "primary_level_count",
+            "train_n",
+            "test_n",
+            "selected_alpha",
+            "oos_r2_training_mean",
+            "baseline_oos_r2_training_mean",
+            "incremental_oos_r2_over_m0",
+            "rmse_ticks",
+            "explained_variance_ratio",
+        ),
+    )
+
+
 def _gate_csv(gate: dict[str, Any]) -> str:
     rows: list[dict[str, Any]] = []
     for candidate in gate["evaluated_candidates"]:
@@ -297,6 +324,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--intensity-output", required=True, type=Path)
     parser.add_argument("--support-output", required=True, type=Path)
     parser.add_argument("--gate-output", required=True, type=Path)
+    parser.add_argument("--ccz-arm-output", required=True, type=Path)
     parser.add_argument("--replicates", type=int, default=400)
     parser.add_argument("--seed", type=int, default=20260819)
     scope = parser.add_mutually_exclusive_group()
@@ -362,6 +390,12 @@ def main(argv: list[str] | None = None) -> int:
     _write(args.intensity_output, _intensity_csv(artifact["feature_intensity"]))
     _write(args.support_output, _support_csv(artifact["support_table"]))
     _write(args.gate_output, _gate_csv(artifact["gate_30_seconds"]))
+    _write(
+        args.ccz_arm_output,
+        _ccz_arm_csv(
+            [*artifact["ccz_aggregation_arms_future"], *artifact["ccz_aggregation_arms_past"]]
+        ),
+    )
     print(
         json.dumps(
             {

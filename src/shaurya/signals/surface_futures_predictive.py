@@ -20,14 +20,18 @@ from scipy.stats import norm, rankdata
 
 from shaurya.analytics.surface_feed import SurfaceSnapshot
 from shaurya.data.depth_thinning_analysis import DEPTH200, BookState
+from shaurya.signals.ccz_ofi import (
+    CczFlowSeries,
+    ccz_metadata,
+)
 from shaurya.signals.cks_l1_ofi import cks_l1_transition
 from shaurya.signals.deep_book_normal_activity import RidgeFit, fit_ridge, fit_ridge_path
-from shaurya.signals.deep_book_ofi import price_keyed_ofi_transition
 
 SCAN_ID = "X-SURFACE-FUT5-20260819-06"
 CONFIRMATORY_ELIGIBLE = False
 DESIGN_DOCUMENT = "docs/SURFACE-FUTURES-PREDICTIVE-SPEC-2026-08-19.md"
 CORRECTION_DOCUMENT = "docs/SURFACE-FUTURES-PREDICTIVE-CORRECTION-1-2026-08-19.md"
+MIGRATION_DOCUMENT = "docs/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
 
 FUTURES_INSTRUMENT_ID = "NSE:NSE_FNO:NIFTY:future:2026-08-25"
 EXPIRIES = (date(2026, 8, 25), date(2026, 9, 1), date(2026, 9, 29))
@@ -678,18 +682,43 @@ def lob_features(state: BookState) -> dict[str, float] | None:
     return result
 
 
+#: `CCZ-IMPL-04` adjacency.  The Quote/Full tape publishes five levels, so the multi-level arm
+#: here is CCZ at ``M = 5``: every level enters separately (Eq. 2) and every level is divided by
+#: the one common ``Q^{5,h}`` (Eq. 3).  The retired price-keyed level-1/levels-2-5 bands both
+#: cumulated across levels and divided each band by its own mean depth; both defects are gone.
+CCZ_SURFACE_LEVELS = 5
+
+
 @dataclass(frozen=True, slots=True)
 class OFIPrefix:
     timestamps: tuple[int, ...]
     epochs: tuple[int, ...]
     invalid: tuple[int, ...]
     cks: tuple[float, ...]
-    band1: tuple[float, ...]
-    band2_5: tuple[float, ...]
     half_l1_depth: tuple[float, ...]
-    band1_depth: tuple[float, ...]
-    band2_5_depth: tuple[float, ...]
     count: tuple[int, ...]
+    ccz: CczFlowSeries
+
+
+def ccz_surface_suffixes() -> tuple[str, ...]:
+    """Every CCZ five-level OFI suffix an anchor must carry to enter the horse-aligned sample."""
+
+    return tuple(
+        f"ccz_level{level}_{kind}"
+        for kind in ("raw", "depth_scaled")
+        for level in range(1, CCZ_SURFACE_LEVELS + 1)
+    )
+
+
+def ccz_surface_features(window_seconds: float, kind: str) -> tuple[str, ...]:
+    """`EST-CCZ-05` ``PI^[5]``: the five levels entered as separate regressors, never summed."""
+
+    if kind not in {"raw", "depth_scaled"}:
+        raise ValueError(f"unknown CCZ surface feature kind {kind}")
+    return tuple(
+        ofi_feature(window_seconds, f"ccz_level{level}_{kind}")
+        for level in range(1, CCZ_SURFACE_LEVELS + 1)
+    )
 
 
 def _canonical_full_adapter(state: BookState) -> BookState:
@@ -699,65 +728,41 @@ def _canonical_full_adapter(state: BookState) -> BookState:
 
 
 def build_ofi_prefix(states: Sequence[BookState]) -> OFIPrefix:
-    """Canonical CKS and price-keyed transitions over the Full packet's embedded five levels."""
+    """Canonical CKS and CCZ transitions over the Full packet's embedded five levels."""
 
+    adapted = [_canonical_full_adapter(state) for state in states]
     timestamps: list[int] = []
     epochs: list[int] = []
     invalid = [0]
     cks = [0.0]
-    band1 = [0.0]
-    band2_5 = [0.0]
     half_l1_depth = [0.0]
-    band1_depth = [0.0]
-    band2_5_depth = [0.0]
     count = [0]
-    for previous, current in zip(states, states[1:], strict=False):
-        old = _canonical_full_adapter(previous)
-        new = _canonical_full_adapter(current)
-        cks_transition = cks_l1_transition(old, new)
-        price_keyed = price_keyed_ofi_transition(old, new)
-        valid = cks_transition.invalid_reason is None and price_keyed.invalid_reason is None
+    reasons: list[str | None] = []
+    for previous, current in zip(adapted, adapted[1:], strict=False):
+        cks_transition = cks_l1_transition(previous, current)
+        reasons.append(cks_transition.invalid_reason)
+        valid = cks_transition.invalid_reason is None
         timestamps.append(current.receive_ts_ns)
         epochs.append(current.connection_epoch)
         invalid.append(invalid[-1] + int(not valid))
         cks.append(cks[-1] + (cks_transition.event if valid else 0.0))
-        cumulative_1 = price_keyed.cumulative_by_depth[1] if valid else 0.0
-        cumulative_5 = price_keyed.cumulative_by_depth[5] if valid else 0.0
-        band1.append(band1[-1] + cumulative_1)
-        band2_5.append(band2_5[-1] + cumulative_5 - cumulative_1)
         current_half_l1 = (
             (current.bids[0][1] + current.asks[0][1]) / 2.0
             if valid and current.bids and current.asks
             else 0.0
         )
-        current_band1 = (
-            float(current.bids[0][1] + current.asks[0][1])
-            if valid and current.bids and current.asks
-            else 0.0
-        )
-        current_band2_5 = (
-            float(
-                sum(item[1] for item in current.bids[1:5])
-                + sum(item[1] for item in current.asks[1:5])
-            )
-            if valid and len(current.bids) >= 5 and len(current.asks) >= 5
-            else 0.0
-        )
         half_l1_depth.append(half_l1_depth[-1] + current_half_l1)
-        band1_depth.append(band1_depth[-1] + current_band1)
-        band2_5_depth.append(band2_5_depth[-1] + current_band2_5)
         count.append(count[-1] + int(valid))
     return OFIPrefix(
         tuple(timestamps),
         tuple(epochs),
         tuple(invalid),
         tuple(cks),
-        tuple(band1),
-        tuple(band2_5),
         tuple(half_l1_depth),
-        tuple(band1_depth),
-        tuple(band2_5_depth),
         tuple(count),
+        CczFlowSeries.from_states(
+            adapted, level_counts=(CCZ_SURFACE_LEVELS,), invalid_reasons=reasons
+        ),
     )
 
 
@@ -792,24 +797,24 @@ def trailing_ofi_features(
         if covered <= 0:
             return None
         cks_value = prefix.cks[right] - prefix.cks[left]
-        level1 = prefix.band1[right] - prefix.band1[left]
-        level2_5 = prefix.band2_5[right] - prefix.band2_5[left]
         mean_half_l1 = (prefix.half_l1_depth[right] - prefix.half_l1_depth[left]) / covered
-        mean_band1 = (prefix.band1_depth[right] - prefix.band1_depth[left]) / covered
-        mean_band2_5 = (prefix.band2_5_depth[right] - prefix.band2_5_depth[left]) / covered
+        evaluated = prefix.ccz.window(
+            left, right, levels=CCZ_SURFACE_LEVELS, window_seconds=window
+        )
+        if evaluated is None:
+            return None
         result.update(
             {
                 ofi_feature(window, "cks_l1_raw"): cks_value,
                 ofi_feature(window, "cks_l1_depth_adjusted"): cks_value
                 / max(mean_half_l1, 1.0),
-                ofi_feature(window, "pk_level1_raw"): level1,
-                ofi_feature(window, "pk_levels2_5_raw"): level2_5,
-                ofi_feature(window, "pk_level1_depth_adjusted"): level1
-                / max(mean_band1, 1.0),
-                ofi_feature(window, "pk_levels2_5_depth_adjusted"): level2_5
-                / max(mean_band2_5, 1.0),
             }
         )
+        for level in range(1, CCZ_SURFACE_LEVELS + 1):
+            result[ofi_feature(window, f"ccz_level{level}_raw")] = evaluated.raw[level - 1]
+            result[ofi_feature(window, f"ccz_level{level}_depth_scaled")] = evaluated.normalised[
+                level - 1
+            ]
     return result
 
 
@@ -1249,8 +1254,9 @@ def horse_aligned_five_level_names(
 ) -> tuple[str, ...]:
     """Exact horse-race baseline with honestly five-level-only flow analogues.
 
-    `H4_5L`/`H5_5L` are deliberately not called M4/M5: the Quote/Full tape has only
-    levels 1 and 2-5, not the seven depth200 marginal bands used by the earlier horse race.
+    `H4_5L`/`H5_5L` are deliberately not called M4/M5: the Quote/Full tape carries only five
+    levels, against the depth200 ladder used by the deeper horse race.  Both are CCZ at
+    ``M = 5``: levels enter separately and share one common depth denominator.
     """
 
     baseline = ("lob__log1p_l1_total_quantity", "lob__spread_ticks")
@@ -1261,13 +1267,11 @@ def horse_aligned_five_level_names(
         "H3b": (*baseline, ofi_feature(window_seconds, "cks_l1_depth_adjusted")),
         "H4_5L": (
             *baseline,
-            ofi_feature(window_seconds, "pk_level1_raw"),
-            ofi_feature(window_seconds, "pk_levels2_5_raw"),
+            *ccz_surface_features(window_seconds, "raw"),
         ),
         "H5_5L": (
             *baseline,
-            ofi_feature(window_seconds, "pk_level1_depth_adjusted"),
-            ofi_feature(window_seconds, "pk_levels2_5_depth_adjusted"),
+            *ccz_surface_features(window_seconds, "depth_scaled"),
         ),
     }
     if label.endswith("S"):
@@ -1297,10 +1301,7 @@ def horse_aligned_full_session_rows(
             for name in (
                 "cks_l1_raw",
                 "cks_l1_depth_adjusted",
-                "pk_level1_raw",
-                "pk_levels2_5_raw",
-                "pk_level1_depth_adjusted",
-                "pk_levels2_5_depth_adjusted",
+                *ccz_surface_suffixes(),
             )
         )
         available = {
@@ -2001,10 +2002,7 @@ def build_scan_artifact(
                 for name in (
                     "cks_l1_raw",
                     "cks_l1_depth_adjusted",
-                    "pk_level1_raw",
-                    "pk_levels2_5_raw",
-                    "pk_level1_depth_adjusted",
-                    "pk_levels2_5_depth_adjusted",
+                    *ccz_surface_suffixes(),
                 )
             )
             for observation in observations
@@ -2038,6 +2036,12 @@ def build_scan_artifact(
         ),
         "design_document": DESIGN_DOCUMENT,
         "correction_document": CORRECTION_DOCUMENT,
+        "migration_document": MIGRATION_DOCUMENT,
+        "ccz": ccz_metadata(
+            level_counts=(CCZ_SURFACE_LEVELS,),
+            primary_levels=CCZ_SURFACE_LEVELS,
+            aggregation_arms=("per_level_pi",),
+        ),
         "code_commit": code_commit,
         "seed": seed,
         "bootstrap_replicates": replicates,
