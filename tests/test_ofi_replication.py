@@ -5,10 +5,12 @@ import subprocess
 import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from scripts.ofi_full_session_controller import (
+    Controller,
     _git_commit_is_remote_ancestor,
     build_fixed_lead_summary,
     fixed_lead_markdown,
@@ -282,3 +284,75 @@ def test_pinned_commit_may_be_behind_remote_main_but_must_be_in_its_history(
 
     assert _git_commit_is_remote_ancestor(repo, pinned) is True
     assert _git_commit_is_remote_ancestor(repo, "0" * 40) is False
+
+
+def _pinned_repo(tmp_path: Path) -> tuple[Path, str]:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "T"], cwd=repo, check=True)
+    marker = repo / "marker.txt"
+    marker.write_text("one\n", encoding="utf-8")
+    subprocess.run(["git", "add", "marker.txt"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-m", "one"], cwd=repo, check=True, capture_output=True)
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True
+    ).stdout.strip()
+    subprocess.run(
+        ["git", "update-ref", "refs/remotes/origin/main", "HEAD"], cwd=repo, check=True
+    )
+    return repo, head
+
+
+class _PinOnlyController:
+    """Exercise `Controller.assert_on_pin` without the capture, tmux or credential path."""
+
+    def __init__(self, repo: Path, expected: str) -> None:
+        self.repo = repo
+        self.args = SimpleNamespace(expected_code_commit=expected)
+        self.observed_commits: dict[str, str] = {}
+
+    assert_on_pin = Controller.assert_on_pin
+
+
+def test_ops_ccz_01_pin_is_rechecked_per_unit_and_records_the_observed_head(
+    tmp_path: Path,
+) -> None:
+    """`OPS-CCZ-01`: checking only in preflight let a run go off-pin between units."""
+
+    repo, pinned = _pinned_repo(tmp_path)
+    controller = _PinOnlyController(repo, pinned)
+
+    assert controller.assert_on_pin("preflight") == pinned
+    assert controller.assert_on_pin("cks_l1") == pinned
+    # The HEAD each unit actually saw is recorded, not the constant passed on the command line.
+    assert controller.observed_commits == {"preflight": pinned, "cks_l1": pinned}
+
+
+def test_ops_ccz_01_a_repository_that_moves_between_units_fails_closed(
+    tmp_path: Path,
+) -> None:
+    repo, pinned = _pinned_repo(tmp_path)
+    controller = _PinOnlyController(repo, pinned)
+    assert controller.assert_on_pin("preflight") == pinned
+
+    (repo / "marker.txt").write_text("two\n", encoding="utf-8")
+    subprocess.run(["git", "commit", "-am", "two"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "update-ref", "refs/remotes/origin/main", "HEAD"], cwd=repo, check=True
+    )
+
+    with pytest.raises(ValueError, match="code commit mismatch before horse_race"):
+        controller.assert_on_pin("horse_race")
+
+
+def test_ops_ccz_01_a_dirty_worktree_between_units_fails_closed(tmp_path: Path) -> None:
+    repo, pinned = _pinned_repo(tmp_path)
+    controller = _PinOnlyController(repo, pinned)
+    assert controller.assert_on_pin("preflight") == pinned
+
+    (repo / "marker.txt").write_text("edited\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="worktree is not clean before horse_race"):
+        controller.assert_on_pin("horse_race")

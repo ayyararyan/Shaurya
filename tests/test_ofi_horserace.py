@@ -6,7 +6,13 @@ from typing import Any
 import numpy as np
 import pytest
 
-from scripts.ofi_horserace import _ablation_csv, _gate_csv, _intensity_csv, _support_csv
+from scripts.ofi_horserace import (
+    _ablation_csv,
+    _ccz_arm_csv,
+    _gate_csv,
+    _intensity_csv,
+    _support_csv,
+)
 from shaurya.data.depth_thinning_analysis import DEPTH20, DEPTH200, BookState, parse_receive_ts_ns
 from shaurya.data.trade_direction import TRADE_ALIGNMENT_VERSION, TRADE_CLASSIFIER_VERSION
 from shaurya.signals.ccz_ofi import (
@@ -26,9 +32,11 @@ from shaurya.signals.ofi_horserace import (
     OFI_WINDOWS_SECONDS,
     RETURN_HORIZONS_SECONDS,
     HorseRaceObservation,
+    HorseRaceTapeInput,
     _direction_by_tape,
     assert_no_lookahead,
     build_ccz_arm_design,
+    build_horserace_artifact,
     build_horserace_observations,
     build_trade_series,
     ccz_feature_schema,
@@ -446,6 +454,113 @@ def test_normalised_trade_subarm_uses_only_positive_denominator_support() -> Non
     assert row["total_n"] == 90
     assert row["train_n"] == 60
     assert row["test_n"] == 23
+
+
+def _drifting_state(index: int, *, channel: str = DEPTH200) -> BookState:
+    """A tape whose mid actually moves, so held-out R-squared is defined rather than None."""
+
+    drift = 0.05 * ((index * 7) % 13 - 6)
+    bid = round(100.0 + drift, 2)
+    ask = round(bid + 0.05, 2)
+    size = 100 + (index * 11) % 37
+    bids = tuple((round(bid - 0.05 * level, 2), size + level, 1) for level in range(200))
+    asks = tuple((round(ask + 0.05 * level, 2), size + 3 + level, 1) for level in range(200))
+    levels = 20 if channel == DEPTH20 else 200
+    return BookState(
+        channel=channel,
+        receive_ts_ns=BASE + index * SECOND // 2,
+        receive_sequence=index,
+        connection_epoch=0,
+        bids=bids[:levels],
+        asks=asks[:levels],
+        rows_in_burst=1,
+        quality_flags=(),
+    )
+
+
+def test_val_ccz_08_horse_race_artifact_carries_the_estimator_block() -> None:
+    """`VAL-CCZ-08`: estimator, level count, EVR and the ID-CCZ-01 limitation string.
+
+    Observations are built at ``M <= 10`` so the deeper declared arms have no support here.  The
+    artifact must still emit them, explicitly data-insufficient: `EST-CCZ-06` drops no arm.
+    """
+
+    count = 1400
+    depth200 = [_drifting_state(index) for index in range(count)]
+    depth20 = [_drifting_state(index, channel=DEPTH20) for index in range(count + 100)]
+    rows = [_trade_row(index, "buy" if index % 2 else "sell") for index in range(count)]
+    observations, failures = build_horserace_observations(
+        depth200_states=depth200,
+        depth20_states=depth20,
+        rows=rows,
+        tape_index=0,
+        run_id="ccz-artifact",
+        level_counts=(1, 5, 10),
+    )
+    assert observations
+    tape = HorseRaceTapeInput(
+        tape_index=0,
+        run_id="ccz-artifact",
+        instrument_id="NSE:NSE_FNO:NIFTY:future:2026-08-25",
+        tape_sha256="0" * 64,
+        observations=tuple(observations),
+        depth200_publications=len(depth200),
+        depth20_publications=len(depth20),
+        observed_seconds=count / 2.0,
+        failures=failures,
+    )
+
+    artifact = build_horserace_artifact([tape], code_commit=None, replicates=3, seed=3)
+
+    ccz = artifact["ccz"]
+    assert ccz["estimator"] == "CCZ"
+    assert ccz["primary_level_count"] == CCZ_PRIMARY_LEVELS
+    assert ccz["declared_level_counts"] == list(CCZ_LEVEL_COUNTS)
+    assert ccz["cumulates_across_levels"] is False
+    assert ccz["per_band_denominator"] is False
+    assert "ID-CCZ-01" in ccz["limitation"]
+    assert "snapshot" in ccz["limitation"]
+    assert ccz["explained_variance_ratio"]
+    assert all(0.0 <= value <= 1.0 for value in ccz["explained_variance_ratio"].values())
+    assert artifact["axes"]["ccz_level_counts"] == CCZ_LEVEL_COUNTS
+    assert artifact["schema_version"] == 3
+
+    arms = artifact["ccz_aggregation_arms_future"]
+    assert artifact["ccz_aggregation_arms_past"]
+    assert {row["levels"] for row in arms} == set(CCZ_LEVEL_COUNTS)
+    # EST-CCZ-06: the unsupported deep arms are declared and explicitly data-insufficient.
+    deep = [row for row in arms if row["levels"] in {20, 200}]
+    assert deep
+    assert {row["status"] for row in deep} == {"data_insufficient_level_support"}
+    supported = [row for row in arms if row["levels"] == CCZ_PRIMARY_LEVELS]
+    assert {row["arm"] for row in supported} == {
+        "per_level_pi",
+        "integrated",
+        "simple_average",
+        "best_level",
+    }
+    assert artifact["multiplicity"]["ccz_aggregation_arm_cells_per_direction"] == len(arms)
+
+
+def test_ccz_arm_csv_is_complete_and_deterministic() -> None:
+    rows = [
+        {
+            "source": "future",
+            "estimator": "CCZ",
+            "arm": "integrated",
+            "levels": 10,
+            "h1_seconds": 1.0,
+            "h2_seconds": 2.0,
+            "status": "estimated",
+            "explained_variance_ratio": 0.7,
+        }
+    ]
+
+    rendered = _ccz_arm_csv(rows)
+
+    assert rendered == _ccz_arm_csv(rows)
+    assert "explained_variance_ratio" in rendered.splitlines()[0]
+    assert len(rendered.splitlines()) == 2
 
 
 def test_compact_csv_artifacts_are_complete_and_deterministic() -> None:

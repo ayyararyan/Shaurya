@@ -379,6 +379,59 @@ def _empty_dashboard(tmp_path: Path) -> tuple[OfiDashboardEngine, CompleteLineJs
     return engine, tail
 
 
+def test_val_ccz_08_dashboard_payload_carries_the_estimator_block(tmp_path: Path) -> None:
+    """`VAL-CCZ-08`: the dashboard publishes estimator, level count, EVR and ID-CCZ-01."""
+
+    engine, tail = _empty_dashboard(tmp_path)
+
+    payload = engine.payload(
+        rows_parsed=tail.rows_parsed,
+        torn_lines=tail.torn_lines,
+        trailing_partial_bytes=tail.trailing_partial_bytes,
+        malformed_lines=tail.malformed_lines,
+    )
+
+    ccz = payload["ccz"]
+    assert ccz["estimator"] == "CCZ"
+    assert ccz["primary_level_count"] == CCZ_PRIMARY_LEVELS
+    assert ccz["declared_level_counts"] == list(CCZ_LEVEL_COUNTS)
+    assert ccz["cumulates_across_levels"] is False
+    assert ccz["per_band_denominator"] is False
+    assert "ID-CCZ-01" in ccz["limitation"]
+    assert payload["migration_document"] == "docs/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
+    # Before any refit there is no fitted component, and none is fabricated.
+    assert payload["ccz_integrated_weights"] == {}
+    assert ccz["explained_variance_ratio"] == {}
+    assert engine.cells_payload()["ccz"]["estimator"] == "CCZ"
+
+
+def test_ccz_integrated_weights_are_fitted_on_the_training_block_only() -> None:
+    """`VAL-CCZ-04` at the dashboard boundary: the component never sees a test row."""
+
+    observations = [_observation(index) for index in range(400)]
+    engine = OfiDashboardEngine(
+        run_id="test",
+        drive_mode="replay",
+        tape_identity="pinned#sha256=test",
+        config=_config(),
+    )
+    engine.observations = observations
+    partitions = WalkForwardRatchet(engine.config).next_partitions(observations)
+    assert partitions is not None
+
+    diagnostics = engine._integrated_arm_diagnostics(partitions)
+
+    assert diagnostics
+    for key, value in diagnostics.items():
+        assert key.endswith(f"__m{CCZ_PRIMARY_LEVELS}")
+        if value["status"] != "ESTIMATED":
+            continue
+        assert value["fitted_on"] == "training_rows_only"
+        assert value["training_rows"] <= len(partitions[0].train)
+        assert 0.0 <= value["explained_variance_ratio"] <= 1.0
+        assert abs(sum(abs(weight) for weight in value["normalised_weights"]) - 1.0) < 1e-9
+
+
 def test_rendering_theme_and_frozen_field_parity(tmp_path: Path) -> None:
     engine, tail = _empty_dashboard(tmp_path)
     payload = engine.payload(

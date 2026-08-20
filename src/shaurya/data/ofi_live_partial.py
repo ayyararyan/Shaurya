@@ -1,4 +1,10 @@
-"""Identity and causal-row guard for `X-OFI-LATEPARTIAL-2026-08-20`."""
+"""Identity and causal-row guard for `X-OFI-LATEPARTIAL-2026-08-20`.
+
+`CCZ-IMPL-07`.  This module never computed an estimator; it clips and identifies the tape.  What
+changed under ``D37 / CCZ-OFI-MIGRATION-2026-08-20`` is that the claim it emits now states which
+estimator the downstream scan used, so a post-migration partial claim can never be read as
+comparable with a pre-migration one, and carries the ``ID-CCZ-01`` limitation.
+"""
 
 from __future__ import annotations
 
@@ -11,9 +17,11 @@ from pathlib import Path
 from typing import Any
 
 from shaurya.contracts.timing import IST
+from shaurya.signals.ccz_ofi import ccz_metadata
 
 PROTOCOL_ID = "X-OFI-LATEPARTIAL-2026-08-20"
 SOURCE_SPEC = "docs/OFI-LATE-PARTIAL-EXPLORATORY-SPEC-2026-08-20.md"
+MIGRATION_DOCUMENT = "docs/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
 EXPECTED_RUN_ID = "sha-20260820T035146.093420Z-91f76404"
 EXPECTED_INSTRUMENT_ID = "NSE:NSE_FNO:NIFTY:future:2026-08-25"
 EXPECTED_SECURITY_ID = "58072"
@@ -137,6 +145,9 @@ def partial_claim(source_scan_id: str, snapshot: PartialSnapshot) -> dict[str, A
     return {
         "protocol_id": PROTOCOL_ID,
         "source_spec": SOURCE_SPEC,
+        "migration_document": MIGRATION_DOCUMENT,
+        "ccz": ccz_metadata(),
+        "pre_migration_results_not_pooled": True,
         "source_scan_id": source_scan_id,
         "sample_role": "growing_partial_session_exploratory",
         "confirmatory_eligible": False,

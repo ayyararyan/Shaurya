@@ -1,4 +1,9 @@
-"""DAT-21: identity, coverage, and clipping for the full-session OFI replication."""
+"""DAT-21: identity, coverage, and clipping for the full-session OFI replication.
+
+`CCZ-IMPL-07`.  Coverage and identity are estimator-independent and are unchanged.  The receipt
+now records which estimator the run's analysis stages used, so a receipt produced after
+``D37 / CCZ-OFI-MIGRATION-2026-08-20`` is never mistaken for one produced before it.
+"""
 
 from __future__ import annotations
 
@@ -14,11 +19,13 @@ from shaurya.contracts.instruments import (
     InstrumentKind,
 )
 from shaurya.contracts.timing import IST, nse_equity_derivatives_session_bounds
+from shaurya.signals.ccz_ofi import ccz_metadata
 
 PROTOCOL_ID = "R-OFI-FULLSESSION-2026-08-20"
 REGISTRATION_COMMIT = "af9bec17694b5cf45f1d670113f14b02efb1e418"
 SOURCE_SPEC = "docs/OFI-FULL-SESSION-REPLICATION-SPEC-2026-08-20.md"
 SOURCE_AMENDMENT = "docs/OFI-FULL-SESSION-REPLICATION-SPEC-AMENDMENT-1-2026-08-19.md"
+MIGRATION_DOCUMENT = "docs/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
 TRADING_DATE = date(2026, 8, 20)
 OPENING_PUBLICATION_TOLERANCE = timedelta(seconds=2)
 CLOSING_PUBLICATION_TOLERANCE = timedelta(seconds=2)
@@ -243,9 +250,11 @@ def inspect_replication_capture(
         }
 
     return {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "protocol_id": PROTOCOL_ID,
         "registration_commit": REGISTRATION_COMMIT,
+        "migration_document": MIGRATION_DOCUMENT,
+        "ccz": ccz_metadata(),
         "sample_role": "prospective_full_session_replication",
         "confirmatory_eligible": False,
         "sig21_calibration_eligible": False,
