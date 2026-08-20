@@ -790,14 +790,21 @@ def build_fixed_target_panel(
     horizons: Sequence[float] = HORIZONS_SECONDS,
     replicates: int = 399,
     seed: int = 20260820,
+    embargo_seconds: float = EMBARGO_SECONDS,
     progress: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     observations = list(tape.observations)
     if not observations:
         raise ValueError("D39 needs at least one observation")
+    minimum_embargo = CAUSAL_GAP_SECONDS + max(float(value) for value in horizons)
+    if embargo_seconds < minimum_embargo:
+        raise ValueError(
+            "embargo_seconds must cover the causal gap plus the longest response horizon "
+            f"({minimum_embargo:g} seconds)"
+        )
     split = chronological_embargoed_split(
         [as_normal_observation(observation) for observation in observations],
-        embargo_seconds=EMBARGO_SECONDS,
+        embargo_seconds=embargo_seconds,
     )
     training_upper = max(observations[position].receive_ts_ns for position in split.train)
     bounce = roll_diagnostics(prints, training_upper_bound_ts_ns=training_upper)

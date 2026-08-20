@@ -207,6 +207,23 @@ def test_construction_uses_canonical_cks_and_causal_depth_adjustment(
     assert_no_lookahead(observations)
 
 
+def test_custom_response_horizons_are_materialised_without_changing_predictors() -> None:
+    depth200 = [_state(index) for index in range(100)]
+    depth20 = [_state(index, channel=DEPTH20) for index in range(200)]
+    observations, _failures = build_horserace_observations(
+        depth200_states=depth200,
+        depth20_states=depth20,
+        rows=[_trade_row(index, "buy") for index in range(MINIMUM_TRADE_PACKETS + 5)],
+        tape_index=0,
+        run_id="custom-response-horizons",
+        response_horizons=(20.0, 45.0),
+    )
+    assert observations
+    assert any(45.0 in observation.future_ticks for observation in observations)
+    assert all(set(observation.future_ticks) <= {20.0, 45.0} for observation in observations)
+    assert all(normalised_level_feature(10.0, 10, 10) in item.features for item in observations)
+
+
 def test_unsupported_level_count_is_missing_not_zero_filled() -> None:
     depth200 = [
         replace(_state(index), bids=_state(index).bids[:100], asks=_state(index).asks[:100])

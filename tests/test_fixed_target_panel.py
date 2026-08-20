@@ -186,3 +186,29 @@ def test_val_d39_04_every_estimated_competitor_uses_identical_rows_and_metrics()
     assert by_name["C8"]["past_mirror_guard_passed"] is True
     assert by_name["C2"]["past_mirror_guard_passed"] is False
     assert cell["ofi_question"]["c12_incremental_oos_r2_over_c2"] > 0.0
+
+
+def test_long_horizon_panel_requires_gap_plus_horizon_embargo() -> None:
+    observations = tuple(_observation(index) for index in range(1, 601))
+    tape = HorseRaceTapeInput(
+        tape_index=0,
+        run_id="synthetic-d40",
+        instrument_id="NSE:NSE_FNO:NIFTY:future:2026-08-25",
+        tape_sha256="1" * 64,
+        observations=observations,
+        depth200_publications=len(observations),
+        depth20_publications=len(observations),
+        observed_seconds=600.0,
+        failures={},
+    )
+    with pytest.raises(ValueError, match="causal gap plus the longest response horizon"):
+        build_fixed_target_panel(
+            tape,
+            prints=[],
+            references=("displayed_mid",),
+            levels=(1,),
+            windows=(1.0,),
+            horizons=(120.0,),
+            embargo_seconds=120.0,
+            replicates=0,
+        )

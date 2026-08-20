@@ -81,6 +81,7 @@ def build_tape_input(
     full_session_replication: bool = False,
     late_partial_exploratory: bool = False,
     level_counts: tuple[int, ...] | None = None,
+    response_horizons: tuple[float, ...] | None = None,
 ) -> HorseRaceTapeInput:
     if late_partial_exploratory:
         snapshot = inspect_late_partial_snapshot(tape)
@@ -120,6 +121,7 @@ def build_tape_input(
             rows=rows,
             tape_index=tape_index,
             run_id=run_id,
+            response_horizons=response_horizons,
         )
     else:
         observations, failures = build_horserace_observations(
@@ -129,6 +131,7 @@ def build_tape_input(
             tape_index=tape_index,
             run_id=run_id,
             level_counts=level_counts,
+            response_horizons=response_horizons,
         )
     observed_seconds = (
         (depth200[-1].receive_ts_ns - depth200[0].receive_ts_ns) / NANOSECONDS_PER_SECOND

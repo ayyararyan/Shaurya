@@ -103,6 +103,7 @@ def main() -> int:
         # construction even when a diagnostic CLI slice requests another M only; the artifact
         # still evaluates exactly ``args.levels``.
         level_counts=tuple(sorted({10, *args.levels})),
+        response_horizons=args.horizons,
     )
     full_rows = [
         row for row in iter_late_partial_rows(args.tape) if row.get("event_type") == "full"

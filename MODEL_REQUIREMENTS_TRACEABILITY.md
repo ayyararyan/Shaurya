@@ -62,3 +62,19 @@ when present, is a post-outcome partial-session exploration and cannot exceed le
 | `VAL-D39-03` | C12 is exactly C2 plus C8 | **Tested synthetically** | `signals/fixed_target_panel.py:competitor_features` | `test_fixed_target_panel.py::test_val_d39_03_*` |
 | `VAL-D39-04` | Complete competitor set, metrics and common row hash | **Tested synthetically** | `signals/fixed_target_panel.py:evaluate_panel_cell` | `test_fixed_target_panel.py::test_val_d39_04_*` |
 | `OPS-D39-01` | 2026-08-20 tape remains read-only, exploratory and non-confirmatory | **Implemented** | `scripts/d39_fixed_target_panel.py`; artifact claim-boundary fields | durable run manifest and artifact read-back |
+
+## D40 additive matrix — `OFI-HORIZON-EXTENSION-2026-08-20`
+
+**Specification:** `docs/D40-OFI-HORIZON-EXTENSION-SPEC-2026-08-20.md`
+**Evidence boundary:** retrospective displayed-mid extension on the immutable 2026-08-20 partial
+session. It does not modify or validate the locked 2026-08-21 D39 test.
+
+| ID | Requirement | Status | Code location | Test / acceptance evidence |
+|---|---|---|---|---|
+| `D40-OBJ-01` | Fixed C8/M10/10 s model; displayed-mid target; seven 10–120 s horizons | **Implemented** | `scripts/d40_ofi_horizon_extension.py` | exact-axis refusal in `_c8_summary` |
+| `D40-DATA-01` | Immutable late-partial tape with SHA identity | **Implemented** | `scripts/d40_ofi_horizon_extension.py`; `scripts/ofi_horserace.py:build_tape_input` | artifact and summary SHA fields |
+| `D40-EST-01` | Existing ten-level depth-scaled CCZ OFI construction is unchanged | **Implemented, tested** | `signals/ccz_ofi.py`; `fixed_target_panel.py:competitor_features` | existing CCZ/D39 tests plus focused D40 tests |
+| `D40-TARGET-01` | Materialise custom future displayed-mid horizons with 0.5 s gap | **Implemented, tested** | `signals/ofi_horserace.py:build_horserace_observations` | `test_custom_response_horizons_are_materialised_without_changing_predictors` |
+| `D40-OOS-01` | Chronological 70/30 split; embargo covers gap plus longest response | **Implemented, tested** | `signals/fixed_target_panel.py:build_fixed_target_panel` | `test_long_horizon_panel_requires_gap_plus_horizon_embargo` |
+| `D40-METRIC-01` | Report only C8 absolute OOS R² horizon curve | **Implemented** | `scripts/d40_ofi_horizon_extension.py:_c8_summary` | empirical artifact pending |
+| `D40-OUT-01` | Full artifact, compact summary, report and next-session prompt | **Partially implemented** | runner and specification exist | empirical run/report pending |

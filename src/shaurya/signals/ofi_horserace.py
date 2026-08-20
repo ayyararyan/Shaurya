@@ -408,6 +408,7 @@ def build_horserace_observations(
     run_id: str,
     level_counts: Sequence[int] = CCZ_LEVEL_COUNTS,
     effective_touch_window_seconds: float = PRIMARY_EFFECTIVE_TOUCH_WINDOW,
+    response_horizons: Sequence[float] | None = None,
 ) -> tuple[list[HorseRaceObservation], dict[str, Any]]:
     """Construct all predictors and responses at one common causal anchor clock.
 
@@ -419,6 +420,13 @@ def build_horserace_observations(
     counts = tuple(sorted({int(value) for value in level_counts}))
     if CCZ_PRIMARY_LEVELS not in counts:
         raise ValueError("the primary CCZ level count must be declared")
+    all_horizons = (
+        tuple(sorted({float(value) for value in response_horizons}))
+        if response_horizons is not None
+        else (*RETURN_HORIZONS_SECONDS, CONDITIONAL_HORIZON_SECONDS)
+    )
+    if not all_horizons or any(not isfinite(value) or value <= 0.0 for value in all_horizons):
+        raise ValueError("response horizons must be finite and strictly positive")
     schema = ccz_feature_schema(counts)
     failures: dict[str, Any] = {
         "invalid_transition": 0,
@@ -515,7 +523,6 @@ def build_horserace_observations(
     # common-sample rule then drops it from that cell alone.  Lengthening the global warm-up
     # instead would discard predictive observations to serve a diagnostic.
     longest_ns = int(max(OFI_WINDOWS_SECONDS) * NANOSECONDS_PER_SECOND)
-    all_horizons = (*RETURN_HORIZONS_SECONDS, CONDITIONAL_HORIZON_SECONDS)
     for position, (state, transition) in enumerate(zip(depth200_states[1:], cks, strict=True)):
         if transition.invalid_reason is not None:
             continue
@@ -621,7 +628,7 @@ def build_horserace_observations(
             mirror = _mid_return(mid_series, state.receive_ts_ns - horizon_ns, state.receive_ts_ns)
             if mirror is not None:
                 past[horizon] = mirror
-        if not any(horizon in future for horizon in RETURN_HORIZONS_SECONDS):
+        if not any(horizon in future for horizon in all_horizons):
             failures["no_future_coverage"] += 1
             continue
         same: dict[float, float] = {}
