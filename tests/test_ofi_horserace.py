@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from dataclasses import replace
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -11,6 +13,8 @@ from scripts.ofi_horserace import (
     _ccz_arm_csv,
     _gate_csv,
     _intensity_csv,
+    _jsonl,
+    _ranking_csv,
     _support_csv,
 )
 from shaurya.data.depth_thinning_analysis import DEPTH20, DEPTH200, BookState, parse_receive_ts_ns
@@ -478,7 +482,7 @@ def _drifting_state(index: int, *, channel: str = DEPTH200) -> BookState:
     )
 
 
-def test_val_ccz_08_horse_race_artifact_carries_the_estimator_block() -> None:
+def test_val_ccz_08_horse_race_artifact_carries_the_estimator_block(tmp_path: Path) -> None:
     """`VAL-CCZ-08`: estimator, level count, EVR and the ID-CCZ-01 limitation string.
 
     Observations are built at ``M <= 10`` so the deeper declared arms have no support here.  The
@@ -540,6 +544,34 @@ def test_val_ccz_08_horse_race_artifact_carries_the_estimator_block() -> None:
         "best_level",
     }
     assert artifact["multiplicity"]["ccz_aggregation_arm_cells_per_direction"] == len(arms)
+
+    # End-to-end: every declared writer produces a non-empty, well-formed file from this
+    # artifact, and the estimator survives the round trip through JSON.
+    written = {
+        "horse_race.json": json.dumps(artifact, indent=2, sort_keys=True) + "\n",
+        "horse_future_cells.jsonl": _jsonl(artifact["future_cells"]),
+        "horse_past_cells.jsonl": _jsonl(artifact["past_mirror_cells"]),
+        "horse_ranking.csv": _ranking_csv(artifact["rankings"]),
+        "horse_ablations.csv": _ablation_csv(artifact["combined_ablations"]),
+        "horse_intensity.csv": _intensity_csv(artifact["feature_intensity"]),
+        "horse_support.csv": _support_csv(artifact["support_table"]),
+        "horse_gate.csv": _gate_csv(artifact["gate_30_seconds"]),
+        "horse_ccz_arms.csv": _ccz_arm_csv(
+            [*artifact["ccz_aggregation_arms_future"], *artifact["ccz_aggregation_arms_past"]]
+        ),
+    }
+    for name, payload in written.items():
+        target = tmp_path / name
+        target.write_text(payload, encoding="utf-8")
+        assert target.stat().st_size > 0, name
+        assert len(payload.splitlines()) >= 2, name
+    reloaded = json.loads((tmp_path / "horse_race.json").read_text(encoding="utf-8"))
+    assert reloaded["ccz"]["estimator"] == "CCZ"
+    assert "ID-CCZ-01" in reloaded["ccz"]["limitation"]
+    arm_csv = (tmp_path / "horse_ccz_arms.csv").read_text(encoding="utf-8").splitlines()
+    assert arm_csv[0].startswith("source,estimator,arm,levels")
+    assert all(line.split(",")[1] == "CCZ" for line in arm_csv[1:])
+    assert len(arm_csv) == 1 + 2 * len(arms)
 
 
 def test_ccz_arm_csv_is_complete_and_deterministic() -> None:
