@@ -52,6 +52,16 @@ from shaurya.signals.ofi_horserace import (
 SECOND = 1_000_000_000
 BASE = 1_777_000_000 * SECOND
 
+# `MICRO-03`: nine families (M0-M8) across five predictor windows and five horizons.  Pinned
+# explicitly so a change to MODEL_ORDER cannot silently resize the frozen grid.
+EXPECTED_CELL_COUNT = 9 * 5 * 5
+
+
+def test_grid_size_is_pinned_to_the_declared_family_and_axis_counts() -> None:
+    assert CELL_COUNT == EXPECTED_CELL_COUNT
+    assert len(MODEL_ORDER) == 9
+    assert MODEL_ORDER[-2:] == ("M7", "M8")
+
 
 def _observation(
     index: int,
@@ -65,6 +75,8 @@ def _observation(
         "log1p_l1_depth": 5.0 + ((index * 3) % 5) / 10.0,
         "spread_ticks": 1.0 + index % 2,
         "l1_queue_imbalance": signal / 11.0,
+        # `MICRO-01`: the M7 regressor, a family under D38 rather than an unused control.
+        "microprice_tilt_ticks": signal / 14.0,
     }
     for window in OFI_WINDOWS_SECONDS:
         features[trade_feature(window)] = signal * (1.0 + window / 20.0)
@@ -101,6 +113,9 @@ def _observation(
             window: BASE + index * SECOND - int(window * SECOND) + 1
             for window in OFI_WINDOWS_SECONDS
         },
+        # `MICRO-02`: the discrete state the Stoikov chain conditions on.  Two states, so the
+        # chain is estimable and the M8 arm is scored rather than blocked.
+        microprice_state=f"i{9 if signal > 0 else 0}_s{index % 2}",
     )
 
 
@@ -240,9 +255,9 @@ def test_bh_fdr_keeps_full_family_and_bootstrap_stratifies_blocks() -> None:
     assert first is not None and second is not None
     first_cells = evaluator.evaluate_block(observations, first, trade_identified=True)
     second_cells = evaluator.evaluate_block(observations, second, trade_identified=True)
-    assert sum(cell["bh_fdr_q_value"] is not None for cell in first_cells) == 175
+    assert sum(cell["bh_fdr_q_value"] is not None for cell in first_cells) == CELL_COUNT
     assert all(cell["bh_fdr_q_value"] == 1.0 for cell in first_cells if cell["model"] == "M0")
-    assert len(second_cells) == 175
+    assert len(second_cells) == CELL_COUNT
     accumulator = evaluator.accumulators["M1|1|1"].future
     assert set(accumulator.tapes) == {0, 1}
 
@@ -295,8 +310,8 @@ def test_canonical_offline_cell_parity_for_equivalent_split() -> None:
         seed=99,
     )
     assert probe["passed"]
-    assert probe["canonical_cells"] == 175
-    assert probe["dashboard_cells"] == 175
+    assert probe["canonical_cells"] == CELL_COUNT
+    assert probe["dashboard_cells"] == CELL_COUNT
     assert probe["maximum_absolute_difference"] <= 1e-12
 
 
@@ -470,9 +485,12 @@ def test_rendering_theme_and_frozen_field_parity(tmp_path: Path) -> None:
         "NO ORDER PATH",
     )
     assert all(field in html for field in required)
-    assert payload["axes"]["cells"] == 175
-    assert len(payload["cells"]) == 175
-    assert payload["honesty"]["expected_by_chance_at_5pct"] == 8.75
+    assert payload["axes"]["cells"] == CELL_COUNT
+    assert len(payload["cells"]) == CELL_COUNT
+    # 5% of the grid; the grid grew with M7 and M8, so the false-positive budget grew with it
+    assert payload["honesty"]["expected_by_chance_at_5pct"] == pytest.approx(
+        0.05 * EXPECTED_CELL_COUNT
+    )
     assert payload["same_window_diagnostic"]["ranked_with_future_cells"] is False
     rail = payload["status_rail"]
     assert set(rail) >= {
@@ -527,7 +545,7 @@ def test_artifact_is_complete_and_replay_hash_is_deterministic(tmp_path: Path) -
         sink.append(cells)
         summaries.append(sink.close({"scan": "test"}))
         lines = (tmp_path / name / "ofi_dashboard_cells.jsonl").read_text().splitlines()
-        assert len(lines) == 175
+        assert len(lines) == CELL_COUNT
         assert all(
             json.loads(line)["status"] in {"WARMING", "BLOCKED_UNIDENTIFIED"} for line in lines
         )

@@ -61,7 +61,10 @@ from shaurya.signals.ofi_horserace import (
     build_horserace_observations,
     evaluate_cells,
     evaluate_same_window,
+    fit_stoikov_for_split,
     model_features,
+    stoikov_is_available,
+    with_stoikov_feature,
 )
 
 SCAN_ID = "X-OFI-DASHBOARD-2026-08-20"
@@ -551,6 +554,25 @@ def _benjamini_hochberg(cells: list[dict[str, Any]]) -> None:
         cell["bh_fdr_positive_5pct"] = q_value is not None and q_value <= GREEN_THRESHOLD
 
 
+def _overlay_stoikov(
+    observations: Sequence[HorseRaceObservation], partition: BlockPartition
+) -> list[HorseRaceObservation]:
+    """`MICRO-02`: fit the Stoikov chain on one block's training rows and overlay its regressor.
+
+    A block whose training positions cannot support the chain leaves the observations untouched,
+    which makes ``M8`` report as blocked rather than as a fabricated zero tilt.
+    """
+
+    base = list(observations)
+    if not partition.train:
+        return base
+    try:
+        model = fit_stoikov_for_split(base, partition.as_split_index())
+    except ValueError:
+        return base
+    return with_stoikov_feature(base, model)
+
+
 def _empty_cell(
     *,
     model: str,
@@ -564,8 +586,11 @@ def _empty_cell(
     block_index: int | None,
     embargo_seconds: float,
     trade_identified: bool,
+    stoikov_available: bool = False,
 ) -> dict[str, Any]:
-    names = model_features(model, h1, trade_identified=trade_identified)
+    names = model_features(
+        model, h1, trade_identified=trade_identified, stoikov_available=stoikov_available
+    )
     return {
         "scan_id": SCAN_ID,
         "cell_key": cell_key(model, h1, h2),
@@ -671,6 +696,10 @@ class WalkForwardEvaluator:
         cells: list[dict[str, Any]] = []
         for h2 in RETURN_HORIZONS_SECONDS:
             partition = by_horizon[float(h2)]
+            # `MICRO-02` / `VAL-MICRO-01`: the M8 regressor is fitted on this block's own training
+            # positions and applied unchanged to its test positions.  Fitting once per horizon,
+            # not once per (h1, h2) family, because the chain does not depend on h1.
+            observations = _overlay_stoikov(observations, partition)
             for h1 in OFI_WINDOWS_SECONDS:
                 cells.extend(
                     self._evaluate_family(
@@ -714,8 +743,14 @@ class WalkForwardEvaluator:
         h2: float,
         trade_identified: bool,
     ) -> list[dict[str, Any]]:
+        stoikov_available = stoikov_is_available(observations)
         feature_sets = {
-            model: model_features(model, h1, trade_identified=trade_identified)
+            model: model_features(
+                model,
+                h1,
+                trade_identified=trade_identified,
+                stoikov_available=stoikov_available,
+            )
             for model in MODEL_ORDER
         }
         common_names = tuple(
@@ -731,7 +766,9 @@ class WalkForwardEvaluator:
         result: list[dict[str, Any]] = []
         if len(train) < self.config.minimum_training_anchors:
             for model in MODEL_ORDER:
-                blocked = model == "M2" and not trade_identified
+                blocked = (model == "M2" and not trade_identified) or (
+                    model == "M8" and not stoikov_available
+                )
                 result.append(
                     _empty_cell(
                         model=model,
@@ -749,12 +786,15 @@ class WalkForwardEvaluator:
                         block_index=partition.block_index,
                         embargo_seconds=partition.embargo_seconds,
                         trade_identified=trade_identified,
+                        stoikov_available=stoikov_available,
                     )
                 )
             return result
         if len(test) < self.config.minimum_test_anchors:
             for model in MODEL_ORDER:
-                blocked = model == "M2" and not trade_identified
+                blocked = (model == "M2" and not trade_identified) or (
+                    model == "M8" and not stoikov_available
+                )
                 result.append(
                     _empty_cell(
                         model=model,
@@ -772,6 +812,7 @@ class WalkForwardEvaluator:
                         block_index=partition.block_index,
                         embargo_seconds=partition.embargo_seconds,
                         trade_identified=trade_identified,
+                        stoikov_available=stoikov_available,
                     )
                 )
             return result
@@ -814,6 +855,7 @@ class WalkForwardEvaluator:
                         block_index=partition.block_index,
                         embargo_seconds=partition.embargo_seconds,
                         trade_identified=trade_identified,
+                        stoikov_available=stoikov_available,
                     )
                 )
                 continue
@@ -1282,9 +1324,7 @@ class OfiDashboardEngine:
                 self.fit_in_progress = False
         return snapshots
 
-    def _integrated_arm_diagnostics(
-        self, partitions: Sequence[BlockPartition]
-    ) -> dict[str, Any]:
+    def _integrated_arm_diagnostics(self, partitions: Sequence[BlockPartition]) -> dict[str, Any]:
         """`EST-CCZ-04`: fit ``w_1`` on this block's training rows only and report the EVR.
 
         The weights are never fitted on, and never see, a test row.  A window without complete

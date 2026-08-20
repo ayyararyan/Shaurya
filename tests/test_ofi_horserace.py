@@ -28,6 +28,7 @@ from shaurya.signals.ccz_ofi import (
     normalised_level_feature,
 )
 from shaurya.signals.deep_book_normal_activity import SplitIndex
+from shaurya.signals.evaluation_metrics import assert_companion_metrics
 from shaurya.signals.ofi_horserace import (
     CCZ_LEVEL_COUNTS,
     CCZ_PRIMARY_LEVELS,
@@ -257,6 +258,11 @@ def _synthetic_observation(index: int, *, test_shift: float = 0.0) -> HorseRaceO
         "log1p_l1_depth": 5.0 + (index % 3) / 10,
         "spread_ticks": 1.0 + (index % 2),
         "l1_queue_imbalance": signal / 5,
+        # `MICRO-01`: the M7 regressor, promoted from control to family under D38.
+        "microprice_tilt_ticks": signal / 8,
+        # `TOUCH-04`: the effective-touch twins of the two level-one objects.
+        "et_l1_queue_imbalance": signal / 6,
+        "et_microprice_tilt_ticks": signal / 9,
     }
     for window in OFI_WINDOWS_SECONDS:
         features[trade_feature(window)] = signal * 2
@@ -270,6 +276,9 @@ def _synthetic_observation(index: int, *, test_shift: float = 0.0) -> HorseRaceO
         for level in range(1, max(CCZ_LEVEL_COUNTS) + 1):
             features[level_feature(window, level)] = signal * level / 10.0
         for level in range(1, CCZ_PRIMARY_LEVELS + 1):
+            features["et_" + normalised_level_feature(window, level, CCZ_PRIMARY_LEVELS)] = (
+                signal * level / 400.0
+            )
             features[normalised_level_feature(window, level, CCZ_PRIMARY_LEVELS)] = (
                 signal * level / 500.0
             )
@@ -349,12 +358,21 @@ def test_evaluation_emits_complete_common_sample_and_training_standardisation() 
         seed=7,
     )
     assert len(rows) == len(OFI_WINDOWS_SECONDS) * len(MODEL_ORDER)
+    # `MICRO-02`: M8 has no regressor until the Stoikov chain is fitted on a split, so without the
+    # overlay it is reported blocked rather than dropped from the grid.
+    blocked = [row for row in rows if row["model"] == "M8"]
+    assert len(blocked) == len(OFI_WINDOWS_SECONDS)
+    assert {row["status"] for row in blocked} == {"blocked_unfitted_stoikov_chain"}
+    rows = [row for row in rows if row["model"] != "M8"]
     assert {row["train_n"] for row in rows} == {80}
     assert {row["test_n"] for row in rows} == {30}
     assert {row["embargoed_n"] for row in rows} == {10}
     assert all(row["support_by_tape"]["0"]["train_n"] == 40 for row in rows)
     assert all(row["training_standardisation"]["source"] == "training_only" for row in rows)
     assert all(set(row["per_tape"]) == {"0", "1"} for row in rows)
+    # `METRIC-04`: no cell reports an R2 alone.
+    for row in rows:
+        assert_companion_metrics(row, label=f"{row['model']}@{row['h1_seconds']}")
     for row in rows:
         if row["model"] in {"M4", "M5"}:
             diagnostics = row["level_contribution_diagnostics"]

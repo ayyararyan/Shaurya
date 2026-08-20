@@ -26,12 +26,13 @@ artifact this module produces.
 from __future__ import annotations
 
 from bisect import bisect_right
-from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass
+from collections.abc import Iterator, Mapping, Sequence
+from dataclasses import asdict, dataclass, field, replace
 from math import isfinite, log1p, sqrt
 from typing import Any, Literal
 
 import numpy as np
+from scipy.stats import norm
 
 from shaurya.data.depth_thinning_analysis import BookState, parse_receive_ts_ns
 from shaurya.data.trade_direction import TRADE_ALIGNMENT_VERSION, TRADE_CLASSIFIER_VERSION
@@ -72,13 +73,63 @@ from shaurya.signals.deep_book_ofi import (
     _mid_return,
 )
 from shaurya.signals.deep_book_response import NANOSECONDS_PER_SECOND
+from shaurya.signals.effective_touch import (
+    PRIMARY_EFFECTIVE_TOUCH_WINDOW,
+    EffectiveTouchSeries,
+    build_trade_prints,
+)
+from shaurya.signals.evaluation_metrics import (
+    assert_companion_metrics,
+    benjamini_yekutieli,
+    metric_bundle,
+    metric_metadata,
+    past_mirror_verdict,
+    per_tape_sign_check,
+)
+from shaurya.signals.microprice import (
+    MicropriceState,
+    StoikovMicropriceModel,
+    build_stoikov_transitions,
+    classify_state,
+    fit_stoikov_microprice,
+    microprice_metadata,
+)
+from shaurya.signals.reference_prices import (
+    BASELINE_REFERENCE,
+    REFERENCE_PRICE_LADDER,
+    build_reference_price_paths,
+    reference_price_coverage,
+    touch_relative_metadata,
+    touch_relative_microprice_tilt_ticks,
+    touch_relative_queue_imbalance,
+    touch_relative_state,
+)
 
 EXPLORATORY_SCAN_ID = "X-OFI-HORSERACE-DAT20-05"
 CONFIRMATORY_ELIGIBLE = False
 DESIGN_DOCUMENT = "docs/OFI-HORSERACE-SPEC-2026-08-19.md"
 MIGRATION_DOCUMENT = "docs/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
+TOUCH_METRICS_DOCUMENT = "docs/TOUCH-METRICS-SPEC-2026-08-20.md"
 RETURN_HORIZONS_SECONDS = (0.5, 1.0, 2.0, 5.0, 10.0)
 CONDITIONAL_HORIZON_SECONDS = 30.0
+
+#: `WINDOW-01`.  The same-window diagnostic grid, extended to 30 s and 60 s.  60 s is CCZ's
+#: contemporaneous frequency ``h = 1 minute`` exactly, and is the only cell in this repository
+#: directly comparable with their published numbers.  Predictor features are therefore built at
+#: every one of these windows, not only at the five predictive windows.
+SAME_WINDOW_SECONDS = (*OFI_WINDOWS_SECONDS, 30.0, 60.0)
+#: `WINDOW-01`.  The CCZ comparison cell.
+CCZ_CONTEMPORANEOUS_WINDOW_SECONDS = 60.0
+
+#: `WINDOW-02`.  CCZ's published contemporaneous R-squared, promoted from a footnote to a gate.
+CCZ_PUBLISHED_BEST_LEVEL_IN_SAMPLE_R2 = 0.7116
+CCZ_PUBLISHED_BEST_LEVEL_OUT_OF_SAMPLE_R2 = 0.6464
+CCZ_PUBLISHED_INTEGRATED_IN_SAMPLE_R2 = 0.8714
+
+#: `TOUCH-04`.  Feature name prefix for the objects re-derived against the effective touch.
+TOUCH_RELATIVE_PREFIX = "et_"
+#: `MICRO-02`.  The `M8` regressor: the fitted Stoikov fair-value tilt, in ticks.
+STOIKOV_FEATURE = "stoikov_adjustment_ticks"
 
 #: `EST-CCZ-06`.  ``M = 10`` is primary; ``M in {1, 5, 20, 200}`` are declared robustness arms.
 CCZ_LEVEL_COUNTS = DECLARED_LEVEL_COUNTS
@@ -89,7 +140,10 @@ CCZ_SCALAR_ARMS = ("integrated", "simple_average", "best_level")
 CCZ_AGGREGATION_ARMS = ("per_level_pi", *CCZ_SCALAR_ARMS)
 
 RIDGE_ALPHAS = (0.0, 0.01, 0.1, 1.0, 10.0, 100.0)
-MODEL_ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6")
+#: `MICRO-03`.  ``M7`` and ``M8`` enter as families, not controls.
+MODEL_ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8")
+#: `TOUCH-04`.  The book-derived families that are re-derived against the effective touch.
+TOUCH_RELATIVE_MODELS = ("M1", "M5", "M7")
 #: Families whose design matrix is wide enough to need the inner-CV ridge penalty.
 REGULARISED_MODELS = ("M4", "M5", "M6", "ccz_per_level_pi")
 MINIMUM_FIT_OBSERVATIONS = 20
@@ -127,6 +181,18 @@ def trade_feature(window: float) -> str:
 
 def normalised_trade_feature(window: float) -> str:
     return f"normalised_trade_imbalance_w{_label(window)}"
+
+
+def touch_relative_feature(name: str) -> str:
+    """`TOUCH-04`: the name of ``name`` re-derived against the effective touch."""
+
+    return f"{TOUCH_RELATIVE_PREFIX}{name}"
+
+
+def touch_relative_normalised_features(
+    window: float, levels: int = CCZ_PRIMARY_LEVELS
+) -> tuple[str, ...]:
+    return tuple(touch_relative_feature(name) for name in ccz_normalised_features(window, levels))
 
 
 @dataclass(frozen=True, slots=True)
@@ -254,6 +320,45 @@ class HorseRaceObservation:
     same_window_ticks: Mapping[float, float]
     window_start_ts_ns: Mapping[float, int]
     connection_epoch: int = 1
+    #: `TOUCH-03`.  Returns under each reference price in the ladder, keyed reference -> horizon.
+    #: ``displayed_mid`` duplicates ``future_ticks``/``past_ticks`` so the baseline stays exactly
+    #: the status quo object and post-D38 cells remain comparable with the 11:30 horse race.
+    reference_future_ticks: Mapping[str, Mapping[float, float]] = field(default_factory=dict)
+    reference_past_ticks: Mapping[str, Mapping[float, float]] = field(default_factory=dict)
+    reference_same_window_ticks: Mapping[str, Mapping[float, float]] = field(default_factory=dict)
+    #: `MICRO-02`.  The discrete Stoikov state at this anchor; the adjustment itself cannot be a
+    #: build-time feature because the chain may only be fitted on training rows.
+    microprice_state: str | None = None
+
+
+class _FeatureOverlay(Mapping[str, float]):
+    """A read-only overlay adding split-dependent columns to an interned feature vector.
+
+    `MICRO-02` forbids fitting the Stoikov chain on anything but training rows, so its regressor
+    cannot exist when the feature vector is built.  Presenting it as an overlay keeps every design
+    matrix, collinearity and support code path working against a plain ``Mapping[str, float]``.
+    """
+
+    __slots__ = ("_base", "_extra")
+
+    def __init__(self, base: Mapping[str, float], extra: Mapping[str, float]) -> None:
+        self._base = base
+        self._extra = dict(extra)
+
+    def __getitem__(self, key: str) -> float:
+        if key in self._extra:
+            return self._extra[key]
+        return self._base[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._extra or key in self._base
+
+    def __iter__(self) -> Iterator[str]:
+        yield from self._base
+        yield from (key for key in self._extra if key not in self._base)
+
+    def __len__(self) -> int:
+        return len(self._base) + sum(1 for key in self._extra if key not in self._base)
 
 
 def ccz_feature_schema(level_counts: Sequence[int] = CCZ_LEVEL_COUNTS) -> CczFeatureSchema:
@@ -264,8 +369,17 @@ def ccz_feature_schema(level_counts: Sequence[int] = CCZ_LEVEL_COUNTS) -> CczFea
     """
 
     counts = tuple(sorted({int(value) for value in level_counts}))
-    names: list[str] = [*BASELINE_FEATURES, "l1_queue_imbalance", "microprice_tilt_ticks"]
-    for window in OFI_WINDOWS_SECONDS:
+    names: list[str] = [
+        *BASELINE_FEATURES,
+        "l1_queue_imbalance",
+        "microprice_tilt_ticks",
+        touch_relative_feature("l1_queue_imbalance"),
+        touch_relative_feature("microprice_tilt_ticks"),
+    ]
+    # `WINDOW-01`: features are built at every same-window cell, not only at the five predictive
+    # windows, because the 60 s CCZ comparison cell needs a 60 s predictor as well as a 60 s
+    # return.
+    for window in SAME_WINDOW_SECONDS:
         names.extend(
             (
                 cks_feature(window),
@@ -280,6 +394,7 @@ def ccz_feature_schema(level_counts: Sequence[int] = CCZ_LEVEL_COUNTS) -> CczFea
             names.append(denominator_feature(window, count))
             names.append(average_feature(window, count))
         names.extend(ccz_normalised_features(window, CCZ_PRIMARY_LEVELS))
+        names.extend(touch_relative_normalised_features(window, CCZ_PRIMARY_LEVELS))
     return CczFeatureSchema(names)
 
 
@@ -291,8 +406,14 @@ def build_horserace_observations(
     tape_index: int,
     run_id: str,
     level_counts: Sequence[int] = CCZ_LEVEL_COUNTS,
+    effective_touch_window_seconds: float = PRIMARY_EFFECTIVE_TOUCH_WINDOW,
 ) -> tuple[list[HorseRaceObservation], dict[str, Any]]:
-    """Construct all predictors and responses at one common causal anchor clock."""
+    """Construct all predictors and responses at one common causal anchor clock.
+
+    `TOUCH-03` adds the reference-price ladder on the response side and `TOUCH-04` the
+    effective-touch re-derivation on the predictor side, both at the same anchors as everything
+    else, so a cell under one reference price is comparable with the same cell under another.
+    """
 
     counts = tuple(sorted({int(value) for value in level_counts}))
     if CCZ_PRIMARY_LEVELS not in counts:
@@ -306,8 +427,15 @@ def build_horserace_observations(
         "no_future_coverage": 0,
         "ccz_depth_denominator_floored": 0,
         "ccz_level_support_missing": {str(count): 0 for count in counts},
+        "effective_touch_undefined_anchors": 0,
     }
     trades = build_trade_series(rows)
+    # `TOUCH-02`/`TOUCH-04`.  Every observed print, including the ones the DAT-14 quote rule could
+    # not sign, so the exclusion accounting stays visible; only signed prints reach the estimator.
+    prints = build_trade_prints(rows)
+    touch_series = EffectiveTouchSeries(
+        prints.prints, window_seconds=effective_touch_window_seconds
+    )
     failures["trade_support"] = {
         "schema_packets": trades.schema_packets,
         "qualified_packets": trades.qualified_packets,
@@ -329,6 +457,31 @@ def build_horserace_observations(
     series = CczFlowSeries.from_states(
         depth200_states, level_counts=counts, invalid_reasons=reasons
     )
+    # `TOUCH-04`.  The same CCZ machinery on a book re-keyed to tick-distance bands measured
+    # outward from the effective touch at each state's own timestamp.  Where the touch is
+    # undefined the state is refused, and its transition is marked invalid, which propagates as
+    # missing through the identical code path rather than as a displayed-touch fallback.
+    touch_states: list[BookState] = []
+    touch_reasons: list[str | None] = []
+    for position, state in enumerate(depth200_states):
+        rekeyed = touch_relative_state(
+            state, touch_series.at(state.receive_ts_ns), levels=counts[-1]
+        )
+        if rekeyed is None:
+            failures["effective_touch_undefined_anchors"] += 1
+            touch_states.append(state)
+            if position > 0:
+                touch_reasons.append("effective_touch_undefined")
+            continue
+        touch_states.append(rekeyed)
+        if position > 0:
+            touch_reasons.append(reasons[position - 1])
+    for index, reason in enumerate(reasons):
+        if reason is not None:
+            touch_reasons[index] = reason
+    touch_flow = CczFlowSeries.from_states(
+        touch_states, level_counts=counts, invalid_reasons=touch_reasons
+    )
     stamps = [transition.receive_ts_ns for transition in cks]
     invalid_prefix = [0]
     cks_prefix = [0.0]
@@ -344,8 +497,22 @@ def build_horserace_observations(
         )
         count_prefix.append(count_prefix[-1] + int(valid))
     mid_series = build_depth20_mid_series(depth20_states)
+    # `TOUCH-03`.  The ladder is built over the depth20 clock (and, for the effective touch, over
+    # the depth20 publication timestamps) so every reference price is sampled on one common clock
+    # and the four cells stay comparable.
+    reference_anchors = [state.receive_ts_ns for state in depth20_states]
+    reference_paths = build_reference_price_paths(
+        depth20_states=depth20_states,
+        prints=prints.prints,
+        effective_touch=touch_series,
+        anchors=reference_anchors,
+    )
     observations: list[HorseRaceObservation] = []
     gap_ns = int(CAUSAL_GAP_SECONDS * NANOSECONDS_PER_SECOND)
+    # The warm-up gate stays at the longest *predictive* window.  `WINDOW-01`'s 30 s and 60 s
+    # cells are diagnostic: an anchor without 60 s of history simply has no 60 s feature, and the
+    # common-sample rule then drops it from that cell alone.  Lengthening the global warm-up
+    # instead would discard predictive observations to serve a diagnostic.
     longest_ns = int(max(OFI_WINDOWS_SECONDS) * NANOSECONDS_PER_SECOND)
     all_horizons = (*RETURN_HORIZONS_SECONDS, CONDITIONAL_HORIZON_SECONDS)
     for position, (state, transition) in enumerate(zip(depth200_states[1:], cks, strict=True)):
@@ -370,17 +537,31 @@ def build_horserace_observations(
             "log1p_l1_depth": log1p(total_l1),
             "l1_queue_imbalance": (bid_quantity - ask_quantity) / total_l1,
         }
+        # `TOUCH-04`.  Missing where the touch is undefined; the common-sample intersection then
+        # drops the anchor from the touch-relative arms only, leaving the displayed arms intact.
+        touch_here = touch_series.at(state.receive_ts_ns)
+        touch_imbalance = touch_relative_queue_imbalance(state, touch_here)
+        if touch_imbalance is not None:
+            features[touch_relative_feature("l1_queue_imbalance")] = touch_imbalance
+        touch_tilt = touch_relative_microprice_tilt_ticks(state, touch_here)
+        if touch_tilt is not None:
+            features[touch_relative_feature("microprice_tilt_ticks")] = touch_tilt
         window_starts: dict[float, int] = {}
         complete = True
-        for window in OFI_WINDOWS_SECONDS:
+        for window in SAME_WINDOW_SECONDS:
+            predictive = window in OFI_WINDOWS_SECONDS
             start = state.receive_ts_ns - int(window * NANOSECONDS_PER_SECOND)
             left = bisect_right(stamps, start)
             right = position + 1
             if left >= right or invalid_prefix[right] - invalid_prefix[left] != 0:
+                if not predictive:
+                    continue
                 complete = False
                 break
             covered = count_prefix[right] - count_prefix[left]
             if covered <= 0:
+                if not predictive:
+                    continue
                 complete = False
                 break
             cks_value = cks_prefix[right] - cks_prefix[left]
@@ -408,7 +589,19 @@ def build_horserace_observations(
                     features[best_level_feature(window)] = evaluated.best_level
                     for level, scaled in enumerate(evaluated.normalised, start=1):
                         features[normalised_level_feature(window, level, count)] = scaled
+                    touch_evaluated = touch_flow.window(
+                        left, right, levels=count, window_seconds=window
+                    )
+                    if touch_evaluated is not None:
+                        for level, scaled in enumerate(touch_evaluated.normalised, start=1):
+                            features[
+                                touch_relative_feature(
+                                    normalised_level_feature(window, level, count)
+                                )
+                            ] = scaled
             if primary is None:
+                if not predictive:
+                    continue
                 complete = False
                 break
             window_starts[window] = stamps[left]
@@ -433,7 +626,7 @@ def build_horserace_observations(
             failures["no_future_coverage"] += 1
             continue
         same: dict[float, float] = {}
-        for window in OFI_WINDOWS_SECONDS:
+        for window in SAME_WINDOW_SECONDS:
             value = _mid_return(
                 mid_series,
                 state.receive_ts_ns - int(window * NANOSECONDS_PER_SECOND),
@@ -441,6 +634,31 @@ def build_horserace_observations(
             )
             if value is not None:
                 same[window] = value
+        reference_future: dict[str, dict[float, float]] = {}
+        reference_past: dict[str, dict[float, float]] = {}
+        reference_same: dict[str, dict[float, float]] = {}
+        for name, path in reference_paths.items():
+            forward: dict[float, float] = {}
+            mirror_map: dict[float, float] = {}
+            for horizon in all_horizons:
+                horizon_ns = int(horizon * NANOSECONDS_PER_SECOND)
+                value = path.return_ticks(response_anchor, response_anchor + horizon_ns)
+                if value is not None:
+                    forward[horizon] = value
+                mirrored = path.return_ticks(state.receive_ts_ns - horizon_ns, state.receive_ts_ns)
+                if mirrored is not None:
+                    mirror_map[horizon] = mirrored
+            window_map: dict[float, float] = {}
+            for window in SAME_WINDOW_SECONDS:
+                value = path.return_ticks(
+                    state.receive_ts_ns - int(window * NANOSECONDS_PER_SECOND),
+                    state.receive_ts_ns,
+                )
+                if value is not None:
+                    window_map[window] = value
+            reference_future[name] = forward
+            reference_past[name] = mirror_map
+            reference_same[name] = window_map
         observations.append(
             HorseRaceObservation(
                 tape_index=tape_index,
@@ -452,8 +670,25 @@ def build_horserace_observations(
                 same_window_ticks=same,
                 window_start_ts_ns=window_starts,
                 connection_epoch=state.connection_epoch,
+                reference_future_ticks=reference_future,
+                reference_past_ticks=reference_past,
+                reference_same_window_ticks=reference_same,
+                microprice_state=(
+                    state_key.key
+                    if (
+                        state_key := classify_state(
+                            bid_quantity=float(bid_quantity),
+                            ask_quantity=float(ask_quantity),
+                            spread_ticks=controls["spread_ticks"],
+                        )
+                    )
+                    is not None
+                    else None
+                ),
             )
         )
+    failures["reference_price_coverage"] = reference_price_coverage(reference_paths)
+    failures["effective_touch_window_seconds"] = effective_touch_window_seconds
     return observations, failures
 
 
@@ -481,36 +716,97 @@ def assert_no_lookahead(observations: Sequence[HorseRaceObservation]) -> None:
                 raise AssertionError("predictor window starts in the future")
 
 
-def model_features(model: str, window: float, *, trade_identified: bool) -> tuple[str, ...]:
+def model_features(
+    model: str,
+    window: float,
+    *,
+    trade_identified: bool,
+    basis: str = "displayed",
+    stoikov_available: bool = False,
+) -> tuple[str, ...]:
     """Feature sets for the frozen horse race, with the multi-level families now CCZ.
 
     ``M4`` is CCZ Eq. (2) per level and ``M5`` is CCZ Eq. (3) per level under one common
     denominator.  Neither cumulates across levels and neither uses a per-band denominator.
-    ``M3`` is the level-one CKS increment, which is Eq. (1)'s base case.
+    ``M3`` is the level-one CKS increment, which is Eq. (1)'s base case.  `MICRO-03` adds ``M7``,
+    the size-weighted microprice, and ``M8``, the Stoikov iterated fair value, as families.
+
+    ``basis`` selects `TOUCH-04`'s re-derivation.  Under ``"effective_touch"`` the three book
+    objects the specification names — multi-level OFI, level-one queue imbalance and the
+    microprice — are replaced by their effective-touch counterparts.  Families that carry no
+    book-derived regressor are unchanged by the basis and are reported as such rather than
+    silently duplicated.
     """
 
+    if basis not in {"displayed", "effective_touch"}:
+        raise ValueError(f"unknown predictor basis {basis}")
     baseline = BASELINE_FEATURES
     raw = ccz_raw_features(window, CCZ_PRIMARY_LEVELS)
     normalised = ccz_normalised_features(window, CCZ_PRIMARY_LEVELS)
+    imbalance = "l1_queue_imbalance"
+    tilt = "microprice_tilt_ticks"
+    if basis == "effective_touch":
+        normalised = touch_relative_normalised_features(window, CCZ_PRIMARY_LEVELS)
+        imbalance = touch_relative_feature(imbalance)
+        tilt = touch_relative_feature(tilt)
     specifications = {
         "M0": baseline,
-        "M1": (*baseline, "l1_queue_imbalance"),
+        "M1": (*baseline, imbalance),
         "M2": (*baseline, trade_feature(window)) if trade_identified else (),
         "M3": (*baseline, cks_feature(window)),
         "M4": (*baseline, *raw),
         "M5": (*baseline, *normalised),
         "M6": (
             *baseline,
-            "l1_queue_imbalance",
+            imbalance,
             *((trade_feature(window),) if trade_identified else ()),
             cks_feature(window),
             *raw,
             *normalised,
         ),
+        "M7": (*baseline, tilt),
+        # `M8` is blocked exactly as `M2` is when its object is unidentified: the Stoikov chain
+        # has to be fitted on a split, so before that fit the arm has no regressor at all and is
+        # reported blocked rather than silently dropped from the grid.
+        "M8": (*baseline, STOIKOV_FEATURE) if stoikov_available else (),
     }
     if model not in specifications:
         raise ValueError(f"unknown model {model}")
     return specifications[model]
+
+
+def stoikov_is_available(observations: Sequence[HorseRaceObservation]) -> bool:
+    """`MICRO-02`: whether the split-dependent ``M8`` regressor has been overlaid yet."""
+
+    return any(STOIKOV_FEATURE in observation.features for observation in observations)
+
+
+def basis_changes_model(model: str) -> bool:
+    """`TOUCH-04`: whether swapping the reference basis changes this family's regressors at all."""
+
+    return model in {"M1", "M5", "M6", "M7"}
+
+
+def _returns(
+    observation: HorseRaceObservation,
+    source: Literal["future", "past"],
+    reference: str = BASELINE_REFERENCE,
+) -> Mapping[float, float]:
+    """`TOUCH-03`: the return map under one reference price.
+
+    The displayed-mid baseline reads the original ``future_ticks``/``past_ticks`` fields so the
+    status quo cell is byte-identical to the pre-D38 object and remains comparable with the 11:30
+    horse race; the other three read the ladder.
+    """
+
+    if reference == BASELINE_REFERENCE:
+        return observation.future_ticks if source == "future" else observation.past_ticks
+    ladder = (
+        observation.reference_future_ticks
+        if source == "future"
+        else observation.reference_past_ticks
+    )
+    return ladder.get(reference, {})
 
 
 def _target(
@@ -518,16 +814,10 @@ def _target(
     positions: Sequence[int],
     horizon: float,
     source: Literal["future", "past"],
+    reference: str = BASELINE_REFERENCE,
 ) -> np.ndarray[Any, np.dtype[np.float64]]:
     return np.asarray(
-        [
-            (
-                observations[position].future_ticks
-                if source == "future"
-                else observations[position].past_ticks
-            )[horizon]
-            for position in positions
-        ],
+        [_returns(observations[position], source, reference)[horizon] for position in positions],
         dtype=np.float64,
     )
 
@@ -555,16 +845,12 @@ def _positions(
     source: Literal["future", "past"],
     *,
     names: Sequence[str] = (),
+    reference: str = BASELINE_REFERENCE,
 ) -> tuple[int, ...]:
     return tuple(
         position
         for position in candidates
-        if horizon
-        in (
-            observations[position].future_ticks
-            if source == "future"
-            else observations[position].past_ticks
-        )
+        if horizon in _returns(observations[position], source, reference)
         and _has_features(observations[position], names)
     )
 
@@ -603,14 +889,15 @@ def select_ridge_alpha(
     names: Sequence[str],
     horizon: float,
     source: Literal["future", "past"],
+    reference: str = BASELINE_REFERENCE,
 ) -> tuple[float, tuple[dict[str, float], ...]]:
     """Select penalty entirely inside training by three deterministic expanding folds."""
 
     scores: dict[float, list[float]] = {alpha: [] for alpha in RIDGE_ALPHAS}
     folds = _inner_folds(observations, train_positions)
     for inner_train, validation in folds:
-        raw_train = _target(observations, inner_train, horizon, source)
-        raw_validation = _target(observations, validation, horizon, source)
+        raw_train = _target(observations, inner_train, horizon, source, reference)
+        raw_validation = _target(observations, validation, horizon, source, reference)
         drift = float(raw_train.mean())
         design_train = _design(observations, inner_train, names)
         design_validation = _design(observations, validation, names)
@@ -654,9 +941,10 @@ def _fit_score(
     names: Sequence[str],
     horizon: float,
     source: Literal["future", "past"],
+    reference: str = BASELINE_REFERENCE,
 ) -> FittedScore:
-    raw_train = _target(observations, train, horizon, source)
-    raw_test = _target(observations, test, horizon, source)
+    raw_train = _target(observations, train, horizon, source, reference)
+    raw_test = _target(observations, test, horizon, source, reference)
     drift = float(raw_train.mean())
     train_target = raw_train - drift
     test_target = raw_test - drift
@@ -664,7 +952,14 @@ def _fit_score(
     test_design = _design(observations, test, names)
     regularised = model in REGULARISED_MODELS
     alpha, cv = (
-        select_ridge_alpha(observations, train, names=names, horizon=horizon, source=source)
+        select_ridge_alpha(
+            observations,
+            train,
+            names=names,
+            horizon=horizon,
+            source=source,
+            reference=reference,
+        )
         if regularised
         else (0.0, ())
     )
@@ -727,6 +1022,7 @@ def _per_tape_scores(
     source: Literal["future", "past"],
     score: FittedScore,
     baseline: FittedScore,
+    reference: str = BASELINE_REFERENCE,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for tape in sorted({observations[position].tape_index for position in test}):
@@ -736,7 +1032,7 @@ def _per_tape_scores(
             if observations[position].tape_index == tape
         ]
         positions = [test[index] for index in selection]
-        target = _target(observations, positions, horizon, source) - score.target_drift
+        target = _target(observations, positions, horizon, source, reference) - score.target_drift
         predicted = np.asarray([score.predictions[index] for index in selection])
         baseline_predicted = np.asarray([baseline.predictions[index] for index in selection])
         benchmark = np.zeros(target.shape, dtype=np.float64)
@@ -913,6 +1209,7 @@ def _support_by_tape(
     horizon: float,
     source: Literal["future", "past"],
     names: Sequence[str] = (),
+    reference: str = BASELINE_REFERENCE,
 ) -> dict[str, dict[str, int]]:
     result: dict[str, dict[str, int]] = {}
     for tape in sorted({observation.tape_index for observation in observations}):
@@ -920,12 +1217,7 @@ def _support_by_tape(
         def count(candidates: Sequence[int], tape_index: int = tape) -> int:
             return sum(
                 observations[position].tape_index == tape_index
-                and horizon
-                in (
-                    observations[position].future_ticks
-                    if source == "future"
-                    else observations[position].past_ticks
-                )
+                and horizon in _returns(observations[position], source, reference)
                 and _has_features(observations[position], names)
                 for position in candidates
             )
@@ -933,8 +1225,7 @@ def _support_by_tape(
         result[str(tape)] = {
             "total_n": sum(
                 observation.tape_index == tape
-                and horizon
-                in (observation.future_ticks if source == "future" else observation.past_ticks)
+                and horizon in _returns(observation, source, reference)
                 and _has_features(observation, names)
                 for observation in observations
             ),
@@ -966,6 +1257,146 @@ def _collinearity(
     }
 
 
+def fit_stoikov_for_split(
+    observations: Sequence[HorseRaceObservation],
+    split: SplitIndex,
+    *,
+    reference: str = BASELINE_REFERENCE,
+) -> StoikovMicropriceModel:
+    """`MICRO-02` / `VAL-MICRO-01`: fit the Stoikov chain on training rows only.
+
+    The chain steps on mid changes, so the mid path is taken from the reference price under
+    evaluation and the transitions are those whose mid change *resolves* strictly before the
+    training boundary.  A transition straddling the boundary would carry a held-out mid move into
+    the fit, so it is dropped here and refused again inside :func:`fit_stoikov_microprice`.
+    """
+
+    if not split.train:
+        raise ValueError("a Stoikov fit needs at least one training row")
+    boundary = max(observations[position].receive_ts_ns for position in split.train) + 1
+    samples: list[tuple[int, float, MicropriceState | None]] = []
+    for position in sorted(split.train, key=lambda item: observations[item].receive_ts_ns):
+        observation = observations[position]
+        mid = _reference_level(observation, reference)
+        if mid is None:
+            continue
+        samples.append((observation.receive_ts_ns, mid, _state_from_key(observation)))
+    transitions = [
+        transition
+        for transition in build_stoikov_transitions(samples)
+        if transition.resolved_ts_ns < boundary
+    ]
+    return fit_stoikov_microprice(transitions, training_upper_bound_ts_ns=boundary)
+
+
+def _state_from_key(observation: HorseRaceObservation) -> MicropriceState | None:
+    key = observation.microprice_state
+    if key is None:
+        return None
+    imbalance, _, spread = key.partition("_")
+    return MicropriceState(imbalance_bucket=int(imbalance[1:]), spread_bucket=int(spread[1:]))
+
+
+def _reference_level(observation: HorseRaceObservation, reference: str) -> float | None:
+    """A local price level for the Stoikov chain, reconstructed from the same-window return.
+
+    The observation carries returns, not levels, so the chain is stepped on a cumulative path
+    built from the shortest same-window return.  Only *changes* of the path enter the estimator,
+    so an arbitrary origin is harmless; what matters is that two anchors sharing a mid produce the
+    same value, which a cumulative path preserves.
+    """
+
+    same = (
+        observation.same_window_ticks
+        if reference == BASELINE_REFERENCE
+        else observation.reference_same_window_ticks.get(reference, {})
+    )
+    shortest = min(SAME_WINDOW_SECONDS)
+    value = same.get(shortest)
+    return None if value is None else float(value)
+
+
+def with_stoikov_feature(
+    observations: Sequence[HorseRaceObservation],
+    model: StoikovMicropriceModel,
+) -> list[HorseRaceObservation]:
+    """`MICRO-02`: overlay the fitted adjustment as the ``M8`` regressor, applied unchanged.
+
+    Anchors whose state was never estimated get **no** value, so the common-sample intersection
+    drops them from ``M8`` alone rather than imputing a zero tilt.
+    """
+
+    augmented: list[HorseRaceObservation] = []
+    for observation in observations:
+        adjustment = model.adjustment(_state_from_key(observation))
+        augmented.append(
+            observation
+            if adjustment is None
+            else replace(
+                observation,
+                features=_FeatureOverlay(observation.features, {STOIKOV_FEATURE: adjustment}),
+            )
+        )
+    return augmented
+
+
+def cell_metrics(
+    observations: Sequence[HorseRaceObservation],
+    test: Sequence[int],
+    *,
+    score: FittedScore,
+    horizon: float,
+    source: Literal["future", "past"],
+    reference: str,
+    replicates: int,
+    seed: int,
+) -> dict[str, Any]:
+    """`METRIC-04`: the companion metric bundle for one cell, on its own held-out rows.
+
+    The predictions are the cell's own out-of-sample predictions and the realised values its own
+    drift-adjusted targets, so `VAL-METRIC-01` holds by construction rather than by convention.
+    """
+
+    realised = _target(observations, test, horizon, source, reference) - score.target_drift
+    spreads = [float(observations[position].features["spread_ticks"]) for position in test]
+    bundle = metric_bundle(
+        list(score.predictions),
+        [float(value) for value in realised],
+        spread_ticks=spreads,
+        tapes=[observations[position].tape_index for position in test],
+        mean_block_length=8.0,
+        replicates=replicates,
+        seed=seed,
+    )
+    bundle["per_tape_sign_check"] = per_tape_sign_check(
+        {
+            str(tape): _correlation_for_tape(observations, test, score, realised, tape)
+            for tape in sorted({observations[position].tape_index for position in test})
+        },
+        label="pearson_information_coefficient",
+    )
+    return bundle
+
+
+def _correlation_for_tape(
+    observations: Sequence[HorseRaceObservation],
+    test: Sequence[int],
+    score: FittedScore,
+    realised: np.ndarray[Any, np.dtype[np.float64]],
+    tape: int,
+) -> float | None:
+    selection = [
+        index for index, position in enumerate(test) if observations[position].tape_index == tape
+    ]
+    if len(selection) < 3:
+        return None
+    predicted = np.asarray([score.predictions[index] for index in selection], dtype=np.float64)
+    actual = realised[selection]
+    if float(np.std(predicted)) <= 0.0 or float(np.std(actual)) <= 0.0:
+        return None
+    return float(np.corrcoef(predicted, actual)[0, 1])
+
+
 def evaluate_cells(
     observations: Sequence[HorseRaceObservation],
     split: SplitIndex,
@@ -975,12 +1406,28 @@ def evaluate_cells(
     trade_identified: bool,
     replicates: int,
     seed: int,
+    reference: str = BASELINE_REFERENCE,
+    basis: str = "displayed",
 ) -> list[dict[str, Any]]:
+    """`TOUCH-03`: one full grid under one reference price and one predictor basis.
+
+    Both sides of the regression move together: ``reference`` selects the return the cell is
+    scored against and ``basis`` selects whether the book-derived regressors are measured against
+    the displayed level one or against the effective touch.
+    """
+
     rows: list[dict[str, Any]] = []
+    stoikov_available = stoikov_is_available(observations)
     for horizon in horizons:
         for window in OFI_WINDOWS_SECONDS:
             feature_sets = {
-                model: model_features(model, window, trade_identified=trade_identified)
+                model: model_features(
+                    model,
+                    window,
+                    trade_identified=trade_identified,
+                    basis=basis,
+                    stoikov_available=stoikov_available,
+                )
                 for model in MODEL_ORDER
             }
             common_names = tuple(
@@ -991,10 +1438,19 @@ def evaluate_cells(
                     if feature_sets[model]
                 )
             )
-            train = _positions(observations, split.train, horizon, source, names=common_names)
-            test = _positions(observations, split.test, horizon, source, names=common_names)
+            train = _positions(
+                observations, split.train, horizon, source, names=common_names, reference=reference
+            )
+            test = _positions(
+                observations, split.test, horizon, source, names=common_names, reference=reference
+            )
             embargoed = _positions(
-                observations, split.embargoed, horizon, source, names=common_names
+                observations,
+                split.embargoed,
+                horizon,
+                source,
+                names=common_names,
+                reference=reference,
             )
             total = _positions(
                 observations,
@@ -1002,6 +1458,7 @@ def evaluate_cells(
                 horizon,
                 source,
                 names=common_names,
+                reference=reference,
             )
             support_by_tape = _support_by_tape(
                 observations,
@@ -1009,9 +1466,13 @@ def evaluate_cells(
                 horizon=horizon,
                 source=source,
                 names=common_names,
+                reference=reference,
             )
             if min(len(train), len(test)) < MINIMUM_FIT_OBSERVATIONS:
-                raise ValueError(f"insufficient common support at h1={window}, h2={horizon}")
+                raise ValueError(
+                    f"insufficient common support at h1={window}, h2={horizon}, "
+                    f"reference={reference}, basis={basis}"
+                )
             scores: dict[str, FittedScore] = {}
             for model in MODEL_ORDER:
                 names = feature_sets[model]
@@ -1019,10 +1480,16 @@ def evaluate_cells(
                     rows.append(
                         {
                             "source": source,
+                            "reference_price": reference,
+                            "predictor_basis": basis,
                             "h1_seconds": window,
                             "h2_seconds": horizon,
                             "model": model,
-                            "status": "blocked_unidentified_signed_trades",
+                            "status": (
+                                "blocked_unfitted_stoikov_chain"
+                                if model == "M8"
+                                else "blocked_unidentified_signed_trades"
+                            ),
                             "total_n": len(total),
                             "train_n": len(train),
                             "embargoed_n": len(embargoed),
@@ -1037,12 +1504,22 @@ def evaluate_cells(
                     horizon,
                     source,
                     names=names,
+                    reference=reference,
                 )
-                model_train = _positions(observations, split.train, horizon, source, names=names)
+                model_train = _positions(
+                    observations, split.train, horizon, source, names=names, reference=reference
+                )
                 model_embargoed = _positions(
-                    observations, split.embargoed, horizon, source, names=names
+                    observations,
+                    split.embargoed,
+                    horizon,
+                    source,
+                    names=names,
+                    reference=reference,
                 )
-                model_test = _positions(observations, split.test, horizon, source, names=names)
+                model_test = _positions(
+                    observations, split.test, horizon, source, names=names, reference=reference
+                )
                 model_specific_support = {
                     "total_n": len(model_total),
                     "train_n": len(model_train),
@@ -1054,6 +1531,7 @@ def evaluate_cells(
                         horizon=horizon,
                         source=source,
                         names=names,
+                        reference=reference,
                     ),
                 }
                 score = _fit_score(
@@ -1064,6 +1542,7 @@ def evaluate_cells(
                     names=names,
                     horizon=horizon,
                     source=source,
+                    reference=reference,
                 )
                 scores[model] = score
                 baseline = scores["M0"]
@@ -1073,6 +1552,9 @@ def evaluate_cells(
                 payload.update(
                     {
                         "source": source,
+                        "reference_price": reference,
+                        "predictor_basis": basis,
+                        "basis_changes_this_model": basis_changes_model(model),
                         "h1_seconds": window,
                         "h2_seconds": horizon,
                         "causal_gap_seconds": CAUSAL_GAP_SECONDS,
@@ -1109,6 +1591,7 @@ def evaluate_cells(
                             source=source,
                             score=score,
                             baseline=baseline,
+                            reference=reference,
                         ),
                         "direction_by_tape": _direction_by_tape(
                             observations,
@@ -1120,6 +1603,17 @@ def evaluate_cells(
                             alpha=float(payload["selected_alpha"]),
                         ),
                         "collinearity": _collinearity(observations, train, names[2:]),
+                        # `METRIC-04`: R2 never travels alone.
+                        "metrics": cell_metrics(
+                            observations,
+                            test,
+                            score=score,
+                            horizon=horizon,
+                            source=source,
+                            reference=reference,
+                            replicates=replicates,
+                            seed=seed + 7_000_000 + int(horizon * 1000) + int(window * 100),
+                        ),
                     }
                 )
                 if model in {"M4", "M5"}:
@@ -1152,11 +1646,36 @@ def evaluate_same_window(
     split: SplitIndex,
     *,
     trade_identified: bool,
+    basis: str = "displayed",
+    reference: str = BASELINE_REFERENCE,
+    replicates: int = BLOCK_BOOTSTRAP_REPLICATES,
+    seed: int = BOOTSTRAP_SEED,
 ) -> list[dict[str, Any]]:
+    """`WINDOW-01`/`WINDOW-02`: the contemporaneous grid, now a replication gate.
+
+    Two things change from the descriptive predecessor.  The grid runs to 30 s and 60 s
+    (`WINDOW-01`), and 60 s is CCZ's ``h = 1 minute`` exactly, which makes it the only cell in this
+    repository directly comparable with their published figures.  And the cell stops being
+    ``descriptive_only``: it carries in-sample and out-of-sample R2 side by side with CCZ's
+    published 71.16% / 64.64% best-level and 87.14% integrated numbers, and records the **gap**
+    explicitly rather than leaving a reader to infer it (`WINDOW-02`).
+
+    A contemporaneous R2 is not a forecast and never becomes one.  It measures how much of the
+    same-window price move the same-window order flow explains, which is a construction
+    diagnostic; that is carried on every row.
+    """
+
     rows: list[dict[str, Any]] = []
-    for window in OFI_WINDOWS_SECONDS:
+    stoikov_available = stoikov_is_available(observations)
+    for window in SAME_WINDOW_SECONDS:
         feature_sets = {
-            model: model_features(model, window, trade_identified=trade_identified)
+            model: model_features(
+                model,
+                window,
+                trade_identified=trade_identified,
+                basis=basis,
+                stoikov_available=stoikov_available,
+            )
             for model in MODEL_ORDER
         }
         common_names = tuple(
@@ -1164,46 +1683,209 @@ def evaluate_same_window(
                 name for model in MODEL_ORDER for name in feature_sets[model] if feature_sets[model]
             )
         )
-        train = tuple(
-            position
-            for position in split.train
-            if window in observations[position].same_window_ticks
-            and _has_features(observations[position], common_names)
-        )
-        test = tuple(
-            position
-            for position in split.test
-            if window in observations[position].same_window_ticks
-            and _has_features(observations[position], common_names)
-        )
+
+        def _rows(
+            candidates: Sequence[int],
+            window: float = window,
+            required: Sequence[str] = common_names,
+        ) -> tuple[int, ...]:
+            return tuple(
+                position
+                for position in candidates
+                if window in _same_window_returns(observations[position], reference)
+                and _has_features(observations[position], required)
+            )
+
+        train = _rows(split.train)
+        test = _rows(split.test)
         for model in MODEL_ORDER:
             names = feature_sets[model]
-            if not names:
-                rows.append({"h1_seconds": window, "model": model, "status": "blocked"})
+            blocked = (
+                not names
+                or len(train) < MINIMUM_FIT_OBSERVATIONS
+                or len(test) < MINIMUM_FIT_OBSERVATIONS
+            )
+            if blocked:
+                rows.append(
+                    {
+                        "h1_seconds": window,
+                        "model": model,
+                        "reference_price": reference,
+                        "predictor_basis": basis,
+                        "is_ccz_comparison_cell": window == CCZ_CONTEMPORANEOUS_WINDOW_SECONDS,
+                        "train_n": len(train),
+                        "test_n": len(test),
+                        "status": (
+                            "blocked_unfitted_stoikov_chain"
+                            if model == "M8" and not names
+                            else "blocked_unidentified_signed_trades"
+                            if not names
+                            else "insufficient_support"
+                        ),
+                    }
+                )
                 continue
             design_train = _design(observations, train, names)
             design_test = _design(observations, test, names)
             raw_train = np.asarray(
-                [observations[position].same_window_ticks[window] for position in train]
+                [_same_window_returns(observations[p], reference)[window] for p in train],
+                dtype=np.float64,
             )
             raw_test = np.asarray(
-                [observations[position].same_window_ticks[window] for position in test]
+                [_same_window_returns(observations[p], reference)[window] for p in test],
+                dtype=np.float64,
             )
             drift = float(raw_train.mean())
-            alpha = 0.0 if model not in {"M4", "M5", "M6"} else 1.0
+            alpha = 0.0 if model not in REGULARISED_MODELS else 1.0
             fit = fit_ridge(design_train, raw_train - drift, feature_names=names, penalty=alpha)
+            fitted = fit.predict(design_train)
             prediction = fit.predict(design_test)
-            rows.append(
-                {
-                    "h1_seconds": window,
-                    "model": model,
-                    "descriptive_construction_diagnostic_only": True,
-                    "oos_r2": _r_squared(
-                        raw_test - drift, prediction, np.zeros(raw_test.shape, dtype=np.float64)
-                    ),
-                }
-            )
+            zeros_train = np.zeros(raw_train.shape, dtype=np.float64)
+            zeros_test = np.zeros(raw_test.shape, dtype=np.float64)
+            in_sample = _r_squared(raw_train - drift, fitted, zeros_train)
+            out_of_sample = _r_squared(raw_test - drift, prediction, zeros_test)
+            row: dict[str, Any] = {
+                "h1_seconds": window,
+                "model": model,
+                "status": "estimated",
+                "reference_price": reference,
+                "predictor_basis": basis,
+                "is_ccz_comparison_cell": window == CCZ_CONTEMPORANEOUS_WINDOW_SECONDS,
+                "contemporaneous_not_a_forecast": True,
+                "features": list(names),
+                "train_n": len(train),
+                "test_n": len(test),
+                "in_sample_r2": in_sample,
+                "oos_r2": out_of_sample,
+                "oos_r2_training_mean": out_of_sample,
+                "selected_alpha": alpha,
+                "metrics": metric_bundle(
+                    [float(value) for value in prediction],
+                    [float(value) for value in raw_test - drift],
+                    spread_ticks=[
+                        float(observations[position].features["spread_ticks"]) for position in test
+                    ],
+                    tapes=[observations[position].tape_index for position in test],
+                    replicates=replicates,
+                    seed=seed + int(window * 100),
+                ),
+            }
+            row["ccz_replication_gap"] = _ccz_replication_gap(model, in_sample, out_of_sample)
+            rows.append(row)
     return rows
+
+
+def _same_window_returns(
+    observation: HorseRaceObservation, reference: str = BASELINE_REFERENCE
+) -> Mapping[float, float]:
+    if reference == BASELINE_REFERENCE:
+        return observation.same_window_ticks
+    return observation.reference_same_window_ticks.get(reference, {})
+
+
+def _ccz_replication_gap(
+    model: str, in_sample: float | None, out_of_sample: float | None
+) -> dict[str, Any]:
+    """`WINDOW-02`: the distance from CCZ's published contemporaneous figures, recorded not implied.
+
+    ``M3`` is the level-one CKS increment, which is CCZ's best-level arm; ``M5`` is the
+    depth-scaled multi-level object, whose published comparator is the integrated in-sample
+    figure.  Every other family has no published counterpart and says so rather than borrowing one.
+    """
+
+    published_in_sample: float | None = None
+    published_out_of_sample: float | None = None
+    comparator = "none_published"
+    if model == "M3":
+        published_in_sample = CCZ_PUBLISHED_BEST_LEVEL_IN_SAMPLE_R2
+        published_out_of_sample = CCZ_PUBLISHED_BEST_LEVEL_OUT_OF_SAMPLE_R2
+        comparator = "ccz_best_level"
+    elif model == "M5":
+        published_in_sample = CCZ_PUBLISHED_INTEGRATED_IN_SAMPLE_R2
+        comparator = "ccz_integrated"
+    return {
+        "requirement": "WINDOW-02",
+        "comparator": comparator,
+        "published_in_sample_r2": published_in_sample,
+        "published_out_of_sample_r2": published_out_of_sample,
+        "observed_in_sample_r2": in_sample,
+        "observed_out_of_sample_r2": out_of_sample,
+        "in_sample_gap": (
+            None
+            if published_in_sample is None or in_sample is None
+            else in_sample - published_in_sample
+        ),
+        "out_of_sample_gap": (
+            None
+            if published_out_of_sample is None or out_of_sample is None
+            else out_of_sample - published_out_of_sample
+        ),
+        "note": (
+            "CCZ measure US equities where level one is the touch and spreads are about one tick; "
+            "ID-CKS-02 and TOUCH-01 establish that neither holds on this feed, so a gap is as "
+            "likely to be a level-one identification failure as an absence of information"
+        ),
+    }
+
+
+def same_window_curve(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """`WINDOW-03`: the R2-versus-window curve, so a plateau or its absence is directly visible.
+
+    The 11:30 curve was monotone increasing and still climbing at the 10 s ceiling, which is
+    exactly the shape that cannot be read without seeing where it stops.  One row per model per
+    reference basis, carrying the ordered window axis and whether the curve ever turned over.
+    """
+
+    curves: list[dict[str, Any]] = []
+    keys = sorted(
+        {
+            (
+                str(row.get("model")),
+                str(row.get("reference_price")),
+                str(row.get("predictor_basis")),
+            )
+            for row in rows
+        }
+    )
+    for model, reference, basis in keys:
+        selected = {
+            float(row["h1_seconds"]): row
+            for row in rows
+            if row.get("model") == model
+            and row.get("reference_price") == reference
+            and row.get("predictor_basis") == basis
+        }
+        windows = sorted(selected)
+        values = [selected[window].get("oos_r2") for window in windows]
+        estimated = [
+            (window, value)
+            for window, value in zip(windows, values, strict=True)
+            if value is not None
+        ]
+        peak = max(estimated, key=lambda item: item[1]) if estimated else None
+        ordered = [value for _, value in estimated]
+        monotone = all(
+            later >= earlier for earlier, later in zip(ordered, ordered[1:], strict=False)
+        )
+        curves.append(
+            {
+                "requirement": "WINDOW-03",
+                "model": model,
+                "reference_price": reference,
+                "predictor_basis": basis,
+                "windows_seconds": windows,
+                "oos_r2": values,
+                "in_sample_r2": [selected[window].get("in_sample_r2") for window in windows],
+                "estimated_cells": len(estimated),
+                "peak_window_seconds": peak[0] if peak else None,
+                "peak_oos_r2": peak[1] if peak else None,
+                "monotone_increasing": monotone if len(estimated) > 1 else None,
+                "still_climbing_at_the_ceiling": (
+                    bool(peak[0] == max(windows)) if peak and windows else None
+                ),
+            }
+        )
+    return curves
 
 
 def evaluate_normalised_subarms(
@@ -1383,9 +2065,7 @@ def build_ccz_arm_design(
     denominator_name = denominator_feature(window, levels)
     required = (*BASELINE_FEATURES, denominator_name, *raw_names)
     positions = tuple(
-        position
-        for position in candidates
-        if _has_features(observations[position], required)
+        position for position in candidates if _has_features(observations[position], required)
     )
     baseline = _design(observations, positions, BASELINE_FEATURES)
     raw = _design(observations, positions, raw_names)
@@ -1574,10 +2254,7 @@ def evaluate_ccz_aggregation_arms(
                     arm_r2 = _r_squared(target, predicted, benchmark)
                     errors = tuple(float(value) for value in (target - predicted) ** 2)
                     estimate = estimate_mean(
-                        [
-                            left - right
-                            for left, right in zip(baseline.errors, errors, strict=True)
-                        ],
+                        [left - right for left, right in zip(baseline.errors, errors, strict=True)],
                         [observations[position].receive_ts_ns for position in test],
                         [observations[position].tape_index for position in test],
                         overlap_seconds=horizon + CAUSAL_GAP_SECONDS,
@@ -1906,6 +2583,10 @@ def build_horserace_artifact(
         [as_normal_observation(observation) for observation in observations],
         embargo_seconds=EMBARGO_SECONDS,
     )
+    # `MICRO-02` / `VAL-MICRO-01`: fit the Stoikov chain on this split's training rows only, then
+    # overlay its adjustment as the M8 regressor and apply it unchanged out of sample.
+    stoikov = fit_stoikov_for_split(observations, split)
+    observations = with_stoikov_feature(observations, stoikov)
     trade_identified = all(
         bool(
             tape.failures.get("trade_support", {}).get("qualified_packets", 0)
@@ -1986,6 +2667,84 @@ def build_horserace_artifact(
         )
     intensity = feature_intensity_table(observations, trade_identified=trade_identified)
     support = compact_support_table([*future, *past], [*normalised_future, *normalised_past])
+    # `WINDOW-01`/`WINDOW-02`: the contemporaneous grid is now a replication gate, and it runs
+    # under every reference price so the CCZ comparison cell is not tied to the displayed mid.
+    same_window: list[dict[str, Any]] = []
+    for reference in REFERENCE_PRICE_LADDER:
+        for basis in ("displayed", "effective_touch"):
+            same_window.extend(
+                evaluate_same_window(
+                    observations,
+                    split,
+                    trade_identified=trade_identified,
+                    basis=basis,
+                    reference=reference,
+                    replicates=replicates,
+                    seed=seed + 80_000_000,
+                )
+            )
+    # `TOUCH-03`/`TOUCH-04`: the predictive grid re-run under each reference price on both sides
+    # of the regression.  The displayed-mid, displayed-basis cell is the status quo baseline and
+    # is already in ``future``; the remaining combinations are the ladder.
+    ladder_future: list[dict[str, Any]] = []
+    ladder_past: list[dict[str, Any]] = []
+    ladder_failures: list[dict[str, Any]] = []
+    for index, reference in enumerate(REFERENCE_PRICE_LADDER):
+        for basis_index, basis in enumerate(("displayed", "effective_touch")):
+            if reference == BASELINE_REFERENCE and basis == "displayed":
+                continue
+            offset = 90_000_000 + index * 1_000_000 + basis_index * 100_000
+            try:
+                ladder_future.extend(
+                    evaluate_cells(
+                        observations,
+                        split,
+                        horizons=RETURN_HORIZONS_SECONDS,
+                        source="future",
+                        trade_identified=trade_identified,
+                        replicates=replicates,
+                        seed=seed + offset,
+                        reference=reference,
+                        basis=basis,
+                    )
+                )
+                ladder_past.extend(
+                    evaluate_cells(
+                        observations,
+                        split,
+                        horizons=RETURN_HORIZONS_SECONDS,
+                        source="past",
+                        trade_identified=trade_identified,
+                        replicates=replicates,
+                        seed=seed + offset + 50_000,
+                        reference=reference,
+                        basis=basis,
+                    )
+                )
+            except ValueError as error:
+                # A reference price with too little common support is recorded as an uncovered
+                # cell set, never silently omitted from the ladder (`VAL-TOUCH-03`).
+                ladder_failures.append(
+                    {
+                        "reference_price": reference,
+                        "predictor_basis": basis,
+                        "status": "insufficient_common_support",
+                        "detail": str(error),
+                    }
+                )
+    all_future = [*future, *ladder_future]
+    all_past = [*past, *ladder_past]
+    # `METRIC-04` / `VAL-METRIC-02`: refuse the artifact if any cell reports an R2 alone.
+    for row in (*all_future, *all_past, *same_window):
+        assert_companion_metrics(
+            row,
+            label=(
+                f"{row.get('source', 'same_window')}:{row.get('reference_price')}:"
+                f"{row.get('predictor_basis')}:{row.get('model')}"
+                f"@h1={row.get('h1_seconds')},h2={row.get('h2_seconds')}"
+            ),
+        )
+    mirror = _past_mirror_table(all_future, all_past)
     return {
         "schema_version": 3,
         "scan_id": EXPLORATORY_SCAN_ID,
@@ -2034,10 +2793,14 @@ def build_horserace_artifact(
         },
         "future_cells": future,
         "past_mirror_cells": past,
-        "same_window_diagnostic": evaluate_same_window(
-            observations, split, trade_identified=trade_identified
-        ),
+        "reference_price_ladder_future_cells": ladder_future,
+        "reference_price_ladder_past_cells": ladder_past,
+        "reference_price_ladder_uncovered": ladder_failures,
+        "same_window_diagnostic": same_window,
+        "same_window_r2_curve": same_window_curve(same_window),
+        "past_mirror_table": mirror,
         "rankings": compact_rankings(future),
+        "reference_price_rankings": compact_rankings(ladder_future),
         "normalised_subarms_future": normalised_future,
         "normalised_subarms_past": normalised_past,
         "combined_ablations": ablations,
@@ -2056,5 +2819,107 @@ def build_horserace_artifact(
             "combined_ablation_cells": len(ablations),
             "naive_iid_inference_valid": False,
         },
+        "touch_metrics_document": TOUCH_METRICS_DOCUMENT,
+        "metrics": metric_metadata(),
+        "microprice": {**microprice_metadata(), "stoikov_model": stoikov.to_dict()},
+        "touch_relative": touch_relative_metadata(),
+        "reference_prices": {
+            "requirement": "TOUCH-03",
+            "ladder": list(REFERENCE_PRICE_LADDER),
+            "baseline_reference": BASELINE_REFERENCE,
+            "predictor_bases": ["displayed", "effective_touch"],
+            "applied_on_both_sides_of_the_regression": True,
+            "uncovered_combinations": len(ladder_failures),
+        },
+        "window_extension": {
+            "requirement": "WINDOW-01",
+            "same_window_seconds": list(SAME_WINDOW_SECONDS),
+            "ccz_comparison_window_seconds": CCZ_CONTEMPORANEOUS_WINDOW_SECONDS,
+            "published_best_level_in_sample_r2": CCZ_PUBLISHED_BEST_LEVEL_IN_SAMPLE_R2,
+            "published_best_level_out_of_sample_r2": CCZ_PUBLISHED_BEST_LEVEL_OUT_OF_SAMPLE_R2,
+            "published_integrated_in_sample_r2": CCZ_PUBLISHED_INTEGRATED_IN_SAMPLE_R2,
+            "promoted_from_descriptive_only": True,
+        },
         "evidence_level": "Level 3 machinery; exploratory empirical content only",
     }
+
+
+def _past_mirror_table(
+    future: Sequence[Mapping[str, Any]], past: Sequence[Mapping[str, Any]]
+) -> list[dict[str, Any]]:
+    """`METRIC-05`: every metric compared with its own past mirror, with a BY-adjusted family.
+
+    A cell whose headline improves while the past mirror reproduces the improvement is reported
+    as **failing**, because a predictor cannot have information about the past.
+    """
+
+    index = {
+        (
+            row.get("reference_price"),
+            row.get("predictor_basis"),
+            row.get("h1_seconds"),
+            row.get("h2_seconds"),
+            row.get("model"),
+        ): row
+        for row in past
+    }
+    rows: list[dict[str, Any]] = []
+    for row in future:
+        if row.get("status") != "estimated":
+            continue
+        key = (
+            row.get("reference_price"),
+            row.get("predictor_basis"),
+            row.get("h1_seconds"),
+            row.get("h2_seconds"),
+            row.get("model"),
+        )
+        mirrored = index.get(key)
+        metrics = row.get("metrics") or {}
+        mirror_metrics = (mirrored or {}).get("metrics") or {}
+        pearson = (metrics.get("information_coefficient") or {}).get("pearson") or {}
+        mirror_pearson = (mirror_metrics.get("information_coefficient") or {}).get("pearson") or {}
+        rows.append(
+            {
+                "reference_price": key[0],
+                "predictor_basis": key[1],
+                "h1_seconds": key[2],
+                "h2_seconds": key[3],
+                "model": key[4],
+                "oos_r2": past_mirror_verdict(
+                    future_value=row.get("oos_r2_training_mean"),
+                    past_value=(mirrored or {}).get("oos_r2_training_mean"),
+                    label="oos_r2_training_mean",
+                ),
+                "information_coefficient": past_mirror_verdict(
+                    future_value=pearson.get("estimate"),
+                    past_value=mirror_pearson.get("estimate"),
+                    label="pearson_information_coefficient",
+                ),
+                "per_tape_sign_check": metrics.get("per_tape_sign_check"),
+                "_pearson_p": _bootstrap_p_value(pearson),
+            }
+        )
+    raw_p = [row.pop("_pearson_p") for row in rows]
+    adjusted = benjamini_yekutieli(raw_p)
+    for row, unadjusted, value in zip(rows, raw_p, adjusted, strict=True):
+        row["pearson_bootstrap_p_value"] = unadjusted
+        row["benjamini_yekutieli_q_value"] = value
+        row["family_size"] = len(rows)
+    return rows
+
+
+def _bootstrap_p_value(block: Mapping[str, Any]) -> float | None:
+    """Two-sided normal-approximation p from the stationary block-bootstrap standard error.
+
+    The bootstrap standard error is the only dependence-aware precision the IC block carries, so
+    it is the one this family is ordered on.  It is an approximation and is labelled as one; the
+    Benjamini-Yekutieli adjustment then controls the FDR across the family without assuming the
+    cells are positively dependent.
+    """
+
+    estimate = block.get("estimate")
+    standard_error = block.get("standard_error")
+    if estimate is None or standard_error is None or standard_error <= 0.0:
+        return None
+    return float(2.0 * norm.sf(abs(float(estimate) / float(standard_error))))
