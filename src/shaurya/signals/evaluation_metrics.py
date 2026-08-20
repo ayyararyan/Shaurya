@@ -476,13 +476,23 @@ def benjamini_yekutieli(p_values: Sequence[float | None]) -> list[float | None]:
 
 
 def past_mirror_verdict(
-    *, future_value: float | None, past_value: float | None, label: str
+    *, future_value: float | None, past_value: float | None, label: str, two_sided: bool = False
 ) -> dict[str, Any]:
     """`METRIC-05`: a metric that improves the headline while the past mirror also fires fails.
 
     The mirror runs the identical machinery against *past* returns, where no predictor can have
-    information.  A future improvement that the past mirror reproduces is a property of the
+    information.  A future improvement the past mirror reproduces is a property of the
     construction, not of the signal.
+
+    The comparison is **signed** by default, matching the rule already in this repository
+    (``past_mirror_exceeds_or_equals_future`` in the dashboard and the 30 s gate): a mirror
+    increment that is large and *negative* means the model does worse than the baseline on past
+    returns, which is evidence against leakage, not for it.  Comparing magnitudes would fail such
+    a cell, which is exactly backwards.
+
+    ``two_sided=True`` compares magnitudes instead, and is correct only for a statistic whose sign
+    is a direction rather than a quality — an information coefficient of -0.3 on past returns is
+    as much of a warning as +0.3.
     """
 
     if future_value is None or past_value is None:
@@ -490,15 +500,17 @@ def past_mirror_verdict(
             "metric": label,
             "future": future_value,
             "past_mirror": past_value,
+            "comparison": "two_sided" if two_sided else "signed",
             "verdict": "unevaluable",
             "passes_past_mirror": None,
         }
-    passes = abs(future_value) > abs(past_value)
+    passes = abs(future_value) > abs(past_value) if two_sided else future_value > past_value
     return {
         "metric": label,
         "future": future_value,
         "past_mirror": past_value,
-        "margin": abs(future_value) - abs(past_value),
+        "comparison": "two_sided" if two_sided else "signed",
+        "margin": (abs(future_value) - abs(past_value) if two_sided else future_value - past_value),
         "verdict": "passes" if passes else "fails_past_mirror",
         "passes_past_mirror": passes,
     }

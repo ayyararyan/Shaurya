@@ -3094,10 +3094,13 @@ def _past_mirror_table(
                     past_value=(mirrored or {}).get("oos_r2_training_mean"),
                     label="oos_r2_training_mean",
                 ),
+                # An IC's sign is a direction, not a quality: a past-return IC of -0.3 is as
+                # much of a warning as +0.3, so this one comparison is two-sided.
                 "information_coefficient": past_mirror_verdict(
                     future_value=pearson.get("estimate"),
                     past_value=mirror_pearson.get("estimate"),
                     label="pearson_information_coefficient",
+                    two_sided=True,
                 ),
                 "per_tape_sign_check": metrics.get("per_tape_sign_check"),
                 "_pearson_p": _bootstrap_p_value(pearson),
