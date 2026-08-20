@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
+from pathlib import Path
 from typing import Any
 
 from scripts.d40_ofi_horizon_extension import HORIZONS_SECONDS, _c8_summary
@@ -50,3 +53,18 @@ def test_d40_summary_reports_monotonicity_peak_and_first_decline() -> None:
     assert turns["strictly_increasing"] is False
     assert turns["peak_horizon_seconds"] == 45.0
     assert turns["first_decline_horizon_seconds"] == 60.0
+
+
+def test_d40_runner_supports_direct_invocation_from_another_working_directory(
+    tmp_path: Path,
+) -> None:
+    script = Path(__file__).resolve().parents[1] / "scripts" / "d40_ofi_horizon_extension.py"
+    completed = subprocess.run(
+        [sys.executable, str(script), "--help"],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "D40 displayed-mid OFI horizon extension" in completed.stdout
