@@ -5,6 +5,30 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### ANL-07 — surface-relative executable option-mispricing monitor
+
+- Added a read-only detector that never compares a contract with a surface it helped fit.
+  Five deterministic strike folds exclude both CE and PE at each held-out strike; candidates
+  that survive empirical uncertainty, costs and BH-FDR receive a second exact leave-strike
+  refit before they can enter the episode state machine.
+- Added fresh-quote and observed-support gates, matching-future or robust held-out parity
+  forwards, Black-76 fair prices, empirical past-only residual bands, forward/asynchrony
+  stresses, explicit dated tick/lot provenance, direction-specific verified turnover rates,
+  visible exit/hedge slippage, displayed-one-lot and positive-net-edge gates.
+- Added causal two-frame confirmation and correction. First-seen time is retained through
+  confirmation; unavailable/stale/missing/unsupported paths are censored rather than called
+  corrected; completed rows retain market-led, surface-led or mixed endpoint attribution.
+- Added full policy and lifecycle state to every surface snapshot, `/api/state`, and
+  `/api/history`; the ANL-05 screen now has full-width Active confirmed and Recently
+  corrected/censored tables below the surface. The monitor is explicitly surface-relative,
+  estimated and research-only, with no signal, fill, arbitrage, latent-value or order claim.
+- Frozen specification: `docs/SURFACE-MISPRICING-SPEC-2026-08-20.md`. Synthetic acceptance
+  covers IV inversion, warm-up, exact cheap confirmation, two-frame activation/correction,
+  duration/driver, one-lot rejection, censoring and the no-order dependency boundary. Evidence:
+  41 focused tests and 545 full-suite tests pass; Ruff, strict mypy (59 source files), and
+  compileall are clean; a headless-browser probe rendered the warming state and both lifecycle
+  tables. Real retained-tape replay and live verification remain pending.
+
 ### `X-OFI-DASHBOARD-2026-08-20` — dynamic read-only OFI horse-race dashboard (`ANL-06`)
 
 - Added one file-only engine with deterministic pinned-tape `replay` and read-only growing-JSONL

@@ -19,10 +19,13 @@ import json
 import sys
 import threading
 import time
+from collections.abc import Iterable
 from datetime import date, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+from shaurya.analytics.mispricing import InstrumentMetadata, MispricingPolicy
 from shaurya.analytics.server import DashboardState, serve_in_background
 from shaurya.analytics.surface_feed import (
     StalenessPolicy,
@@ -31,7 +34,11 @@ from shaurya.analytics.surface_feed import (
 )
 from shaurya.analytics.universe import select_chain_universe
 from shaurya.contracts.artifacts import ArtifactManifest
-from shaurya.contracts.instruments import DhanInstrumentMaster
+from shaurya.contracts.instruments import (
+    DhanInstrumentMapping,
+    DhanInstrumentMaster,
+    InstrumentKind,
+)
 from shaurya.contracts.tape import TapeRow
 from shaurya.contracts.timing import IST
 from shaurya.data.dhan_client import DhanCredentials
@@ -71,6 +78,29 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--moneyness-points", type=int, default=33)
     parser.add_argument("--min-quotes-per-slice", type=int, default=5)
     parser.add_argument("--risk-free-rate", type=float, default=0.0)
+    parser.add_argument(
+        "--disable-mispricing",
+        action="store_true",
+        help="Disable the approved read-only ANL-07 surface-relative mispricing monitor.",
+    )
+    parser.add_argument("--mispricing-cross-fit-folds", type=int, default=5)
+    parser.add_argument("--mispricing-quote-max-age-seconds", type=float, default=3.0)
+    parser.add_argument("--mispricing-fit-max-age-seconds", type=float, default=10.0)
+    parser.add_argument("--mispricing-min-residual-history", type=int, default=100)
+    parser.add_argument("--mispricing-residual-quantile", type=float, default=0.99)
+    parser.add_argument("--mispricing-fdr-level", type=float, default=0.01)
+    parser.add_argument("--mispricing-confirmation-frames", type=int, default=2)
+    parser.add_argument("--mispricing-correction-frames", type=int, default=2)
+    parser.add_argument("--mispricing-buy-turnover-rate", type=float, default=0.0004504340)
+    parser.add_argument("--mispricing-sell-turnover-rate", type=float, default=0.0019204340)
+    parser.add_argument("--mispricing-exit-slippage-ticks", type=float, default=1.0)
+    parser.add_argument("--mispricing-hedge-slippage-ticks", type=float, default=1.0)
+    parser.add_argument("--default-option-tick-size", type=float, default=0.05)
+    parser.add_argument(
+        "--default-option-lot-size",
+        type=int,
+        help="Replay fallback only. Live mode uses the date-stamped Dhan master per contract.",
+    )
     parser.add_argument("--serve-seconds", type=float, default=0.0,
                         help="Stop after this many seconds; 0 serves until interrupted.")
     # replay
@@ -89,7 +119,33 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _engine(args: argparse.Namespace, run_id: str, source: str) -> SurfaceEngine:
+def _metadata_from_mappings(
+    mappings: Iterable[DhanInstrumentMapping], *, default_tick_size: float
+) -> dict[str, InstrumentMetadata]:
+    result: dict[str, InstrumentMetadata] = {}
+    for mapping in mappings:
+        if mapping.instrument.kind is not InstrumentKind.OPTION:
+            continue
+        tick_size = (
+            float(mapping.tick_size_paise / Decimal("100"))
+            if mapping.tick_size_paise is not None and mapping.tick_size_paise > 0
+            else default_tick_size
+        )
+        result[mapping.instrument.canonical] = InstrumentMetadata(
+            tick_size=tick_size,
+            lot_size=mapping.lot_size,
+            source=f"date_stamped_dhan_master:{mapping.as_of_date.isoformat()}",
+        )
+    return result
+
+
+def _engine(
+    args: argparse.Namespace,
+    run_id: str,
+    source: str,
+    *,
+    instrument_metadata: dict[str, InstrumentMetadata] | None = None,
+) -> SurfaceEngine:
     policy = StalenessPolicy(
         feed_slow_seconds=args.feed_slow_seconds,
         feed_dead_seconds=args.feed_dead_seconds,
@@ -108,6 +164,24 @@ def _engine(args: argparse.Namespace, run_id: str, source: str) -> SurfaceEngine
         risk_free_rate=args.risk_free_rate,
         min_quotes_per_slice=args.min_quotes_per_slice,
         wall_clock=source == "live",
+        mispricing_policy=MispricingPolicy(
+            enabled=not args.disable_mispricing,
+            cross_fit_folds=args.mispricing_cross_fit_folds,
+            quote_max_age_seconds=args.mispricing_quote_max_age_seconds,
+            fit_max_age_seconds=args.mispricing_fit_max_age_seconds,
+            residual_quantile=args.mispricing_residual_quantile,
+            min_residual_history=args.mispricing_min_residual_history,
+            fdr_level=args.mispricing_fdr_level,
+            confirmation_frames=args.mispricing_confirmation_frames,
+            correction_frames=args.mispricing_correction_frames,
+            default_tick_size=args.default_option_tick_size,
+            default_lot_size=args.default_option_lot_size,
+            buy_turnover_rate=args.mispricing_buy_turnover_rate,
+            sell_turnover_rate=args.mispricing_sell_turnover_rate,
+            exit_slippage_ticks=args.mispricing_exit_slippage_ticks,
+            hedge_slippage_ticks=args.mispricing_hedge_slippage_ticks,
+        ),
+        instrument_metadata=instrument_metadata or {},
     )
 
 
@@ -170,7 +244,18 @@ def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
     if args.tape is None:
         raise SystemExit("replay mode requires --tape")
     reader = JsonlTapeReader(args.tape)
-    engine = _engine(args, run_id=args.tape.stem, source="replay")
+    replay_metadata: dict[str, InstrumentMetadata] = {}
+    if args.security_master is not None:
+        replay_metadata = _metadata_from_mappings(
+            DhanInstrumentMaster(args.security_master).mappings(),
+            default_tick_size=args.default_option_tick_size,
+        )
+    engine = _engine(
+        args,
+        run_id=args.tape.stem,
+        source="replay",
+        instrument_metadata=replay_metadata,
+    )
     state = DashboardState(
         engine,
         title="Shaurya ANL-03 — implied volatility surface (REPLAY)",
@@ -214,8 +299,9 @@ async def _run_live(args: argparse.Namespace) -> dict[str, Any]:
         raise SystemExit(f"live mode requires: {', '.join(sorted(missing))}")
     credentials = DhanCredentials.from_env_file(args.credentials)
     master = DhanInstrumentMaster(args.security_master)
+    mappings = tuple(master.mappings())
     universe = select_chain_universe(
-        master.mappings(),
+        mappings,
         underlying=args.underlying,
         expiries=[date.fromisoformat(value) for value in args.expiry],
         spot_reference=args.spot,
@@ -224,7 +310,15 @@ async def _run_live(args: argparse.Namespace) -> dict[str, Any]:
     )
     manifest = ArtifactManifest.create(args.output_root)
     writer = JsonlTapeWriter(manifest, fsync_every=200)
-    engine = _engine(args, run_id=str(manifest.run_id), source="live")
+    metadata = _metadata_from_mappings(
+        universe.options, default_tick_size=args.default_option_tick_size
+    )
+    engine = _engine(
+        args,
+        run_id=str(manifest.run_id),
+        source="live",
+        instrument_metadata=metadata,
+    )
     state = DashboardState(
         engine,
         title="Shaurya ANL-03 — implied volatility surface (LIVE)",

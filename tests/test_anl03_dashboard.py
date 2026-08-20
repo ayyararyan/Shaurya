@@ -325,6 +325,28 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert "READ-ONLY" in html
     assert "SUR-05 ARBITRAGE" in html
     assert "SUR-06 DIAGNOSTICS" in html
+    assert "Surface-relative executable mispricing" in html
+    assert "mispricingActiveBody" in html
+    assert "mispricingRecentBody" in html
+    assert "exact confirmed" in html
+
+
+def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> None:
+    engine = _engine()
+    for row in _chain():
+        engine.ingest(row)
+    engine.fit(VALUATION)
+    payload = build_payload(engine, title="ANL-03 test", source="fixture")
+    monitor = payload["mispricing"]
+    assert monitor["policy"]["definition"] == (
+        "confirmed_surface_relative_executable_mispricing"
+    )
+    assert monitor["policy"]["order_authority"] == "none_read_only_research_monitor"
+    assert monitor["surface_mode"] == "fresh_raw_strike_cross_fit_research_only"
+    assert isinstance(monitor["active"], list)
+    assert isinstance(monitor["recent"], list)
+    history = build_history_payload(engine, 0)
+    assert history["mispricing"] == monitor
 
 
 def test_the_server_serves_state_and_refuses_every_write_method() -> None:

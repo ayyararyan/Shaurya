@@ -22,6 +22,11 @@ from enum import StrEnum
 from typing import Any
 
 from shaurya.analytics.forward import ForwardSelection, select_forwards
+from shaurya.analytics.mispricing import (
+    InstrumentMetadata,
+    MispricingPolicy,
+    SurfaceMispricingDetector,
+)
 from shaurya.contracts.surface import SurfaceFrame
 from shaurya.contracts.tape import TapeRow
 from shaurya.contracts.timing import IST, nse_equity_derivatives_close
@@ -215,6 +220,7 @@ class SurfaceSnapshot:
     atm: tuple[AtmReading, ...]
     arbitrage: dict[str, object] | None
     diagnostics: dict[str, object]
+    mispricing: dict[str, object]
     surface_age_seconds: float | None
     surface_is_stale: bool
 
@@ -232,6 +238,7 @@ class SurfaceSnapshot:
             "atm": [reading.to_dict() for reading in self.atm],
             "arbitrage": self.arbitrage,
             "diagnostics": self.diagnostics,
+            "mispricing": self.mispricing,
             "surface_age_seconds": self.surface_age_seconds,
             "surface_is_stale": self.surface_is_stale,
             "frame": self.frame.model_dump(mode="json") if self.frame else None,
@@ -284,6 +291,8 @@ class SurfaceEngine:
     health_sample_limit: int = 3600
     wall_clock: bool = True
     smoother: ESSVITemporalSmoother = field(default_factory=ESSVITemporalSmoother)
+    mispricing_policy: MispricingPolicy = field(default_factory=MispricingPolicy)
+    instrument_metadata: dict[str, InstrumentMetadata] = field(default_factory=dict)
 
     _latest: dict[str, TapeRow] = field(default_factory=dict, init=False, repr=False)
     _recent_receipts: deque[datetime] = field(default_factory=deque, init=False, repr=False)
@@ -296,6 +305,7 @@ class SurfaceEngine:
     _last_fit_timestamp: datetime | None = field(default=None, init=False)
     _health_samples: deque[FeedHealth] = field(default_factory=deque, init=False, repr=False)
     _previous_surface: ESSVISurface | None = field(default=None, init=False, repr=False)
+    _mispricing_detector: SurfaceMispricingDetector = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         if not self.expiries:
@@ -305,6 +315,11 @@ class SurfaceEngine:
         if self.fit_interval_seconds <= 0:
             raise ValueError("fit_interval_seconds must be positive")
         self.expiries = tuple(sorted(set(self.expiries)))
+        self._mispricing_detector = SurfaceMispricingDetector(
+            policy=self.mispricing_policy,
+            instrument_metadata=self.instrument_metadata,
+            min_quotes_per_slice=self.min_quotes_per_slice,
+        )
 
     @property
     def history(self) -> tuple[SurfaceSnapshot, ...]:
@@ -589,6 +604,9 @@ class SurfaceEngine:
         )
 
         def failure(reason: str) -> SurfaceSnapshot:
+            mispricing = self._mispricing_detector.unavailable(
+                now, f"base_surface_unavailable: {reason}"
+            )
             return self._record(
                 SurfaceSnapshot(
                     sequence=self._sequence,
@@ -604,6 +622,7 @@ class SurfaceEngine:
                     atm=(),
                     arbitrage=None,
                     diagnostics={"fit_status": "failed", "reason": reason},
+                    mispricing=mispricing.to_dict(),
                     surface_age_seconds=None,
                     surface_is_stale=True,
                 )
@@ -647,6 +666,15 @@ class SurfaceEngine:
             "status": smoothing_status,
             "is_temporally_smoothed": smoothed.is_temporally_smoothed,
         }
+        arbitrage = smoothed.arb_check()
+        mispricing = self._mispricing_detector.evaluate(
+            rows=rows,
+            expiries=self.expiries,
+            now=now,
+            risk_free_rate=self.risk_free_rate,
+            base_fit_age_seconds=0.0,
+            base_arbitrage_passed=arbitrage.passed,
+        )
         return self._record(
             SurfaceSnapshot(
                 sequence=self._sequence,
@@ -660,8 +688,9 @@ class SurfaceEngine:
                 grid=grid,
                 market_points=self._market_points(smoothed, forwards, maturities),
                 atm=self._atm(smoothed, maturities),
-                arbitrage=smoothed.arb_check().to_dict(),
+                arbitrage=arbitrage.to_dict(),
                 diagnostics=diagnostics,
+                mispricing=mispricing.to_dict(),
                 surface_age_seconds=surface_age,
                 surface_is_stale=staleness_measurement(
                     age_seconds=surface_age,

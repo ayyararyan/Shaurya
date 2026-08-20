@@ -203,6 +203,19 @@ def build_payload(engine: SurfaceEngine, *, title: str, source: str) -> dict[str
                 "violations": [],
             },
             "diagnostics": {},
+            "mispricing": {
+                "status": "unavailable",
+                "reasons": ["the engine has not produced a surface fit yet"],
+                "policy": engine.mispricing_policy.to_dict(),
+                "active": [],
+                "recent": [],
+                "eligible_contract_count": 0,
+                "statistically_tested_count": 0,
+                "outside_band_count": 0,
+                "fdr_significant_count": 0,
+                "exact_confirmed_count": 0,
+                "pending_count": 0,
+            },
         }
     fit_age = engine.fit_age_seconds(now) if now is not None else None
     return {
@@ -221,6 +234,7 @@ def build_payload(engine: SurfaceEngine, *, title: str, source: str) -> dict[str
         "atm": _atm_summary(engine),
         "arbitrage": _arbitrage_summary(snapshot),
         "diagnostics": _diagnostics_summary(snapshot),
+        "mispricing": snapshot.mispricing,
     }
 
 
@@ -249,6 +263,7 @@ def build_history_payload(engine: SurfaceEngine, index: int) -> dict[str, Any]:
         },
         "arbitrage": _arbitrage_summary(snapshot),
         "diagnostics": _diagnostics_summary(snapshot),
+        "mispricing": snapshot.mispricing,
         "health_verdict": _health_verdict(snapshot, engine.policy),
     }
 
@@ -582,6 +597,67 @@ function renderDiagnostics(payload) {
   }).join('') || '<tr><td colspan="4" class="muted">no residual buckets</td></tr>';
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[character]);
+}
+
+function renderMispricing(payload) {
+  const monitor = payload.mispricing || {active: [], recent: [], reasons: []};
+  const summary = document.getElementById('mispricingSummary');
+  const bits = [
+    ['state', monitor.status || 'unavailable'],
+    ['eligible', monitor.eligible_contract_count ?? 0],
+    ['tested', monitor.statistically_tested_count ?? 0],
+    ['outside band', monitor.outside_band_count ?? 0],
+    ['FDR 1%', monitor.fdr_significant_count ?? 0],
+    ['exact confirmed', monitor.exact_confirmed_count ?? 0],
+    ['pending', monitor.pending_count ?? 0],
+    ['active', (monitor.active || []).length],
+  ];
+  summary.innerHTML = bits.map(([label, value]) => (
+    '<span><i>' + label + '</i> ' + escapeHtml(value) + '</span>')).join('');
+  const notes = (monitor.reasons || []).join(' \u00B7 ');
+  document.getElementById('mispricingNotes').textContent = notes ||
+    'fresh strike-held-out reference surface; no confirmed dislocation';
+
+  const row = (episode, recent) => {
+    const market = episode.direction === 'cheap' ? episode.observed_ask : episode.observed_bid;
+    const clock = recent
+      ? ((episode.corrected_at || episode.last_observed_at || '').slice(11, 19))
+      : ((episode.first_seen_at || '').slice(11, 19));
+    const outcome = recent
+      ? (episode.status === 'corrected'
+        ? (episode.correction_driver || 'corrected')
+        : 'censored: ' + (episode.censor_reason || 'unavailable'))
+      : fmt(episode.duration_seconds, 1) + ' s live';
+    return '<tr>' +
+      '<td title="' + escapeHtml(episode.instrument_id) + '">' +
+        escapeHtml(episode.expiry + ' ' + episode.strike + ' ' + episode.option_type) + '</td>' +
+      '<td class="' + escapeHtml(episode.direction) + '">' +
+        escapeHtml(episode.direction) + '</td>' +
+      '<td class="num">' + fmt(market, 2) + '</td>' +
+      '<td class="num">' + fmt(episode.fair_price, 2) + '</td>' +
+      '<td class="num">[' + fmt(episode.fair_lower, 2) + ', ' +
+        fmt(episode.fair_upper, 2) + ']</td>' +
+      '<td class="num">' + fmt(episode.gross_edge_ticks, 2) + '</td>' +
+      '<td class="num">' + fmt(episode.net_edge_ticks, 2) + '</td>' +
+      '<td class="num">' + fmt(episode.net_edge_per_lot, 2) + '</td>' +
+      '<td class="num">' + fmt(episode.iv_residual_points, 3) + '</td>' +
+      '<td class="num">' + fmt(episode.quote_age_seconds, 2) + ' s</td>' +
+      '<td class="num">' + escapeHtml(clock) + '</td>' +
+      '<td class="num">' + fmt(episode.duration_seconds, 1) + ' s</td>' +
+      '<td>' + escapeHtml(outcome) + '</td></tr>';
+  };
+  document.getElementById('mispricingActiveBody').innerHTML =
+    (monitor.active || []).map((episode) => row(episode, false)).join('') ||
+    '<tr><td colspan="13" class="muted">no confirmed active mispricing</td></tr>';
+  document.getElementById('mispricingRecentBody').innerHTML =
+    (monitor.recent || []).map((episode) => row(episode, true)).join('') ||
+    '<tr><td colspan="13" class="muted">no corrected or censored episodes yet</td></tr>';
+}
+
 function render(payload) {
   document.getElementById('sourceLabel').textContent = payload.source;
   renderHealth(payload);
@@ -589,6 +665,7 @@ function render(payload) {
   renderSurface(payload);
   renderArbitrage(payload);
   renderDiagnostics(payload);
+  renderMispricing(payload);
   const slider = document.getElementById('historySlider');
   const live = document.getElementById('liveToggle').checked;
   if (live) {
@@ -797,14 +874,37 @@ th { color:var(--ink-3); font-weight:500; font-size:9px; letter-spacing:.13em;
 td { color:var(--ink-2); }
 tr:last-child td { border-bottom:none; }
 .muted { color:var(--ink-3); }
+.cheap { color:var(--sage); font-weight:600; }
+.rich { color:var(--brick); font-weight:600; }
 .empty { display:flex; height:100%; align-items:center; justify-content:center;
   color:var(--brick); letter-spacing:.1em; font-size:11px; }
+
+.mispricing-panel {
+  flex:none; height:260px; min-height:180px; overflow:auto;
+  border-top:1px solid var(--rule); background:var(--panel); padding:11px 18px 16px;
+}
+.mispricing-head { display:flex; align-items:baseline; gap:14px; margin-bottom:4px; }
+.mispricing-head h2 {
+  margin:0; font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+}
+.mispricing-head p { margin:0; color:var(--ink-3); font-size:9.5px; }
+.mispricing-notes { color:var(--ink-3); font-size:10px; margin:0 0 8px; }
+.mispricing-tables { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+.mispricing-table { min-width:0; overflow-x:auto; }
+.mispricing-table h3 {
+  margin:0 0 5px; color:var(--ink-3); font-size:9px; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase;
+}
+.mispricing-table table { min-width:1060px; }
+.mispricing-table th, .mispricing-table td { white-space:nowrap; }
 
 @media (max-width:1080px) {
   body { height:auto; overflow:auto; }
   main { grid-template-columns:1fr; }
   .stage { border-right:none; border-bottom:1px solid var(--rule); }
   #surfaceChart { height:60vh; }
+  .mispricing-panel { height:auto; max-height:none; }
+  .mispricing-tables { grid-template-columns:1fr; }
 }
 """
 
@@ -872,6 +972,37 @@ _BODY = """<!doctype html>
     </section>
   </div>
 </main>
+<section class="mispricing-panel" id="mispricingPanel">
+  <div class="mispricing-head">
+    <h2>Surface-relative executable mispricing</h2>
+    <p>read-only research monitor &middot; held-out strike &middot; empirical fair band &middot;
+      after costs &middot; BH-FDR &middot; two-frame persistence</p>
+  </div>
+  <div class="kv" id="mispricingSummary"></div>
+  <p class="mispricing-notes" id="mispricingNotes"></p>
+  <div class="mispricing-tables">
+    <div class="mispricing-table">
+      <h3>Active confirmed</h3>
+      <table><thead><tr><th>contract</th><th>side</th><th class="num">market</th>
+        <th class="num">fair</th><th class="num">fair band</th>
+        <th class="num">gross ticks</th><th class="num">net ticks</th>
+        <th class="num">net / lot</th><th class="num">IV resid pp</th>
+        <th class="num">quote age</th><th class="num">first seen</th>
+        <th class="num">duration</th><th>outcome</th></tr></thead>
+        <tbody id="mispricingActiveBody"></tbody></table>
+    </div>
+    <div class="mispricing-table">
+      <h3>Recently corrected / censored</h3>
+      <table><thead><tr><th>contract</th><th>side</th><th class="num">market</th>
+        <th class="num">fair</th><th class="num">fair band</th>
+        <th class="num">gross ticks</th><th class="num">net ticks</th>
+        <th class="num">net / lot</th><th class="num">IV resid pp</th>
+        <th class="num">quote age</th><th class="num">closed</th>
+        <th class="num">duration</th><th>outcome</th></tr></thead>
+        <tbody id="mispricingRecentBody"></tbody></table>
+    </div>
+  </div>
+</section>
 <script>
 const axisState = {ivMin: null, ivMax: null, maturityMax: null};
 let lastPayload = __PAYLOAD__;

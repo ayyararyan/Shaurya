@@ -185,6 +185,31 @@ def _implied_volatility(
     return 0.5 * (low + high)
 
 
+def implied_volatility(
+    *,
+    price: float,
+    forward: float,
+    strike: float,
+    maturity_years: float,
+    risk_free_rate: float,
+    is_call: bool,
+) -> float | None:
+    """Public Black-76 inversion used by analytics outside the surface fitter.
+
+    Returning ``None`` preserves the fitter's existing explicit data-insufficient semantics
+    for prices outside discounted intrinsic/maximum bounds.
+    """
+
+    return _implied_volatility(
+        price=price,
+        forward=forward,
+        strike=strike,
+        maturity_years=maturity_years,
+        risk_free_rate=risk_free_rate,
+        is_call=is_call,
+    )
+
+
 def _latest_rows(rows: tuple[TapeRow, ...]) -> tuple[TapeRow, ...]:
     latest: dict[str, TapeRow] = {}
     for row in rows:
