@@ -5,6 +5,16 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### D41 — mid-return lags versus CCZ OFI, hypothesis freeze
+
+- Added agreed claim `EF-11/H1` and froze
+  `docs/D41-MID-LAG-OFI-INCREMENTAL-SPEC-2026-08-20.md` before executing the new comparison.
+- The declared future grid is 0.5/1/2/5/10/20/30 seconds after a 0.5-second gap. It compares only
+  seven past displayed-mid returns, ten-level depth-scaled CCZ OFI alone, and their exact union.
+- Bound identical chronological held-out rows, a 30.5-second embargo, training-only ridge choices,
+  absolute OOS R², HAC Diebold--Mariano, nested Clark--West and Holm inference. D41 is permanently
+  retrospective on today's immutable 15:42 partial-session tape and does not alter D39/D40.
+
 ### D40 — displayed-mid OFI horizon extension machinery
 
 - Froze `docs/D40-OFI-HORIZON-EXTENSION-SPEC-2026-08-20.md`: exact D39 `C8`, `M=10`, trailing

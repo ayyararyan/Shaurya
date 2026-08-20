@@ -84,3 +84,23 @@ session. It does not modify or validate the locked 2026-08-21 D39 test.
 | `D40-VAL-04` | Committed summary/report contain C8 absolute R² only and no LTP result | **Dry-run verified** | D40 summary extractor and committed outputs | artifact-to-committed-result parity check passed |
 | `D40-VAL-05` | Tape, code, split, row and artifact identities are recorded | **Dry-run verified** | full artifact, compact summary and report | SHA/split/row-hash acceptance checks passed |
 | `D40-VAL-ALL` | Full tests, Ruff, strict mypy, compile and diff checks | **Tested** | repository-wide | 676 pytest; Ruff; 65-file strict mypy; compileall; diff checks passed |
+
+## D41 additive matrix — `MID-LAG-OFI-INCREMENTAL-2026-08-20`
+
+**Specification:** `docs/D41-MID-LAG-OFI-INCREMENTAL-SPEC-2026-08-20.md`
+**Evidence boundary at freeze:** planned and pushed before D41 outcome execution; permanently
+retrospective on the already-inspected 2026-08-20 late-partial tape.
+
+| ID | Requirement | Status | Code location | Test / acceptance evidence |
+|---|---|---|---|---|
+| `D41-OBJ-01` | Test lag predictiveness, lag versus OFI accuracy, and both incremental directions | **Planned** | pending D41 module/runner | pending |
+| `D41-DATA-01` | Exact immutable 15:42 tape and SHA; receive-time clock | **Specified** | D41 spec | pre-execution document review |
+| `D41-TARGET-01` | Displayed-mid returns after 0.5 s gap at 0.5–30 s | **Specified** | pending D41 module | pending `D41-VAL-02` |
+| `D41-X-01` | Seven trailing displayed-mid returns plus fixed all-lag bank | **Specified** | pending D41 module | pending `D41-VAL-01/02` |
+| `D41-X-02` | Ten-level depth-scaled CCZ OFI alone at five windows | **Specified** | reuse `signals/ccz_ofi.py`; pending D41 evaluator | existing CCZ equation tests plus pending D41 union tests |
+| `D41-EST-01` | `L_k`, `L_ALL`, `O_w`, and exact `LO_w` panel only | **Specified** | pending D41 module | pending `D41-VAL-03/04/05` |
+| `D41-INST-01` | Separate contemporaneous construction check | **Specified** | pending D41 module | pending synthetic and artifact checks |
+| `D41-OOS-01` | Preserved anchor universe; 70/30 chronological split; 30.5 s embargo; common rows | **Specified** | pending D41 module | pending `D41-VAL-04` |
+| `D41-INF-01` | HAC loss tests, DM, nested Clark--West and Holm families | **Specified** | pending D41 module | pending `D41-VAL-06` |
+| `D41-OUT-01` | Full/compact artifacts, report, trial row and hashes | **Planned** | pending runner/docs | pending `D41-VAL-07` |
+| `D41-VAL-ALL` | Focused/full tests, Ruff, mypy, compile, artifact/hash/secret gates | **Planned** | repository-wide | pending |

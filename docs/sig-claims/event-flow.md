@@ -149,6 +149,7 @@ preference imported from the literature.
 | `EF-08` | **Load-bearing:** the permanent/transitory split of OFI impact determines whether the maker leans in or withdraws | Proposed | SIG-14, EF-03 |
 | `EF-09` | **Tick-binding gradient (Gould–Bonart):** queue-signal informativeness is monotone decreasing in spread-in-ticks | Proposed | D26, BK cell |
 | `EF-10` | The **front-of-queue reference policy** establishes the level against which every gate is measured | Proposed | DAT-14 |
+| `EF-11` | Past displayed-mid returns and CCZ OFI may contain redundant or incremental information about later displayed-mid returns | Agreed | EF-01, EF-02, SIG-15 |
 
 ### `EF-01` — Contemporaneous sufficiency is a data-quality gate, not a signal
 
@@ -587,6 +588,27 @@ constrains *queueing* without constraining *flow response*.
 | **Confirm (kill direction)** | Net AM < 0 at every powered horizon in liquid NIFTY |
 | **Interpretation limit, binding** | A negative level is **not** the `MK-05` kill on its own. Front-of-queue overstates value (best position) while never-cancelling understates it (worst policy); the deviations run opposite and do not compose into a bound. The kill requires a negative level **and** `EF-04/H2` failing to recover it |
 
+### `EF-11/H1` — Incremental forecast content of mid-return lags and CCZ OFI
+
+| Axis | Binding |
+|---|---|
+| **X** | (i) displayed-mid returns ending at anchor `t`, at lags 0.5/1/2/5/10/20/30 s; (ii) ten separate depth-scaled rank-keyed CCZ OFI levels, `M=10`, accumulated over 0.5/1/2/5/10 s; (iii) their exact union |
+| **h₁** | Lag bank 0.5–30 s; CCZ OFI 0.5–10 s |
+| **f₁** | depth200 publication anchors, receive-time ordered |
+| **Y** | future depth20 displayed-mid return in futures ticks |
+| **h₂** | 0.5/1/2/5/10/20/30 s |
+| **f₂** | depth20 displayed-mid as-of path resolved from each depth200 anchor |
+| **Z** | 0.5 s |
+| **Stratum** | 2026-08-20 NIFTY August 2026 front-month future late-partial session; no pooled instrument or regime result |
+| **Mechanism** | OFI moves the contemporaneous mid mechanically and may leave residual inventory/information drift; lagged returns capture any continuation or reversal already embedded in the price path. Their union tests whether these are the same forecast state or two incremental states |
+| **K** | Absolute OOS R² for each model and paired held-out loss improvement for lag versus OFI and each nested union comparison |
+| **G contribution** | 126 future model cells plus 6 separate contemporaneous construction checks = **132** |
+| **Confirm OFI increment** | `LO_w` improves OOS R² over `L_ALL` and the one-sided Clark--West test survives the declared Holm family |
+| **Confirm lag increment** | `LO_w` improves OOS R² over `O_w` and the symmetric one-sided Clark--West test survives the declared Holm family |
+| **Falsify increment / redundancy on this tape** | Non-positive OOS increment and no adjusted Clark--West rejection. Correlation alone is not a falsifier or confirmation |
+| **Identification** | Estimated predictive association on strictly future returns; not a causal effect. Same-window OFI check is deterministically derived and descriptive only |
+| **Execution protocol** | `docs/D41-MID-LAG-OFI-INCREMENTAL-SPEC-2026-08-20.md`; frozen and pushed before the D41 outcome run, but permanently retrospective because D39/D40 already inspected the tape |
+
 ---
 
 ## 7. Declared grid size
@@ -603,7 +625,8 @@ constrains *queueing* without constraining *flow response*.
 | `EF-08/H1` | 18 |
 | `EF-09/H1` + `/H2` | 70 |
 | `EF-10/H1` | 35 |
-| **Cell total `G_EF`** | **1,334** |
+| `EF-11/H1` | 132 |
+| **Cell total `G_EF`** | **1,466** |
 
 `EF-04/H1` and `EF-07/H1` are machinery/measurement and are excluded from the inference
 grid; they are reported with intervals and claim no p-values.
