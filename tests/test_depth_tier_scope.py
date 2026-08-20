@@ -102,9 +102,7 @@ def _cli_args(*extra: str) -> argparse.Namespace:
 
 
 def test_registered_depth200_eligibility_is_futures_and_equity_only() -> None:
-    assert frozenset(
-        {InstrumentKind.EQUITY, InstrumentKind.FUTURE}
-    ) == DEPTH200_ELIGIBLE_KINDS
+    assert frozenset({InstrumentKind.EQUITY, InstrumentKind.FUTURE}) == DEPTH200_ELIGIBLE_KINDS
     assert InstrumentKind.OPTION not in DEPTH200_ELIGIBLE_KINDS
     assert OPTION_MAX_DEPTH_LEVELS == 20
 

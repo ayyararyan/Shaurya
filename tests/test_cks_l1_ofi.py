@@ -201,9 +201,7 @@ DEEP_LEVELS = 10
 
 def _deep_side(best: float, side: str) -> tuple[tuple[float, int, int], ...]:
     step = -FUTURES_TICK_SIZE if side == "bid" else FUTURES_TICK_SIZE
-    return tuple(
-        (round(best + step * level, 2), 500, 4) for level in range(1, DEEP_LEVELS)
-    )
+    return tuple((round(best + step * level, 2), 500, 4) for level in range(1, DEEP_LEVELS))
 
 
 def _synthetic_tape(

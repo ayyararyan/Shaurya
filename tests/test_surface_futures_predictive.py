@@ -164,19 +164,11 @@ def _observation(index: int) -> SurfacePredictiveObservation:
 
 def test_analytic_atm_skew_and_curvature_match_central_finite_difference() -> None:
     theta, rho, psi, maturity = 0.004, -0.42, 0.055, 0.08
-    atm, skew, curvature = essvi_atm_shape(
-        theta=theta, rho=rho, psi=psi, maturity_years=maturity
-    )
+    atm, skew, curvature = essvi_atm_shape(theta=theta, rho=rho, psi=psi, maturity_years=maturity)
     step = 1e-5
-    left = essvi_implied_volatility(
-        -step, theta=theta, rho=rho, psi=psi, maturity_years=maturity
-    )
-    centre = essvi_implied_volatility(
-        0.0, theta=theta, rho=rho, psi=psi, maturity_years=maturity
-    )
-    right = essvi_implied_volatility(
-        step, theta=theta, rho=rho, psi=psi, maturity_years=maturity
-    )
+    left = essvi_implied_volatility(-step, theta=theta, rho=rho, psi=psi, maturity_years=maturity)
+    centre = essvi_implied_volatility(0.0, theta=theta, rho=rho, psi=psi, maturity_years=maturity)
+    right = essvi_implied_volatility(step, theta=theta, rho=rho, psi=psi, maturity_years=maturity)
     assert atm == pytest.approx(centre, rel=1e-12)
     assert skew == pytest.approx((right - left) / (2.0 * step), rel=2e-7)
     assert curvature == pytest.approx((right - 2.0 * centre + left) / step**2, rel=2e-4)
@@ -213,8 +205,7 @@ def test_target_asof_enforces_age_epoch_and_right_edge_without_lookahead() -> No
     assert one_state.as_of(BASE + 6 * SECOND, connection_epoch=1) is not None
     assert one_state.as_of(BASE + 6 * SECOND + 1, connection_epoch=1) is None
     assert (
-        one_state.as_of_failure_reason(BASE + 6 * SECOND + 1, connection_epoch=1)
-        == "stale_state"
+        one_state.as_of_failure_reason(BASE + 6 * SECOND + 1, connection_epoch=1) == "stale_state"
     )
     invalid = FutureBookSeries([_state(0.0, flags=("sequence_gap",))])
     assert invalid.as_of(BASE, connection_epoch=1) is None
@@ -295,8 +286,7 @@ def test_ofi_reuses_canonical_sign_and_ccz_per_level_flow() -> None:
     assert ratios[0] == pytest.approx(ratios[1])
     assert features[ofi_feature(5.0, "cks_l1_depth_adjusted")] > 0.0
     assert all(
-        ofi_feature(window, "cks_l1_raw") in features
-        for window in (0.5, 1.0, 2.0, 5.0, 10.0)
+        ofi_feature(window, "cks_l1_raw") in features for window in (0.5, 1.0, 2.0, 5.0, 10.0)
     )
 
 
@@ -352,8 +342,7 @@ def test_chronological_split_has_120_second_embargo() -> None:
     assert len(split.train) == 140
     assert split.embargo_end_ts_ns - split.boundary_ts_ns == 120 * SECOND
     assert all(
-        observations[position].receive_ts_ns > split.embargo_end_ts_ns
-        for position in split.test
+        observations[position].receive_ts_ns > split.embargo_end_ts_ns for position in split.test
     )
 
 
@@ -443,8 +432,7 @@ def test_complete_artifact_is_deterministic_and_keeps_quality_increment_separate
     assert len(first["model_scores"]) == 24
     assert len(first["correlations"]) == 36
     assert all(
-        row["hac_lag_frames"] == 2 and "bh_fdr_q_value" in row
-        for row in first["correlations"]
+        row["hac_lag_frames"] == 2 and "bh_fdr_q_value" in row for row in first["correlations"]
     )
     held_out_future = [
         row

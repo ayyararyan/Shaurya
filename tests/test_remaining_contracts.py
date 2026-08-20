@@ -234,9 +234,7 @@ def test_ledger_rejects_execution_without_fill_price() -> None:
 
 
 def test_ledger_rejects_inconsistent_order_age() -> None:
-    payload = json.loads(
-        (FIXTURE_ROOT / "ledger_v1.json").read_text(encoding="utf-8")
-    )
+    payload = json.loads((FIXTURE_ROOT / "ledger_v1.json").read_text(encoding="utf-8"))
     payload["order_age_seconds"] = "2"
     with pytest.raises(ValidationError, match="order_age_seconds"):
         LedgerRow.model_validate(payload)

@@ -53,9 +53,7 @@ async def test_ceiling_binary_search_returns_largest_accepted_count() -> None:
         counts = {"liquid-control": 1} if count <= 87 else {}
         return ProbeObservation(count, counts, ("liquid-control",), 1.0)
 
-    result = await bisect_twenty_level_ceiling(
-        probe, known_working=52, known_failing=206
-    )
+    result = await bisect_twenty_level_ceiling(probe, known_working=52, known_failing=206)
     assert result.exact_ceiling == 87
     assert len(tested) <= 9
     assert tested[:2] == [52, 206]

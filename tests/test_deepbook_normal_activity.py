@@ -220,9 +220,7 @@ def test_size_build_slope_is_positive_when_the_book_deepens_with_distance() -> N
 
 def test_an_unusable_book_state_produces_no_features_rather_than_imputed_ones() -> None:
     empty = BookState(DEPTH200, START_NS, 1, 1, (), (), 1, ())
-    crossed = BookState(
-        DEPTH200, START_NS, 1, 1, ((100.5, 10, 1),), ((100.0, 10, 1),), 1, ()
-    )
+    crossed = BookState(DEPTH200, START_NS, 1, 1, ((100.5, 10, 1),), ((100.0, 10, 1),), 1, ())
     assert book_state_features(empty) is None
     assert book_state_features(crossed) is None
 
@@ -294,8 +292,7 @@ def test_an_unavailable_lookback_is_flagged_and_not_reported_as_a_measured_zero(
 
 def test_the_lookback_resolves_as_of_and_never_interpolates_forward() -> None:
     states = [
-        depth200_state(START_NS + index * SECOND, bid_quantity=10 * index)
-        for index in range(8)
+        depth200_state(START_NS + index * SECOND, bid_quantity=10 * index) for index in range(8)
     ]
     levels = []
     for state in states:
@@ -492,9 +489,7 @@ def test_the_ridge_path_agrees_with_fitting_each_penalty_separately() -> None:
 
 
 def test_a_constant_training_column_is_neutralised_rather_than_dividing_by_zero() -> None:
-    design = np.column_stack(
-        [np.ones(100), np.linspace(0.0, 1.0, 100)]
-    )
+    design = np.column_stack([np.ones(100), np.linspace(0.0, 1.0, 100)])
     target = np.linspace(0.0, 2.0, 100)
     fit = fit_ridge(design, target, feature_names=["constant", "ramp"], penalty=1.0)
     assert np.isfinite(fit.coefficients).all()
@@ -641,7 +636,9 @@ def test_the_required_sample_answers_how_much_tape_would_settle_a_step() -> None
 
 def test_the_required_sample_refuses_to_invent_a_number_without_a_baseline() -> None:
     result = required_blocks_for_target(
-        [1.0, 2.0], [START_NS, START_NS + SECOND], [0, 0],
+        [1.0, 2.0],
+        [START_NS, START_NS + SECOND],
+        [0, 0],
         overlap_seconds=1.0,
         baseline_mean_squared_error=None,
     )

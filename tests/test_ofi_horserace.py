@@ -773,9 +773,7 @@ def test_integrated_weights_ignore_test_rows_entirely() -> None:
         for level in range(1, CCZ_PRIMARY_LEVELS + 1):
             features[level_feature(1.0, level)] = 10_000.0
         contaminated[index] = replace(contaminated[index], features=features)
-    after_design = build_ccz_arm_design(
-        contaminated, train, window=1.0, levels=CCZ_PRIMARY_LEVELS
-    )
+    after_design = build_ccz_arm_design(contaminated, train, window=1.0, levels=CCZ_PRIMARY_LEVELS)
     after = fit_integrated_weights(after_design.normalised)
 
     assert before.weights == after.weights

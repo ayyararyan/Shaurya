@@ -35,9 +35,7 @@ def _synthetic_chain(*, theta_shift: float = 0.0) -> tuple[TapeRow, ...]:
         forward = FORWARDS[expiry]
         theta, rho, psi = PARAMETERS[expiry]
         theta += theta_shift
-        maturity = (expiry_timestamp - VALUATION).total_seconds() / (
-            365.25 * 24.0 * 60.0 * 60.0
-        )
+        maturity = (expiry_timestamp - VALUATION).total_seconds() / (365.25 * 24.0 * 60.0 * 60.0)
         for log_moneyness in (-0.08, -0.06, -0.04, -0.02, 0.0, 0.02, 0.04, 0.06, 0.08):
             strike = forward * math.exp(log_moneyness)
             is_call = log_moneyness >= 0
@@ -68,8 +66,7 @@ def _synthetic_chain(*, theta_shift: float = 0.0) -> tuple[TapeRow, ...]:
                     source="synthetic_essvi_fixture",
                     event_type="depth20",
                     instrument_id=(
-                        f"NSE:NSE_FNO:NIFTY:option:{expiry.isoformat()}:"
-                        f"{strike:.8f}:{option_type}"
+                        f"NSE:NSE_FNO:NIFTY:option:{expiry.isoformat()}:{strike:.8f}:{option_type}"
                     ),
                     broker_security_id=str(10_000 + sequence),
                     exchange_segment="NSE_FNO",
@@ -169,9 +166,7 @@ def test_maturity_interpolation_is_total_variance_linear_and_extrapolation_is_ex
 
 def test_consecutive_fit_reports_parameter_stability() -> None:
     first = ESSVISurface.fit(_request())
-    second = ESSVISurface.fit(
-        _request(theta_shift=0.0001, previous_surface=first)
-    )
+    second = ESSVISurface.fit(_request(theta_shift=0.0001, previous_surface=first))
     stability = _diagnostics(second)["parameter_stability"]
     assert stability["status"] == "available"
     assert stability["common_expiry_count"] == 2

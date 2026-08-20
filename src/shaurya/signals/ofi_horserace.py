@@ -1828,6 +1828,202 @@ def _ccz_replication_gap(
     }
 
 
+def evaluate_same_window_by_depth(
+    observations: Sequence[HorseRaceObservation],
+    split: SplitIndex,
+    *,
+    reference: str = BASELINE_REFERENCE,
+    level_counts: Sequence[int] = CCZ_LEVEL_COUNTS,
+    arms: Sequence[str] = CCZ_SCALAR_ARMS,
+) -> list[dict[str, Any]]:
+    """`WINDOW-03`: the contemporaneous R2 at every window **and every declared depth** ``M``.
+
+    :func:`evaluate_same_window` varies the model family at the primary level count; this varies
+    the level count itself, which is what "at every depth" means for a CCZ object.  The scalar
+    aggregation arms are used because ``PI^[M]`` at ``M = 200`` is a two-hundred-regressor
+    contemporaneous fit and would be reporting its own degrees of freedom.
+
+    The integrated arm's weights are fitted on training rows only, exactly as `EST-CCZ-04`
+    requires, and a depth with no support at a window is emitted as data-insufficient rather than
+    dropped: `EST-CCZ-06` retires no declared arm.
+    """
+
+    rows: list[dict[str, Any]] = []
+    counts = tuple(sorted({int(value) for value in level_counts}))
+    for window in SAME_WINDOW_SECONDS:
+        for levels in counts:
+            design = build_ccz_arm_design(
+                observations, tuple(range(len(observations))), window=window, levels=levels
+            )
+            train = [
+                design.index[position]
+                for position in split.train
+                if position in design.index
+                and window in _same_window_returns(observations[position], reference)
+            ]
+            test = [
+                design.index[position]
+                for position in split.test
+                if position in design.index
+                and window in _same_window_returns(observations[position], reference)
+            ]
+            weights = (
+                fit_integrated_weights(design.normalised[np.asarray(train, dtype=np.intp)])
+                if len(train) >= MINIMUM_FIT_OBSERVATIONS
+                else None
+            )
+            for arm in arms:
+                if (
+                    len(train) < MINIMUM_FIT_OBSERVATIONS
+                    or len(test) < MINIMUM_FIT_OBSERVATIONS
+                    or (arm == "integrated" and weights is None)
+                ):
+                    rows.append(
+                        {
+                            "requirement": "WINDOW-03",
+                            "h1_seconds": window,
+                            "levels": levels,
+                            "arm": arm,
+                            "reference_price": reference,
+                            "status": "data_insufficient",
+                            "train_n": len(train),
+                            "test_n": len(test),
+                            "is_ccz_comparison_cell": (
+                                window == CCZ_CONTEMPORANEOUS_WINDOW_SECONDS
+                            ),
+                        }
+                    )
+                    continue
+                columns_train, names = _arm_columns(design, arm, weights, train)
+                columns_test, _ = _arm_columns(design, arm, weights, test)
+                selected_train = np.asarray(train, dtype=np.intp)
+                selected_test = np.asarray(test, dtype=np.intp)
+                matrix_train = np.hstack([design.baseline[selected_train], columns_train])
+                matrix_test = np.hstack([design.baseline[selected_test], columns_test])
+                feature_names = (*BASELINE_FEATURES, *names)
+                target_train = np.asarray(
+                    [
+                        _same_window_returns(observations[position], reference)[window]
+                        for position in split.train
+                        if position in design.index
+                        and window in _same_window_returns(observations[position], reference)
+                    ],
+                    dtype=np.float64,
+                )
+                target_test = np.asarray(
+                    [
+                        _same_window_returns(observations[position], reference)[window]
+                        for position in split.test
+                        if position in design.index
+                        and window in _same_window_returns(observations[position], reference)
+                    ],
+                    dtype=np.float64,
+                )
+                drift = float(target_train.mean())
+                fit = fit_ridge(
+                    matrix_train,
+                    target_train - drift,
+                    feature_names=feature_names,
+                    penalty=0.0 if arm != "per_level_pi" else 1.0,
+                )
+                in_sample = _r_squared(
+                    target_train - drift,
+                    fit.predict(matrix_train),
+                    np.zeros(target_train.shape, dtype=np.float64),
+                )
+                out_of_sample = _r_squared(
+                    target_test - drift,
+                    fit.predict(matrix_test),
+                    np.zeros(target_test.shape, dtype=np.float64),
+                )
+                rows.append(
+                    {
+                        "requirement": "WINDOW-03",
+                        "h1_seconds": window,
+                        "levels": levels,
+                        "arm": arm,
+                        "reference_price": reference,
+                        "status": "estimated",
+                        "contemporaneous_not_a_forecast": True,
+                        "is_ccz_comparison_cell": window == CCZ_CONTEMPORANEOUS_WINDOW_SECONDS,
+                        "train_n": len(train),
+                        "test_n": len(test),
+                        "in_sample_r2": in_sample,
+                        "oos_r2": out_of_sample,
+                        "explained_variance_ratio": (
+                            weights.explained_variance_ratio if weights is not None else None
+                        ),
+                        "ccz_replication_gap": _ccz_replication_gap_for_arm(
+                            arm, in_sample, out_of_sample
+                        ),
+                    }
+                )
+    return rows
+
+
+def _ccz_replication_gap_for_arm(
+    arm: str, in_sample: float | None, out_of_sample: float | None
+) -> dict[str, Any]:
+    """`WINDOW-02` for the depth grid, where the arm rather than the family names the comparator."""
+
+    model = {"best_level": "M3", "integrated": "M5"}.get(arm, "M0")
+    payload = _ccz_replication_gap(model, in_sample, out_of_sample)
+    payload["arm"] = arm
+    return payload
+
+
+def depth_r2_curve(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """`WINDOW-03`: one R2-versus-window curve per depth and arm, with the plateau visible."""
+
+    curves: list[dict[str, Any]] = []
+    keys = sorted(
+        {(int(row["levels"]), str(row["arm"]), str(row.get("reference_price"))) for row in rows}
+    )
+    for levels, arm, reference in keys:
+        selected = {
+            float(row["h1_seconds"]): row
+            for row in rows
+            if int(row["levels"]) == levels
+            and row["arm"] == arm
+            and row.get("reference_price") == reference
+        }
+        windows = sorted(selected)
+        values = [selected[window].get("oos_r2") for window in windows]
+        estimated = [
+            (window, value)
+            for window, value in zip(windows, values, strict=True)
+            if value is not None
+        ]
+        peak = max(estimated, key=lambda item: item[1]) if estimated else None
+        ordered = [value for _, value in estimated]
+        curves.append(
+            {
+                "requirement": "WINDOW-03",
+                "levels": levels,
+                "arm": arm,
+                "reference_price": reference,
+                "windows_seconds": windows,
+                "oos_r2": values,
+                "in_sample_r2": [selected[window].get("in_sample_r2") for window in windows],
+                "estimated_cells": len(estimated),
+                "peak_window_seconds": peak[0] if peak else None,
+                "peak_oos_r2": peak[1] if peak else None,
+                "monotone_increasing": (
+                    all(
+                        later >= earlier
+                        for earlier, later in zip(ordered, ordered[1:], strict=False)
+                    )
+                    if len(estimated) > 1
+                    else None
+                ),
+                "still_climbing_at_the_ceiling": (
+                    bool(peak[0] == max(windows)) if peak and windows else None
+                ),
+            }
+        )
+    return curves
+
+
 def same_window_curve(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     """`WINDOW-03`: the R2-versus-window curve, so a plateau or its absence is directly visible.
 
@@ -2744,6 +2940,11 @@ def build_horserace_artifact(
                 f"@h1={row.get('h1_seconds')},h2={row.get('h2_seconds')}"
             ),
         )
+    # `WINDOW-03`: the same contemporaneous grid at every declared CCZ depth, so the curve can be
+    # read per level count rather than only at the primary M = 10.
+    depth_grid: list[dict[str, Any]] = []
+    for reference in REFERENCE_PRICE_LADDER:
+        depth_grid.extend(evaluate_same_window_by_depth(observations, split, reference=reference))
     mirror = _past_mirror_table(all_future, all_past)
     return {
         "schema_version": 3,
@@ -2798,6 +2999,8 @@ def build_horserace_artifact(
         "reference_price_ladder_uncovered": ladder_failures,
         "same_window_diagnostic": same_window,
         "same_window_r2_curve": same_window_curve(same_window),
+        "same_window_by_depth": depth_grid,
+        "same_window_depth_r2_curve": depth_r2_curve(depth_grid),
         "past_mirror_table": mirror,
         "rankings": compact_rankings(future),
         "reference_price_rankings": compact_rankings(ladder_future),

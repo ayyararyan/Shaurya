@@ -387,9 +387,7 @@ def test_coverage_guard_defaults_to_the_previous_behaviour() -> None:
 def test_attach_burst_responses_applies_the_coverage_guard() -> None:
     states = ramp_states(30, drift=0.1)
     stamps = [states[-1].receive_ts_ns - 2 * SECOND]
-    responses, failures = attach_burst_responses(
-        stamps, states, tape_index=0, run_id="fixture-run"
-    )
+    responses, failures = attach_burst_responses(stamps, states, tape_index=0, run_id="fixture-run")
     assert failures["endpoint_beyond_coverage"] > 0
     assert all(key[1] == 1 for key in responses[0].cells)
 
@@ -445,12 +443,9 @@ def test_in_sample_index_uses_the_registered_scoring_rule_and_keeps_ties_togethe
 def test_selectivity_curve_reports_the_degenerate_and_the_separated_regimes() -> None:
     """The real shape: continuous small activity collapses, a sparse tail separates."""
 
-    dense = [
-        candidate(START_NS + index * SECOND // 2, magnitude=10.0) for index in range(600)
-    ]
+    dense = [candidate(START_NS + index * SECOND // 2, magnitude=10.0) for index in range(600)]
     rare = [
-        candidate(START_NS + (20 + index * 40) * SECOND, magnitude=10_000.0)
-        for index in range(6)
+        candidate(START_NS + (20 + index * 40) * SECOND, magnitude=10_000.0) for index in range(6)
     ]
     candidates = dense + rare
     index = build_in_sample_magnitude_index(candidates)
@@ -554,17 +549,16 @@ def test_hac_regression_rejects_mismatched_lengths() -> None:
 
 
 def test_required_sample_sizes_scale_as_specified() -> None:
-    base = required_effective_sample(
-        sigma_ticks=10.0, critical_value=1.96, target_mde_ticks=0.25
-    )
+    base = required_effective_sample(sigma_ticks=10.0, critical_value=1.96, target_mde_ticks=0.25)
     doubled = required_effective_sample(
         sigma_ticks=20.0, critical_value=1.96, target_mde_ticks=0.25
     )
     assert base is not None and doubled is not None
     assert doubled == pytest.approx(4.0 * base)
-    assert required_effective_sample(
-        sigma_ticks=0.0, critical_value=1.96, target_mde_ticks=0.25
-    ) is None
+    assert (
+        required_effective_sample(sigma_ticks=0.0, critical_value=1.96, target_mde_ticks=0.25)
+        is None
+    )
     probability = required_probability_sample(probability=0.5, critical_value=1.96)
     assert probability is not None and probability > 0
     assert required_probability_sample(probability=0.0, critical_value=1.96) is None
@@ -799,9 +793,7 @@ def test_quiet_episode_placebo_is_not_forced_to_zero_by_construction() -> None:
         [scan], index, past_returns_by_ts={}, control_sets=control_sets
     )
     placebo = next(
-        result
-        for result in controls["results"]
-        if result["name"] == "matched_quiet_episodes"
+        result for result in controls["results"] if result["name"] == "matched_quiet_episodes"
     )
     observed = [cell for cell in placebo["cells"] if cell["n"] > 0]
     assert observed, "the placebo must actually be populated"
@@ -924,9 +916,7 @@ def test_power_section_separates_apparent_from_credible_precision() -> None:
         for index in range(20)
     ]
     scan = build_fixture_scan(candidates, states)
-    artifact = build_exploratory_artifact(
-        [scan], past_returns={}, replicates=5, cutoffs=(0.5,)
-    )
+    artifact = build_exploratory_artifact([scan], past_returns={}, replicates=5, cutoffs=(0.5,))
     power = artifact["power"]
     assert power["registered_mean_mde_gate_ticks"] == 0.25
     assert power["registered_evaluation_ceiling_episodes"] == (23_100 // 11) * 20
@@ -1057,9 +1047,7 @@ def test_family_reports_the_registered_paired_estimator_alongside_the_arm() -> N
 def test_selectivity_curve_separates_pooled_from_per_cell_risk_sets() -> None:
     """Pooling all 32 cells into one timeline is harsher than the family's own cell-by-cell view."""
 
-    bid = [
-        candidate(START_NS + index * SECOND, side="bid", magnitude=100.0) for index in range(60)
-    ]
+    bid = [candidate(START_NS + index * SECOND, side="bid", magnitude=100.0) for index in range(60)]
     ask = [
         candidate(START_NS + (index * SECOND) + SECOND // 2, side="ask", magnitude=100.0)
         for index in range(60)

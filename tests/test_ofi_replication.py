@@ -139,8 +139,7 @@ def test_actual_channel_timestamps_accept_and_exact_session_clip(tmp_path: Path)
     clipped = list(iter_session_rows(tape))
     assert len(clipped) == 6
     assert all(
-        datetime.fromisoformat(str(row["receive_ts"])).astimezone(IST) <= closed
-        for row in clipped
+        datetime.fromisoformat(str(row["receive_ts"])).astimezone(IST) <= closed for row in clipped
     )
 
 
@@ -208,9 +207,7 @@ def test_streaming_state_collapse_matches_existing_builder() -> None:
 
 def test_fixed_lead_report_does_not_substitute_a_new_full_grid_argmax() -> None:
     scalar = {
-        "protocol": {
-            "level_one_is_ccz_base_case": "CCZ Eq. (1); retained unchanged by CCZ-IMPL-05"
-        }
+        "protocol": {"level_one_is_ccz_base_case": "CCZ Eq. (1); retained unchanged by CCZ-IMPL-05"}
     }
     future = {
         "subarm": "M3b_depth_normalised_cks",
@@ -299,9 +296,7 @@ def _pinned_repo(tmp_path: Path) -> tuple[Path, str]:
     head = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True
     ).stdout.strip()
-    subprocess.run(
-        ["git", "update-ref", "refs/remotes/origin/main", "HEAD"], cwd=repo, check=True
-    )
+    subprocess.run(["git", "update-ref", "refs/remotes/origin/main", "HEAD"], cwd=repo, check=True)
     return repo, head
 
 
@@ -339,9 +334,7 @@ def test_ops_ccz_01_a_repository_that_moves_between_units_fails_closed(
 
     (repo / "marker.txt").write_text("two\n", encoding="utf-8")
     subprocess.run(["git", "commit", "-am", "two"], cwd=repo, check=True, capture_output=True)
-    subprocess.run(
-        ["git", "update-ref", "refs/remotes/origin/main", "HEAD"], cwd=repo, check=True
-    )
+    subprocess.run(["git", "update-ref", "refs/remotes/origin/main", "HEAD"], cwd=repo, check=True)
 
     with pytest.raises(ValueError, match="code commit mismatch before horse_race"):
         controller.assert_on_pin("horse_race")

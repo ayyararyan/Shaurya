@@ -149,9 +149,7 @@ def test_ofi_full_session_replication_accepts_all_three_channels_and_records_lim
     assert _ofi_full_session_protocol_metadata(args) == {
         "protocol_id": "R-OFI-FULLSESSION-2026-08-20",
         "source_spec": "docs/OFI-FULL-SESSION-REPLICATION-SPEC-2026-08-20.md",
-        "source_amendment": (
-            "docs/OFI-FULL-SESSION-REPLICATION-SPEC-AMENDMENT-1-2026-08-19.md"
-        ),
+        "source_amendment": ("docs/OFI-FULL-SESSION-REPLICATION-SPEC-AMENDMENT-1-2026-08-19.md"),
         "registration_commit": "af9bec17694b5cf45f1d670113f14b02efb1e418",
         "sample_role": "prospective_full_session_replication",
         "trading_date": "2026-08-20",

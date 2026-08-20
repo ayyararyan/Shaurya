@@ -27,12 +27,15 @@ from shaurya.signals.evaluation_metrics import (
 )
 from shaurya.signals.ofi_horserace import (
     CCZ_CONTEMPORANEOUS_WINDOW_SECONDS,
+    CCZ_LEVEL_COUNTS,
+    CCZ_SCALAR_ARMS,
     MODEL_ORDER,
     SAME_WINDOW_SECONDS,
     STOIKOV_FEATURE,
     HorseRaceTapeInput,
     build_horserace_artifact,
     build_horserace_observations,
+    depth_r2_curve,
     fit_stoikov_for_split,
     model_features,
     same_window_curve,
@@ -303,6 +306,37 @@ def test_window_03_curve_exposes_the_shape_at_every_window(artifact: dict[str, A
     # the curve is derived, not stored twice: it must agree with the cells it summarises
     rebuilt = same_window_curve(artifact["same_window_diagnostic"])
     assert rebuilt == curves
+
+
+def test_val_window_01_and_window_03_cover_every_declared_depth(
+    artifact: dict[str, Any],
+) -> None:
+    """`WINDOW-03` "at every depth" means every declared CCZ level count, not only M = 10."""
+
+    grid = artifact["same_window_by_depth"]
+    assert grid
+    for reference in REFERENCE_PRICE_LADDER:
+        present = {
+            (float(row["h1_seconds"]), int(row["levels"]), str(row["arm"]))
+            for row in grid
+            if row["reference_price"] == reference
+        }
+        expected = {
+            (window, levels, arm)
+            for window in SAME_WINDOW_SECONDS
+            for levels in CCZ_LEVEL_COUNTS
+            for arm in CCZ_SCALAR_ARMS
+        }
+        # no declared depth is dropped; an unsupported one is emitted data-insufficient
+        assert present == expected
+    # `VAL-WINDOW-01`: the 60 s CCZ comparison cell is present at every depth
+    comparison = {int(row["levels"]) for row in grid if row["is_ccz_comparison_cell"]}
+    assert comparison == set(CCZ_LEVEL_COUNTS)
+    curves = artifact["same_window_depth_r2_curve"]
+    assert curves == depth_r2_curve(grid)
+    assert {int(curve["levels"]) for curve in curves} == set(CCZ_LEVEL_COUNTS)
+    for curve in curves:
+        assert curve["windows_seconds"] == sorted(SAME_WINDOW_SECONDS)
 
 
 # ------------------------------------------------------------------------------------- MICRO-*

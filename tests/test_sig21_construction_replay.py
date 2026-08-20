@@ -156,9 +156,7 @@ def write_capture(directory: Path, run_id: str, rows: list[dict[str, Any]]) -> P
         "dhan_security_id": SECURITY_ID,
         "trading_symbol": SYMBOL,
     }
-    (directory / f"capture_metrics_{run_id}.json").write_text(
-        json.dumps(metrics), encoding="utf-8"
-    )
+    (directory / f"capture_metrics_{run_id}.json").write_text(json.dumps(metrics), encoding="utf-8")
     (directory / f"manifest_{run_id}.jsonl").write_text(
         json.dumps(
             {
@@ -573,9 +571,7 @@ def test_the_candidate_schema_reaching_the_grid_carries_no_outcome_field() -> No
 
     for candidate in replay.candidates:
         offending = [
-            field
-            for field in candidate.to_dict()
-            if name_tokens(field) & FORBIDDEN_REQUEST_TOKENS
+            field for field in candidate.to_dict() if name_tokens(field) & FORBIDDEN_REQUEST_TOKENS
         ]
         assert offending == []
 
