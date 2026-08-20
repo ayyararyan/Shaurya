@@ -239,6 +239,26 @@ def test_temporal_smoother_requires_two_frames_and_preserves_arbitrage() -> None
     assert not frame.is_stale
 
 
+def test_smoother_uses_decision_clock_when_oldest_quote_timestamp_is_unchanged() -> None:
+    raw = ESSVISurface.fit(_request())
+    smoother = ESSVITemporalSmoother(half_life_seconds=10.0)
+    first = smoother.update(raw, observation_timestamp=VALUATION)
+    second = smoother.update(
+        raw,
+        observation_timestamp=VALUATION + timedelta(seconds=5),
+    )
+    assert not first.is_temporally_smoothed
+    assert second.is_temporally_smoothed
+    diagnostics = _diagnostics(second)["smoothing"]
+    assert diagnostics["component_count"] == 2
+    assert diagnostics["component_surface_timestamps"][0] == (
+        diagnostics["component_surface_timestamps"][1]
+    )
+    assert diagnostics["component_observation_timestamps"][0] != (
+        diagnostics["component_observation_timestamps"][1]
+    )
+
+
 def test_staleness_boundary_is_entirely_caller_supplied() -> None:
     assert staleness_measurement(age_seconds=3.0, threshold_seconds=3.0) is False
     assert staleness_measurement(age_seconds=3.0001, threshold_seconds=3.0) is True

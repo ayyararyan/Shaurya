@@ -91,6 +91,16 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--mispricing-fdr-level", type=float, default=0.01)
     parser.add_argument("--mispricing-confirmation-frames", type=int, default=2)
     parser.add_argument("--mispricing-correction-frames", type=int, default=2)
+    parser.add_argument("--mispricing-reference-half-life-seconds", type=float, default=30.0)
+    parser.add_argument("--mispricing-reference-min-frames", type=int, default=6)
+    parser.add_argument("--mispricing-reference-max-gap-seconds", type=float, default=15.0)
+    parser.add_argument("--mispricing-reference-stability-frames", type=int, default=6)
+    parser.add_argument("--mispricing-reference-max-iv-range-points", type=float, default=0.25)
+    parser.add_argument(
+        "--mispricing-reference-max-raw-smoothed-iv-gap-points",
+        type=float,
+        default=0.50,
+    )
     parser.add_argument("--mispricing-buy-turnover-rate", type=float, default=0.0004504340)
     parser.add_argument("--mispricing-sell-turnover-rate", type=float, default=0.0019204340)
     parser.add_argument("--mispricing-exit-slippage-ticks", type=float, default=1.0)
@@ -174,6 +184,20 @@ def _engine(
             fdr_level=args.mispricing_fdr_level,
             confirmation_frames=args.mispricing_confirmation_frames,
             correction_frames=args.mispricing_correction_frames,
+            reference_smoothing_half_life_seconds=(
+                args.mispricing_reference_half_life_seconds
+            ),
+            reference_smoothing_min_frames=args.mispricing_reference_min_frames,
+            reference_smoothing_max_gap_seconds=(
+                args.mispricing_reference_max_gap_seconds
+            ),
+            reference_stability_frames=args.mispricing_reference_stability_frames,
+            reference_max_iv_range_points=(
+                args.mispricing_reference_max_iv_range_points
+            ),
+            reference_max_raw_smoothed_iv_gap_points=(
+                args.mispricing_reference_max_raw_smoothed_iv_gap_points
+            ),
             default_tick_size=args.default_option_tick_size,
             default_lot_size=args.default_option_lot_size,
             buy_turnover_rate=args.mispricing_buy_turnover_rate,

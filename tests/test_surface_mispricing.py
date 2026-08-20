@@ -92,6 +92,7 @@ def _chain(
     target_prices: tuple[float, float] | None = None,
     target_quantity: int = 150,
     omit_target: bool = False,
+    peer_price_multiplier: float = 1.0,
 ) -> list[TapeRow]:
     rows: list[TapeRow] = []
     sequence = 1
@@ -108,6 +109,9 @@ def _chain(
                 quantity = target_quantity
                 if target_prices is not None:
                     bid, ask = target_prices
+            elif peer_price_multiplier != 1.0:
+                bid = max(0.05, bid * peer_price_multiplier)
+                ask = max(bid, ask * peer_price_multiplier)
             rows.append(
                 _row(
                     instrument_id=instrument_id,
@@ -132,7 +136,14 @@ def _chain(
     return rows
 
 
-def _detector(*, lot_size: int = 75) -> SurfaceMispricingDetector:
+def _detector(
+    *,
+    lot_size: int = 75,
+    stability_max_points: float = 5.0,
+    raw_gap_max_points: float = 5.0,
+    smoothing_min_frames: int = 2,
+    stability_frames: int = 2,
+) -> SurfaceMispricingDetector:
     metadata = {
         _instrument(strike, option_type): InstrumentMetadata(
             tick_size=0.05,
@@ -150,6 +161,10 @@ def _detector(*, lot_size: int = 75) -> SurfaceMispricingDetector:
             fdr_level=1.0,
             confirmation_frames=2,
             correction_frames=2,
+            reference_smoothing_min_frames=smoothing_min_frames,
+            reference_stability_frames=stability_frames,
+            reference_max_iv_range_points=stability_max_points,
+            reference_max_raw_smoothed_iv_gap_points=raw_gap_max_points,
             buy_turnover_rate=0.0,
             sell_turnover_rate=0.0,
             exit_slippage_ticks=0.0,
@@ -250,7 +265,7 @@ def test_cheap_option_confirms_then_traces_target_option_led_correction() -> Non
     assert closed["correction_driver"] == "target_option_led"
     trace = closed["gap_close_trace"]
     assert trace["attribution"] == "target_option_led"
-    assert trace["closure_gate"] == "inside_uncertainty_band"
+    assert trace["closure_gate"] == "frozen_entry_target_reached"
     assert trace["target_option_contribution"] > 0
     assert trace["target_option_share"] > 0.60
     assert trace["gap_closed"] == pytest.approx(
@@ -259,12 +274,13 @@ def test_cheap_option_confirms_then_traces_target_option_led_correction() -> Non
         abs=1e-10,
     )
     assert trace["identity_error"] == pytest.approx(0.0, abs=1e-10)
+    assert trace["target_correction_achieved"] is True
 
 
 def test_gap_trace_separates_reference_market_movement_from_target_movement() -> None:
     detector = _detector()
     _evaluate(detector, VALUATION, _chain(VALUATION))
-    for seconds in (5, 10):
+    for seconds in (5, 10, 15):
         now = VALUATION + timedelta(seconds=seconds)
         _evaluate(detector, now, _chain(now, target_prices=(4.98, 5.00)))
     active = detector._active[TARGET_ID]
@@ -283,6 +299,7 @@ def test_gap_trace_separates_reference_market_movement_from_target_movement() ->
     assert trace.gap_closed == pytest.approx(reference_move)
     assert trace.reference_market_share == pytest.approx(1.0)
     assert trace.identity_error == pytest.approx(0.0, abs=1e-12)
+    assert trace.target_correction_achieved is False
 
     rich_initial = replace(
         initial,
@@ -306,11 +323,98 @@ def test_gap_trace_separates_reference_market_movement_from_target_movement() ->
     assert rich_trace.identity_error == pytest.approx(0.0, abs=1e-12)
 
 
+def test_reference_jump_is_rejected_by_stability_gate() -> None:
+    detector = _detector(stability_max_points=0.25, raw_gap_max_points=0.50)
+    for seconds in (0, 5, 10, 15):
+        now = VALUATION + timedelta(seconds=seconds)
+        _evaluate(detector, now, _chain(now))
+
+    jump_time = VALUATION + timedelta(seconds=20)
+    jumped = _evaluate(
+        detector,
+        jump_time,
+        _chain(
+            jump_time,
+            target_prices=(4.98, 5.00),
+            peer_price_multiplier=1.20,
+        ),
+    )
+    assert jumped["outside_band_count"] == 0
+    assert jumped["reference_unstable_count"] > 0
+    assert jumped["active"] == []
+
+
+def test_default_six_frame_reference_warmup_precedes_any_opportunity() -> None:
+    detector = _detector(smoothing_min_frames=6, stability_frames=6)
+    for seconds in (0, 5, 10, 15, 20, 25):
+        now = VALUATION + timedelta(seconds=seconds)
+        frame = _evaluate(detector, now, _chain(now))
+        assert frame["active"] == []
+
+    first_time = VALUATION + timedelta(seconds=30)
+    first = _evaluate(
+        detector,
+        first_time,
+        _chain(first_time, target_prices=(4.98, 5.00)),
+    )
+    assert first["outside_band_count"] >= 1
+    assert first["pending_count"] >= 1
+    assert first["active"] == []
+
+    confirmed_time = VALUATION + timedelta(seconds=35)
+    confirmed = _evaluate(
+        detector,
+        confirmed_time,
+        _chain(confirmed_time, target_prices=(4.98, 5.00)),
+    )
+    episode = next(
+        item for item in confirmed["active"] if item["instrument_id"] == TARGET_ID
+    )
+    assert episode["reference_stable"] is True
+    assert episode["reference_smoothing_components"] >= 6
+
+
+def test_reference_closed_episode_is_invalidated_not_corrected() -> None:
+    detector = _detector()
+    _evaluate(detector, VALUATION, _chain(VALUATION))
+    for seconds in (5, 10, 15):
+        now = VALUATION + timedelta(seconds=seconds)
+        _evaluate(detector, now, _chain(now, target_prices=(4.98, 5.00)))
+    active = detector._active[TARGET_ID]
+    initial = active.initial
+    reference_closed = replace(
+        initial,
+        direction=None,
+        fair_lower=initial.observed_ask - 0.05,
+        gross_edge=-0.05,
+        gross_edge_ticks=-1.0,
+        net_edge=-0.05,
+        net_edge_ticks=-1.0,
+        fdr_significant=False,
+        exact_leave_strike_confirmed=False,
+    )
+    for seconds in (15, 20):
+        detector._update_episodes(
+            now=VALUATION + timedelta(seconds=seconds),
+            observations={TARGET_ID: reference_closed},
+            qualified={},
+            ineligible={},
+        )
+    closed = detector.latest_frame
+    assert closed is not None
+    episode = detector._recent[0]
+    assert episode.status.value == "invalidated"
+    assert episode.corrected_at is None
+    assert episode.invalidated_at == VALUATION + timedelta(seconds=20)
+    assert episode.gap_close_trace.attribution == "reference_market_led"
+    assert episode.gap_close_trace.target_correction_achieved is False
+
+
 def test_dislocation_below_one_lot_never_becomes_actionable() -> None:
     detector = _detector(lot_size=75)
     _evaluate(detector, VALUATION, _chain(VALUATION))
     frame: dict[str, object] = {}
-    for seconds in (5, 10):
+    for seconds in (5, 10, 15):
         now = VALUATION + timedelta(seconds=seconds)
         frame = _evaluate(
             detector,
@@ -323,12 +427,12 @@ def test_dislocation_below_one_lot_never_becomes_actionable() -> None:
 def test_missing_target_quote_censors_instead_of_calling_it_corrected() -> None:
     detector = _detector()
     _evaluate(detector, VALUATION, _chain(VALUATION))
-    for seconds in (5, 10):
+    for seconds in (5, 10, 15):
         now = VALUATION + timedelta(seconds=seconds)
         _evaluate(detector, now, _chain(now, target_prices=(4.98, 5.00)))
     assert detector.latest_frame is not None and detector.latest_frame.active
 
-    missing_time = VALUATION + timedelta(seconds=15)
+    missing_time = VALUATION + timedelta(seconds=20)
     frame = _evaluate(detector, missing_time, _chain(missing_time, omit_target=True))
     assert not any(item["instrument_id"] == TARGET_ID for item in frame["active"])
     closed = next(item for item in frame["recent"] if item["instrument_id"] == TARGET_ID)

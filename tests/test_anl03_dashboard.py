@@ -325,10 +325,15 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert "READ-ONLY" in html
     assert "SUR-05 ARBITRAGE" in html
     assert "SUR-06 DIAGNOSTICS" in html
-    assert "Surface-relative executable mispricing" in html
+    assert "Stable held-out option dislocations" in html
     assert "mispricingActiveBody" in html
     assert "mispricingRecentBody" in html
     assert "exact confirmed" in html
+    assert "reference warming" in html
+    assert "reference unstable" in html
+    assert "raw-smooth pp" in html
+    assert "6-fit range pp" in html
+    assert "target required t" in html
     assert "entry gap t" in html
     assert "target Δ t" in html
     assert "reference Δ t" in html
@@ -336,7 +341,7 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert "target_option_contribution_ticks" in html
     assert "reference_market_contribution_ticks" in html
     assert "grid-template-columns:1fr; gap:14px" in html
-    assert "min-width:1560px" in html
+    assert "min-width:2200px" in html
 
 
 def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> None:
@@ -350,13 +355,28 @@ def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> N
         "confirmed_surface_relative_executable_mispricing"
     )
     assert monitor["policy"]["order_authority"] == "none_read_only_research_monitor"
-    assert monitor["surface_mode"] == "fresh_raw_strike_cross_fit_research_only"
+    assert monitor["policy"]["reference_smoothing_half_life_seconds"] == 30.0
+    assert monitor["policy"]["reference_smoothing_min_frames"] == 6
+    assert monitor["surface_mode"] == "causal_smoothed_strike_cross_fit_research_only"
     assert "target-option" in monitor["correction_semantics"]
     assert "reference-market" in monitor["correction_semantics"]
     assert isinstance(monitor["active"], list)
     assert isinstance(monitor["recent"], list)
     history = build_history_payload(engine, 0)
     assert history["mispricing"] == monitor
+
+
+def test_engine_smooths_when_source_timestamp_stays_fixed_across_fit_decisions() -> None:
+    engine = _engine()
+    for row in _chain():
+        engine.ingest(row)
+    first = engine.fit(VALUATION)
+    second = engine.fit(VALUATION + timedelta(seconds=5))
+    assert first.frame is not None and second.frame is not None
+    assert first.frame.surface_timestamp == second.frame.surface_timestamp
+    smoothing = second.diagnostics["temporal_smoothing"]
+    assert smoothing["status"] == "smoothed"
+    assert smoothing["is_temporally_smoothed"] is True
 
 
 def test_the_server_serves_state_and_refuses_every_write_method() -> None:

@@ -29,6 +29,7 @@ from shaurya.surfaces.essvi import (
     black76_price,
     implied_volatility,
 )
+from shaurya.surfaces.state import ESSVITemporalSmoother
 
 SECONDS_PER_YEAR = 365.25 * 24.0 * 60.0 * 60.0
 FEE_SCHEDULE_VERSION = "india-index-options-2026-08-13"
@@ -42,6 +43,7 @@ class MispricingDirection(StrEnum):
 class EpisodeStatus(StrEnum):
     ACTIVE = "active"
     CORRECTED = "corrected"
+    INVALIDATED = "invalidated"
     CENSORED = "censored"
 
 
@@ -80,6 +82,13 @@ class MispricingPolicy:
     fdr_level: float = 0.01
     confirmation_frames: int = 2
     correction_frames: int = 2
+    reference_smoothing_half_life_seconds: float = 30.0
+    reference_smoothing_max_history: int = 12
+    reference_smoothing_min_frames: int = 6
+    reference_smoothing_max_gap_seconds: float = 15.0
+    reference_stability_frames: int = 6
+    reference_max_iv_range_points: float = 0.25
+    reference_max_raw_smoothed_iv_gap_points: float = 0.50
     default_tick_size: float = 0.05
     default_lot_size: int | None = None
     buy_turnover_rate: float = 0.0004504340
@@ -103,6 +112,21 @@ class MispricingPolicy:
             raise ValueError("fdr_level must lie in (0, 1]")
         if self.confirmation_frames < 1 or self.correction_frames < 1:
             raise ValueError("episode frame counts must be positive")
+        if self.reference_smoothing_half_life_seconds <= 0:
+            raise ValueError("reference smoothing half-life must be positive")
+        if self.reference_smoothing_max_history < 2:
+            raise ValueError("reference smoothing history must retain at least two fits")
+        if not 2 <= self.reference_smoothing_min_frames <= self.reference_smoothing_max_history:
+            raise ValueError("reference smoothing minimum must fit inside retained history")
+        if self.reference_smoothing_max_gap_seconds <= 0:
+            raise ValueError("reference smoothing maximum gap must be positive")
+        if self.reference_stability_frames < 2:
+            raise ValueError("reference stability requires at least two frames")
+        if min(
+            self.reference_max_iv_range_points,
+            self.reference_max_raw_smoothed_iv_gap_points,
+        ) <= 0:
+            raise ValueError("reference IV stability limits must be positive")
         if self.default_tick_size <= 0:
             raise ValueError("default_tick_size must be positive")
         if self.default_lot_size is not None and self.default_lot_size <= 0:
@@ -126,6 +150,20 @@ class MispricingPolicy:
             "fdr_level": self.fdr_level,
             "confirmation_frames": self.confirmation_frames,
             "correction_frames": self.correction_frames,
+            "reference_smoothing_method": "causal_time_decayed_essvi_parameters",
+            "reference_smoothing_half_life_seconds": (
+                self.reference_smoothing_half_life_seconds
+            ),
+            "reference_smoothing_max_history": self.reference_smoothing_max_history,
+            "reference_smoothing_min_frames": self.reference_smoothing_min_frames,
+            "reference_smoothing_max_gap_seconds": (
+                self.reference_smoothing_max_gap_seconds
+            ),
+            "reference_stability_frames": self.reference_stability_frames,
+            "reference_max_iv_range_points": self.reference_max_iv_range_points,
+            "reference_max_raw_smoothed_iv_gap_points": (
+                self.reference_max_raw_smoothed_iv_gap_points
+            ),
             "default_tick_size": self.default_tick_size,
             "default_lot_size": self.default_lot_size,
             "fee_schedule_version": FEE_SCHEDULE_VERSION,
@@ -181,6 +219,14 @@ class MispricingObservation:
     forward: float
     forward_method: str
     fair_iv: float
+    raw_fair_iv: float
+    raw_smoothed_iv_gap_points: float
+    exact_fair_iv: float | None
+    exact_smoothed_iv_gap_points: float | None
+    reference_smoothing_components: int
+    reference_iv_range_points: float | None
+    reference_stable: bool
+    reference_stability_reason: str | None
     fair_price: float
     fair_lower: float
     fair_upper: float
@@ -230,6 +276,16 @@ class _ActiveEpisode:
     peak_gross_edge: float
     peak_net_edge: float
     correction_count: int = 0
+    target_correction_count: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class _SmoothedReference:
+    raw_surface: ESSVISurface
+    surface: ESSVISurface
+    bands: dict[date, _ForwardBand]
+    component_count: int
+    status: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -258,6 +314,9 @@ class GapCloseTrace:
     reference_market_contribution_ticks: float
     target_option_share: float | None
     reference_market_share: float | None
+    target_correction_required: float
+    target_correction_required_ticks: float
+    target_correction_achieved: bool
     attribution: str
     closure_gate: str | None
     identity_error: float
@@ -282,6 +341,7 @@ class MispricingEpisode:
     confirmed_at: datetime
     last_observed_at: datetime
     corrected_at: datetime | None
+    invalidated_at: datetime | None
     duration_seconds: float
     peak_gross_edge: float
     peak_net_edge: float
@@ -304,6 +364,9 @@ class MispricingEpisode:
             "confirmed_at": self.confirmed_at.isoformat(),
             "last_observed_at": self.last_observed_at.isoformat(),
             "corrected_at": self.corrected_at.isoformat() if self.corrected_at else None,
+            "invalidated_at": (
+                self.invalidated_at.isoformat() if self.invalidated_at else None
+            ),
             "duration_seconds": self.duration_seconds,
             "peak_gross_edge": self.peak_gross_edge,
             "peak_net_edge": self.peak_net_edge,
@@ -325,6 +388,8 @@ class MispricingFrame:
     outside_band_count: int
     fdr_significant_count: int
     exact_confirmed_count: int
+    reference_warming_count: int
+    reference_unstable_count: int
     pending_count: int
     active: tuple[MispricingEpisode, ...]
     recent: tuple[MispricingEpisode, ...]
@@ -343,14 +408,17 @@ class MispricingFrame:
             "outside_band_count": self.outside_band_count,
             "fdr_significant_count": self.fdr_significant_count,
             "exact_confirmed_count": self.exact_confirmed_count,
+            "reference_warming_count": self.reference_warming_count,
+            "reference_unstable_count": self.reference_unstable_count,
             "pending_count": self.pending_count,
             "active": [episode.to_dict() for episode in self.active],
             "recent": [episode.to_dict() for episode in self.recent],
             "cross_fit_successful_folds": self.cross_fit_successful_folds,
             "cross_fit_failed_folds": self.cross_fit_failed_folds,
-            "surface_mode": "fresh_raw_strike_cross_fit_research_only",
+            "surface_mode": "causal_smoothed_strike_cross_fit_research_only",
             "correction_semantics": (
-                "two consecutive valid frames with non-positive after-cost edge; "
+                "target correction requires the executable quote to close the frozen entry "
+                "after-cost gap; reference-closed residuals are invalidated; "
                 "stale/disappeared/unsupported observations are censored, not corrected; "
                 "target-option and held-out reference-market movements are signed separately"
             ),
@@ -491,6 +559,15 @@ class SurfaceMispricingDetector:
     )
     _last_forward: dict[date, tuple[datetime, float]] = field(
         default_factory=dict, init=False, repr=False
+    )
+    _fold_smoothers: dict[int, ESSVITemporalSmoother] = field(
+        default_factory=dict, init=False, repr=False
+    )
+    _fold_last_update: dict[int, datetime] = field(
+        default_factory=dict, init=False, repr=False
+    )
+    _reference_iv_history: dict[str, deque[float]] = field(
+        default_factory=lambda: defaultdict(deque), init=False, repr=False
     )
     _pending: dict[str, _PendingEpisode] = field(default_factory=dict, init=False, repr=False)
     _active: dict[str, _ActiveEpisode] = field(default_factory=dict, init=False, repr=False)
@@ -634,6 +711,89 @@ class SurfaceMispricingDetector:
         except (SurfaceCalibrationError, ValueError):
             return None
 
+    def _smooth_reference(
+        self,
+        *,
+        fold: int,
+        raw_surface: ESSVISurface,
+        bands: dict[date, _ForwardBand],
+        now: datetime,
+    ) -> _SmoothedReference:
+        smoother = self._fold_smoothers.get(fold)
+        if smoother is None:
+            smoother = ESSVITemporalSmoother(
+                half_life_seconds=self.policy.reference_smoothing_half_life_seconds,
+                max_history=self.policy.reference_smoothing_max_history,
+            )
+            self._fold_smoothers[fold] = smoother
+        previous = self._fold_last_update.get(fold)
+        reset_reason: str | None = None
+        if previous is not None and (
+            now - previous
+        ).total_seconds() > self.policy.reference_smoothing_max_gap_seconds:
+            smoother.reset()
+            reset_reason = "fit_gap_exceeded"
+        try:
+            surface = smoother.update(raw_surface, observation_timestamp=now)
+        except (SurfaceCalibrationError, ValueError) as error:
+            smoother.reset()
+            surface = smoother.update(raw_surface, observation_timestamp=now)
+            reset_reason = f"smoother_reset:{error}"
+        self._fold_last_update[fold] = now
+        smoothing = surface._fit_metrics.get("smoothing", {})
+        component_count = (
+            int(smoothing.get("component_count", 1))
+            if isinstance(smoothing, dict)
+            else 1
+        )
+        status = (
+            "smoothed"
+            if surface.is_temporally_smoothed
+            else reset_reason or "smoothing_warmup"
+        )
+        return _SmoothedReference(
+            raw_surface=raw_surface,
+            surface=surface,
+            bands=bands,
+            component_count=component_count,
+            status=status,
+        )
+
+    def _with_reference_stability(
+        self, observation: MispricingObservation
+    ) -> MispricingObservation:
+        history = self._reference_iv_history[observation.instrument_id]
+        history.append(observation.fair_iv)
+        while len(history) > self.policy.reference_stability_frames:
+            history.popleft()
+        iv_range_points = (
+            (max(history) - min(history)) * 100.0 if len(history) >= 2 else None
+        )
+        reason: str | None = None
+        if (
+            observation.reference_smoothing_components
+            < self.policy.reference_smoothing_min_frames
+        ):
+            reason = "reference_smoothing_warmup"
+        elif len(history) < self.policy.reference_stability_frames:
+            reason = "reference_iv_history_warmup"
+        elif (
+            iv_range_points is None
+            or iv_range_points > self.policy.reference_max_iv_range_points
+        ):
+            reason = "reference_smoothed_iv_range_exceeded"
+        elif (
+            observation.raw_smoothed_iv_gap_points
+            > self.policy.reference_max_raw_smoothed_iv_gap_points
+        ):
+            reason = "reference_raw_smoothed_iv_gap_exceeded"
+        return replace(
+            observation,
+            reference_iv_range_points=iv_range_points,
+            reference_stable=reason is None,
+            reference_stability_reason=reason,
+        )
+
     def _history_bucket(
         self, *, expiry: date, log_moneyness: float, bid: float, ask: float
     ) -> str:
@@ -697,6 +857,8 @@ class SurfaceMispricingDetector:
         row: TapeRow,
         key: _OptionKey,
         surface: ESSVISurface,
+        raw_surface: ESSVISurface | None = None,
+        reference_smoothing_components: int = 1,
         forward_band: _ForwardBand,
         now: datetime,
         risk_free_rate: float,
@@ -723,6 +885,17 @@ class SurfaceMispricingDetector:
         fair_iv = evaluation.implied_volatility
         if fair_iv is None:
             return None, "cross_fit_fair_iv_missing"
+        raw_fair_iv = fair_iv
+        if raw_surface is not None:
+            raw_evaluation = raw_surface.evaluate(
+                log_moneyness=log_moneyness, maturity_years=fitted_maturity
+            )
+            if (
+                raw_evaluation.status is EvaluationStatus.DATA_INSUFFICIENT
+                or raw_evaluation.implied_volatility is None
+            ):
+                return None, "raw_cross_fit_fair_iv_missing"
+            raw_fair_iv = raw_evaluation.implied_volatility
         fair_price = black76_price(
             forward=forward_band.centre,
             strike=key.strike,
@@ -836,6 +1009,14 @@ class SurfaceMispricingDetector:
                 forward=forward_band.centre,
                 forward_method=forward_band.method,
                 fair_iv=fair_iv,
+                raw_fair_iv=raw_fair_iv,
+                raw_smoothed_iv_gap_points=abs(raw_fair_iv - fair_iv) * 100.0,
+                exact_fair_iv=None,
+                exact_smoothed_iv_gap_points=None,
+                reference_smoothing_components=reference_smoothing_components,
+                reference_iv_range_points=None,
+                reference_stable=False,
+                reference_stability_reason="reference_stability_not_evaluated",
                 fair_price=fair_price,
                 fair_lower=fair_lower,
                 fair_upper=fair_upper,
@@ -872,8 +1053,10 @@ class SurfaceMispricingDetector:
         trace = self._gap_close_trace(
             active,
             closure_gate=(
-                self._closure_gate(active)
+                "frozen_entry_target_reached"
                 if status is EpisodeStatus.CORRECTED
+                else self._closure_gate(active)
+                if status is EpisodeStatus.INVALIDATED
                 else None
             ),
         )
@@ -889,6 +1072,7 @@ class SurfaceMispricingDetector:
             confirmed_at=active.confirmed_at,
             last_observed_at=now,
             corrected_at=now if status is EpisodeStatus.CORRECTED else None,
+            invalidated_at=now if status is EpisodeStatus.INVALIDATED else None,
             duration_seconds=max(0.0, (now - active.first_seen_at).total_seconds()),
             peak_gross_edge=active.peak_gross_edge,
             peak_net_edge=active.peak_net_edge,
@@ -903,6 +1087,8 @@ class SurfaceMispricingDetector:
     @staticmethod
     def _closure_gate(active: _ActiveEpisode) -> str:
         latest = active.latest
+        if not latest.reference_stable:
+            return latest.reference_stability_reason or "reference_unstable"
         if latest.direction is None:
             return "inside_uncertainty_band"
         if latest.direction is not active.direction:
@@ -955,6 +1141,10 @@ class SurfaceMispricingDetector:
         else:
             attribution = "mixed"
         tick_size = initial.tick_size
+        target_correction_required = max(0.0, initial.net_edge)
+        target_correction_achieved = (
+            target + 1e-12 >= target_correction_required
+        )
         return GapCloseTrace(
             entry_executable_price=entry_executable,
             close_executable_price=close_executable,
@@ -972,6 +1162,9 @@ class SurfaceMispricingDetector:
             reference_market_contribution_ticks=reference / tick_size,
             target_option_share=target_share,
             reference_market_share=reference_share,
+            target_correction_required=target_correction_required,
+            target_correction_required_ticks=target_correction_required / tick_size,
+            target_correction_achieved=target_correction_achieved,
             attribution=attribution,
             closure_gate=closure_gate,
             identity_error=gap_closed - target - reference,
@@ -1002,6 +1195,17 @@ class SurfaceMispricingDetector:
             active.latest = current
             active.peak_gross_edge = max(active.peak_gross_edge, current.gross_edge)
             active.peak_net_edge = max(active.peak_net_edge, current.net_edge)
+            trace = self._gap_close_trace(active, closure_gate=None)
+            if trace.target_correction_achieved:
+                active.target_correction_count += 1
+            else:
+                active.target_correction_count = 0
+            if active.target_correction_count >= self.policy.correction_frames:
+                self._recent.appendleft(
+                    self._episode(active, now=now, status=EpisodeStatus.CORRECTED)
+                )
+                del self._active[instrument_id]
+                continue
             if qualifying is not None and qualifying.direction is active.direction:
                 active.correction_count = 0
                 continue
@@ -1010,7 +1214,7 @@ class SurfaceMispricingDetector:
                 closed = self._episode(
                     active,
                     now=now,
-                    status=EpisodeStatus.CORRECTED,
+                    status=EpisodeStatus.INVALIDATED,
                 )
                 self._recent.appendleft(closed)
                 del self._active[instrument_id]
@@ -1061,6 +1265,8 @@ class SurfaceMispricingDetector:
         outside_count: int,
         fdr_count: int,
         exact_count: int,
+        reference_warming_count: int,
+        reference_unstable_count: int,
         successful_folds: int,
         failed_folds: int,
     ) -> MispricingFrame:
@@ -1081,6 +1287,8 @@ class SurfaceMispricingDetector:
             outside_band_count=outside_count,
             fdr_significant_count=fdr_count,
             exact_confirmed_count=exact_count,
+            reference_warming_count=reference_warming_count,
+            reference_unstable_count=reference_unstable_count,
             pending_count=len(self._pending),
             active=active,
             recent=tuple(self._recent),
@@ -1114,6 +1322,8 @@ class SurfaceMispricingDetector:
             outside_count=0,
             fdr_count=0,
             exact_count=0,
+            reference_warming_count=0,
+            reference_unstable_count=0,
             successful_folds=0,
             failed_folds=self.policy.cross_fit_folds,
         )
@@ -1153,7 +1363,7 @@ class SurfaceMispricingDetector:
             for index, strike in enumerate(sorted(set(strikes)))
         }
 
-        references: dict[int, tuple[ESSVISurface, dict[date, _ForwardBand]]] = {}
+        references: dict[int, _SmoothedReference] = {}
         failed_folds = 0
         for fold in range(self.policy.cross_fit_folds):
             training = tuple(
@@ -1171,7 +1381,13 @@ class SurfaceMispricingDetector:
             if fitted is None:
                 failed_folds += 1
             else:
-                references[fold] = fitted
+                raw_surface, bands = fitted
+                references[fold] = self._smooth_reference(
+                    fold=fold,
+                    raw_surface=raw_surface,
+                    bands=bands,
+                    now=now,
+                )
 
         ineligible_by_contract: dict[str, str] = {}
         observations: dict[str, MispricingObservation] = {}
@@ -1189,8 +1405,7 @@ class SurfaceMispricingDetector:
                 ineligible_by_contract[row.instrument_id] = reason
                 counter[reason] += 1
                 continue
-            surface, bands = reference
-            forward_band = bands.get(key.expiry)
+            forward_band = reference.bands.get(key.expiry)
             if forward_band is None:
                 reason = "cross_fit_forward_unavailable"
                 ineligible_by_contract[row.instrument_id] = reason
@@ -1199,7 +1414,9 @@ class SurfaceMispricingDetector:
             observation, observation_reason = self._observation(
                 row=row,
                 key=key,
-                surface=surface,
+                surface=reference.surface,
+                raw_surface=reference.raw_surface,
+                reference_smoothing_components=reference.component_count,
                 forward_band=forward_band,
                 now=now,
                 risk_free_rate=risk_free_rate,
@@ -1211,8 +1428,15 @@ class SurfaceMispricingDetector:
                 # Warm-up still needs causal residuals.  Re-evaluate with a temporary zero
                 # history floor by pricing directly, then append below where possible.
                 continue
+            observation = self._with_reference_stability(observation)
             observations[row.instrument_id] = observation
-            if observation.empirical_p_value is not None:
+            if not observation.reference_stable:
+                stability_reason = (
+                    observation.reference_stability_reason or "reference_unstable"
+                )
+                counter[stability_reason] += 1
+                ineligible_by_contract[row.instrument_id] = stability_reason
+            elif observation.empirical_p_value is not None:
                 preliminary[row.instrument_id] = observation
 
         # Warm-up residuals are generated from the same held-out fits without using the target.
@@ -1226,8 +1450,8 @@ class SurfaceMispricingDetector:
             reference = references.get(fold_by_pair[key.strike_pair])
             if reference is None:
                 continue
-            surface, bands = reference
-            band = bands.get(key.expiry)
+            surface = reference.surface
+            band = reference.bands.get(key.expiry)
             if band is None or row.best_bid is None or row.best_ask is None:
                 continue
             maturity = (_expiry_timestamp(key.expiry) - now).total_seconds() / SECONDS_PER_YEAR
@@ -1287,7 +1511,8 @@ class SurfaceMispricingDetector:
             tuple[date, float], tuple[ESSVISurface, dict[date, _ForwardBand]] | None
         ] = {}
         for instrument_id in significant_ids:
-            item = outside[instrument_id]
+            item = replace(outside[instrument_id], fdr_significant=True)
+            observations[instrument_id] = item
             row = row_by_id[instrument_id]
             key = _option_key(instrument_id)
             assert key is not None
@@ -1304,11 +1529,11 @@ class SurfaceMispricingDetector:
                     now=now,
                     risk_free_rate=risk_free_rate,
                 )
-            reference = exact_cache[key.strike_pair]
-            if reference is None:
+            exact_reference = exact_cache[key.strike_pair]
+            if exact_reference is None:
                 counter["exact_leave_strike_fit_failed"] += 1
                 continue
-            surface, bands = reference
+            surface, bands = exact_reference
             band = bands.get(key.expiry)
             if band is None:
                 counter["exact_leave_strike_forward_unavailable"] += 1
@@ -1326,12 +1551,18 @@ class SurfaceMispricingDetector:
                     (confirmation_reason or "exact_observation_failed").split(":", 1)[0]
                 ] += 1
                 continue
+            exact_gap_points = abs(confirmed.fair_iv - item.fair_iv) * 100.0
             confirmed = replace(
-                confirmed,
+                item,
                 fdr_significant=True,
                 exact_leave_strike_confirmed=(
-                    confirmed.direction is item.direction and confirmed.net_edge > 0
+                    confirmed.direction is item.direction
+                    and confirmed.net_edge > 0
+                    and exact_gap_points
+                    <= self.policy.reference_max_raw_smoothed_iv_gap_points
                 ),
+                exact_fair_iv=confirmed.fair_iv,
+                exact_smoothed_iv_gap_points=exact_gap_points,
             )
             observations[instrument_id] = confirmed
             if confirmed.exact_leave_strike_confirmed:
@@ -1356,8 +1587,8 @@ class SurfaceMispricingDetector:
                 history.popleft()
 
         central_forwards: dict[date, float] = {}
-        for _, bands in references.values():
-            for expiry, band in bands.items():
+        for reference in references.values():
+            for expiry, band in reference.bands.items():
                 central_forwards.setdefault(expiry, band.centre)
         for expiry, value in central_forwards.items():
             previous = self._last_forward.get(expiry)
@@ -1379,11 +1610,39 @@ class SurfaceMispricingDetector:
         warmup = sum(
             count for reason, count in counter.items() if reason == "residual_history_warmup"
         )
+        reference_warming = sum(
+            counter.get(reason, 0)
+            for reason in (
+                "reference_smoothing_warmup",
+                "reference_iv_history_warmup",
+            )
+        )
+        reference_unstable = sum(
+            counter.get(reason, 0)
+            for reason in (
+                "reference_smoothed_iv_range_exceeded",
+                "reference_raw_smoothed_iv_gap_exceeded",
+            )
+        )
         if warmup:
             reasons.append(f"{warmup} contracts still warming empirical residual history")
+        if reference_warming:
+            reasons.append(
+                f"{reference_warming} contracts still warming stable reference history"
+            )
+        if reference_unstable:
+            reasons.append(
+                f"{reference_unstable} contracts rejected for reference instability"
+            )
         if not exact and not self._active:
             reasons.append("no confirmed after-cost surface-relative mispricing")
-        status = "active" if self._active else "warming" if warmup else "clear"
+        status = (
+            "active"
+            if self._active
+            else "warming"
+            if warmup or reference_warming
+            else "clear"
+        )
         return self._frame(
             now=now,
             status=status,
@@ -1394,6 +1653,8 @@ class SurfaceMispricingDetector:
             outside_count=len(outside),
             fdr_count=len(significant_ids),
             exact_count=len(exact),
+            reference_warming_count=reference_warming,
+            reference_unstable_count=reference_unstable,
             successful_folds=len(references),
             failed_folds=failed_folds,
         )

@@ -21,9 +21,21 @@ to strategies that pin the package.
   target-option/reference-market endpoint accounting: entry gap, both contributions, net gap
   closed, exact identity residual, closing gate, and target-option-led/reference-market-led/mixed
   attribution are carried in every episode and rendered in both tables.
+- Owner amendment 2 removes raw five-second fits from opportunity identification. Every held-out
+  fold now uses a causal 30-second-half-life eSSVI parameter smoother keyed to the fit decision
+  clock, requires six consecutive smoothed frames, rejects a six-frame fair-IV range above 0.25
+  volatility points or a raw-versus-smoothed distance above 0.50 points, and keeps the exact raw
+  leave-strike fit as a direction/agreement check rather than letting it replace the stable
+  benchmark. The displayed ANL-03 smoother now also uses decision time, fixing its live
+  `raw_unsmoothed` fallback when the oldest contributing quote timestamp did not advance.
+- Episode interpretation is now fixed-entry and target-specific: the entry after-cost gap is
+  frozen, only two frames in which the target executable quote closes that gap are `corrected`,
+  and reference-led, mixed, or stability-lost disappearances are `invalidated`. Dashboard/API
+  expose raw/smoothed IV, their distance, six-frame range, smoothing count/stability, the frozen
+  target requirement, and corrected/invalidated/censored outcomes.
 - Added full policy and lifecycle state to every surface snapshot, `/api/state`, and
   `/api/history`; the ANL-05 screen now has full-width Active confirmed and Recently
-  corrected/censored tables below the surface. The monitor is explicitly surface-relative,
+  corrected/invalidated/censored tables below the surface. The monitor is explicitly surface-relative,
   estimated and research-only, with no signal, fill, arbitrage, latent-value or order claim.
 - Frozen specification: `docs/SURFACE-MISPRICING-SPEC-2026-08-20.md`. Synthetic acceptance
   covers IV inversion, warm-up, exact cheap confirmation, two-frame activation/correction,
@@ -34,6 +46,11 @@ to strategies that pin the package.
 - Owner-amendment validation: 35 focused dashboard/detector tests and 549 full-suite tests pass;
   Ruff, strict mypy (59 source files), and compileall are clean. The live restart and rendered
   signed traces are a separate deployment check, not a profitability or fill claim.
+- Owner-amendment-2 validation: 47 focused surface/smoother/detector/dashboard tests and 554
+  full-suite tests pass; whole-repository Ruff, strict mypy on 59 source files, compileall, and
+  diff checks are clean. Regression coverage includes fixed source timestamps with advancing fit
+  decisions, six-frame warm-up, abrupt reference rejection, frozen target correction, and
+  reference-only invalidation. Live restart and fresh market outcomes remain a separate gate.
 
 ### `X-OFI-DASHBOARD-2026-08-20` — dynamic read-only OFI horse-race dashboard (`ANL-06`)
 

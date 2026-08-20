@@ -556,7 +556,7 @@ class SurfaceEngine:
             del self._history[0 : len(self._history) - self.history_limit]
         return snapshot
 
-    def _smooth(self, raw: ESSVISurface) -> tuple[ESSVISurface, str]:
+    def _smooth(self, raw: ESSVISurface, now: datetime) -> tuple[ESSVISurface, str]:
         """Apply SUR-07 smoothing, and report rather than hide when it cannot apply.
 
         The smoother's contract is strict on purpose: it refuses a non-increasing surface
@@ -569,13 +569,16 @@ class SurfaceEngine:
         """
 
         try:
-            return self.smoother.update(raw), "smoothed"
+            return self.smoother.update(raw, observation_timestamp=now), "smoothed"
         except ValueError as error:
             reason = str(error)
             if "scope" in reason or "expiry set" in reason:
                 self.smoother.reset()
                 try:
-                    return self.smoother.update(raw), f"reset_then_smoothed: {reason}"
+                    return (
+                        self.smoother.update(raw, observation_timestamp=now),
+                        f"reset_then_smoothed: {reason}",
+                    )
                 except ValueError as retry_error:  # pragma: no cover - defensive
                     return raw, f"raw_after_reset_failure: {retry_error}"
             return raw, f"raw_unsmoothed: {reason}"
@@ -649,7 +652,7 @@ class SurfaceEngine:
         except (SurfaceCalibrationError, ValueError) as error:
             return failure(f"{type(error).__name__}: {error}")
         self._previous_surface = raw
-        smoothed, smoothing_status = self._smooth(raw)
+        smoothed, smoothing_status = self._smooth(raw, now)
         smoothed.assert_ready_for(SurfaceUse.RESEARCH)
         frame = smoothed.to_frame(
             run_id=self.run_id,

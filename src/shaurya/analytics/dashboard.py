@@ -613,8 +613,11 @@ function renderMispricing(payload) {
     ['outside band', monitor.outside_band_count ?? 0],
     ['FDR 1%', monitor.fdr_significant_count ?? 0],
     ['exact confirmed', monitor.exact_confirmed_count ?? 0],
+    ['reference warming', monitor.reference_warming_count ?? 0],
+    ['reference unstable', monitor.reference_unstable_count ?? 0],
     ['pending', monitor.pending_count ?? 0],
     ['active', (monitor.active || []).length],
+    ['invalidated', (monitor.recent || []).filter((item) => item.status === 'invalidated').length],
   ];
   summary.innerHTML = bits.map(([label, value]) => (
     '<span><i>' + label + '</i> ' + escapeHtml(value) + '</span>')).join('');
@@ -635,8 +638,12 @@ function renderMispricing(payload) {
       ? (episode.status === 'corrected'
         ? (words(trace.attribution || episode.correction_driver || 'corrected') +
           (trace.closure_gate ? ' \u00B7 ' + words(trace.closure_gate) : ''))
+        : episode.status === 'invalidated'
+        ? ('invalidated \u00B7 ' + words(trace.attribution || 'reference changed') +
+          (trace.closure_gate ? ' \u00B7 ' + words(trace.closure_gate) : ''))
         : 'censored: ' + (episode.censor_reason || 'unavailable'))
-      : ('live \u00B7 ' + words(trace.attribution || 'trace warming'));
+      : ('live \u00B7 ' + (episode.reference_stable ? 'stable reference' :
+          words(episode.reference_stability_reason || 'reference warming')));
     return '<tr>' +
       '<td title="' + escapeHtml(episode.instrument_id) + '">' +
         escapeHtml(episode.expiry + ' ' + episode.strike + ' ' + episode.option_type) + '</td>' +
@@ -646,6 +653,14 @@ function renderMispricing(payload) {
       '<td class="num">' + fmt(episode.fair_price, 2) + '</td>' +
       '<td class="num">[' + fmt(episode.fair_lower, 2) + ', ' +
         fmt(episode.fair_upper, 2) + ']</td>' +
+      '<td class="num">' + fmt(Number(episode.fair_iv) * 100, 3) + '</td>' +
+      '<td class="num">' + fmt(Number(episode.raw_fair_iv) * 100, 3) + '</td>' +
+      '<td class="num">' + fmt(episode.raw_smoothed_iv_gap_points, 3) + '</td>' +
+      '<td class="num">' + fmt(episode.reference_iv_range_points, 3) + '</td>' +
+      '<td class="num">' +
+        escapeHtml(episode.reference_smoothing_components ?? '\u2014') + '</td>' +
+      '<td>' + escapeHtml(episode.reference_stable ? 'yes' :
+        words(episode.reference_stability_reason || 'no')) + '</td>' +
       '<td class="num">' + fmt(episode.gross_edge_ticks, 2) + '</td>' +
       '<td class="num">' + fmt(episode.net_edge_ticks, 2) + '</td>' +
       '<td class="num">' + fmt(episode.net_edge_per_lot, 2) + '</td>' +
@@ -654,6 +669,7 @@ function renderMispricing(payload) {
       '<td class="num">' + escapeHtml(clock) + '</td>' +
       '<td class="num">' + fmt(episode.duration_seconds, 1) + ' s</td>' +
       '<td class="num">' + fmt(trace.entry_gap_ticks, 2) + '</td>' +
+      '<td class="num">' + fmt(trace.target_correction_required_ticks, 2) + '</td>' +
       '<td class="num">' + signed(trace.target_option_contribution_ticks) + '</td>' +
       '<td class="num">' + signed(trace.reference_market_contribution_ticks) + '</td>' +
       '<td class="num">' + signed(trace.gap_closed_ticks) + '</td>' +
@@ -661,10 +677,11 @@ function renderMispricing(payload) {
   };
   document.getElementById('mispricingActiveBody').innerHTML =
     (monitor.active || []).map((episode) => row(episode, false)).join('') ||
-    '<tr><td colspan="17" class="muted">no confirmed active mispricing</td></tr>';
+    '<tr><td colspan="24" class="muted">no confirmed active stable dislocation</td></tr>';
   document.getElementById('mispricingRecentBody').innerHTML =
     (monitor.recent || []).map((episode) => row(episode, true)).join('') ||
-    '<tr><td colspan="17" class="muted">no corrected or censored episodes yet</td></tr>';
+    '<tr><td colspan="24" class="muted">' +
+      'no corrected, invalidated, or censored episodes yet</td></tr>';
 }
 
 function render(payload) {
@@ -904,7 +921,7 @@ tr:last-child td { border-bottom:none; }
   margin:0 0 5px; color:var(--ink-3); font-size:9px; font-weight:600;
   letter-spacing:.14em; text-transform:uppercase;
 }
-.mispricing-table table { min-width:1560px; }
+.mispricing-table table { min-width:2200px; }
 .mispricing-table th, .mispricing-table td { white-space:nowrap; }
 
 @media (max-width:1080px) {
@@ -983,9 +1000,10 @@ _BODY = """<!doctype html>
 </main>
 <section class="mispricing-panel" id="mispricingPanel">
   <div class="mispricing-head">
-    <h2>Surface-relative executable mispricing</h2>
-    <p>read-only research monitor &middot; held-out strike &middot; empirical fair band &middot;
-      after costs &middot; BH-FDR &middot; two-frame persistence</p>
+    <h2>Stable held-out option dislocations</h2>
+    <p>read-only research monitor &middot; 30 s causal surface smoothing &middot;
+      six-frame stability
+      &middot; exact held-out check &middot; frozen-entry target correction</p>
   </div>
   <div class="kv" id="mispricingSummary"></div>
   <p class="mispricing-notes" id="mispricingNotes"></p>
@@ -994,10 +1012,15 @@ _BODY = """<!doctype html>
       <h3>Active confirmed</h3>
       <table><thead><tr><th>contract</th><th>side</th><th class="num">market</th>
         <th class="num">fair</th><th class="num">fair band</th>
+        <th class="num">smooth IV %</th><th class="num">raw IV %</th>
+        <th class="num">raw-smooth pp</th><th class="num">6-fit range pp</th>
+        <th class="num">smooth n</th><th>reference stable</th>
         <th class="num">gross ticks</th><th class="num">net ticks</th>
         <th class="num">net / lot</th><th class="num">IV resid pp</th>
         <th class="num">quote age</th><th class="num">first seen</th>
         <th class="num">duration</th><th class="num" title="gap at confirmation">entry gap t</th>
+        <th class="num" title="target quote movement required against the frozen entry benchmark"
+          >target required t</th>
         <th class="num" title="positive means the target option quote closed the gap"
           >target \u0394 t</th>
         <th class="num" title="positive means the held-out reference market closed the gap"
@@ -1007,13 +1030,18 @@ _BODY = """<!doctype html>
         <tbody id="mispricingActiveBody"></tbody></table>
     </div>
     <div class="mispricing-table">
-      <h3>Recently corrected / censored</h3>
+      <h3>Recently corrected / invalidated / censored</h3>
       <table><thead><tr><th>contract</th><th>side</th><th class="num">market</th>
         <th class="num">fair</th><th class="num">fair band</th>
+        <th class="num">smooth IV %</th><th class="num">raw IV %</th>
+        <th class="num">raw-smooth pp</th><th class="num">6-fit range pp</th>
+        <th class="num">smooth n</th><th>reference stable</th>
         <th class="num">gross ticks</th><th class="num">net ticks</th>
         <th class="num">net / lot</th><th class="num">IV resid pp</th>
         <th class="num">quote age</th><th class="num">closed</th>
         <th class="num">duration</th><th class="num" title="gap at confirmation">entry gap t</th>
+        <th class="num" title="target quote movement required against the frozen entry benchmark"
+          >target required t</th>
         <th class="num" title="positive means the target option quote closed the gap"
           >target \u0394 t</th>
         <th class="num" title="positive means the held-out reference market closed the gap"

@@ -10,6 +10,14 @@ misleading because the held-out surface is itself built from market prices. Attr
 named `target-option-led` / `reference-market-led` / `mixed`, and every row must expose the signed
 endpoint accounting rather than only a categorical label.
 
+**Owner amendment 2, 2026-08-20:** a raw five-second refit is not a sufficiently stable reference
+for identifying a target-option opportunity. Every strike-held-out fold must therefore pass the
+causal temporal-smoothing and benchmark-stability gates in `MIS-EST-06`--`MIS-EST-09`. The entry
+reference is frozen when an episode activates. A disappearing live residual is `CORRECTED` only
+when the target executable quote itself closes the frozen entry after-cost gap; a residual closed
+by reference movement, mixed movement that misses that target, or benchmark instability is
+`INVALIDATED`, not a corrected opportunity.
+
 ## 1. Objective and exact object
 
 The monitor identifies and times **confirmed surface-relative executable mispricing** in the
@@ -39,6 +47,8 @@ after the cost, multiplicity, displayed-quantity, exact-refit, and persistence g
 |---|---|---|
 | Contract BBO, displayed quantity, receive timestamp | Observed | Latest causal CON-01 row at or before `t`; never forward-filled past the freshness gate. |
 | Strike-held-out eSSVI parameters and fair IV | Estimated | The target strike's CE and PE are absent from the reference fit. |
+| Temporally smoothed held-out eSSVI | Estimated | Past-and-current raw fold fits only; 30-second half-life, twelve-fit cap, six consecutive fits before eligibility, no raw fallback. |
+| Reference stability | Deterministically derived gate | Six-frame range of smoothed held-out fair IV and current raw-versus-smoothed fair-IV distance. |
 | Black-76 fair price | Estimated | Inherits held-out surface, forward, maturity, rate, and model assumptions. |
 | Fair-value uncertainty band | Estimated | Past-only empirical held-out residual plus forward/asynchrony stress and a tick floor. |
 | Gross executable edge | Deterministically derived | Fair-band boundary minus executable quote, never midpoint-minus-fit. |
@@ -84,6 +94,22 @@ after the cost, multiplicity, displayed-quantity, exact-refit, and persistence g
   maturity, rate, and call/put type.
 - `MIS-EST-05`: exact-refit every multiplicity-surviving candidate after excluding only its
   complete strike pair. A fold-screen candidate that fails or changes direction is rejected.
+- `MIS-EST-06`: update a separate causal eSSVI parameter smoother for every deterministic
+  cross-fit fold. Use the fit decision timestamp as the decay clock while retaining the oldest
+  contributing quote as the source/staleness timestamp. The default half-life is 30 seconds and
+  at most twelve raw fits are retained.
+- `MIS-EST-07`: a fold is in smoothing warm-up until six consecutive accepted raw fits have been
+  incorporated. Reset its smoother after a gap above 15 seconds, an instrument-scope change, or
+  an expiry-set change. A raw or reset-first fit can populate diagnostics but cannot generate an
+  opportunity.
+- `MIS-EST-08`: before testing an observation, require six consecutive smoothed fair-IV readings
+  for that contract, a maximum-to-minimum range no larger than 0.25 volatility points, and a
+  current raw-versus-smoothed fair-IV distance no larger than 0.50 volatility points. All limits
+  are payload-visible policy, not hidden constants.
+- `MIS-EST-09`: the exact leave-strike raw refit must retain the same direction and its fair IV
+  must lie within 0.50 volatility points of the stable fold-smoothed fair IV. The actionable fair
+  price and band remain those of the stable smoothed fold; an isolated exact raw refit may confirm
+  robustness but may not replace the stable benchmark.
 
 ## 6. Uncertainty and multiplicity (`MIS-VAL-*`)
 
@@ -119,7 +145,8 @@ not authorise either a taker or maker order.
 ```text
 ELIGIBLE -> CANDIDATE -> FDR + EXACT CONFIRMED -> PENDING
 PENDING -- same direction for 2 valid fits --> ACTIVE
-ACTIVE -- net edge <= 0 for 2 valid fits --> CORRECTED
+ACTIVE -- frozen entry target gap closed for 2 valid fits --> CORRECTED
+ACTIVE -- live qualification lost for 2 valid fits without target correction --> INVALIDATED
 ACTIVE -- stale/missing/failed/unsupported --> CENSORED
 ```
 
@@ -138,18 +165,30 @@ ACTIVE -- stale/missing/failed/unsupported --> CENSORED
   `target-option-led` or `reference-market-led`; otherwise the trace is `mixed`. The closing gate
   (`inside_uncertainty_band`, `after_cost_edge_nonpositive`, direction reversal, or lost
   qualification) is separately visible. These are endpoint accounts, not causal claims.
+- `MIS-STATE-08`: freeze the entry reference boundary, entry executable quote, estimated entry
+  cost, and after-cost target gap at activation. A cheap target corrects only after its ask has
+  risen by at least the frozen entry net edge; a rich target corrects only after its bid has fallen
+  by at least that amount. The test is quote-side identification, not a fill or exit-P&L claim.
+- `MIS-STATE-09`: when the ordinary live residual loses qualification for two valid frames but
+  `MIS-STATE-08` is not met, close the episode as `INVALIDATED`. Reference-led, mixed, stability-
+  lost, multiplicity-lost and exact-confirmation-lost resolutions remain visible but cannot enter
+  the corrected-opportunity count or correction-duration sample.
 
 ## 9. Required dashboard and API output (`MIS-OUT-*`)
 
 The ANL-03 screen adds a full-width panel below the surface with:
 
 - monitor status, eligibility, tested/outside/FDR/exact/pending/active counts;
+- smoothing warm-up/unstable counts and the complete smoothing/stability policy;
 - an **Active confirmed** table sorted by net edge;
-- a **Recently corrected / censored** table preserving outcomes;
+- a **Recently corrected / invalidated / censored** table preserving outcomes;
 - contract, side, executable market price, fair price/band, gross/net ticks, net/lot, IV
   residual, quote age, first/close clock and duration;
 - entry gap, signed target-option contribution, signed held-out reference-market contribution,
-  net gap closed, categorical attribution, closing gate, or censor reason.
+  net gap closed, frozen target-correction requirement/achievement, categorical attribution,
+  corrected/invalidated outcome, closing gate, or censor reason;
+- smoothed fair IV, contemporaneous raw fair IV, raw-smoothed IV distance, six-frame smoothed-IV
+  range, smoothing component count, and benchmark-stability state.
 
 `/api/state` and `/api/history` must carry the full policy, lifecycle, assumptions and rows.
 History playback must show the episode state frozen into that frame rather than today's state.
@@ -162,6 +201,12 @@ History playback must show the episode state frozen into that frame rather than 
   one-lot and two-frame gates.
 - Returning its ask to fair value closes only after two valid frames and records a
   target-option-led trace with duration from first breach and an exact gap-accounting identity.
+- A raw reference jump cannot activate during smoothing warm-up or while either IV-stability limit
+  is breached.
+- Two fits with the same oldest contributing quote but later decision timestamps are smoothed
+  causally rather than falling back to a raw surface.
+- A residual that disappears solely because the reference boundary moves is `INVALIDATED`, has no
+  correction timestamp, and does not enter the corrected-opportunity duration sample.
 - A displayed quantity below one lot never becomes actionable.
 - A missing target quote censors an active episode rather than calling it corrected.
 - Base-fit/arbitrage/support failure paths remain explicit.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from .essvi import ESSVISlice, ESSVISurface, SurfaceCalibrationError
 
@@ -22,6 +23,7 @@ class ESSVITemporalSmoother:
     half_life_seconds: float = 15.0
     max_history: int = 12
     _history: list[ESSVISurface] = field(default_factory=list, init=False, repr=False)
+    _observation_times: list[datetime] = field(default_factory=list, init=False, repr=False)
 
     def __post_init__(self) -> None:
         if self.half_life_seconds <= 0:
@@ -33,33 +35,46 @@ class ESSVITemporalSmoother:
         """Start a new smoothing epoch after a stale gap or instrument-scope change."""
 
         self._history.clear()
+        self._observation_times.clear()
 
-    def update(self, raw_surface: ESSVISurface) -> ESSVISurface:
+    def update(
+        self,
+        raw_surface: ESSVISurface,
+        *,
+        observation_timestamp: datetime | None = None,
+    ) -> ESSVISurface:
         if raw_surface.is_temporally_smoothed:
             raise ValueError("smoother accepts raw eSSVI fits, not already-smoothed surfaces")
+        observed_at = observation_timestamp or raw_surface.surface_timestamp
+        if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+            raise ValueError("smoothing observation timestamp must be timezone-aware")
+        if observed_at < raw_surface.surface_timestamp:
+            raise ValueError("smoothing observation cannot predate the source surface")
         if self._history:
             previous = self._history[-1]
             if raw_surface.instrument_scope != previous.instrument_scope:
                 raise ValueError("instrument scope changed; reset the smoother first")
-            if raw_surface.surface_timestamp <= previous.surface_timestamp:
-                raise ValueError("raw surface timestamps must increase strictly")
+            if observed_at <= self._observation_times[-1]:
+                raise ValueError("smoothing observation timestamps must increase strictly")
             if {item.expiry for item in raw_surface.slices} != {
                 item.expiry for item in previous.slices
             }:
                 raise ValueError("expiry set changed; reset the smoother first")
         self._history.append(raw_surface)
+        self._observation_times.append(observed_at)
         self._history = self._history[-self.max_history :]
+        self._observation_times = self._observation_times[-self.max_history :]
         if len(self._history) == 1:
             return raw_surface
 
-        newest_timestamp = raw_surface.surface_timestamp
+        newest_timestamp = self._observation_times[-1]
         decay_rate = math.log(2.0) / self.half_life_seconds
         raw_weights = [
             math.exp(
                 -decay_rate
-                * max(0.0, (newest_timestamp - item.surface_timestamp).total_seconds())
+                * max(0.0, (newest_timestamp - timestamp).total_seconds())
             )
-            for item in self._history
+            for timestamp in self._observation_times
         ]
         weight_sum = sum(raw_weights)
         weights = tuple(value / weight_sum for value in raw_weights)
@@ -183,6 +198,9 @@ class ESSVITemporalSmoother:
             "component_count": len(self._history),
             "component_surface_timestamps": [
                 item.surface_timestamp.isoformat() for item in self._history
+            ],
+            "component_observation_timestamps": [
+                item.isoformat() for item in self._observation_times
             ],
             "normalized_weights_oldest_to_newest": list(weights),
             "latest_raw_fallback_alpha": fallback_alpha,
