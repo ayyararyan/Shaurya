@@ -76,5 +76,11 @@ session. It does not modify or validate the locked 2026-08-21 D39 test.
 | `D40-EST-01` | Existing ten-level depth-scaled CCZ OFI construction is unchanged | **Implemented, tested** | `signals/ccz_ofi.py`; `fixed_target_panel.py:competitor_features` | existing CCZ/D39 tests plus focused D40 tests |
 | `D40-TARGET-01` | Materialise custom future displayed-mid horizons with 0.5 s gap | **Implemented, tested** | `signals/ofi_horserace.py:build_horserace_observations` | `test_custom_response_horizons_are_materialised_without_changing_predictors` |
 | `D40-OOS-01` | Chronological 70/30 split; embargo covers gap plus longest response | **Implemented, tested** | `signals/fixed_target_panel.py:build_fixed_target_panel` | `test_long_horizon_panel_requires_gap_plus_horizon_embargo` |
-| `D40-METRIC-01` | Report only C8 absolute OOS R² horizon curve | **Implemented** | `scripts/d40_ofi_horizon_extension.py:_c8_summary` | empirical artifact pending |
-| `D40-OUT-01` | Full artifact, compact summary, report and next-session prompt | **Partially implemented** | runner and specification exist | empirical run/report pending |
+| `D40-METRIC-01` | Report only C8 absolute OOS R² horizon curve | **Dry-run verified** | `scripts/d40_ofi_horizon_extension.py:_c8_summary` | corrected 7/7-cell artifact and committed compact result |
+| `D40-OUT-01` | Full artifact, compact summary, report and next-session prompt | **Dry-run verified** | runner; `docs/results/D40-OFI-HORIZON-EXTENSION-2026-08-20.json`; D40 report and next prompt | full artifact SHA `e291e0f8…`; summary SHA `37a37e42…` |
+| `D40-VAL-01` | Custom response horizons materialise without changing D39 anchors | **Tested** | `signals/ofi_horserace.py:build_horserace_observations` | custom-vs-default full timestamp-sequence regression |
+| `D40-VAL-02` | Embargo shorter than gap plus longest response is refused | **Tested** | `signals/fixed_target_panel.py:build_fixed_target_panel` | `test_long_horizon_panel_requires_gap_plus_horizon_embargo` |
+| `D40-VAL-03` | Exactly seven fixed displayed-mid cells are estimated | **Dry-run verified** | D40 runner exact-axis refusal | authoritative full artifact: 7/7 estimated |
+| `D40-VAL-04` | Committed summary/report contain C8 absolute R² only and no LTP result | **Dry-run verified** | D40 summary extractor and committed outputs | artifact-to-committed-result parity check passed |
+| `D40-VAL-05` | Tape, code, split, row and artifact identities are recorded | **Dry-run verified** | full artifact, compact summary and report | SHA/split/row-hash acceptance checks passed |
+| `D40-VAL-ALL` | Full tests, Ruff, strict mypy, compile and diff checks | **Tested** | repository-wide | 676 pytest; Ruff; 65-file strict mypy; compileall; diff checks passed |

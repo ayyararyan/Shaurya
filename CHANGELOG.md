@@ -18,7 +18,18 @@ to strategies that pin the package.
 - Added a fixed-scope runner that emits a full research artifact plus a compact C8 absolute-OOS-R²
   summary and refuses an incomplete or changed seven-cell grid.
 - Added focused regressions for custom response materialisation and the long-horizon embargo gate.
-  Empirical execution and the final report remain pending this changelog entry's result commit.
+- Corrected run `X-D40-OFI-HORIZON-EXTENSION-2026-08-20` estimated all 7 cells. Absolute OOS R²
+  rises from **7.4037% at 10 s to a 15.7793% tested peak at 20 s**, then turns **−0.4698% at
+  30 s** and remains negative through 120 s (−22.6148%). The curve is not monotone beyond 10 s.
+- Invalidated and isolated an earlier artifact that let custom response horizons replace the
+  default response map and thereby shift the 70/30 anchor boundary. The corrected additive
+  construction preserves all D39 anchor timestamps; a direct-invocation regression and an
+  anchor-sequence regression now prevent both defects from recurring.
+- Added the full methodology/result report, machine-readable compact result and a pre-written
+  2026-08-21 prompt to validate the 20-second peak/30-second break on the untouched full session.
+- Final acceptance: 32 focused tests and 676 whole-repository tests passed; whole-repository Ruff,
+  canonical strict mypy over 65 source files, compileall, artifact/schema parity and hash checks
+  all passed.
 
 ### ANL-07 — surface-relative executable option-mispricing monitor
 

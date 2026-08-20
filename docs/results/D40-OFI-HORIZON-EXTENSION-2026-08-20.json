@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "research_object": {
+    "reference_price": "displayed_mid",
+    "target": "displayed-mid return from t+0.5s to t+0.5s+horizon",
+    "model": "C8: spread and log1p level-one depth controls plus ten depth-scaled rank-keyed CCZ OFI levels accumulated over (t-10s,t]",
+    "levels": 10,
+    "ofi_window_seconds": 10.0,
+    "causal_gap_seconds": 0.5
+  },
+  "source_tape_sha256": "93456eda4de33cc22fc1d9d3dc8fb5ca7a7bb8eab7108e3c0ef8859a97759a43",
+  "implementation_commit": "0625bbea58a7b14d035a5662dc395e2c482dbc77",
+  "original_d39_artifact_sha256": "c1a56d8f566033a601b0bea66e8774cd55d3194bb33f0b0b1ff3bd39991a903c",
+  "corrected_d40_artifact_sha256": "e291e0f84625946c7d95d3d5785af7f1c9f6e9b27d3c679700430691a414d034",
+  "original_d39_short_horizons": [
+    {"horizon_seconds": 0.5, "absolute_oos_r2": 0.001724976852780724, "absolute_oos_r2_percent": 0.1724976852780724},
+    {"horizon_seconds": 1.0, "absolute_oos_r2": 0.005390693771556543, "absolute_oos_r2_percent": 0.5390693771556543},
+    {"horizon_seconds": 2.0, "absolute_oos_r2": 0.032569716993890885, "absolute_oos_r2_percent": 3.2569716993890885},
+    {"horizon_seconds": 5.0, "absolute_oos_r2": 0.057615818315856715, "absolute_oos_r2_percent": 5.7615818315856715},
+    {"horizon_seconds": 10.0, "absolute_oos_r2": 0.0739158093521628, "absolute_oos_r2_percent": 7.39158093521628}
+  ],
+  "corrected_d40_long_horizons": [
+    {"horizon_seconds": 10.0, "absolute_oos_r2": 0.0740374483988877, "absolute_oos_r2_percent": 7.403744839888771, "train_n": 4377, "test_n": 2299},
+    {"horizon_seconds": 20.0, "absolute_oos_r2": 0.15779332401339863, "absolute_oos_r2_percent": 15.779332401339863, "train_n": 4377, "test_n": 2264},
+    {"horizon_seconds": 30.0, "absolute_oos_r2": -0.004698256084376018, "absolute_oos_r2_percent": -0.4698256084376018, "train_n": 4377, "test_n": 2224},
+    {"horizon_seconds": 45.0, "absolute_oos_r2": -0.0885938524790646, "absolute_oos_r2_percent": -8.85938524790646, "train_n": 4377, "test_n": 2191},
+    {"horizon_seconds": 60.0, "absolute_oos_r2": -0.18787604212273057, "absolute_oos_r2_percent": -18.787604212273056, "train_n": 4377, "test_n": 2186},
+    {"horizon_seconds": 90.0, "absolute_oos_r2": -0.23062757421455826, "absolute_oos_r2_percent": -23.062757421455828, "train_n": 4377, "test_n": 2161},
+    {"horizon_seconds": 120.0, "absolute_oos_r2": -0.2261477346710754, "absolute_oos_r2_percent": -22.61477346710754, "train_n": 4377, "test_n": 2161}
+  ],
+  "strictly_increasing_beyond_10_seconds": false,
+  "peak_tested_horizon_seconds": 20.0,
+  "peak_absolute_oos_r2": 0.15779332401339863,
+  "first_tested_decline_horizon_seconds": 30.0,
+  "conclusion": "The displayed-mid OFI model's raw OOS predictive power rises through 20 seconds, peaks at 15.7793%, and disappears by 30 seconds; it remains negative through 120 seconds."
+}
