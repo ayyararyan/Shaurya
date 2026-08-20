@@ -393,8 +393,9 @@ def ccz_feature_schema(level_counts: Sequence[int] = CCZ_LEVEL_COUNTS) -> CczFea
         for count in counts:
             names.append(denominator_feature(window, count))
             names.append(average_feature(window, count))
-        names.extend(ccz_normalised_features(window, CCZ_PRIMARY_LEVELS))
-        names.extend(touch_relative_normalised_features(window, CCZ_PRIMARY_LEVELS))
+        for count in counts:
+            names.extend(ccz_normalised_features(window, count))
+            names.extend(touch_relative_normalised_features(window, count))
     return CczFeatureSchema(names)
 
 
@@ -584,21 +585,19 @@ def build_horserace_observations(
                 features[average_feature(window, count)] = evaluated.simple_average
                 for level, raw_value in enumerate(evaluated.raw, start=1):
                     features[level_feature(window, level)] = raw_value
+                for level, scaled in enumerate(evaluated.normalised, start=1):
+                    features[normalised_level_feature(window, level, count)] = scaled
+                touch_evaluated = touch_flow.window(
+                    left, right, levels=count, window_seconds=window
+                )
+                if touch_evaluated is not None:
+                    for level, scaled in enumerate(touch_evaluated.normalised, start=1):
+                        features[
+                            touch_relative_feature(normalised_level_feature(window, level, count))
+                        ] = scaled
                 if count == CCZ_PRIMARY_LEVELS:
                     primary = evaluated
                     features[best_level_feature(window)] = evaluated.best_level
-                    for level, scaled in enumerate(evaluated.normalised, start=1):
-                        features[normalised_level_feature(window, level, count)] = scaled
-                    touch_evaluated = touch_flow.window(
-                        left, right, levels=count, window_seconds=window
-                    )
-                    if touch_evaluated is not None:
-                        for level, scaled in enumerate(touch_evaluated.normalised, start=1):
-                            features[
-                                touch_relative_feature(
-                                    normalised_level_feature(window, level, count)
-                                )
-                            ] = scaled
             if primary is None:
                 if not predictive:
                     continue

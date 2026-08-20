@@ -42,3 +42,23 @@ live verified — see the "Evidence level" column.
   `confirmatory_eligible: false`.
 - Pre-existing artifacts were preserved. Nothing was pooled across reference prices: every cell
   carries an explicit `reference_price` and `predictor_basis` column.
+
+## D39 additive matrix — `FIXED-TARGET-COMPETITOR-PANEL`
+
+**Specification:** `docs/D39-FIXED-TARGET-PANEL-SPEC-2026-08-21.md`
+**Evidence boundary:** code and synthetic validation are evidence level 2. The 2026-08-20 replay,
+when present, is a post-outcome partial-session exploration and cannot exceed level 3.
+
+| ID | Requirement | Status | Code location | Test / acceptance evidence |
+|---|---|---|---|---|
+| `METHOD-D39-01` | One future target with 0.5 s causal gap; C0–C12 compete on identical rows | **Implemented, tested** | `signals/fixed_target_panel.py:evaluate_panel_cell` | `test_fixed_target_panel.py::test_val_d39_04_*` |
+| `METHOD-D39-02` | Direct tests of lagged return C2, OFI C8, and their union C12 | **Implemented, tested** | `signals/fixed_target_panel.py:competitor_features` | `test_fixed_target_panel.py::test_val_d39_03_*`, `::test_val_d39_04_*` |
+| `METHOD-D39-03` | All metrics accompany every estimated competitor; row mismatch refuses artifact | **Implemented, tested** | `signals/fixed_target_panel.py:evaluate_panel_cell`; `evaluation_metrics.py:assert_companion_metrics` | `test_fixed_target_panel.py::test_val_d39_04_*` |
+| `BOUNCE-01` | Training-only Roll fit plus whole-tape and 15-minute diagnostics | **Implemented, tested** | `signals/fixed_target_panel.py:roll_effective_spread`, `roll_diagnostics` | `test_fixed_target_panel.py::test_val_bounce_01_*` |
+| `BOUNCE-02` | Sign-corrected LTP from training Roll half-spread | **Implemented, tested** | `signals/fixed_target_panel.py:build_trade_sign_corrected_path` | `test_fixed_target_panel.py::test_val_bounce_02_*` |
+| `BOUNCE-03` | Same-side print endpoints never mix trade sides | **Implemented, tested** | `signals/fixed_target_panel.py:SameSidePrintPath` | `test_fixed_target_panel.py::test_val_bounce_03_*` |
+| `VAL-D39-01` | Future component is detected and past-only mirror trips its guard | **Tested synthetically** | `signals/fixed_target_panel.py:evaluate_panel_cell` | `test_fixed_target_panel.py::test_val_d39_04_*` |
+| `VAL-D39-02` | Lagged return ends no later than anchor | **Tested synthetically** | `signals/fixed_target_panel.py:make_return_resolver` | `test_fixed_target_panel.py::test_val_d39_02_*` |
+| `VAL-D39-03` | C12 is exactly C2 plus C8 | **Tested synthetically** | `signals/fixed_target_panel.py:competitor_features` | `test_fixed_target_panel.py::test_val_d39_03_*` |
+| `VAL-D39-04` | Complete competitor set, metrics and common row hash | **Tested synthetically** | `signals/fixed_target_panel.py:evaluate_panel_cell` | `test_fixed_target_panel.py::test_val_d39_04_*` |
+| `OPS-D39-01` | 2026-08-20 tape remains read-only, exploratory and non-confirmatory | **Implemented** | `scripts/d39_fixed_target_panel.py`; artifact claim-boundary fields | durable run manifest and artifact read-back |
