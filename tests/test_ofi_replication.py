@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -25,6 +26,23 @@ from shaurya.data.ofi_replication import (
     require_accepted_receipt,
     resolve_nifty_front_month_future,
 )
+
+
+def test_full_session_controller_direct_script_help_works_from_other_cwd(
+    tmp_path: Path,
+) -> None:
+    controller = Path(__file__).resolve().parents[1] / "scripts/ofi_full_session_controller.py"
+
+    result = subprocess.run(
+        [sys.executable, str(controller), "--help"],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "--repo-root" in result.stdout
 
 
 def _metrics() -> dict[str, object]:

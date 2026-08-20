@@ -11,12 +11,17 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 import time
 from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta
 from datetime import time as clock_time
 from pathlib import Path
 from typing import Any
+
+# Keep the documented executable-script path safe as well as `python -m scripts...`.
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts.sig21_construction_replay import (
     capture_metrics_for,

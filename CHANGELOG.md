@@ -42,6 +42,11 @@ to strategies that pin the package.
   full-grid reranking; one-tape cross-stability is unsupported and the 30-second gate stays closed.
 - The replication is selection-aware and exploratory, is not `H-SIG21`, has no order authority,
   and cannot be promoted to a signal or confirmation.
+- Live execution on 2026-08-20 failed before capture because the generated runner invoked the
+  controller as a file and its repository-namespace import was unavailable. The controller now
+  supports both direct-script and module invocation, with a cross-working-directory regression
+  test. The registered run missed opening coverage and produced no analysis; a separately marked
+  late-session partial tape is not substituted for it.
 
 ### `X-OFI-HORSERACE-DAT20-05` — causal-alignment short-horizon predictor horse race
 
