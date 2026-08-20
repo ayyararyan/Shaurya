@@ -14,6 +14,7 @@ from shaurya.analytics.mispricing import (
     MispricingDirection,
     MispricingPolicy,
     SurfaceMispricingDetector,
+    _IVResidualSample,
 )
 from shaurya.contracts.tape import DepthLevel, TapeRow
 from shaurya.contracts.timing import IST
@@ -27,10 +28,7 @@ SECONDS_PER_YEAR = 365.25 * 24.0 * 60.0 * 60.0
 
 
 def _instrument(strike: float, option_type: str) -> str:
-    return (
-        f"NSE:NSE_FNO:NIFTY:option:{EXPIRY.isoformat()}:"
-        f"{strike:.8f}:{option_type}"
-    )
+    return f"NSE:NSE_FNO:NIFTY:option:{EXPIRY.isoformat()}:{strike:.8f}:{option_type}"
 
 
 STRIKES = tuple(
@@ -238,13 +236,16 @@ def test_cheap_option_confirms_then_traces_target_option_led_correction() -> Non
         confirmed_time,
         _chain(confirmed_time, target_prices=(4.98, 5.00)),
     )
-    episode = next(
-        item for item in confirmed["active"] if item["instrument_id"] == TARGET_ID
-    )
+    episode = next(item for item in confirmed["active"] if item["instrument_id"] == TARGET_ID)
     assert episode["instrument_id"] == TARGET_ID
     assert episode["direction"] == "cheap"
     assert episode["exact_leave_strike_confirmed"] is True
     assert episode["fair_price"] > episode["observed_ask"]
+    assert episode["fair_iv_lower"] > episode["observed_ask_iv"]
+    assert episode["gross_iv_edge_points"] > 0
+    assert episode["target_correction_required_iv_points"] > 0
+    assert episode["residual_bucket"].endswith("continuous_knn_iv")
+    assert episode["residual_effective_sample_size"] > 0
     assert episode["net_edge_per_lot"] > 0
     assert episode["first_seen_at"] == first_time.isoformat()
 
@@ -256,9 +257,7 @@ def test_cheap_option_confirms_then_traces_target_option_led_correction() -> Non
     corrected_time = VALUATION + timedelta(seconds=25)
     corrected = _evaluate(detector, corrected_time, _chain(corrected_time))
     assert not any(item["instrument_id"] == TARGET_ID for item in corrected["active"])
-    closed = next(
-        item for item in corrected["recent"] if item["instrument_id"] == TARGET_ID
-    )
+    closed = next(item for item in corrected["recent"] if item["instrument_id"] == TARGET_ID)
     assert closed["status"] == "corrected"
     assert closed["corrected_at"] == corrected_time.isoformat()
     assert closed["duration_seconds"] == pytest.approx(15.0)
@@ -267,38 +266,41 @@ def test_cheap_option_confirms_then_traces_target_option_led_correction() -> Non
     assert trace["attribution"] == "target_option_led"
     assert trace["closure_gate"] == "frozen_entry_target_reached"
     assert trace["target_option_contribution"] > 0
+    assert trace["target_iv_contribution_points"] > 0
     assert trace["target_option_share"] > 0.60
     assert trace["gap_closed"] == pytest.approx(
-        trace["target_option_contribution"]
-        + trace["reference_market_contribution"],
+        trace["target_option_contribution"] + trace["reference_market_contribution"],
         abs=1e-10,
     )
     assert trace["identity_error"] == pytest.approx(0.0, abs=1e-10)
+    assert trace["iv_identity_error_points"] == pytest.approx(0.0, abs=1e-10)
     assert trace["target_correction_achieved"] is True
+    assert trace["delta_hedged_net_per_lot"] is not None
 
 
 def test_gap_trace_separates_reference_market_movement_from_target_movement() -> None:
     detector = _detector()
     _evaluate(detector, VALUATION, _chain(VALUATION))
-    for seconds in (5, 10, 15):
+    clean_time = VALUATION + timedelta(seconds=5)
+    _evaluate(detector, clean_time, _chain(clean_time))
+    for seconds in (10, 15):
         now = VALUATION + timedelta(seconds=seconds)
         _evaluate(detector, now, _chain(now, target_prices=(4.98, 5.00)))
     active = detector._active[TARGET_ID]
     initial = active.initial
-    reference_move = 1.25
+    reference_move_points = 1.25
     active.latest = replace(
         initial,
-        fair_lower=initial.fair_lower - reference_move,
-        gross_edge=initial.gross_edge - reference_move,
-        gross_edge_ticks=(initial.gross_edge - reference_move) / initial.tick_size,
+        fair_iv_lower=initial.fair_iv_lower - reference_move_points / 100.0,
+        gross_iv_edge_points=initial.gross_iv_edge_points - reference_move_points,
     )
     trace = detector._gap_close_trace(active, closure_gate="inside_uncertainty_band")
     assert trace.attribution == "reference_market_led"
-    assert trace.target_option_contribution == pytest.approx(0.0)
-    assert trace.reference_market_contribution == pytest.approx(reference_move)
-    assert trace.gap_closed == pytest.approx(reference_move)
+    assert trace.target_iv_contribution_points == pytest.approx(0.0)
+    assert trace.reference_iv_contribution_points == pytest.approx(reference_move_points)
+    assert trace.iv_gap_closed_points == pytest.approx(reference_move_points)
     assert trace.reference_market_share == pytest.approx(1.0)
-    assert trace.identity_error == pytest.approx(0.0, abs=1e-12)
+    assert trace.iv_identity_error_points == pytest.approx(0.0, abs=1e-12)
     assert trace.target_correction_achieved is False
 
     rich_initial = replace(
@@ -306,21 +308,31 @@ def test_gap_trace_separates_reference_market_movement_from_target_movement() ->
         direction=MispricingDirection.RICH,
         observed_bid=20.0,
         observed_ask=20.1,
+        observed_bid_iv=0.20,
+        observed_ask_iv=0.201,
+        executable_iv=0.20,
         fair_upper=18.0,
+        fair_iv_upper=0.18,
+        target_correction_required_iv_points=1.0,
     )
     active.direction = MispricingDirection.RICH
     active.initial = rich_initial
-    active.latest = replace(rich_initial, observed_bid=19.0, fair_upper=18.5)
-    rich_trace = detector._gap_close_trace(
-        active, closure_gate="inside_uncertainty_band"
+    active.latest = replace(
+        rich_initial,
+        observed_bid=19.0,
+        observed_bid_iv=0.19,
+        fair_upper=18.5,
+        fair_iv_upper=0.185,
     )
-    assert rich_trace.entry_gap == pytest.approx(2.0)
-    assert rich_trace.close_gap == pytest.approx(0.5)
-    assert rich_trace.target_option_contribution == pytest.approx(1.0)
-    assert rich_trace.reference_market_contribution == pytest.approx(0.5)
-    assert rich_trace.gap_closed == pytest.approx(1.5)
+    rich_trace = detector._gap_close_trace(active, closure_gate="inside_uncertainty_band")
+    assert rich_trace.entry_iv_gap_points == pytest.approx(2.0)
+    assert rich_trace.close_iv_gap_points == pytest.approx(0.5)
+    assert rich_trace.target_iv_contribution_points == pytest.approx(1.0)
+    assert rich_trace.reference_iv_contribution_points == pytest.approx(0.5)
+    assert rich_trace.iv_gap_closed_points == pytest.approx(1.5)
     assert rich_trace.attribution == "target_option_led"
-    assert rich_trace.identity_error == pytest.approx(0.0, abs=1e-12)
+    assert rich_trace.iv_identity_error_points == pytest.approx(0.0, abs=1e-12)
+    assert rich_trace.delta_hedged_gross_per_unit == pytest.approx(-0.1)
 
 
 def test_reference_jump_is_rejected_by_stability_gate() -> None:
@@ -367,9 +379,7 @@ def test_default_one_minute_reference_warmup_precedes_any_opportunity() -> None:
         confirmed_time,
         _chain(confirmed_time, target_prices=(4.98, 5.00)),
     )
-    episode = next(
-        item for item in confirmed["active"] if item["instrument_id"] == TARGET_ID
-    )
+    episode = next(item for item in confirmed["active"] if item["instrument_id"] == TARGET_ID)
     assert episode["reference_stable"] is True
     assert episode["reference_smoothing_components"] >= 12
 
@@ -377,7 +387,9 @@ def test_default_one_minute_reference_warmup_precedes_any_opportunity() -> None:
 def test_reference_closed_episode_is_invalidated_not_corrected() -> None:
     detector = _detector()
     _evaluate(detector, VALUATION, _chain(VALUATION))
-    for seconds in (5, 10, 15):
+    clean_time = VALUATION + timedelta(seconds=5)
+    _evaluate(detector, clean_time, _chain(clean_time))
+    for seconds in (10, 15):
         now = VALUATION + timedelta(seconds=seconds)
         _evaluate(detector, now, _chain(now, target_prices=(4.98, 5.00)))
     active = detector._active[TARGET_ID]
@@ -386,10 +398,13 @@ def test_reference_closed_episode_is_invalidated_not_corrected() -> None:
         initial,
         direction=None,
         fair_lower=initial.observed_ask - 0.05,
+        fair_iv_lower=initial.observed_ask_iv - 0.0005,
         gross_edge=-0.05,
         gross_edge_ticks=-1.0,
+        gross_iv_edge_points=-0.05,
         net_edge=-0.05,
         net_edge_ticks=-1.0,
+        target_correction_required_iv_points=0.0,
         fdr_significant=False,
         exact_leave_strike_confirmed=False,
     )
@@ -428,7 +443,9 @@ def test_dislocation_below_one_lot_never_becomes_actionable() -> None:
 def test_missing_target_quote_censors_instead_of_calling_it_corrected() -> None:
     detector = _detector()
     _evaluate(detector, VALUATION, _chain(VALUATION))
-    for seconds in (5, 10, 15):
+    clean_time = VALUATION + timedelta(seconds=5)
+    _evaluate(detector, clean_time, _chain(clean_time))
+    for seconds in (10, 15):
         now = VALUATION + timedelta(seconds=seconds)
         _evaluate(detector, now, _chain(now, target_prices=(4.98, 5.00)))
     assert detector.latest_frame is not None and detector.latest_frame.active
@@ -440,6 +457,138 @@ def test_missing_target_quote_censors_instead_of_calling_it_corrected() -> None:
     assert closed["status"] == "censored"
     assert closed["corrected_at"] is None
     assert closed["censor_reason"] == "observation_unavailable"
+
+
+def test_continuous_iv_uncertainty_has_no_old_spread_bucket_jump() -> None:
+    detector = _detector()
+    history = detector._residuals[(EXPIRY, True)]
+    for index in range(300):
+        relative_spread = 0.0095 + 0.001 * (index % 2)
+        history.append(
+            _IVResidualSample(
+                log_moneyness=0.001 * ((index % 21) - 10),
+                log_relative_spread=math.log(relative_spread),
+                residual_points=0.20 + 0.002 * (index % 17),
+            )
+        )
+
+    below = detector._uncertainty_and_p(
+        expiry=EXPIRY,
+        is_call=True,
+        log_moneyness=0.0,
+        log_relative_spread=math.log(0.0099),
+        residual_points=1.0,
+    )
+    above = detector._uncertainty_and_p(
+        expiry=EXPIRY,
+        is_call=True,
+        log_moneyness=0.0,
+        log_relative_spread=math.log(0.0101),
+        residual_points=1.0,
+    )
+    assert below[0] is not None and above[0] is not None
+    assert abs(below[0] - above[0]) < 0.01
+    assert below[2] == above[2] == 300
+    assert below[3] > 100 and above[3] > 100
+    assert below[4].endswith("continuous_knn_iv")
+
+    detector._append_residual(
+        (EXPIRY, True),
+        _IVResidualSample(
+            log_moneyness=0.0,
+            log_relative_spread=math.log(0.01),
+            residual_points=5.0,
+        ),
+    )
+    refreshed = detector._uncertainty_and_p(
+        expiry=EXPIRY,
+        is_call=True,
+        log_moneyness=0.0,
+        log_relative_spread=math.log(0.01),
+        residual_points=1.0,
+    )
+    assert refreshed[2] == 301
+    assert refreshed[0] is not None and refreshed[0] >= below[0]
+
+
+def test_current_outside_iv_residual_does_not_train_its_uncertainty() -> None:
+    detector = _detector()
+    _evaluate(detector, VALUATION, _chain(VALUATION))
+    clean_time = VALUATION + timedelta(seconds=5)
+    _evaluate(detector, clean_time, _chain(clean_time))
+    dislocation_time = VALUATION + timedelta(seconds=10)
+    _evaluate(
+        detector,
+        dislocation_time,
+        _chain(dislocation_time, target_prices=(4.98, 5.00)),
+    )
+    target = detector._pending[TARGET_ID].observation
+    assert target.iv_residual_points is not None
+    history = detector._residuals[(EXPIRY, True)]
+    assert all(
+        sample.residual_points != pytest.approx(target.iv_residual_points) for sample in history
+    )
+
+
+def test_forward_price_move_cannot_fake_iv_target_correction() -> None:
+    detector = _detector()
+    _evaluate(detector, VALUATION, _chain(VALUATION))
+    _evaluate(detector, VALUATION + timedelta(seconds=5), _chain(VALUATION + timedelta(seconds=5)))
+    for seconds in (10, 15):
+        now = VALUATION + timedelta(seconds=seconds)
+        _evaluate(detector, now, _chain(now, target_prices=(4.98, 5.00)))
+    active = detector._active[TARGET_ID]
+    initial = active.initial
+    active.latest = replace(
+        initial,
+        observed_bid=max(0.05, initial.observed_bid - 1.0),
+        observed_ask=max(0.05, initial.observed_ask - 1.0),
+        forward=initial.forward - 100.0,
+    )
+    trace = detector._gap_close_trace(active, closure_gate=None)
+    assert trace.target_option_contribution < 0
+    assert trace.target_iv_contribution_points == pytest.approx(0.0)
+    assert trace.target_correction_achieved is False
+
+
+def test_iv_convergence_can_correct_while_absolute_option_price_falls() -> None:
+    detector = _detector()
+    _evaluate(detector, VALUATION, _chain(VALUATION))
+    _evaluate(detector, VALUATION + timedelta(seconds=5), _chain(VALUATION + timedelta(seconds=5)))
+    for seconds in (10, 15):
+        now = VALUATION + timedelta(seconds=seconds)
+        _evaluate(detector, now, _chain(now, target_prices=(4.98, 5.00)))
+    active = detector._active[TARGET_ID]
+    initial = active.initial
+    required = initial.target_correction_required_iv_points / 100.0
+    new_forward = initial.forward - 1_500.0
+    new_ask_iv = initial.observed_ask_iv + required + 0.002
+    new_ask = black76_price(
+        forward=new_forward,
+        strike=initial.strike,
+        maturity_years=_maturity(VALUATION + timedelta(seconds=20)),
+        volatility=new_ask_iv,
+        risk_free_rate=0.0,
+        is_call=True,
+    )
+    assert new_ask < initial.observed_ask
+    active.latest = replace(
+        initial,
+        observed_bid=max(0.05, new_ask - 0.02),
+        observed_ask=new_ask,
+        observed_bid_iv=max(1e-8, new_ask_iv - 0.0002),
+        observed_ask_iv=new_ask_iv,
+        forward=new_forward,
+    )
+    trace = detector._gap_close_trace(active, closure_gate=None)
+    assert trace.target_option_contribution < 0
+    assert trace.target_iv_contribution_points > initial.target_correction_required_iv_points
+    assert trace.target_correction_achieved is True
+    assert trace.delta_hedged_gross_per_unit == pytest.approx(
+        active.latest.observed_bid
+        - initial.observed_ask
+        - initial.fair_delta * (new_forward - initial.forward)
+    )
 
 
 def test_monitor_source_has_no_order_or_execution_dependency() -> None:

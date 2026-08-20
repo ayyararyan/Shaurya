@@ -56,6 +56,31 @@ to strategies that pin the package.
   target test. They are retained as calibration evidence, not opportunity results. The binding
   one-minute defaults above and mandatory twelve-frame re-warm after invalidation prevent that
   immediate transient re-entry; their replacement live run is a separate acceptance gate.
+- Owner amendment 3 moves the identification and lifecycle state from absolute option-price
+  rupees to executable implied volatility. The ask IV is tested below a held-out fair-IV lower
+  boundary for cheap contracts and bid IV above the upper boundary for rich contracts. The
+  entry executable IV, fair-IV boundary, uncertainty calibration and after-cost IV target are
+  frozen; only target executable-IV convergence can correct an episode. Current Black-76 rupee
+  edge remains the positive-after-cost execution overlay, so a forward move cannot masquerade as
+  correction and a statistically unusual but uneconomic residual cannot activate.
+- Replaced hard moneyness/liquidity residual buckets with a past-only Gaussian-weighted nearest-
+  neighbour IV estimator within expiry and CE/PE. It conditions continuously on log-moneyness and
+  log-relative spread, exposes neighbour and Kish effective sample sizes, converts tick,
+  forward-band and asynchrony price stresses into IV-equivalent widths, and excludes every current
+  outside-IV-band observation from its own causal history.
+- Added signed IV-gap accounting and a frozen-entry-delta executable-quote markout. The latter is
+  explicitly scenario-based: it uses current liquidation BBO, a single frozen Black-76 delta,
+  observed forward change and visible turnover/slippage assumptions; it is not a fill, dynamically
+  rehedged P&L, or order-authority claim. The dashboard/API expose the IV band, continuous
+  uncertainty support, IV target/reference contributions, rupee overlay and delta proxy together.
+- Owner-amendment-3 pre-live verification: 56 focused surface/detector/dashboard tests and 558
+  full-suite tests pass; whole-repository Ruff, strict mypy on 59 source files, compileall and diff
+  checks are clean. Regressions cover removal of the former 1% spread-bucket discontinuity, causal
+  exclusion of a current outside-band residual, cache invalidation, pure-forward price movement,
+  IV correction despite a falling absolute option price, signed cheap/rich markout arithmetic,
+  dashboard/API schema, reference warm-up/invalidation and the no-order dependency boundary. A
+  six-key, fully capped 120,000-sample performance gate completed all 450 continuous-neighbour
+  queries in 0.18 seconds. Replacement live verification remains separate.
 
 ### `X-OFI-DASHBOARD-2026-08-20` — dynamic read-only OFI horse-race dashboard (`ANL-06`)
 

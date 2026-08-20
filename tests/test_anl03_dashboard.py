@@ -43,12 +43,8 @@ SECONDS_PER_YEAR = 365.0 * 24.0 * 3600.0
 
 
 def test_expiry_close_is_date_versioned_at_the_2026_extension_boundary() -> None:
-    assert expiry_timestamp(date(2026, 8, 2)) == datetime(
-        2026, 8, 2, 15, 30, tzinfo=IST
-    )
-    assert expiry_timestamp(date(2026, 8, 3)) == datetime(
-        2026, 8, 3, 15, 40, tzinfo=IST
-    )
+    assert expiry_timestamp(date(2026, 8, 2)) == datetime(2026, 8, 2, 15, 30, tzinfo=IST)
+    assert expiry_timestamp(date(2026, 8, 3)) == datetime(2026, 8, 3, 15, 40, tzinfo=IST)
 
 
 def _row(
@@ -325,7 +321,7 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert "READ-ONLY" in html
     assert "SUR-05 ARBITRAGE" in html
     assert "SUR-06 DIAGNOSTICS" in html
-    assert "Stable held-out option dislocations" in html
+    assert "Stable held-out executable-IV dislocations" in html
     assert "mispricingActiveBody" in html
     assert "mispricingRecentBody" in html
     assert "exact confirmed" in html
@@ -333,15 +329,17 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert "reference unstable" in html
     assert "raw-smooth pp" in html
     assert "12-fit range pp" in html
-    assert "target required t" in html
-    assert "entry gap t" in html
-    assert "target Δ t" in html
-    assert "reference Δ t" in html
-    assert "gap closed t" in html
-    assert "target_option_contribution_ticks" in html
-    assert "reference_market_contribution_ticks" in html
+    assert "target required pp" in html
+    assert "entry gap pp" in html
+    assert "target Δ pp" in html
+    assert "reference Δ pp" in html
+    assert "gap closed pp" in html
+    assert "target_iv_contribution_points" in html
+    assert "reference_iv_contribution_points" in html
+    assert "delta hedge net / lot" in html
+    assert "residual_effective_sample_size" in html
     assert "grid-template-columns:1fr; gap:14px" in html
-    assert "min-width:2200px" in html
+    assert "min-width:2500px" in html
 
 
 def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> None:
@@ -352,12 +350,18 @@ def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> N
     payload = build_payload(engine, title="ANL-03 test", source="fixture")
     monitor = payload["mispricing"]
     assert monitor["policy"]["definition"] == (
-        "confirmed_surface_relative_executable_mispricing"
+        "confirmed_surface_relative_executable_iv_mispricing"
     )
     assert monitor["policy"]["order_authority"] == "none_read_only_research_monitor"
     assert monitor["policy"]["reference_smoothing_half_life_seconds"] == 60.0
     assert monitor["policy"]["reference_smoothing_min_frames"] == 12
-    assert monitor["surface_mode"] == "causal_smoothed_strike_cross_fit_research_only"
+    assert monitor["policy"]["residual_uncertainty_method"] == (
+        "past_only_gaussian_weighted_knn_iv"
+    )
+    assert monitor["policy"]["residual_neighbor_count"] == 500
+    assert monitor["surface_mode"] == (
+        "causal_smoothed_strike_cross_fit_executable_iv_research_only"
+    )
     assert "target-option" in monitor["correction_semantics"]
     assert "reference-market" in monitor["correction_semantics"]
     assert isinstance(monitor["active"], list)
@@ -444,8 +448,7 @@ def test_the_universe_interleaves_expiries_so_a_ceiling_truncates_wings() -> Non
     assert len(universe.options) == 4
     assert {option.instrument.expiry for option in universe.options} == {NEAR, FAR}
     assert all(
-        abs(float(option.instrument.strike or 0) - 24_100.0) <= 100.0
-        for option in universe.options
+        abs(float(option.instrument.strike or 0) - 24_100.0) <= 100.0 for option in universe.options
     )
 
 
@@ -502,11 +505,27 @@ def test_status_is_never_carried_by_colour_alone() -> None:
 
 def test_only_the_latency_and_forward_panels_were_removed() -> None:
     html = _rendered_shell()
-    for gone in ("latencyChart", "renderTrace", "forwardBody", "forwardUnresolved",
-                 "SUSTAINED LATENCY", "FORWARD SOURCE"):
+    for gone in (
+        "latencyChart",
+        "renderTrace",
+        "forwardBody",
+        "forwardUnresolved",
+        "SUSTAINED LATENCY",
+        "FORWARD SOURCE",
+    ):
         assert gone not in html
-    for kept in ("healthStrip", "healthReasons", "arbBanner", "arbCounts", "arbBody",
-                 "diagBody", "residualBody", "surfaceChart", "historySlider", "liveToggle"):
+    for kept in (
+        "healthStrip",
+        "healthReasons",
+        "arbBanner",
+        "arbCounts",
+        "arbBody",
+        "diagBody",
+        "residualBody",
+        "surfaceChart",
+        "historySlider",
+        "liveToggle",
+    ):
         assert kept in html
 
 
@@ -530,13 +549,27 @@ def test_removing_the_two_panels_did_not_remove_the_measurements() -> None:
 
 def test_every_health_and_diagnostic_field_is_still_on_screen() -> None:
     html = _rendered_shell()
-    for label in ("feed age", "fit age", "surface age", "packets / s", "reconnects",
-                  "worst instrument age", "last update ist", "browser clock"):
+    for label in (
+        "feed age",
+        "fit age",
+        "surface age",
+        "packets / s",
+        "reconnects",
+        "worst instrument age",
+        "last update ist",
+        "browser clock",
+    ):
         assert label in html
-    for label in ("fit status", "weighted RMSE (total variance)", "fit duration",
-                  "unsupported grid cells", "butterfly points checked",
-                  "calendar points checked", "min butterfly density factor",
-                  "min calendar total-variance spread"):
+    for label in (
+        "fit status",
+        "weighted RMSE (total variance)",
+        "fit duration",
+        "unsupported grid cells",
+        "butterfly points checked",
+        "calendar points checked",
+        "min butterfly density factor",
+        "min calendar total-variance spread",
+    ):
         assert label in html
     assert "feed_dead_seconds" in html and "feed_slow_seconds" in html
     assert "fit_stale_seconds" in html and "surface_staleness_seconds" in html
@@ -593,10 +626,7 @@ def test_the_atm_change_is_matched_by_expiry_and_is_null_on_the_first_fit() -> N
 
     engine.fit(VALUATION + timedelta(seconds=6))
     payload = build_payload(engine, title="t", source="s")
-    previous = {
-        reading.expiry: reading.implied_volatility
-        for reading in engine.history[-2].atm
-    }
+    previous = {reading.expiry: reading.implied_volatility for reading in engine.history[-2].atm}
     for reading in payload["atm"]["readings"]:
         expected = reading["implied_volatility"] - previous[reading["expiry"]]
         assert reading["change_since_previous_fit"] == pytest.approx(expected, abs=1e-15)

@@ -26,28 +26,45 @@ volatility-point smoothed-range, raw-smoothed, and exact-smoothed limits. Any in
 that contract's reference history and forces a fresh twelve-frame warm-up before re-entry. The two
 superseded live episodes remain retained as calibration evidence and are not opportunity results.
 
+**Owner amendment 3, 2026-08-20:** live trace evidence showed that a stable eSSVI fair IV does
+not imply a stable rupee fair-band boundary. One episode disappeared when a hard residual bucket
+changed and the empirical price uncertainty jumped; another disappeared when the option forward
+moved while the target/reference IV residual remained broadly intact. The binding identification
+state is therefore the target's **executable implied-volatility residual** against a causally
+smoothed strike-held-out fair-IV band. Empirical uncertainty is estimated continuously from
+past-only neighbouring observations in log-moneyness and relative-spread space; hard bucket
+boundaries are prohibited. The entry executable IV, fair-IV boundary, uncertainty calibration,
+and after-cost IV target are frozen at activation. Rupee price edge remains a contemporaneous
+execution overlay, never the correction state. Every active and closed row also reports a
+frozen-delta, executable-quote markout as an explicitly scenario-based diagnostic rather than a
+fill or realised P&L claim.
+
 ## 1. Objective and exact object
 
 The monitor identifies and times **confirmed surface-relative executable mispricing** in the
 listed index-option chain. It does not claim to observe an unobserved latent true option value.
 
-For contract `i` at fit time `t`, let `P_hat(i,t)` be a strike-held-out eSSVI price and let
-`u(i,t)` be an empirically calibrated uncertainty width. The fair band is:
+For contract `i` at fit time `t`, let `sigma_hat(i,t)` be the causally smoothed strike-held-out
+eSSVI fair IV and let `u_sigma(i,t)` be an empirically calibrated IV uncertainty width. The
+primary fair-IV band is:
 
 ```text
-L(i,t) = max(0, P_hat(i,t) - u(i,t))
-U(i,t) = P_hat(i,t) + u(i,t)
+sigma_L(i,t) = max(0, sigma_hat(i,t) - u_sigma(i,t))
+sigma_U(i,t) = sigma_hat(i,t) + u_sigma(i,t)
 ```
 
-With executable best ask `A(i,t)` and bid `B(i,t)`:
+Invert the executable ask and bid with the same current forward, maturity and rate to obtain
+`sigma_A(i,t)` and `sigma_B(i,t)`:
 
 ```text
-cheap gross edge = L(i,t) - A(i,t)
-rich  gross edge = B(i,t) - U(i,t)
+cheap gross IV edge = sigma_L(i,t) - sigma_A(i,t)
+rich  gross IV edge = sigma_B(i,t) - sigma_U(i,t)
 ```
 
-A positive gross edge is a **surface dislocation**. It becomes a confirmed mispricing only
-after the cost, multiplicity, displayed-quantity, exact-refit, and persistence gates below.
+A positive gross IV edge is a **surface dislocation**. Convert `sigma_L` and `sigma_U` to
+current Black-76 rupee boundaries only after that classification. It becomes a confirmed
+mispricing only after the current rupee edge also clears costs and the multiplicity,
+displayed-quantity, exact-refit, and persistence gates below.
 
 ## 2. Object and identification ledger
 
@@ -57,14 +74,18 @@ after the cost, multiplicity, displayed-quantity, exact-refit, and persistence g
 | Strike-held-out eSSVI parameters and fair IV | Estimated | The target strike's CE and PE are absent from the reference fit. |
 | Temporally smoothed held-out eSSVI | Estimated | Past-and-current raw fold fits only; 60-second half-life, twenty-four-fit cap, twelve consecutive fits before eligibility, no raw fallback. |
 | Reference stability | Deterministically derived gate | Twelve-frame range of smoothed held-out fair IV and current raw-versus-smoothed fair-IV distance. |
+| Executable bid/ask IV | Deterministically derived | Black-76 inversion of the current bid/ask using the same current forward, maturity and rate as the fair IV. |
+| Continuous IV uncertainty | Estimated | Past-only distance-weighted empirical tail from same-expiry/type neighbours in continuous log-moneyness and log-relative-spread space; no hard moneyness or liquidity bucket. |
 | Black-76 fair price | Estimated | Inherits held-out surface, forward, maturity, rate, and model assumptions. |
-| Fair-value uncertainty band | Estimated | Past-only empirical held-out residual plus forward/asynchrony stress and a tick floor. |
-| Gross executable edge | Deterministically derived | Fair-band boundary minus executable quote, never midpoint-minus-fit. |
+| Fair-IV uncertainty band | Estimated | Maximum of the continuous past-only empirical held-out IV residual, forward/asynchrony IV stress and the option-tick-equivalent IV floor. |
+| Gross executable IV edge | Deterministically derived | Fair-IV boundary minus executable ask IV for cheap, or executable bid IV minus fair-IV boundary for rich. |
+| Gross executable rupee edge | Deterministically derived overlay | Current Black-76 IV-boundary price minus executable quote; never used as the episode correction state. |
 | Estimated transaction/exit/hedge cost | Scenario-based | Explicit versioned turnover rates and visible tick assumptions; not realised cost. |
 | Net edge and per-lot edge | Scenario-based | Gross edge less estimated costs; lot size comes from the dated master. |
+| Frozen-delta markout | Scenario-based proxy | Entry-to-current executable liquidation quote plus a single frozen entry-delta future hedge and explicit estimated costs; excludes fills, queue, dynamic re-hedging, funding and realised hedge execution. |
 | Confirmed mispricing | Estimated classification | Requires all gates; means surface-relative, not fundamental truth. |
 | Correction duration | Deterministically derived | Valid-frame episode clock; unavailable data is censoring, not correction. |
-| Gap-close trace | Deterministically derived attribution | Signed target-option and held-out reference-market contributions from confirmation to close. Both are market movements; the split identifies the traded target leg versus the reference cross-section and is not a causal claim. |
+| IV-gap-close trace | Deterministically derived attribution | Signed executable target-IV and held-out reference-IV contributions from confirmation to close. Both are market-derived; the split identifies the target leg versus the reference cross-section and is not a causal claim. Rupee endpoint accounting remains an overlay. |
 
 ## 3. Required inputs
 
@@ -89,6 +110,8 @@ after the cost, multiplicity, displayed-quantity, exact-refit, and persistence g
 - `MIS-DATA-05`: the held-out fit must retain the minimum per-expiry quote support.
 - `MIS-DATA-06`: at least one dated lot must be displayed on the relevant executable side;
   unknown lot size or insufficient BBO quantity cannot be actionable.
+- `MIS-DATA-07`: both executable bid and ask must admit finite Black-76 IV inversions under the
+  same current forward, maturity and rate used by the reference surface.
 
 ## 5. Independent fair value (`MIS-EST-*`)
 
@@ -116,24 +139,36 @@ after the cost, multiplicity, displayed-quantity, exact-refit, and persistence g
   are payload-visible policy, not hidden constants.
 - `MIS-EST-09`: the exact leave-strike raw refit must retain the same direction and its fair IV
   must lie within 0.10 volatility points of the stable fold-smoothed fair IV. The actionable fair
-  price and band remain those of the stable smoothed fold; an isolated exact raw refit may confirm
+  IV and IV band remain those of the stable smoothed fold; an isolated exact raw refit may confirm
   robustness but may not replace the stable benchmark.
+- `MIS-EST-10`: direction is defined in executable IV space: ask IV below the fair-IV lower
+  boundary is cheap; bid IV above the fair-IV upper boundary is rich. Mid-IV residuals supply the
+  empirical tail probability but can never replace executable-side direction.
 
 ## 6. Uncertainty and multiplicity (`MIS-VAL-*`)
 
-- `MIS-VAL-01`: maintain past-only held-out midpoint-minus-fair-price residuals by absolute
-  expiry, moneyness bucket, and relative-spread bucket.
-- `MIS-VAL-02`: do not classify a bucket before 100 past residuals by default. Warm-up is an
-  explicit status, never zero uncertainty.
-- `MIS-VAL-03`: model uncertainty is the empirical 99th percentile of absolute past residuals
-  with a one-tick floor.
-- `MIS-VAL-04`: forward uncertainty reprices at the future/parity band edges.
-- `MIS-VAL-05`: quote-asynchrony uncertainty is delta times the larger of the forward band and
-  the past-only 99th-percentile forward movement over the target's quote age.
-- `MIS-VAL-06`: total uncertainty is the maximum of the tick, empirical-model, forward, and
-  asynchrony widths. This conservative maximum avoids adding overlapping error estimates.
-- `MIS-VAL-07`: derive an empirical tail probability from the past residual bucket and apply
+- `MIS-VAL-01`: maintain past-only held-out midpoint-IV-minus-fair-IV residual samples separately
+  by absolute expiry and CE/PE. Each sample retains continuous log-moneyness and log-relative
+  spread. Hard moneyness/spread buckets are prohibited.
+- `MIS-VAL-02`: query the nearest 500 past samples by default using standardised Euclidean
+  distance with 0.02 log-moneyness and 1.0 log-relative-spread bandwidths. Use Gaussian distance
+  weights for the empirical quantile and tail probability. Do not classify before at least 100
+  past neighbours; warm-up is explicit, never zero uncertainty.
+- `MIS-VAL-03`: empirical model uncertainty is the weighted 99th percentile of absolute IV
+  residuals. The payload exposes neighbour count and Kish effective sample size.
+- `MIS-VAL-04`: forward uncertainty is the maximum fair-IV-equivalent change obtained by holding
+  the central fair price fixed and re-inverting it at the future/parity band edges.
+- `MIS-VAL-05`: quote-asynchrony uncertainty converts the existing delta-times-forward-motion
+  price stress into an exact local IV-equivalent width.
+- `MIS-VAL-06`: the option tick floor is converted to a local IV-equivalent width. Total IV
+  uncertainty is the maximum of tick, empirical-model, forward, and asynchrony IV widths. This
+  conservative maximum avoids adding overlapping estimates.
+- `MIS-VAL-07`: derive a distance-weighted empirical tail probability from the continuous
+  past-neighbourhood and apply
   Benjamini-Hochberg at `q=1%` across the current outside-band, positive-net candidates.
+- `MIS-VAL-08`: uncertainty history is updated only after the current decision. Observations that
+  are currently outside the band are excluded so an active dislocation cannot teach the model
+  that it is ordinary noise.
 
 ## 7. Economic gate (`MIS-EXEC-*`)
 
@@ -144,6 +179,12 @@ after the cost, multiplicity, displayed-quantity, exact-refit, and persistence g
 - `MIS-EXEC-03`: require strictly positive after-cost edge and at least one displayed lot.
 - `MIS-EXEC-04`: show gross rupees/unit, gross ticks, net rupees/unit, net ticks, and net
   rupees/lot together. A statistical dislocation that is uneconomic remains unconfirmed.
+- `MIS-EXEC-05`: map the positive after-cost rupee edge at activation into an entry-forward
+  executable-IV move. This frozen IV move is the target correction requirement.
+- `MIS-EXEC-06`: report a frozen-delta quote markout. Cheap uses current bid minus entry ask minus
+  entry Black-76 delta times the forward change; rich uses entry bid minus current ask plus entry
+  delta times the forward change. Deduct direction-specific current round-trip turnover and the
+  visible slippage floors for the net diagnostic. Label it a scenario proxy, never P&L or fill.
 
 These are observer-only economic calculations. They do not estimate fill probability and do
 not authorise either a taker or maker order.
@@ -153,7 +194,7 @@ not authorise either a taker or maker order.
 ```text
 ELIGIBLE -> CANDIDATE -> FDR + EXACT CONFIRMED -> PENDING
 PENDING -- same direction for 2 valid fits --> ACTIVE
-ACTIVE -- frozen entry target gap closed for 2 valid fits --> CORRECTED
+ACTIVE -- frozen entry executable-IV target closed for 2 valid fits --> CORRECTED
 ACTIVE -- live qualification lost for 2 valid fits without target correction --> INVALIDATED
 ACTIVE -- stale/missing/failed/unsupported --> CENSORED
 ```
@@ -165,18 +206,21 @@ ACTIVE -- stale/missing/failed/unsupported --> CENSORED
   censoring. It is never silently labelled correction.
 - `MIS-STATE-05`: duration is `corrected_or_censored_time - first_seen_at`; active rows show a
   live duration.
-- `MIS-STATE-06`: for a cheap episode, target contribution is `A_close - A_entry` and reference
-  contribution is `L_entry - L_close`; for a rich episode they are `B_entry - B_close` and
-  `U_close - U_entry`. Positive values close the gap, negative values widen it, and their signed
-  sum must equal `entry_gap - close_gap` to numerical tolerance.
+- `MIS-STATE-06`: for a cheap episode, target contribution is
+  `ask_IV_close - ask_IV_entry` and reference contribution is
+  `fair_IV_lower_entry - fair_IV_lower_close`; for a rich episode they are
+  `bid_IV_entry - bid_IV_close` and `fair_IV_upper_close - fair_IV_upper_entry`. Positive values
+  close the IV gap, negative values widen it, and their signed sum must equal
+  `entry_IV_gap - close_IV_gap` to numerical tolerance.
 - `MIS-STATE-07`: among positive closing contributions, a >=60% share is labelled
   `target-option-led` or `reference-market-led`; otherwise the trace is `mixed`. The closing gate
   (`inside_uncertainty_band`, `after_cost_edge_nonpositive`, direction reversal, or lost
   qualification) is separately visible. These are endpoint accounts, not causal claims.
-- `MIS-STATE-08`: freeze the entry reference boundary, entry executable quote, estimated entry
-  cost, and after-cost target gap at activation. A cheap target corrects only after its ask has
-  risen by at least the frozen entry net edge; a rich target corrects only after its bid has fallen
-  by at least that amount. The test is quote-side identification, not a fill or exit-P&L claim.
+- `MIS-STATE-08`: freeze the entry fair-IV boundary, executable ask/bid IV, continuous uncertainty
+  calibration, and after-cost IV target at activation. A cheap target corrects only after ask IV
+  rises by that target; a rich target corrects only after bid IV falls by that target. Absolute
+  rupee movement cannot satisfy correction. The test is quote-side IV identification, not a fill
+  or exit-P&L claim.
 - `MIS-STATE-09`: when the ordinary live residual loses qualification for two valid frames but
   `MIS-STATE-08` is not met, close the episode as `INVALIDATED`. Reference-led, mixed, stability-
   lost, multiplicity-lost and exact-confirmation-lost resolutions remain visible but cannot enter
@@ -195,8 +239,12 @@ The ANL-03 screen adds a full-width panel below the surface with:
 - contract, side, executable market price, fair price/band, gross/net ticks, net/lot, IV
   residual, quote age, first/close clock and duration;
 - entry gap, signed target-option contribution, signed held-out reference-market contribution,
-  net gap closed, frozen target-correction requirement/achievement, categorical attribution,
+  all primarily in IV points, net IV gap closed, frozen target-correction
+  requirement/achievement, categorical attribution,
   corrected/invalidated outcome, closing gate, or censor reason;
+- continuous uncertainty neighbour count/effective sample size and empirical, forward,
+  asynchrony, tick-equivalent and total IV widths;
+- current gross/net rupee execution overlay and frozen-delta gross/net markout per unit and lot;
 - smoothed fair IV, contemporaneous raw fair IV, raw-smoothed IV distance, twelve-frame smoothed-IV
   range, smoothing component count, and benchmark-stability state.
 
@@ -210,7 +258,15 @@ History playback must show the episode state frozen into that frame rather than 
 - A deliberately cheap fresh contract survives fold-screen, BH-FDR, exact strike exclusion,
   one-lot and two-frame gates.
 - Returning its ask to fair value closes only after two valid frames and records a
-  target-option-led trace with duration from first breach and an exact gap-accounting identity.
+  target-option-led IV trace with duration from first breach and an exact IV-gap identity.
+- A pure forward move that changes option prices but leaves executable IV unchanged cannot satisfy
+  target correction.
+- Target executable-IV convergence can satisfy correction even when a simultaneous forward move
+  makes the absolute option price fall.
+- Crossing the former hard relative-spread bucket boundary cannot discontinuously change the
+  empirical uncertainty estimate; neighbour and effective sample sizes remain visible.
+- Frozen-delta markout arithmetic is sign-correct for cheap and rich episodes and is labelled as a
+  scenario proxy.
 - A raw reference jump cannot activate during smoothing warm-up or while either IV-stability limit
   is breached.
 - Two fits with the same oldest contributing quote but later decision timestamps are smoothed
