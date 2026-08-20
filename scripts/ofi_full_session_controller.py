@@ -136,9 +136,7 @@ def _cell(rows: Sequence[Mapping[str, Any]], **wanted: Any) -> dict[str, Any]:
     return dict(matched[0])
 
 
-def build_fixed_lead_summary(
-    scalar: Mapping[str, Any], horse: Mapping[str, Any]
-) -> dict[str, Any]:
+def build_fixed_lead_summary(scalar: Mapping[str, Any], horse: Mapping[str, Any]) -> dict[str, Any]:
     """Extract only the two leads named before the replication tape existed.
 
     `CCZ-IMPL-02` consequence, stated rather than patched around.  The first pre-named lead —
@@ -189,9 +187,7 @@ def build_fixed_lead_summary(
                 "not the CCZ estimator and was removed as defective; re-pointing it at a CCZ "
                 "quantity would change a pre-registered estimand and needs explicit approval"
             ),
-            "cks_estimator_note": scalar.get("protocol", {}).get(
-                "level_one_is_ccz_base_case"
-            ),
+            "cks_estimator_note": scalar.get("protocol", {}).get("level_one_is_ccz_base_case"),
         },
         "horse_m3b_2s_to_2s": {
             "prior_incremental_oos_r2": 0.062036652388938185,
@@ -430,8 +426,7 @@ class Controller:
             }
             while process.poll() is None:
                 tape_bytes = sum(
-                    path.stat().st_size
-                    for path in self.capture_root.glob("*/tape_*.jsonl")
+                    path.stat().st_size for path in self.capture_root.glob("*/tape_*.jsonl")
                 )
                 self.update(
                     stage=stage,
@@ -452,6 +447,11 @@ class Controller:
         if checkpoint_valid(checkpoint):
             value = json.loads(checkpoint.read_text(encoding="utf-8"))
             return Path(value["tape"])
+        # `OPS-CCZ-02`: the pin is re-checked before **every** unit, and capture is a unit.  Its
+        # gap was invisible while only the analysis stages re-checked, because the capture child
+        # is the longest-lived process the controller starts and the repository has the most time
+        # to move underneath it.
+        self.assert_on_pin("capture")
         existing_pid = self.existing_child_pid("capture")
         run_dirs_before = tuple(path for path in self.capture_root.glob("sha-*") if path.is_dir())
         if existing_pid is not None:
@@ -506,6 +506,10 @@ class Controller:
                 "stage": "capture",
                 "accepted_at": datetime.now(IST).isoformat(),
                 "tape": str(tape),
+                "observed_code_commit": self.observed_commits.get("capture"),
+                # `OPS-CCZ-02`: the pin must still hold at acceptance, or the tape and the
+                # recorded provenance straddle two revisions.
+                "observed_code_commit_at_completion": self.assert_on_pin("capture_completion"),
                 "outputs": {str(tape): computed},
             },
         )
