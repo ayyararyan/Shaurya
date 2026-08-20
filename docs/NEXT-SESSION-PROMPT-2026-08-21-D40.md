@@ -50,3 +50,22 @@ an external benchmark. State explicitly:
 Record the tape hash, code commit, split boundary, embargo, train/test row counts, row hashes and
 full-artifact hash. Update the D40 report, compact result JSON, traceability matrix and changelog,
 then commit and push the verified result to `ayyararyan/Shaurya`.
+
+## After D39 and D40 — validate D41 unchanged
+
+Only after both locked runs above are complete, apply
+`docs/D41-MID-LAG-OFI-INCREMENTAL-SPEC-2026-08-20.md` and
+`scripts/d41_mid_lag_ofi.py` to the same untouched full-session tape. Do not change D39 or D40 to
+make room for it.
+
+Keep the D41 object unchanged: future displayed-mid returns after a 0.5-second gap at
+0.5/1/2/5/10/20/30 seconds; trailing displayed-mid return lags at
+0.5/1/2/5/10/20/30 seconds; ten separate depth-scaled rank-keyed CCZ OFI levels over
+0.5/1/2/5/10-second windows; and only the lag bank, OFI alone and their exact union. Preserve the
+training-only ridge choices, common-row contract, 30.5-second embargo, HAC/Diebold--Mariano,
+nested Clark--West and Holm families.
+
+Validate the 2026-08-20 D41 finding: lag returns were weak alone; OFI had higher point OOS R² in
+35/35 cells; OFI added beyond lags in 35/35; and at the pre-named 10-second OFI window the lags
+also added at all seven horizons. Report whether each statement reproduces, with no order or
+signal authority attached.

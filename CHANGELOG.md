@@ -14,6 +14,17 @@ to strategies that pin the package.
 - Bound identical chronological held-out rows, a 30.5-second embargo, training-only ridge choices,
   absolute OOS R², HAC Diebold--Mariano, nested Clark--West and Holm inference. D41 is permanently
   retrospective on today's immutable 15:42 partial-session tape and does not alter D39/D40.
+- Implemented the 126-cell future panel plus six separate contemporaneous checks and executed it
+  from pinned commit `a512fbe` on the frozen tape. Same-window OFI OOS R² rises from 1.3401% at
+  0.5 s to 24.6372% at 30 s; all six construction checks are Holm-significant.
+- Past returns are weak alone (lag-bank OOS R² −0.6151% to +0.4380%; no adjusted hit). OFI has
+  higher point OOS R² in 35/35 cells. OFI adds beyond lags in 35/35 cells and survives the full
+  35-cell Clark--West/Holm family in all 35.
+- At the pre-named 10-second OFI window, lags also add beyond OFI at all seven horizons; the union
+  reaches 4.9297%/4.9301% OOS R² at 20/30 seconds. The result rejects redundancy on this tape.
+- Added the report, compact committed result and tomorrow's post-D39/D40 unchanged validation step.
+  Acceptance: 679 tests, Ruff, strict mypy on 66 source files, compileall, artifact parity, row,
+  feature-union, multiplicity and hash gates all pass.
 
 ### D40 — displayed-mid OFI horizon extension machinery
 

@@ -88,19 +88,20 @@ session. It does not modify or validate the locked 2026-08-21 D39 test.
 ## D41 additive matrix — `MID-LAG-OFI-INCREMENTAL-2026-08-20`
 
 **Specification:** `docs/D41-MID-LAG-OFI-INCREMENTAL-SPEC-2026-08-20.md`
-**Evidence boundary at freeze:** planned and pushed before D41 outcome execution; permanently
-retrospective on the already-inspected 2026-08-20 late-partial tape.
+**Evidence boundary:** specification commit `4751d1a` was pushed before D41 outcome execution;
+empirical result is permanently retrospective on the already-inspected 2026-08-20 late-partial
+tape and is evidence level 3, not confirmatory.
 
 | ID | Requirement | Status | Code location | Test / acceptance evidence |
 |---|---|---|---|---|
-| `D41-OBJ-01` | Test lag predictiveness, lag versus OFI accuracy, and both incremental directions | **Planned** | pending D41 module/runner | pending |
-| `D41-DATA-01` | Exact immutable 15:42 tape and SHA; receive-time clock | **Specified** | D41 spec | pre-execution document review |
-| `D41-TARGET-01` | Displayed-mid returns after 0.5 s gap at 0.5–30 s | **Specified** | pending D41 module | pending `D41-VAL-02` |
-| `D41-X-01` | Seven trailing displayed-mid returns plus fixed all-lag bank | **Specified** | pending D41 module | pending `D41-VAL-01/02` |
-| `D41-X-02` | Ten-level depth-scaled CCZ OFI alone at five windows | **Specified** | reuse `signals/ccz_ofi.py`; pending D41 evaluator | existing CCZ equation tests plus pending D41 union tests |
-| `D41-EST-01` | `L_k`, `L_ALL`, `O_w`, and exact `LO_w` panel only | **Specified** | pending D41 module | pending `D41-VAL-03/04/05` |
-| `D41-INST-01` | Separate contemporaneous construction check | **Specified** | pending D41 module | pending synthetic and artifact checks |
-| `D41-OOS-01` | Preserved anchor universe; 70/30 chronological split; 30.5 s embargo; common rows | **Specified** | pending D41 module | pending `D41-VAL-04` |
-| `D41-INF-01` | HAC loss tests, DM, nested Clark--West and Holm families | **Specified** | pending D41 module | pending `D41-VAL-06` |
-| `D41-OUT-01` | Full/compact artifacts, report, trial row and hashes | **Planned** | pending runner/docs | pending `D41-VAL-07` |
-| `D41-VAL-ALL` | Focused/full tests, Ruff, mypy, compile, artifact/hash/secret gates | **Planned** | repository-wide | pending |
+| `D41-OBJ-01` | Test lag predictiveness, lag versus OFI accuracy, and both incremental directions | **Dry-run verified** | `signals/mid_lag_ofi.py:build_mid_lag_ofi_artifact` | 35-cell comparison plus report direct answers |
+| `D41-DATA-01` | Exact immutable 15:42 tape and SHA; receive-time clock | **Dry-run verified** | D41 runner hash gate | tape SHA `93456eda…a43`; accepted receipt |
+| `D41-TARGET-01` | Displayed-mid returns after 0.5 s gap at 0.5–30 s | **Implemented, tested** | `mid_lag_ofi.py:_target`; canonical observation builder | `test_mid_lag_ofi.py`; seven scored horizons |
+| `D41-X-01` | Seven trailing displayed-mid returns plus fixed all-lag bank | **Implemented, tested** | `mid_lag_ofi.py:lag_feature_names`, `_lag_design` | 49 single-lag cells plus 7 lag-bank cells |
+| `D41-X-02` | Ten-level depth-scaled CCZ OFI alone at five windows | **Implemented, tested** | `signals/ccz_ofi.py`; `mid_lag_ofi.py:ofi_feature_names`, `_ofi_design` | existing CCZ equation tests plus 35 OFI cells |
+| `D41-EST-01` | `L_k`, `L_ALL`, `O_w`, and exact `LO_w` panel only | **Dry-run verified** | `mid_lag_ofi.py:_fit_forecast`, `build_mid_lag_ofi_artifact` | exact-union synthetic and artifact assertions |
+| `D41-INST-01` | Separate contemporaneous construction check | **Dry-run verified** | `mid_lag_ofi.py:_contemporaneous_panel` | 6/6 cells; all Holm-significant |
+| `D41-OOS-01` | Preserved anchor universe; 70/30 chronological split; 30.5 s embargo; common rows | **Dry-run verified** | `mid_lag_ofi.py:_split`, `_future_positions` | common train/test row hashes at every horizon |
+| `D41-INF-01` | HAC loss tests, DM, nested Clark--West and Holm families | **Implemented, tested, dry-run verified** | `mid_lag_ofi.py:hac_mean_test`, `holm_adjust`, `_comparison_tests` | deterministic synthetic tests and complete artifact-family audit |
+| `D41-OUT-01` | Full/compact artifacts, report, trial row and hashes | **Dry-run verified** | D41 runner; committed report/result | full SHA `19d1ee96…2b04`; compact SHA `96a96f55…bb9a` |
+| `D41-VAL-ALL` | Focused/full tests, Ruff, mypy, compile, artifact/hash/secret gates | **Tested** | repository-wide | 679 pytest; Ruff; 66-file strict mypy; compileall; artifact parity/hash checks |
