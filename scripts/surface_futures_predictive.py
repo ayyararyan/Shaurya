@@ -47,7 +47,11 @@ PINNED_ROWS = 5_496_592
 def code_commit() -> str | None:
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "HEAD"], capture_output=True, check=True, text=True
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path(__file__).resolve().parents[1],
+            capture_output=True,
+            check=True,
+            text=True,
         )
     except (OSError, subprocess.CalledProcessError):
         return None

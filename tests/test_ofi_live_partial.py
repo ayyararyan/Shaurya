@@ -7,8 +7,11 @@ from pathlib import Path
 import pytest
 
 from scripts.cks_l1_ofi_scan import _parser as cks_parser
+from scripts.cks_l1_ofi_scan import code_commit as cks_code_commit
 from scripts.deepbook_ofi_scan import _parser as scalar_parser
+from scripts.deepbook_ofi_scan import code_commit as scalar_code_commit
 from scripts.ofi_horserace import _parser as horse_parser
+from scripts.ofi_horserace import code_commit as horse_code_commit
 from shaurya.contracts.timing import IST
 from shaurya.data.ofi_live_partial import (
     EXPECTED_INSTRUMENT_ID,
@@ -82,3 +85,20 @@ def test_partial_and_registered_scopes_are_mutually_exclusive(parser_factory: ob
     parser = parser_factory()  # type: ignore[operator]
     with pytest.raises(SystemExit):
         parser.parse_args(["--full-session-replication", "--late-partial-exploratory"])
+
+
+@pytest.mark.parametrize(
+    "commit_reader",
+    [scalar_code_commit, cks_code_commit, horse_code_commit],
+)
+def test_partial_scan_provenance_resolves_repo_commit_from_other_cwd(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    commit_reader: object,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    commit = commit_reader()  # type: ignore[operator]
+
+    assert commit is not None
+    assert len(commit) == 40

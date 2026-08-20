@@ -59,7 +59,11 @@ from shaurya.signals.deep_book_response import NANOSECONDS_PER_SECOND
 def code_commit() -> str | None:
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "HEAD"], capture_output=True, check=True, text=True
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path(__file__).resolve().parents[1],
+            capture_output=True,
+            check=True,
+            text=True,
         )
     except (OSError, subprocess.CalledProcessError):
         return None
