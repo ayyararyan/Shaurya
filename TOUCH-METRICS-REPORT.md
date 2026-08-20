@@ -121,47 +121,74 @@ quote, and by a measurable amount.
 
 ## TOUCH-04 — the empirical rerun
 
-Run on a **bounded 15-minute slice** (05:30–05:45 UTC) of the 11:30 snapshot, read-only, with
-CCZ level counts `(1, 5, 10)`. 3,433 observations; 2,403 train / 454 embargoed / 576 test. The
-Stoikov chain fitted on training rows only: 27 estimable states, converged, spectral radius 0.944.
+Run on a **bounded 15-minute slice** (05:30–05:45 UTC) of the 11:30 snapshot, read-only, with CCZ
+level counts `(1, 5, 10)`. 3,433 observations; 2,403 train / 454 embargoed / 576 test. The Stoikov
+chain was fitted on training rows only: 27 estimable states, converged, spectral radius 0.944.
 
-This is a **bounded exploratory slice, not the frozen grid**: the full-session artifact at
-`M = 200` across four reference prices and two bases is hours of compute and was not run. Every
-number below is from that slice and inherits its sampling.
+This is a **bounded exploratory slice, not the frozen grid.** The full-session artifact at
+`M = 200` across the whole ladder is hours of compute and was not run. Every number below inherits
+this slice's sampling, and `n = 576` held-out rows is small.
 
-Best incremental out-of-sample R² over `M0`, by reference price:
+Best incremental out-of-sample R² over `M0`, with each cell's own past mirror:
 
-| reference · basis | status | top cells (model, h1, h2, Δ pp) |
-|---|---|---|
-| `displayed_mid` · displayed | estimated | M2 5s/10s **+4.08**, M2 10s/5s +3.68, M2 10s/10s +3.25 |
-| `displayed_mid` · effective_touch | **uncovered** | insufficient common support |
-| `last_trade` · displayed | estimated | **M5 10s/2s +5.97**, M5 10s/1s +5.48, M5 10s/5s +5.36, M4 10s/10s +4.42 |
-| `last_trade` · effective_touch | **uncovered** | insufficient common support |
-| `effective_touch_mid` · both | *see log* | — |
-| `microprice` · both | *see log* | — |
+| reference · basis | model | h1 / h2 | future Δ pp | past mirror Δ pp | past mirror | IC | hit rate vs majority null |
+|---|---|---|---:|---:|---|---:|---:|
+| `displayed_mid` · displayed | M2 | 5s / 10s | +4.08 | +8.81 | fails | +0.092 | -0.233 |
+| `displayed_mid` · displayed | M2 | 10s / 5s | +3.68 | +12.99 | fails | +0.225 | -0.272 |
+| `displayed_mid` · displayed | M2 | 10s / 10s | +3.25 | +23.75 | fails | +0.032 | -0.306 |
+| `displayed_mid` · effective_touch | **uncovered** | — | — | — | — | — |
+| `last_trade` · displayed | M5 | 10s / 2s | +5.97 | -53.70 | **passes** | +0.234 | -0.393 |
+| `last_trade` · displayed | M5 | 10s / 1s | +5.48 | -25.00 | **passes** | +0.228 | -0.404 |
+| `last_trade` · displayed | M5 | 10s / 5s | +5.36 | -71.07 | **passes** | +0.313 | +0.000 |
+| `last_trade` · effective_touch | **uncovered** | — | — | — | — | — |
+| `effective_touch_mid` · displayed | M8 | 0.5s / 10s | +1.69 | -0.27 | **passes** | +0.037 | -0.215 |
+| `effective_touch_mid` · displayed | M8 | 1s / 10s | +1.69 | -0.27 | **passes** | +0.037 | -0.215 |
+| `effective_touch_mid` · displayed | M8 | 2s / 10s | +1.69 | -0.27 | **passes** | +0.037 | -0.215 |
+| `effective_touch_mid` · effective_touch | **uncovered** | — | — | — | — | — |
+| `microprice` · displayed | M7 | 0.5s / 2s | +8.63 | +7.42 | **passes** | +0.392 | -0.170 |
+| `microprice` · displayed | M7 | 1s / 2s | +8.63 | +7.42 | **passes** | +0.392 | -0.170 |
+| `microprice` · displayed | M7 | 2s / 2s | +8.63 | +7.42 | **passes** | +0.392 | -0.170 |
+| `microprice` · effective_touch | **uncovered** | — | — | — | — | — |
 
-**Under the displayed mid the 11:30 inversion reproduces**: signed trade imbalance `M2` on top,
-book-derived families behind it. **Under the last traded price the ranking flips**: the
-depth-scaled multi-level CCZ OFI `M5` takes the top four cells at +5.4 to +6.0 pp, ahead of
-anything `M2` achieves under any reference. **The predictors did not change. Only the price the
-return is measured against changed.** That is the result the specification was designed to
-produce, and it supports the hypothesis: the book-derived families were being scored against the
-wrong reference price.
+**Three things come out of this, in order of importance.**
 
-Two caveats that matter and are not rhetorical:
+**1. The result that motivated the whole specification fails its own past mirror.** Signed trade
+imbalance `M2` under the displayed mid gives +4.08 pp — reproducing the 11:30 finding that put it
+above every book-derived object. Its past mirror gives **+8.81 to +23.75 pp**. The same
+construction "predicts" past returns two to seven times better than future ones. A predictor
+cannot have information about the past, so this is a property of the construction, not of the
+signal. `M2`'s lead over the book-derived families should not be treated as a predictive result
+until that is explained.
 
-1. **The `last_trade` path is thin.** It carries 255 points on this slice against 1,793 for the
-   displayed mid, because prints are far sparser than depth20 publications. Its as-of returns are
-   correspondingly coarser and staler. Part of the R² gain could be that a staler reference price
-   is a smoother, more predictable series — a mechanical effect, not information. **The past
-   mirror is the test that separates these, and it is in the artifact.**
-2. **The effective-touch predictor basis could not be scored at all.** With the touch defined at
-   only ~36% of anchors (2,387 of 3,739 depth200 states undefined on this slice), the
-   common-sample intersection leaves too few rows. This is recorded as `uncovered`, never as a
-   silent omission, and it is a real negative result: **`TOUCH-04`'s re-derived predictors are
-   implemented and tested but are not evaluable on this feed at the current print rate.**
+**2. The book-derived family does recover, and it survives the mirror.** Under the **last traded
+price** as the return reference, with the predictors completely unchanged, depth-scaled
+multi-level CCZ OFI `M5` takes the top cells at **+5.36 to +5.97 pp** against past mirrors of
+**−25 to −71 pp** — it does far worse than the baseline on past returns, which is the opposite of
+the leakage signature. Information coefficients of +0.23 to +0.31. **This is the specification's
+hypothesis holding: the book-derived families were being scored against the wrong reference
+price, and they recover when it is corrected.**
 
----
+**3. Every one of these cells is a losing signal on sign accuracy.** Excess hit rate over the
+majority-class null is **−0.17 to −0.40** almost everywhere. A positive R² increment with a hit
+rate below the majority-class null means the fit is capturing magnitude, or a handful of large
+moves, while getting the direction wrong more often than always guessing the common direction.
+This is precisely the failure `METRIC-02` was added to make visible, and R² alone concealed it.
+
+**Two caveats that are not rhetorical.**
+
+- **The `last_trade` path is thin.** It carries 255 points on this slice against 1,793 for the
+  displayed mid, because prints are far sparser than depth20 publications. Its as-of returns are
+  coarser and staler, and part of the R² gain could be that a staler reference is a smoother, more
+  predictable series. The past mirror is the test that separates a smoother series from real
+  information, and `M5` passes it by a wide margin — but on 576 held-out rows from one 15-minute
+  slice, that is a screening result, not a finding.
+- **The effective-touch predictor basis could not be scored at all.** With the touch undefined at
+  2,387 of 3,739 depth200 states on this slice, the common-sample intersection leaves too few rows
+  at every reference price. All four `effective_touch` combinations are recorded as `uncovered`,
+  never silently omitted. **`TOUCH-04`'s re-derived predictors are implemented and tested but are
+  not evaluable on this feed at the current print rate.** The `microprice` and `M7` cell
+  (+8.63 pp, past mirror +7.42 pp) passes only marginally and should be read as near-mechanical:
+  the microprice mean-reverts toward the mid, so its own tilt predicts its own reversion.
 
 ## What was implemented
 
@@ -203,7 +230,44 @@ signed, degraded and coalesced counts. **Nothing was discarded.**
 
 ## Verification
 
-Run from `/Users/maheit/Documents/Shaurya-ccz`. Verbatim output is in the section below.
+Run from `/Users/maheit/Documents/Shaurya-ccz` at commit `693f0bb`.
+
+```
+$ .venv/bin/python -m pytest -q
+657 passed, 10 warnings in 173.97s (0:02:53)
+
+$ .venv/bin/python -m ruff check .
+All checks passed!
+
+$ .venv/bin/python -m ruff format --check .
+30 files would be reformatted, 165 files already formatted
+
+$ .venv/bin/python -m ruff format --check <the 15 files this work touched>
+15 files already formatted
+
+$ .venv/bin/python -m mypy src
+Success: no issues found in 64 source files
+```
+
+**On the test count.** The brief records a 576-test baseline. At `a63e6a5` — the salvaged-draft
+commit this work started from — the suite was **577**; it is now **657**, so this work added
+**80 tests** and removed none. No test was weakened: three assertions in
+`test_ofi_horserace.py` and `test_ofi_dashboard.py` were updated because the model grid genuinely
+grew from seven families to nine (`M7`, `M8`), and `test_ofi_dashboard.py` gained
+`test_grid_size_is_pinned_to_the_declared_family_and_axis_counts`, which pins the new grid size
+explicitly so a future change to `MODEL_ORDER` cannot silently resize it.
+
+**On `ruff format --check .`.** It did not pass before this work and does not pass now. At
+`a63e6a5` **48 files** would have been reformatted; at `693f0bb` it is **30**. Every one of the
+15 files this work touched is formatted; the remaining 30 are a pre-existing backlog that
+predates `D37` and was not in scope to churn.
+
+**Causal / leakage audit: passed.** `assert_no_lookahead` runs on every artifact build.
+`VAL-TOUCH-01` asserts that a print stamped exactly at the anchor is excluded, at every declared
+window. `VAL-MICRO-01` refuses any Stoikov transition whose mid change *resolves* at or after the
+training boundary, rather than trimming it. The reference-price paths refuse to resolve an
+endpoint past their last observation, so a right-edge return is missing rather than a fabricated
+zero.
 
 ## Residual risks
 
@@ -216,8 +280,9 @@ Run from `/Users/maheit/Documents/Shaurya-ccz`. Verbatim output is in the sectio
    subsample: the anchors where trading was two-sided and the mid was quiet. That selection is
    almost certainly correlated with the return being predicted.
 3. **The `last_trade` recovery may be partly mechanical.** A sparser reference price is a smoother
-   series. The past mirror is the discriminating test and is emitted; on the bounded slice it was
-   computed but the full comparison has not been read into this report.
+   series. The past mirror is the discriminating test, `M5` passes it by −25 to −71 pp, and that
+   is the strongest evidence available — but it rests on 576 held-out rows from one 15-minute
+   slice with 255 reference points. It needs the full session before it is more than a screen.
 4. **The `M8` chain is estimated on displayed level-one queues** (`ID-MICRO-01`). Where the
    displayed level one is not the touch, the state variable is mis-located and the fitted
    adjustment is a conditional expectation given the wrong state.
@@ -233,6 +298,25 @@ Run from `/Users/maheit/Documents/Shaurya-ccz`. Verbatim output is in the sectio
    simply has no 60 s cell. Lengthening the warm-up instead would have discarded predictive
    observations to serve a diagnostic.
 
+## Contradictions found against the specification
+
+- **`ID-CKS-02`'s 42–48% does not replicate** (see `TOUCH-01`). The specification's §0 motivation
+  is built on it. The mechanism survives; the magnitude does not.
+- **The effective touch is not usable as a general reference price on this feed.** §A of the
+  specification treats `TOUCH-02` as the estimator that fixes the reference; the measurement says
+  it is defined at 38% of anchors at best. Nothing in the specification anticipated that, and it
+  is the reason `TOUCH-04`'s re-derived predictor basis is implemented but unevaluable.
+- **The specification assumes the 11:30 `M2` result is the thing to be explained.** The past
+  mirror says `M2`'s lead may itself be an artefact of the construction. That reframes the
+  question rather than answering it.
+- **`WINDOW-03`'s "at every depth" was ambiguous.** For a CCZ object, depth is the level count
+  `M`, not the model family. Implemented both ways: `same_window_curve` per family and
+  `evaluate_same_window_by_depth` / `depth_r2_curve` across every declared `M ∈ {1, 5, 10, 20,
+  200}`.
+- **`METRIC-03` does not define "fees".** Implemented as a declared four-arm grid — gross, half
+  spread only, half spread plus exchange and stamp, half spread plus full statutory — rather than
+  one hidden number, and labelled `object_category: scenario_based`.
+
 ## Explicitly not done
 
 - **Nothing is live verified.** Evidence level 2 (Tested) for every requirement; the `TOUCH-01`
@@ -247,3 +331,14 @@ Run from `/Users/maheit/Documents/Shaurya-ccz`. Verbatim output is in the sectio
 - **Nothing was pushed.** Local commits on `ccz-ofi-migration` only.
 - **`ruff format --check .` does not pass repository-wide** and did not before this work: 47 files
   were already unformatted at `be2dd99`. Every file this work touched is formatted.
+
+## Open decisions
+
+**One decision is genuinely Aryan's and I did not take it.** `TOUCH-01` refutes the `ID-CKS-02`
+figure on today's tape but not the mechanism. `ID-CKS-02` is a frozen amendment to a different
+specification (`CKS-L1-OFI`), and correcting its recorded numbers is a change to that document,
+not to `D38`. I have recorded the discrepancy here and in the artifacts; I have **not** edited
+`docs/CKS-L1-OFI-SPEC-AMENDMENT-1-2026-08-19.md`. If the amendment should carry the updated
+range, that is a one-line change-control note against it.
+
+**Everything else in the frozen `D38` scope was implemented without asking**, per §17.
