@@ -889,7 +889,7 @@ tr:last-child td { border-bottom:none; }
   color:var(--brick); letter-spacing:.1em; font-size:11px; }
 
 .mispricing-panel {
-  flex:none; height:260px; min-height:180px; overflow:auto;
+  flex:none; height:340px; min-height:220px; overflow:auto;
   border-top:1px solid var(--rule); background:var(--panel); padding:11px 18px 16px;
 }
 .mispricing-head { display:flex; align-items:baseline; gap:14px; margin-bottom:4px; }
@@ -898,13 +898,13 @@ tr:last-child td { border-bottom:none; }
 }
 .mispricing-head p { margin:0; color:var(--ink-3); font-size:9.5px; }
 .mispricing-notes { color:var(--ink-3); font-size:10px; margin:0 0 8px; }
-.mispricing-tables { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+.mispricing-tables { display:grid; grid-template-columns:1fr; gap:14px; }
 .mispricing-table { min-width:0; overflow-x:auto; }
 .mispricing-table h3 {
   margin:0 0 5px; color:var(--ink-3); font-size:9px; font-weight:600;
   letter-spacing:.14em; text-transform:uppercase;
 }
-.mispricing-table table { min-width:1060px; }
+.mispricing-table table { min-width:1560px; }
 .mispricing-table th, .mispricing-table td { white-space:nowrap; }
 
 @media (max-width:1080px) {

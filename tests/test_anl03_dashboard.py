@@ -335,6 +335,8 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert "gap closed t" in html
     assert "target_option_contribution_ticks" in html
     assert "reference_market_contribution_ticks" in html
+    assert "grid-template-columns:1fr; gap:14px" in html
+    assert "min-width:1560px" in html
 
 
 def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> None:
