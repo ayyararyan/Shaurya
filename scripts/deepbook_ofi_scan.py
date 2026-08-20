@@ -7,8 +7,12 @@ import argparse
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts.sig21_construction_replay import (
     capture_metrics_for,
@@ -22,6 +26,11 @@ from shaurya.data.depth_thinning_analysis import (
     DEPTH200,
     build_states,
     build_states_streaming,
+)
+from shaurya.data.ofi_live_partial import (
+    inspect_late_partial_snapshot,
+    iter_late_partial_rows,
+    partial_claim,
 )
 from shaurya.data.ofi_replication import (
     PROTOCOL_ID as REPLICATION_PROTOCOL_ID,
@@ -58,15 +67,27 @@ def code_commit() -> str | None:
 
 
 def build_tape_input(
-    tape: Path, *, tape_index: int, full_session_replication: bool = False
+    tape: Path,
+    *,
+    tape_index: int,
+    full_session_replication: bool = False,
+    late_partial_exploratory: bool = False,
 ) -> OFITapeInput:
-    metrics = capture_metrics_for(tape)
-    run_id, instrument_id, _, _ = verify_instrument(metrics, tape)
-    computed = sha256_file(tape)
-    recorded = manifest_sha256_for(tape)
-    if recorded is not None and recorded != computed:
-        raise ValueError(f"{tape} SHA-256 {computed} does not match manifest {recorded}")
-    if full_session_replication:
+    if late_partial_exploratory:
+        snapshot = inspect_late_partial_snapshot(tape)
+        run_id = snapshot.run_id
+        instrument_id = snapshot.instrument_id
+        computed = snapshot.tape_sha256
+        depth200 = build_states_streaming(iter_late_partial_rows(tape), DEPTH200)
+        depth20 = build_states_streaming(iter_late_partial_rows(tape), DEPTH20)
+    else:
+        metrics = capture_metrics_for(tape)
+        run_id, instrument_id, _, _ = verify_instrument(metrics, tape)
+        computed = sha256_file(tape)
+        recorded = manifest_sha256_for(tape)
+        if recorded is not None and recorded != computed:
+            raise ValueError(f"{tape} SHA-256 {computed} does not match manifest {recorded}")
+    if full_session_replication and not late_partial_exploratory:
         receipt = inspect_replication_capture(
             tape,
             metrics,
@@ -76,7 +97,7 @@ def build_tape_input(
         require_accepted_receipt(receipt)
         depth200 = build_states_streaming(iter_session_rows(tape), DEPTH200)
         depth20 = build_states_streaming(iter_session_rows(tape), DEPTH20)
-    else:
+    elif not late_partial_exploratory:
         assert_permitted_tape(run_id=run_id, tape_sha256=computed)
         rows = list(iter_tape_rows(tape))
         depth200 = build_states(rows, DEPTH200)
@@ -120,23 +141,30 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--nested-output", required=True, type=Path)
     parser.add_argument("--replicates", type=int, default=BLOCK_BOOTSTRAP_REPLICATES)
     parser.add_argument("--seed", type=int, default=BOOTSTRAP_SEED)
-    parser.add_argument(
+    scope = parser.add_mutually_exclusive_group()
+    scope.add_argument(
         "--full-session-replication",
         action="store_true",
         help="Validate and clip the registered R-OFI-FULLSESSION-2026-08-20 tape instead of "
         "using the immutable DAT-20 exploratory allowlist.",
     )
+    scope.add_argument(
+        "--late-partial-exploratory",
+        action="store_true",
+        help="Run X-OFI-LATEPARTIAL-2026-08-20 on its exact immutable snapshot.",
+    )
     return parser
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    if args.full_session_replication and len(args.tape) != 1:
-        raise ValueError("the registered full-session replication consumes exactly one tape")
+    if (args.full_session_replication or args.late_partial_exploratory) and len(args.tape) != 1:
+        raise ValueError("the one-session scoped modes consume exactly one tape")
     tapes = [
         build_tape_input(
             tape,
             tape_index=index,
             full_session_replication=args.full_session_replication,
+            late_partial_exploratory=args.late_partial_exploratory,
         )
         for index, tape in enumerate(args.tape)
     ]
@@ -154,6 +182,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "sample_role": "prospective_full_session_replication",
             "confirmatory_eligible": False,
         }
+    if args.late_partial_exploratory:
+        artifact["partial_session_exploration"] = partial_claim(
+            "X-OFI-DAT20-03", inspect_late_partial_snapshot(args.tape[0])
+        )
     return artifact
 
 

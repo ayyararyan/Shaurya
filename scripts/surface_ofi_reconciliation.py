@@ -10,9 +10,13 @@ import io
 import json
 import os
 import subprocess
+import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts.ofi_horserace import (
     _ablation_csv,

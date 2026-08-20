@@ -28,10 +28,23 @@ from shaurya.data.ofi_replication import (
 )
 
 
-def test_full_session_controller_direct_script_help_works_from_other_cwd(
+@pytest.mark.parametrize(
+    "script_name",
+    [
+        "ofi_full_session_controller.py",
+        "deepbook_ofi_scan.py",
+        "cks_l1_ofi_scan.py",
+        "ofi_horserace.py",
+        "surface_ofi_reconciliation.py",
+        "sig21_exploratory_response_scan.py",
+        "deepbook_normal_activity_scan.py",
+    ],
+)
+def test_script_namespace_entrypoints_work_directly_from_other_cwd(
     tmp_path: Path,
+    script_name: str,
 ) -> None:
-    controller = Path(__file__).resolve().parents[1] / "scripts/ofi_full_session_controller.py"
+    controller = Path(__file__).resolve().parents[1] / "scripts" / script_name
 
     result = subprocess.run(
         [sys.executable, str(controller), "--help"],
@@ -42,7 +55,8 @@ def test_full_session_controller_direct_script_help_works_from_other_cwd(
     )
 
     assert result.returncode == 0, result.stderr
-    assert "--repo-root" in result.stdout
+    assert "usage:" in result.stdout
+    assert Path(script_name).stem in result.stdout
 
 
 def _metrics() -> dict[str, object]:
