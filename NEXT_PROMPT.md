@@ -6,6 +6,44 @@ below supersedes every older reset section retained as history.
 **Repository:** private `ayyararyan/Shaurya`
 **Canonical status ledger:** `TASKS.md`
 
+## RESET HANDOFF — 2026-08-20 EFFECTIVE TOUCH / TOUCH-01, READ THIS FIRST
+
+**Supersedes every section below.** Prepared 14:30 IST immediately before a deliberate reset.
+
+**The open question is `TOUCH-01`:** what share of trade prints land strictly **inside** the
+displayed best bid/ask on our own tape. Subagent `touch_metrics_d38`
+(`fb91efe1-f55d-420f-afad-0aee9d5fe670`) is producing it under `D38 / TOUCH-METRICS-2026-08-20`
+(`docs/TOUCH-METRICS-SPEC-2026-08-20.md`, commit `7570443`).
+
+- **~45%** (the `ID-CKS-02` range is 42-48%) means the displayed L1 **is not the touch**, which
+  explains the inversion below and means the book-derived OFI family has never had a fair test.
+- **~0%** means the diagnosis is **wrong** — report that plainly; signed trade flow is then simply
+  the better predictor here, and the reference-price work should be de-prioritised, not continued
+  quietly.
+
+**The inversion** (11:30 checkpoint, future returns, best cell per family):
+`M2` signed trade imbalance **+1.54 pp** over M0 > `M4` multi-level OFI +0.88 > `M5` +0.21 >
+`M3` CKS L1 -0.02 > `M1` static L1 queue imbalance **-0.01 and negative at all five horizons**.
+(`M6` +1.82 but VIF>100, uninterpretable.) The trade-side object beats every book-derived object,
+and the two the literature rates highest for short-horizon prediction fail worst.
+
+**Do not re-derive these.** CKS's ~65% and CCZ's 87.14% are **contemporaneous**, not predictive.
+CCZ's predictive out-of-sample R2 (Table 8, next-1-minute) is **negative for every model**:
+-0.37% / -0.36% / -0.10%. Our negative predictive R2 replicates theirs and is not a defect. The
+real gap is **contemporaneous**: ours is 16.34% at 10 levels/10s and 7.31% at best-level/10s
+against their 64.64% OOS best-level. Two evidenced causes — CCZ's contemporaneous h is **1 minute**
+while our grid stops at 10s (our R2 is monotone increasing and still climbing at the ceiling), and
+snapshot subsampling at **4.16/s** depth200 and **1.99/s** depth20 versus every-message ITCH data.
+
+**Standing rule:** never judge seconds-ahead forecasts by R2 alone. IC, sign accuracy and
+net-of-cost PnL are operative (`METRIC-01..05`).
+
+**Constraints.** All work is in the isolated clone `/Users/maheit/Documents/Shaurya-ccz`, branch
+`ccz-ofi-migration`. **Do not write to `/Users/maheit/Documents/Shaurya`** — live capture tmux
+`ofi-late-partial-20260820` and checkpoint controller `ofi-partial-live-20260820` (unit due 15:42)
+run against it. Nothing is pushed; the branch needs a rebase. `OPS-CCZ-02`: the controller checks
+its commit pin only at preflight, so the 11:30 unit ran off-pin — numbers valid, label false.
+
 ## RESET HANDOFF — 2026-08-20 FULL-SESSION OFI REPLICATION, READ THIS FIRST
 
 Aryan directed one same-day NIFTY front-month futures capture over the complete current NSE
