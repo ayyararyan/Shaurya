@@ -342,3 +342,72 @@ not to `D38`. I have recorded the discrepancy here and in the artifacts; I have 
 range, that is a one-line change-control note against it.
 
 **Everything else in the frozen `D38` scope was implemented without asking**, per §17.
+
+---
+
+## Addendum, 2026-08-20 16:05 IST — absolute R², and two admitted method defects
+
+### Absolute out-of-sample R² (the frozen probe recorded only increments)
+
+The probe was rerun on the identical slice, identical seeds, with `oos_r2_training_mean`
+recorded per cell. Every increment reproduced exactly, so this is the same run with a
+restored column. Artifact:
+`artifacts/touch-metrics-d38-20260820/touch04_reference_ladder_probe_1130_0530-0545utc_with_absolute_r2.json`.
+
+| reference · model | h1/h2 | **abs OOS R²** | incr over M0 | past-mirror abs | IC | hit vs majority null | test n |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `displayed_mid` · M2 | 5s/10s | +2.302% | +4.082 pp | +6.746% | +0.092 | −0.233 | 468 |
+| `displayed_mid` · M2 | 10s/5s | +4.449% | +3.681 pp | +4.008% | +0.225 | −0.272 | 478 |
+| `last_trade` · **M5** | **10s/2s** | **+5.029%** | +5.968 pp | **−60.696%** | +0.234 | −0.393 | 468 |
+| `last_trade` · M5 | 10s/1s | +4.717% | +5.478 pp | −28.709% | +0.228 | −0.404 | 473 |
+| `last_trade` · M5 | 10s/5s | +2.722% | +5.358 pp | −83.101% | +0.313 | +0.000 | 456 |
+| `effective_touch_mid` · M8 | 0.5s/10s | +3.436% | +1.694 pp | −6.036% | +0.037 | −0.215 | 405 |
+| `microprice` · M7 | 0.5s/2s | +10.223% | +8.631 pp | −1.176% | +0.392 | −0.170 | 483 |
+
+**Report the absolute, not the increment.** Baseline `M0` absolute R² varies enormously by
+reference price — `last_trade` −13.426% .. −0.426%, `microprice` +0.612% .. +12.009% — so an
+increment over `M0` is not comparable across references. The `microprice` · `M7` cell is the
+clearest case: +8.631 pp of increment sits on an `M0` that already reaches +12.009%, and the
+reference price is doing the work. **The headline defensible figure is `last_trade` · `M5`,
+10s/2s, absolute OOS R² = +5.029% on 468 held-out rows.**
+
+### Defect 1 — the evaluation standard moved between reports (`ID-METHOD-01`)
+
+Across `X-OFI-DAT20-03`, the 11:30 horse race and this report, the stated bar changed from
+"beats `M0` on R²", to "beats its own past mirror", to "beats the majority-class sign null."
+Those are three different objects: a baseline, a **leakage guard**, and a **different metric's
+null**. Rotating between them is a moving goalpost and it invalidates cross-report comparison
+even where the individual numbers are correct.
+
+The past mirror is a *falsifier*, not a benchmark. It can only ever disqualify. It must never be
+a ranking key and must never be quoted as evidence of strength.
+
+The correct question is single and fixed: **for one declared target, which candidate predicts it
+best?** — with lagged returns, signed trade sign, and the majority-class rule all entered as
+ordinary competitors on the same held-out rows, not as hurdles applied selectively. This is
+`D39`'s mandate.
+
+### Defect 2 — bid-ask bounce is unaddressed under the `last_trade` reference (`ID-BOUNCE-01`)
+
+The headline +5.029% is measured on returns of the **last traded price**. Consecutive prints
+alternate between the bid and the ask, so the target contains a mechanical bounce component. On
+this feed that is not second-order: median displayed spread is 54–58 ticks and ~30% of prints
+execute strictly inside it.
+
+This cuts both ways and the direction is not yet known:
+
+- Bounce is noise in the target, which *depresses* R² — under which +5.029% is conservative.
+- But bounce is also a mechanically **forward-predictable** reversal. Any predictor carrying
+  information about the side of the last print can forecast the next print's reversal without
+  carrying any information about value. `M5`'s pipeline uses trade-direction classification.
+- **The past mirror does not catch this.** Bounce reversal genuinely predicts forward and not
+  backward, so it passes the guard while being economically empty. This is precisely the failure
+  mode the guard cannot see.
+
+`ID-BOUNCE-01` is therefore an open threat to the headline result, not a caveat. It is discharged
+only by a bounce-free reference price and by entering lagged returns as a competitor — a pure
+autoregression should absorb most of a bounce-driven R², since bounce is a mechanical negative
+AR(1). Specified for `D39`.
+
+**Status of `last_trade` · `M5` +5.029%: a screening lead under an unresolved mechanical
+alternative explanation. Not a finding.**
