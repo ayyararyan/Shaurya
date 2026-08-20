@@ -329,6 +329,12 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert "mispricingActiveBody" in html
     assert "mispricingRecentBody" in html
     assert "exact confirmed" in html
+    assert "entry gap t" in html
+    assert "target Δ t" in html
+    assert "reference Δ t" in html
+    assert "gap closed t" in html
+    assert "target_option_contribution_ticks" in html
+    assert "reference_market_contribution_ticks" in html
 
 
 def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> None:
@@ -343,6 +349,8 @@ def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> N
     )
     assert monitor["policy"]["order_authority"] == "none_read_only_research_monitor"
     assert monitor["surface_mode"] == "fresh_raw_strike_cross_fit_research_only"
+    assert "target-option" in monitor["correction_semantics"]
+    assert "reference-market" in monitor["correction_semantics"]
     assert isinstance(monitor["active"], list)
     assert isinstance(monitor["recent"], list)
     history = build_history_payload(engine, 0)

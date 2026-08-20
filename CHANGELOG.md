@@ -17,7 +17,10 @@ to strategies that pin the package.
   visible exit/hedge slippage, displayed-one-lot and positive-net-edge gates.
 - Added causal two-frame confirmation and correction. First-seen time is retained through
   confirmation; unavailable/stale/missing/unsupported paths are censored rather than called
-  corrected; completed rows retain market-led, surface-led or mixed endpoint attribution.
+  corrected. Owner amendment 1 replaces misleading market/surface labels with signed
+  target-option/reference-market endpoint accounting: entry gap, both contributions, net gap
+  closed, exact identity residual, closing gate, and target-option-led/reference-market-led/mixed
+  attribution are carried in every episode and rendered in both tables.
 - Added full policy and lifecycle state to every surface snapshot, `/api/state`, and
   `/api/history`; the ANL-05 screen now has full-width Active confirmed and Recently
   corrected/censored tables below the surface. The monitor is explicitly surface-relative,
@@ -28,6 +31,9 @@ to strategies that pin the package.
   41 focused tests and 545 full-suite tests pass; Ruff, strict mypy (59 source files), and
   compileall are clean; a headless-browser probe rendered the warming state and both lifecycle
   tables. Real retained-tape replay and live verification remain pending.
+- Owner-amendment validation: 35 focused dashboard/detector tests and 549 full-suite tests pass;
+  Ruff, strict mypy (59 source files), and compileall are clean. The live restart and rendered
+  signed traces are a separate deployment check, not a profitability or fill claim.
 
 ### `X-OFI-DASHBOARD-2026-08-20` — dynamic read-only OFI horse-race dashboard (`ANL-06`)
 

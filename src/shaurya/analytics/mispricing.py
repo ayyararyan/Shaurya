@@ -233,6 +233,43 @@ class _ActiveEpisode:
 
 
 @dataclass(frozen=True, slots=True)
+class GapCloseTrace:
+    """Signed endpoint accounting for a target/reference dislocation.
+
+    Both legs are market-derived.  ``target_option_contribution`` is the movement in the
+    executable quote of the contract being classified; ``reference_market_contribution`` is
+    the movement in the strike-held-out fair-band boundary built from the other contracts.
+    Positive values close the entry gap and negative values widen it.
+    """
+
+    entry_executable_price: float
+    close_executable_price: float
+    entry_reference_boundary: float
+    close_reference_boundary: float
+    entry_gap: float
+    close_gap: float
+    gap_closed: float
+    target_option_contribution: float
+    reference_market_contribution: float
+    entry_gap_ticks: float
+    close_gap_ticks: float
+    gap_closed_ticks: float
+    target_option_contribution_ticks: float
+    reference_market_contribution_ticks: float
+    target_option_share: float | None
+    reference_market_share: float | None
+    attribution: str
+    closure_gate: str | None
+    identity_error: float
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            name: getattr(self, name)
+            for name in self.__dataclass_fields__
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class MispricingEpisode:
     episode_id: str
     status: EpisodeStatus
@@ -250,6 +287,7 @@ class MispricingEpisode:
     peak_net_edge: float
     correction_driver: str | None
     censor_reason: str | None
+    gap_close_trace: GapCloseTrace
     latest: MispricingObservation
 
     def to_dict(self) -> dict[str, object]:
@@ -271,6 +309,7 @@ class MispricingEpisode:
             "peak_net_edge": self.peak_net_edge,
             "correction_driver": self.correction_driver,
             "censor_reason": self.censor_reason,
+            "gap_close_trace": self.gap_close_trace.to_dict(),
         }
 
 
@@ -312,7 +351,8 @@ class MispricingFrame:
             "surface_mode": "fresh_raw_strike_cross_fit_research_only",
             "correction_semantics": (
                 "two consecutive valid frames with non-positive after-cost edge; "
-                "stale/disappeared/unsupported observations are censored, not corrected"
+                "stale/disappeared/unsupported observations are censored, not corrected; "
+                "target-option and held-out reference-market movements are signed separately"
             ),
         }
 
@@ -827,9 +867,16 @@ class SurfaceMispricingDetector:
         *,
         now: datetime,
         status: EpisodeStatus = EpisodeStatus.ACTIVE,
-        correction_driver: str | None = None,
         censor_reason: str | None = None,
     ) -> MispricingEpisode:
+        trace = self._gap_close_trace(
+            active,
+            closure_gate=(
+                self._closure_gate(active)
+                if status is EpisodeStatus.CORRECTED
+                else None
+            ),
+        )
         return MispricingEpisode(
             episode_id=active.episode_id,
             status=status,
@@ -845,30 +892,90 @@ class SurfaceMispricingDetector:
             duration_seconds=max(0.0, (now - active.first_seen_at).total_seconds()),
             peak_gross_edge=active.peak_gross_edge,
             peak_net_edge=active.peak_net_edge,
-            correction_driver=correction_driver,
+            correction_driver=(
+                trace.attribution if status is EpisodeStatus.CORRECTED else None
+            ),
             censor_reason=censor_reason,
+            gap_close_trace=trace,
             latest=active.latest,
         )
 
     @staticmethod
-    def _correction_driver(active: _ActiveEpisode) -> str:
+    def _closure_gate(active: _ActiveEpisode) -> str:
+        latest = active.latest
+        if latest.direction is None:
+            return "inside_uncertainty_band"
+        if latest.direction is not active.direction:
+            return "direction_reversed"
+        if latest.net_edge <= 0:
+            return "after_cost_edge_nonpositive"
+        if not latest.fdr_significant:
+            return "multiplicity_significance_lost"
+        if not latest.exact_leave_strike_confirmed:
+            return "exact_confirmation_lost"
+        return "qualification_lost"
+
+    @staticmethod
+    def _gap_close_trace(
+        active: _ActiveEpisode, *, closure_gate: str | None
+    ) -> GapCloseTrace:
         initial, latest = active.initial, active.latest
         if active.direction is MispricingDirection.CHEAP:
-            market = latest.observed_ask - initial.observed_ask
-            surface = initial.fair_lower - latest.fair_lower
+            entry_executable = initial.observed_ask
+            close_executable = latest.observed_ask
+            entry_reference = initial.fair_lower
+            close_reference = latest.fair_lower
+            entry_gap = entry_reference - entry_executable
+            close_gap = close_reference - close_executable
+            target = close_executable - entry_executable
+            reference = entry_reference - close_reference
         else:
-            market = initial.observed_bid - latest.observed_bid
-            surface = latest.fair_upper - initial.fair_upper
-        market = max(0.0, market)
-        surface = max(0.0, surface)
-        total = market + surface
-        if total <= 1e-12:
-            return "mixed_or_threshold_change"
-        if market / total >= 0.60:
-            return "market_led"
-        if surface / total >= 0.60:
-            return "surface_led"
-        return "mixed"
+            entry_executable = initial.observed_bid
+            close_executable = latest.observed_bid
+            entry_reference = initial.fair_upper
+            close_reference = latest.fair_upper
+            entry_gap = entry_executable - entry_reference
+            close_gap = close_executable - close_reference
+            target = entry_executable - close_executable
+            reference = close_reference - entry_reference
+        gap_closed = entry_gap - close_gap
+        positive_target = max(0.0, target)
+        positive_reference = max(0.0, reference)
+        positive_total = positive_target + positive_reference
+        target_share = positive_target / positive_total if positive_total > 1e-12 else None
+        reference_share = (
+            positive_reference / positive_total if positive_total > 1e-12 else None
+        )
+        if gap_closed <= 1e-12 or positive_total <= 1e-12:
+            attribution = "gap_not_closed"
+        elif target_share is not None and target_share >= 0.60:
+            attribution = "target_option_led"
+        elif reference_share is not None and reference_share >= 0.60:
+            attribution = "reference_market_led"
+        else:
+            attribution = "mixed"
+        tick_size = initial.tick_size
+        return GapCloseTrace(
+            entry_executable_price=entry_executable,
+            close_executable_price=close_executable,
+            entry_reference_boundary=entry_reference,
+            close_reference_boundary=close_reference,
+            entry_gap=entry_gap,
+            close_gap=close_gap,
+            gap_closed=gap_closed,
+            target_option_contribution=target,
+            reference_market_contribution=reference,
+            entry_gap_ticks=entry_gap / tick_size,
+            close_gap_ticks=close_gap / tick_size,
+            gap_closed_ticks=gap_closed / tick_size,
+            target_option_contribution_ticks=target / tick_size,
+            reference_market_contribution_ticks=reference / tick_size,
+            target_option_share=target_share,
+            reference_market_share=reference_share,
+            attribution=attribution,
+            closure_gate=closure_gate,
+            identity_error=gap_closed - target - reference,
+        )
 
     def _update_episodes(
         self,
@@ -904,7 +1011,6 @@ class SurfaceMispricingDetector:
                     active,
                     now=now,
                     status=EpisodeStatus.CORRECTED,
-                    correction_driver=self._correction_driver(active),
                 )
                 self._recent.appendleft(closed)
                 del self._active[instrument_id]

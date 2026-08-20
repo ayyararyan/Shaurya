@@ -624,14 +624,19 @@ function renderMispricing(payload) {
 
   const row = (episode, recent) => {
     const market = episode.direction === 'cheap' ? episode.observed_ask : episode.observed_bid;
+    const trace = episode.gap_close_trace || {};
+    const words = (value) => String(value || '').replaceAll('_', ' ');
+    const signed = (value) => value === null || value === undefined
+      ? '\u2014' : ((Number(value) > 0 ? '+' : '') + fmt(value, 2));
     const clock = recent
       ? ((episode.corrected_at || episode.last_observed_at || '').slice(11, 19))
       : ((episode.first_seen_at || '').slice(11, 19));
     const outcome = recent
       ? (episode.status === 'corrected'
-        ? (episode.correction_driver || 'corrected')
+        ? (words(trace.attribution || episode.correction_driver || 'corrected') +
+          (trace.closure_gate ? ' \u00B7 ' + words(trace.closure_gate) : ''))
         : 'censored: ' + (episode.censor_reason || 'unavailable'))
-      : fmt(episode.duration_seconds, 1) + ' s live';
+      : ('live \u00B7 ' + words(trace.attribution || 'trace warming'));
     return '<tr>' +
       '<td title="' + escapeHtml(episode.instrument_id) + '">' +
         escapeHtml(episode.expiry + ' ' + episode.strike + ' ' + episode.option_type) + '</td>' +
@@ -648,14 +653,18 @@ function renderMispricing(payload) {
       '<td class="num">' + fmt(episode.quote_age_seconds, 2) + ' s</td>' +
       '<td class="num">' + escapeHtml(clock) + '</td>' +
       '<td class="num">' + fmt(episode.duration_seconds, 1) + ' s</td>' +
+      '<td class="num">' + fmt(trace.entry_gap_ticks, 2) + '</td>' +
+      '<td class="num">' + signed(trace.target_option_contribution_ticks) + '</td>' +
+      '<td class="num">' + signed(trace.reference_market_contribution_ticks) + '</td>' +
+      '<td class="num">' + signed(trace.gap_closed_ticks) + '</td>' +
       '<td>' + escapeHtml(outcome) + '</td></tr>';
   };
   document.getElementById('mispricingActiveBody').innerHTML =
     (monitor.active || []).map((episode) => row(episode, false)).join('') ||
-    '<tr><td colspan="13" class="muted">no confirmed active mispricing</td></tr>';
+    '<tr><td colspan="17" class="muted">no confirmed active mispricing</td></tr>';
   document.getElementById('mispricingRecentBody').innerHTML =
     (monitor.recent || []).map((episode) => row(episode, true)).join('') ||
-    '<tr><td colspan="13" class="muted">no corrected or censored episodes yet</td></tr>';
+    '<tr><td colspan="17" class="muted">no corrected or censored episodes yet</td></tr>';
 }
 
 function render(payload) {
@@ -988,7 +997,13 @@ _BODY = """<!doctype html>
         <th class="num">gross ticks</th><th class="num">net ticks</th>
         <th class="num">net / lot</th><th class="num">IV resid pp</th>
         <th class="num">quote age</th><th class="num">first seen</th>
-        <th class="num">duration</th><th>outcome</th></tr></thead>
+        <th class="num">duration</th><th class="num" title="gap at confirmation">entry gap t</th>
+        <th class="num" title="positive means the target option quote closed the gap"
+          >target \u0394 t</th>
+        <th class="num" title="positive means the held-out reference market closed the gap"
+          >reference \u0394 t</th>
+        <th class="num" title="target contribution plus reference contribution">gap closed t</th>
+        <th>closure trace</th></tr></thead>
         <tbody id="mispricingActiveBody"></tbody></table>
     </div>
     <div class="mispricing-table">
@@ -998,7 +1013,13 @@ _BODY = """<!doctype html>
         <th class="num">gross ticks</th><th class="num">net ticks</th>
         <th class="num">net / lot</th><th class="num">IV resid pp</th>
         <th class="num">quote age</th><th class="num">closed</th>
-        <th class="num">duration</th><th>outcome</th></tr></thead>
+        <th class="num">duration</th><th class="num" title="gap at confirmation">entry gap t</th>
+        <th class="num" title="positive means the target option quote closed the gap"
+          >target \u0394 t</th>
+        <th class="num" title="positive means the held-out reference market closed the gap"
+          >reference \u0394 t</th>
+        <th class="num" title="target contribution plus reference contribution">gap closed t</th>
+        <th>closure trace</th></tr></thead>
         <tbody id="mispricingRecentBody"></tbody></table>
     </div>
   </div>

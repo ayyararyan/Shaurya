@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -10,6 +11,7 @@ import pytest
 
 from shaurya.analytics.mispricing import (
     InstrumentMetadata,
+    MispricingDirection,
     MispricingPolicy,
     SurfaceMispricingDetector,
 )
@@ -192,7 +194,7 @@ def test_public_black76_inversion_round_trips_a_supported_price() -> None:
     assert recovered == pytest.approx(volatility, abs=1e-10)
 
 
-def test_cheap_option_confirms_then_records_market_led_correction() -> None:
+def test_cheap_option_confirms_then_traces_target_option_led_correction() -> None:
     detector = _detector()
 
     warm = _evaluate(detector, VALUATION, _chain(VALUATION))
@@ -245,7 +247,63 @@ def test_cheap_option_confirms_then_records_market_led_correction() -> None:
     assert closed["status"] == "corrected"
     assert closed["corrected_at"] == corrected_time.isoformat()
     assert closed["duration_seconds"] == pytest.approx(15.0)
-    assert closed["correction_driver"] == "market_led"
+    assert closed["correction_driver"] == "target_option_led"
+    trace = closed["gap_close_trace"]
+    assert trace["attribution"] == "target_option_led"
+    assert trace["closure_gate"] == "inside_uncertainty_band"
+    assert trace["target_option_contribution"] > 0
+    assert trace["target_option_share"] > 0.60
+    assert trace["gap_closed"] == pytest.approx(
+        trace["target_option_contribution"]
+        + trace["reference_market_contribution"],
+        abs=1e-10,
+    )
+    assert trace["identity_error"] == pytest.approx(0.0, abs=1e-10)
+
+
+def test_gap_trace_separates_reference_market_movement_from_target_movement() -> None:
+    detector = _detector()
+    _evaluate(detector, VALUATION, _chain(VALUATION))
+    for seconds in (5, 10):
+        now = VALUATION + timedelta(seconds=seconds)
+        _evaluate(detector, now, _chain(now, target_prices=(4.98, 5.00)))
+    active = detector._active[TARGET_ID]
+    initial = active.initial
+    reference_move = 1.25
+    active.latest = replace(
+        initial,
+        fair_lower=initial.fair_lower - reference_move,
+        gross_edge=initial.gross_edge - reference_move,
+        gross_edge_ticks=(initial.gross_edge - reference_move) / initial.tick_size,
+    )
+    trace = detector._gap_close_trace(active, closure_gate="inside_uncertainty_band")
+    assert trace.attribution == "reference_market_led"
+    assert trace.target_option_contribution == pytest.approx(0.0)
+    assert trace.reference_market_contribution == pytest.approx(reference_move)
+    assert trace.gap_closed == pytest.approx(reference_move)
+    assert trace.reference_market_share == pytest.approx(1.0)
+    assert trace.identity_error == pytest.approx(0.0, abs=1e-12)
+
+    rich_initial = replace(
+        initial,
+        direction=MispricingDirection.RICH,
+        observed_bid=20.0,
+        observed_ask=20.1,
+        fair_upper=18.0,
+    )
+    active.direction = MispricingDirection.RICH
+    active.initial = rich_initial
+    active.latest = replace(rich_initial, observed_bid=19.0, fair_upper=18.5)
+    rich_trace = detector._gap_close_trace(
+        active, closure_gate="inside_uncertainty_band"
+    )
+    assert rich_trace.entry_gap == pytest.approx(2.0)
+    assert rich_trace.close_gap == pytest.approx(0.5)
+    assert rich_trace.target_option_contribution == pytest.approx(1.0)
+    assert rich_trace.reference_market_contribution == pytest.approx(0.5)
+    assert rich_trace.gap_closed == pytest.approx(1.5)
+    assert rich_trace.attribution == "target_option_led"
+    assert rich_trace.identity_error == pytest.approx(0.0, abs=1e-12)
 
 
 def test_dislocation_below_one_lot_never_becomes_actionable() -> None:

@@ -5,6 +5,11 @@
 - **Status:** frozen implementation specification
 - **Authority:** read-only research analytics; no order, signal, or live-execution authority
 
+**Owner amendment 1, 2026-08-20:** the original `market-led` / `surface-led` wording was
+misleading because the held-out surface is itself built from market prices. Attribution is now
+named `target-option-led` / `reference-market-led` / `mixed`, and every row must expose the signed
+endpoint accounting rather than only a categorical label.
+
 ## 1. Objective and exact object
 
 The monitor identifies and times **confirmed surface-relative executable mispricing** in the
@@ -41,7 +46,7 @@ after the cost, multiplicity, displayed-quantity, exact-refit, and persistence g
 | Net edge and per-lot edge | Scenario-based | Gross edge less estimated costs; lot size comes from the dated master. |
 | Confirmed mispricing | Estimated classification | Requires all gates; means surface-relative, not fundamental truth. |
 | Correction duration | Deterministically derived | Valid-frame episode clock; unavailable data is censoring, not correction. |
-| Correction driver | Deterministically derived attribution | Market-led, surface-led, mixed, or threshold-only from endpoint changes; not a causal claim. |
+| Gap-close trace | Deterministically derived attribution | Signed target-option and held-out reference-market contributions from confirmation to close. Both are market movements; the split identifies the traded target leg versus the reference cross-section and is not a causal claim. |
 
 ## 3. Required inputs
 
@@ -125,9 +130,14 @@ ACTIVE -- stale/missing/failed/unsupported --> CENSORED
   censoring. It is never silently labelled correction.
 - `MIS-STATE-05`: duration is `corrected_or_censored_time - first_seen_at`; active rows show a
   live duration.
-- `MIS-STATE-06`: correction attribution compares executable quote and fair-band boundary
-  movement from entry to close: >=60% market contribution is market-led, >=60% surface
-  contribution is surface-led, otherwise mixed.
+- `MIS-STATE-06`: for a cheap episode, target contribution is `A_close - A_entry` and reference
+  contribution is `L_entry - L_close`; for a rich episode they are `B_entry - B_close` and
+  `U_close - U_entry`. Positive values close the gap, negative values widen it, and their signed
+  sum must equal `entry_gap - close_gap` to numerical tolerance.
+- `MIS-STATE-07`: among positive closing contributions, a >=60% share is labelled
+  `target-option-led` or `reference-market-led`; otherwise the trace is `mixed`. The closing gate
+  (`inside_uncertainty_band`, `after_cost_edge_nonpositive`, direction reversal, or lost
+  qualification) is separately visible. These are endpoint accounts, not causal claims.
 
 ## 9. Required dashboard and API output (`MIS-OUT-*`)
 
@@ -137,7 +147,9 @@ The ANL-03 screen adds a full-width panel below the surface with:
 - an **Active confirmed** table sorted by net edge;
 - a **Recently corrected / censored** table preserving outcomes;
 - contract, side, executable market price, fair price/band, gross/net ticks, net/lot, IV
-  residual, quote age, first/close clock, duration, correction driver or censor reason.
+  residual, quote age, first/close clock and duration;
+- entry gap, signed target-option contribution, signed held-out reference-market contribution,
+  net gap closed, categorical attribution, closing gate, or censor reason.
 
 `/api/state` and `/api/history` must carry the full policy, lifecycle, assumptions and rows.
 History playback must show the episode state frozen into that frame rather than today's state.
@@ -148,8 +160,8 @@ History playback must show the episode state frozen into that frame rather than 
 - A clean chain warms without producing an active claim.
 - A deliberately cheap fresh contract survives fold-screen, BH-FDR, exact strike exclusion,
   one-lot and two-frame gates.
-- Returning its ask to fair value closes only after two valid frames and records market-led
-  correction with duration from first breach.
+- Returning its ask to fair value closes only after two valid frames and records a
+  target-option-led trace with duration from first breach and an exact gap-accounting identity.
 - A displayed quantity below one lot never becomes actionable.
 - A missing target quote censors an active episode rather than calling it corrected.
 - Base-fit/arbitrage/support failure paths remain explicit.
