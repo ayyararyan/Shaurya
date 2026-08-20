@@ -218,9 +218,18 @@ def test_custom_response_horizons_are_materialised_without_changing_predictors()
         run_id="custom-response-horizons",
         response_horizons=(20.0, 45.0),
     )
+    default_observations, _default_failures = build_horserace_observations(
+        depth200_states=depth200,
+        depth20_states=depth20,
+        rows=[_trade_row(index, "buy") for index in range(MINIMUM_TRADE_PACKETS + 5)],
+        tape_index=0,
+        run_id="default-response-horizons",
+    )
     assert observations
     assert any(45.0 in observation.future_ticks for observation in observations)
-    assert all(set(observation.future_ticks) <= {20.0, 45.0} for observation in observations)
+    assert [item.receive_ts_ns for item in observations] == [
+        item.receive_ts_ns for item in default_observations
+    ]
     assert all(normalised_level_feature(10.0, 10, 10) in item.features for item in observations)
 
 

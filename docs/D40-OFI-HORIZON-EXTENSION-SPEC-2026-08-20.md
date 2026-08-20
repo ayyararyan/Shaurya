@@ -82,8 +82,10 @@ or converted to zero. No last-trade-price return is built or reported.
 Split anchors chronologically 70/30. All parameter selection and standardisation use only the
 training side. Use one common embargo of 120.5 seconds: the larger of the original 120-second D39
 embargo and `0.5-second causal gap + 120-second longest target`. Test rows begin only after that
-embargo. Each horizon then drops only rows lacking its own right-edge response coverage; every
-model fitted within a horizon uses that horizon's identical rows.
+embargo. Custom horizons are added to the original D39 response map rather than replacing it, so
+the anchor universe and 70% training boundary remain identical to D39. Each horizon then drops
+only rows lacking its own right-edge response coverage; every model fitted within a horizon uses
+that horizon's identical rows.
 
 ## D40-METRIC-01 — Raw predictive power
 

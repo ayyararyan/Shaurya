@@ -10,8 +10,9 @@ to strategies that pin the package.
 - Froze `docs/D40-OFI-HORIZON-EXTENSION-SPEC-2026-08-20.md`: exact D39 `C8`, `M=10`, trailing
   10-second depth-scaled CCZ OFI, displayed-mid returns only, extended to 10/20/30/45/60/90/120
   seconds after the unchanged 0.5-second causal gap.
-- Parameterised the canonical observation builder so it materialises an explicitly requested
-  response-horizon set without altering predictor features or the original default grid.
+- Parameterised the canonical observation builder so explicitly requested response horizons are
+  additive to the original map, preserving predictor features, the anchor universe and the D39
+  training boundary.
 - Added a hard leakage guard requiring the chronological embargo to cover the causal gap plus the
   longest response. D40 therefore uses 120.5 seconds while D39's original grid remains unchanged.
 - Added a fixed-scope runner that emits a full research artifact plus a compact C8 absolute-OOS-R²

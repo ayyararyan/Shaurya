@@ -420,13 +420,18 @@ def build_horserace_observations(
     counts = tuple(sorted({int(value) for value in level_counts}))
     if CCZ_PRIMARY_LEVELS not in counts:
         raise ValueError("the primary CCZ level count must be declared")
-    all_horizons = (
-        tuple(sorted({float(value) for value in response_horizons}))
+    default_horizons = (*RETURN_HORIZONS_SECONDS, CONDITIONAL_HORIZON_SECONDS)
+    requested_horizons = (
+        tuple(float(value) for value in response_horizons)
         if response_horizons is not None
-        else (*RETURN_HORIZONS_SECONDS, CONDITIONAL_HORIZON_SECONDS)
+        else ()
     )
-    if not all_horizons or any(not isfinite(value) or value <= 0.0 for value in all_horizons):
+    if response_horizons is not None and (
+        not requested_horizons
+        or any(not isfinite(value) or value <= 0.0 for value in requested_horizons)
+    ):
         raise ValueError("response horizons must be finite and strictly positive")
+    all_horizons = tuple(sorted({*default_horizons, *requested_horizons}))
     schema = ccz_feature_schema(counts)
     failures: dict[str, Any] = {
         "invalid_transition": 0,
@@ -628,7 +633,7 @@ def build_horserace_observations(
             mirror = _mid_return(mid_series, state.receive_ts_ns - horizon_ns, state.receive_ts_ns)
             if mirror is not None:
                 past[horizon] = mirror
-        if not any(horizon in future for horizon in all_horizons):
+        if not any(horizon in future for horizon in RETURN_HORIZONS_SECONDS):
             failures["no_future_coverage"] += 1
             continue
         same: dict[float, float] = {}
