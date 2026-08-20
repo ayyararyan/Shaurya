@@ -1298,17 +1298,24 @@ class OfiDashboardEngine:
     def _update_churn(self) -> None:
         green = [cell for cell in self.cells if cell.get("green")]
         self.cells_ever_green.update(str(cell["cell_key"]) for cell in green)
+        # DASH-OUT-01, amended 2026-08-20 (AMENDMENT-1, approved by Aryan).
+        # The leader is ranked by future incremental OOS R2 over M0 among cells that PASS the
+        # placebo guard. It is deliberately NOT ranked by the placebo-benchmarked increment:
+        # future-minus-past rewards a cell whose past mirror collapses, so a badly behaved
+        # placebo manufactures a leader. The benchmarked increment remains the guard and stays
+        # displayed; it is no longer the sort key.
         eligible = [
             cell
             for cell in self.cells
             if cell.get("status") == "ESTIMATED"
-            and cell.get("accumulated", {}).get("placebo_benchmarked_increment") is not None
+            and cell.get("accumulated", {}).get("future_incremental_oos_r2_over_m0") is not None
+            and not cell.get("past_mirror_exceeds_or_equals_future", True)
         ]
         leader = (
             max(
                 eligible,
                 key=lambda item: (
-                    float(item["accumulated"]["placebo_benchmarked_increment"]),
+                    float(item["accumulated"]["future_incremental_oos_r2_over_m0"]),
                     -MODEL_ORDER.index(str(item["model"])),
                     -float(item["h1_seconds"]),
                     -float(item["h2_seconds"]),

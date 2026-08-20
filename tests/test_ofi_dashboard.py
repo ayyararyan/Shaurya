@@ -388,7 +388,12 @@ def test_rendering_theme_and_frozen_field_parity(tmp_path: Path) -> None:
         "#8faa7c",
         "#f4f2ec",
         "#17191c",
-        "RAW OOS R² + PLACEBO-BENCHMARKED INCREMENT ALWAYS VISIBLE",
+        "RAW OOS R² + INCREMENT OVER M0 + PLACEBO-BENCHMARKED INCREMENT ALWAYS VISIBLE",
+        # AMENDMENT-1 field parity: the ranking basis must be stated on the page, and
+        # both increments must stay on the cell face rather than in a tooltip.
+        "ranked by future increment over M0 among cells that pass that guard",
+        "\\u0394m0 ",
+        "\\u0394bench ",
         "BRICK",
         "WARMING",
         "INSUFFICIENT",
@@ -496,3 +501,63 @@ def test_every_model_feature_set_comes_from_canonical_signal_module() -> None:
             cell["model"], float(cell["h1_seconds"]), trade_identified=False
         )
     assert {cell["model"] for cell in engine_cells} == set(MODEL_ORDER)
+
+
+def _ranked_cell(
+    engine: OfiDashboardEngine,
+    index: int,
+    *,
+    future_increment: float,
+    past_increment: float,
+) -> str:
+    cell = dict(engine.cells[index])
+    cell["status"] = "ESTIMATED"
+    cell["accumulated"] = {
+        "future_incremental_oos_r2_over_m0": future_increment,
+        "past_incremental_oos_r2_over_m0": past_increment,
+        "placebo_benchmarked_increment": future_increment - past_increment,
+    }
+    cell["past_mirror_exceeds_or_equals_future"] = past_increment >= future_increment
+    cell["green"] = False
+    engine.cells[index] = cell
+    return str(cell["cell_key"])
+
+
+def test_leader_ranks_by_future_increment_not_by_a_collapsed_placebo(tmp_path: Path) -> None:
+    """AMENDMENT-1: a cell must not lead because its past mirror collapsed.
+
+    Reproduces the 2026-08-20 live pathology: M2|10|10 showed a future increment of +0.039
+    against a past mirror of -0.777, so its benchmarked difference was +0.816 and it led the
+    board while barely predicting anything. Ranking by the difference rewards the broken
+    placebo; ranking by the future increment does not.
+    """
+    engine, _ = _empty_dashboard(tmp_path)
+    collapsed_placebo = _ranked_cell(engine, 0, future_increment=0.039, past_increment=-0.777)
+    genuine_predictor = _ranked_cell(engine, 1, future_increment=0.100, past_increment=0.020)
+
+    engine._update_churn()
+
+    assert engine.current_leader == genuine_predictor
+    assert engine.current_leader != collapsed_placebo
+    benchmarked = engine.cells[0]["accumulated"]["placebo_benchmarked_increment"]
+    assert benchmarked > engine.cells[1]["accumulated"]["placebo_benchmarked_increment"]
+
+
+def test_cell_failing_the_placebo_guard_never_leads(tmp_path: Path) -> None:
+    engine, _ = _empty_dashboard(tmp_path)
+    _ranked_cell(engine, 0, future_increment=0.500, past_increment=0.900)
+    survivor = _ranked_cell(engine, 1, future_increment=0.010, past_increment=-0.005)
+
+    engine._update_churn()
+
+    assert engine.current_leader == survivor
+
+
+def test_no_leader_when_every_cell_fails_the_placebo_guard(tmp_path: Path) -> None:
+    engine, _ = _empty_dashboard(tmp_path)
+    _ranked_cell(engine, 0, future_increment=0.100, past_increment=0.400)
+    _ranked_cell(engine, 1, future_increment=0.020, past_increment=0.020)
+
+    engine._update_churn()
+
+    assert engine.current_leader is None

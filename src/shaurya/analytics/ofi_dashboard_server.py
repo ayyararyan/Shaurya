@@ -96,15 +96,15 @@ main { padding:17px 18px 36px; }
 .section-head h2 { margin:0; color:var(--ink3); font-size:9.5px; letter-spacing:.17em;
   text-transform:uppercase; white-space:nowrap; }
 .section-head:after { content:""; height:1px; background:var(--rule); flex:1; }
-.models { display:grid; grid-template-columns:repeat(2,minmax(470px,1fr)); gap:18px; }
+.models { display:grid; grid-template-columns:repeat(2,minmax(560px,1fr)); gap:18px; }
 .model { min-width:0; }
 .model-title { display:flex; align-items:baseline; gap:9px; margin:0 0 6px; }
 .model-title b { font-size:15px; }
 .model-title span { color:var(--ink3); font-size:9px; letter-spacing:.1em; text-transform:uppercase; }
-.heatmap { display:grid; grid-template-columns:50px repeat(5,minmax(72px,1fr));
+.heatmap { display:grid; grid-template-columns:44px repeat(5,minmax(96px,1fr));
   border-top:1px solid var(--rule); border-left:1px solid var(--rule); }
-.axis,.cell { min-height:68px; padding:6px; border-right:1px solid var(--rule);
-  border-bottom:1px solid var(--rule); }
+.axis,.cell { min-height:84px; padding:6px; border-right:1px solid var(--rule);
+  border-bottom:1px solid var(--rule); overflow:hidden; }
 .axis { display:flex; align-items:center; justify-content:center; color:var(--ink3);
   font-size:8px; letter-spacing:.1em; text-transform:uppercase; min-height:25px; }
 .cell { background:color-mix(in srgb,var(--slate) calc(var(--mag)*32%),transparent);
@@ -113,16 +113,18 @@ main { padding:17px 18px 36px; }
   box-shadow:inset 3px 0 0 var(--brick); }
 .cell.warming { background:transparent; color:var(--brass); }
 .cell.insufficient,.cell.blocked { background:transparent; color:var(--ink3); }
-.cell .score { font-size:14px; line-height:1.15; }
+.cell .score { font-size:14px; line-height:1.15; padding-right:38px; }
 .cell .bench { font-size:12px; margin-top:3px; }
-.cell .block { color:var(--ink3); font-size:8.5px; margin-top:4px; white-space:nowrap; }
+.cell .bench2 { font-size:10.5px; margin-top:2px; color:var(--ink2); }
+.cell .block { color:var(--ink3); font-size:8.5px; margin-top:4px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .cell .q { position:absolute; right:5px; top:4px; color:var(--ink3); font-size:8px; }
 .glyph { margin-right:3px; }
 .diagnostic { border-left:3px solid var(--brass); padding:9px 12px; color:var(--ink2);
   background:var(--panel); }
 .legend { color:var(--ink3); font-size:9px; margin:7px 0 0; }
 .brick-word { color:var(--brick); }.sage-word { color:var(--sage); }
-@media(max-width:1150px) { .models{grid-template-columns:1fr}.hero{grid-template-columns:1fr 1fr}
+@media(max-width:1330px) { .models{grid-template-columns:1fr}.hero{grid-template-columns:1fr 1fr}
   .honesty{grid-template-columns:1fr 1fr}.hero>div:first-child{grid-column:1/-1} }
 """
 
@@ -170,14 +172,14 @@ function hero(payload){
       '</b><small>of 175 at 5%</small></div>'; return;
   }
   const a=cell.accumulated;
-  holder.innerHTML='<div><div class="eyebrow">authoritative accumulated placebo-benchmarked increment</div>'+
-    '<div class="hero-main">'+(Number(a.placebo_benchmarked_increment)>=0?'\u25B2 ':'\u25BC ')+
-    pct(a.placebo_benchmarked_increment)+'<em> pp</em></div><div class="hero-id">'+cell.model+
+  holder.innerHTML='<div><div class="eyebrow">authoritative accumulated future increment over M0 \u00B7 placebo guard passed</div>'+
+    '<div class="hero-main">'+(Number(a.future_incremental_oos_r2_over_m0)>=0?'\u25B2 ':'\u25BC ')+
+    pct(a.future_incremental_oos_r2_over_m0)+'<em> pp</em></div><div class="hero-id">'+cell.model+
     ' \u00B7 h1 '+cell.h1_seconds+' s \u00B7 h2 '+cell.h2_seconds+
     ' s \u00B7 deterministically derived from two estimated increments</div></div>'+
     '<div class="hero-stat"><span class="label">raw OOS R\u00B2</span><b>'+pct(a.future_raw_oos_r2)+
     '%</b><small>estimated \u00B7 accumulated</small></div>'+
-    '<div class="hero-stat"><span class="label">raw future increment</span><b>'+pct(a.future_incremental_oos_r2_over_m0)+
+    '<div class="hero-stat"><span class="label">placebo-benchmarked (guard)</span><b>'+pct(a.placebo_benchmarked_increment)+
     ' pp</b><small>estimated \u00B7 versus M0</small></div>'+
     '<div class="hero-stat"><span class="label">past-mirror increment</span><b>'+pct(a.past_incremental_oos_r2_over_m0)+
     ' pp</b><small>estimated benchmark \u00B7 chance '+payload.honesty.expected_by_chance_at_5pct+'/175</small></div>';
@@ -198,13 +200,14 @@ function cellHtml(cell){
   if(cell.status!=='ESTIMATED') return '<div class="cell '+cls+'" style="--mag:0" title="'+cell.reason+'">'+
     '<div class="score">'+cell.status+'</div><div class="block">train '+cell.support.common_train_n+
     ' \u00B7 test '+cell.support.common_test_n+'</div></div>';
-  const a=cell.accumulated,b=cell.block; const sign=Number(a.placebo_benchmarked_increment)>=0?'\u25B2':'\u25BC';
-  const mag=Math.min(1,Math.abs(Number(a.placebo_benchmarked_increment))*12);
+  const a=cell.accumulated,b=cell.block; const sign=Number(a.future_incremental_oos_r2_over_m0)>=0?'\u25B2':'\u25BC';
+  const mag=Math.min(1,Math.abs(Number(a.future_incremental_oos_r2_over_m0))*12);
   const title='future increment '+pct(a.future_incremental_oos_r2_over_m0)+' pp; past mirror '+
     pct(a.past_incremental_oos_r2_over_m0)+' pp; '+cell.coefficient_interpretation;
   return '<div class="cell '+cls+'" style="--mag:'+mag+'" title="'+title+'">'+
     '<div class="q">q EST '+pct(cell.bh_fdr_q_value,1)+'</div><div class="score">EST R\u00B2 '+
-    pct(a.future_raw_oos_r2)+'%</div><div class="bench"><span class="glyph">'+sign+'</span>\u0394bench '+
+    pct(a.future_raw_oos_r2)+'%</div><div class="bench"><span class="glyph">'+sign+'</span>\u0394m0 '+
+    pct(a.future_incremental_oos_r2_over_m0)+' pp EST</div><div class="bench2">\u0394bench '+
     pct(a.placebo_benchmarked_increment)+' pp DERIVED</div><div class="block">BLOCK EST R\u00B2 '+
     pct(b.future_raw_oos_r2)+'% \u00B7 \u0394 '+pct(b.placebo_benchmarked_increment)+' pp</div></div>';
 }
@@ -237,10 +240,13 @@ _BODY = """<!doctype html>
 <button id="themeToggle" type="button" onclick="toggleTheme()">◐ DARK</button></header>
 <div id="rail" class="rail"></div><section id="hero" class="hero"></section>
 <section id="honesty" class="honesty"></section><main>
-<div class="section-head"><h2>ACCUMULATED WALK-FORWARD GRID · RAW OOS R² + PLACEBO-BENCHMARKED INCREMENT ALWAYS VISIBLE</h2></div>
+<div class="section-head"><h2>ACCUMULATED WALK-FORWARD GRID · RAW OOS R² + INCREMENT OVER M0 + PLACEBO-BENCHMARKED INCREMENT ALWAYS VISIBLE</h2></div>
 <div id="models" class="models"></div>
 <p class="legend"><span class="brick-word">BRICK</span> is reserved for past-mirror increment ≥ future increment.
-Magnitude otherwise uses a single-hue slate ramp. Sign is always a glyph and signed number. WARMING,
+The leader is ranked by future increment over M0 among cells that pass that guard, never by the
+benchmarked difference: future-minus-past rewards a collapsed placebo, so it is the guard and not the
+sort key (AMENDMENT-1, 2026-08-20). Magnitude otherwise uses a single-hue slate ramp on the same
+ranking statistic. Sign is always a glyph and signed number. WARMING,
 INSUFFICIENT, BLOCKED and negative cells remain visible. q is the BH-FDR adjusted dependence-aware view.</p>
 <div class="section-head"><h2>SAME-WINDOW CONSTRUCTION DIAGNOSTIC · STRUCTURALLY SEPARATED</h2></div>
 <div class="diagnostic">Contemporaneous fits are construction diagnostics only. They are never ranked,
