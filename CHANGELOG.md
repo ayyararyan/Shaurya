@@ -5,6 +5,37 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### `X-OFI-DASHBOARD-2026-08-20` — dynamic read-only OFI horse-race dashboard (`ANL-06`)
+
+- Added one file-only engine with deterministic pinned-tape `replay` and read-only growing-JSONL
+  `follow` modes. Neither mode imports a broker socket, credential or order path. Complete lines
+  alone are consumed; an EOF-torn line stays buffered, malformed lines are counted, and a
+  byte-by-byte tail produces the same rows as a completed-file read.
+- Added the complete 175-cell M0–M6 by h1/h2 0.5/1/2/5/10-second grid by calling the canonical
+  signal feature and fit implementations. The dashboard supplies the frozen epoch-safe response
+  endpoints through the canonical midpoint-return helper, including the exact past mirror ending
+  at `t-Z`; it does not restate a predictor formula.
+- Added a one-way walk-forward ratchet with expanding training, per-horizon
+  `max(120 s, Z+h2)` embargo, disjoint fixed-duration test blocks, longest-response closure and
+  training-only standardisation/Ridge selection. Each held-out prediction is accumulated once;
+  the stationary bootstrap treats blocks as separate strata and cannot splice them.
+- Added the ANL-05 muted light/dark shell and four GET/HEAD-only routes: `/`, `/api/state`,
+  `/api/history`, `/api/cells`. Raw and placebo-benchmarked block/accumulated scores remain
+  simultaneous; negative, `WARMING`, `INSUFFICIENT` and unidentified M2 cells remain visible;
+  brick is reserved for past-mirror increment at least as large as future increment. The screen
+  also keeps 175-cell chance expectation, BH-FDR, green/leader churn, HAC/bootstrap support and
+  collinearity warnings visible or retrievable with object-category labels.
+- Every completed cadence appends all 175 cell records and a compact deterministic summary. Two
+  full default replays of pinned DAT-20 SHA `751ee15a…e0` produced byte-identical cell artifacts
+  (SHA-256 `20b16586c766be7e2abfebbfec023190c438199fc554bd0ee200852fd798419b`);
+  an equivalent fixed split matched all 175 canonical offline OOS-R² scores exactly (maximum
+  absolute difference 0 at tolerance `1e-12`).
+- Acceptance: 18 focused dashboard tests and 539 full-suite tests pass. The leakage probe detects
+  the synthetic future-only feature and gives the past-only feature a placebo-benchmarked
+  increment at or below zero. Light/dark and degraded-state headless screenshots were inspected.
+  Evidence level is **Dry-run verified**, not Live verified: no growing production tape has been
+  attached and no live score is claimed. `H-SIG21.md` is unchanged.
+
 ### `X-SURFACE-FUT5-20260819-06` — displayed eSSVI versus next five-second futures move
 
 - Added a frozen, permanently exploratory replay of the three-expiry five-second displayed eSSVI
