@@ -39,6 +39,11 @@ from the same rolling fit that generated that forecast:
 Also retain scored count, forecasts issued, pending count, MAE, RMSE, and directional accuracy on
 non-zero realised moves. A cell with no mature forecast displays `—`, not zero.
 
+**Scoring amendment:** D47
+(`OFI-DASHBOARD-FIVE-MINUTE-WIN-SCORE-AMENDMENT-2026-08-21.md`) adds the owner-defined
+`+1/0/-1` threshold score and makes its trailing-five-minute mean the visible cell companion to
+cumulative R2. It does not change forecasts, betas, training rows, targets, or cumulative R2.
+
 ## 3. Delivery and evidence boundary
 
 The default dashboard is one 5-column by 6-row cumulative-R2 table. The compact API exposes the

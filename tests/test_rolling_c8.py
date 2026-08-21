@@ -5,6 +5,7 @@ from shaurya.analytics.rolling_c8 import (
     ScoreAccumulator,
     causal_training_positions,
     fit_forecast_cell,
+    forecast_win_score,
 )
 from shaurya.signals.fixed_target_panel import competitor_features
 from shaurya.signals.ofi_horserace import HorseRaceObservation
@@ -83,3 +84,53 @@ def test_fresh_tracker_does_not_backfill_historical_forecasts() -> None:
     assert tracker.last_forecast_anchor_ts_ns is None
     assert tracker.pending == []
     assert all(cell["scored_n"] == 0 for cell in tracker.payload(source={})["cells"])
+
+
+def test_forecast_win_score_uses_forecast_magnitude_in_both_directions() -> None:
+    assert forecast_win_score(prediction=2.0, actual=2.0) == 1
+    assert forecast_win_score(prediction=2.0, actual=3.0) == 1
+    assert forecast_win_score(prediction=2.0, actual=-2.0) == -1
+    assert forecast_win_score(prediction=2.0, actual=1.5) == 0
+    assert forecast_win_score(prediction=-2.0, actual=-3.0) == 1
+    assert forecast_win_score(prediction=-2.0, actual=2.0) == -1
+    assert forecast_win_score(prediction=0.0, actual=10.0) == 0
+
+
+def test_rolling_win_score_keeps_only_latest_five_minutes() -> None:
+    tracker = RollingC8Tracker.fresh()
+    tracker.restore_recent_win_scores(
+        [
+            {
+                "cell_key": "1|5",
+                "forecast_anchor_ts_ns": 1 * SECOND,
+                "response_end_ts_ns": 100 * SECOND,
+                "prediction_ticks": 2.0,
+                "actual_ticks": 2.0,
+            },
+            {
+                "cell_key": "1|5",
+                "forecast_anchor_ts_ns": 2 * SECOND,
+                "response_end_ts_ns": 401 * SECOND,
+                "prediction_ticks": 2.0,
+                "actual_ticks": -3.0,
+            },
+            {
+                "cell_key": "1|5",
+                "forecast_anchor_ts_ns": 3 * SECOND,
+                "response_end_ts_ns": 500 * SECOND,
+                "prediction_ticks": 2.0,
+                "actual_ticks": 1.0,
+            },
+        ],
+        as_of_ts_ns=500 * SECOND,
+    )
+
+    score = tracker.rolling_win_score("1|5")
+
+    assert score == {
+        "rolling_mean_win_score_5m": -0.5,
+        "rolling_win_score_n_5m": 2,
+        "rolling_wins_5m": 0,
+        "rolling_neutral_5m": 1,
+        "rolling_losses_5m": 1,
+    }

@@ -183,6 +183,18 @@ def _append_rows(path: Path, rows: list[dict[str, Any]]) -> None:
     append_jsonl(path, rows)
 
 
+def _read_jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            loaded: Any = json.loads(line)
+            if isinstance(loaded, dict):
+                rows.append(dict(loaded))
+    return rows
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.poll_seconds <= 0:
         raise ValueError("poll_seconds must be positive")
@@ -210,6 +222,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     args.artifact_dir.mkdir(parents=True, exist_ok=True)
     forecast_log = args.artifact_dir / "forecasts.jsonl"
     outcome_log = args.artifact_dir / "outcomes.jsonl"
+    initial_price_path = build_displayed_mid_path(tape.depth20)
+    tracker.restore_recent_win_scores(
+        _read_jsonl(outcome_log), as_of_ts_ns=initial_price_path.coverage_end_ts_ns
+    )
     while True:
         tape.poll()
         price_path = build_displayed_mid_path(tape.depth20)

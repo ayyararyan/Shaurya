@@ -159,7 +159,11 @@ def _matrix_view(rolling: dict[str, Any]) -> dict[str, Any]:
             "h1_seconds": float(h1),
             "h2_seconds": float(h2),
             "cumulative_oos_r2": score,
-            "cumulative_direction_accuracy": row.get("cumulative_direction_accuracy"),
+            "rolling_mean_win_score_5m": row.get("rolling_mean_win_score_5m"),
+            "rolling_win_score_n_5m": row.get("rolling_win_score_n_5m", 0),
+            "rolling_wins_5m": row.get("rolling_wins_5m", 0),
+            "rolling_neutral_5m": row.get("rolling_neutral_5m", 0),
+            "rolling_losses_5m": row.get("rolling_losses_5m", 0),
             "scored_n": row.get("scored_n", 0),
             "forecasts_issued": row.get("forecasts_issued", 0),
             "source": "rolling_c8_30m",
@@ -366,7 +370,9 @@ function clock(ts){
 function matrixValues(payload){
   const values=new Map();
   ((payload.matrix||{}).cells||[]).forEach(row=>values.set(Number(row.h1_seconds)+'|'+Number(row.h2_seconds),{
-    value:row.cumulative_oos_r2,accuracy:row.cumulative_direction_accuracy,
+    value:row.cumulative_oos_r2,score:row.rolling_mean_win_score_5m,
+    scoreN:row.rolling_win_score_n_5m,wins:row.rolling_wins_5m,
+    neutral:row.rolling_neutral_5m,losses:row.rolling_losses_5m,
     scored:row.scored_n,issued:row.forecasts_issued,source:row.source}));
   return values;
 }
@@ -386,9 +392,10 @@ function render(payload){
     const cell=values.get(h1+'|'+h2); if(!cell||cell.value===null||cell.value===undefined)
       return '<td class="missing" title="Waiting for matured live forecasts">\u2014</td>';
     const value=Number(cell.value); const cls=value>=0?'positive':'negative';
-    const accuracy=cell.accuracy===null||cell.accuracy===undefined?'\u2014':pct(cell.accuracy);
+    const score=cell.score===null||cell.score===undefined?'\u2014':Number(cell.score).toFixed(2);
     return '<td class="'+cls+'" title="Cumulative OOS R-squared · n='+cell.scored+
-      '">'+pct(value)+'<span class="accuracy">Acc '+accuracy+' · n='+cell.scored+'</span></td>';
+      ' · 5m points +1/0/-1='+cell.wins+'/'+cell.neutral+'/'+cell.losses+'">'+pct(value)+
+      '<span class="accuracy">5m score '+score+' · n='+cell.scoreN+'</span></td>';
   }).join('')+'</tr>').join('');
   document.getElementById('matrix').innerHTML='<thead>'+head+'</thead><tbody>'+body+'</tbody>';
   document.getElementById('source').textContent=String(payload.drive_mode||'').toUpperCase()+' \u00B7 '+payload.history_length+' REFITS';
@@ -411,7 +418,7 @@ _BODY = """<!doctype html>
 <p class="matrix-subtitle">Each forecast refits C8 on only the preceding 30 minutes. Cells accumulate OOS R² as those live future outcomes become observable.</p>
 <div id="status" class="matrix-status"></div><div class="matrix-wrap">
 <table id="matrix" class="result-matrix" aria-label="CCZ OFI absolute out-of-sample R-squared by sampling and predicted horizon"></table></div>
-<p class="matrix-note"><b>—</b> = no post-launch forecast has matured yet. R² compares each forecast with that forecast's own rolling-training mean; hover a value for scored count and direction accuracy. Snapshot-implied net displayed OFI; exploratory, not an order signal.</p></main>
+<p class="matrix-note"><b>5m score:</b> +1 when the realised move reaches the forecast magnitude in its direction; −1 when it reaches that magnitude in the opposite direction; 0 otherwise. The displayed score is the trailing-five-minute mean. R² remains cumulative from corrected-worker launch.</p></main>
 <script>__SCRIPT__</script></body></html>"""
 
 

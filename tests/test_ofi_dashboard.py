@@ -477,9 +477,9 @@ def test_rendering_theme_and_matrix_view_field_parity(tmp_path: Path) -> None:
         "Predicted horizon \\u2193",
         "Each forecast refits C8 on only the preceding 30 minutes",
         "const LOOKBACKS=[0.5,1,2,5,10],HORIZONS=[0.5,1,2,5,10,20]",
-        "no post-launch forecast has matured yet",
         "Live walk-forward",
-        "Acc '+accuracy+' · n='+cell.scored",
+        "5m score '+score+' · n='+cell.scoreN",
+        "+1 when the realised move reaches the forecast magnitude",
         "READ-ONLY",
         "NO SOCKET",
         "NO ORDER PATH",
@@ -559,7 +559,11 @@ def test_compact_matrix_payload_uses_only_rolling_c8_scores() -> None:
                     "lookback_seconds": 1.0,
                     "horizon_seconds": 5.0,
                     "cumulative_oos_r2": 0.13,
-                    "cumulative_direction_accuracy": 0.6,
+                    "rolling_mean_win_score_5m": 0.2,
+                    "rolling_win_score_n_5m": 20,
+                    "rolling_wins_5m": 7,
+                    "rolling_neutral_5m": 10,
+                    "rolling_losses_5m": 3,
                     "scored_n": 25,
                     "forecasts_issued": 27,
                 }
@@ -579,6 +583,7 @@ def test_compact_matrix_payload_uses_only_rolling_c8_scores() -> None:
         for cell in compact["matrix"]["cells"]
     }
     assert matrix_cells[(1.0, 5.0)]["cumulative_oos_r2"] == pytest.approx(0.13)
+    assert matrix_cells[(1.0, 5.0)]["rolling_mean_win_score_5m"] == pytest.approx(0.2)
     assert matrix_cells[(1.0, 5.0)]["source"] == "rolling_c8_30m"
     assert (10.0, 20.0) not in matrix_cells
     assert len(json.dumps(compact)) < len(json.dumps(payload))

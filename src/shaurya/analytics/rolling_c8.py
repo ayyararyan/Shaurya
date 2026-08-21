@@ -32,6 +32,7 @@ from shaurya.signals.reference_prices import PricePath
 SPECIFICATION_ID: Final = "D46 / ANL-06-ROLLING-C8-30M"
 TRAINING_WINDOW_SECONDS: Final = 30.0 * 60.0
 FORECAST_CADENCE_SECONDS: Final = 5.0
+WIN_SCORE_WINDOW_SECONDS: Final = 5.0 * 60.0
 LOOKBACKS_SECONDS: Final = (0.5, 1.0, 2.0, 5.0, 10.0)
 HORIZONS_SECONDS: Final = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
 LEVELS: Final = 10
@@ -39,6 +40,22 @@ LEVELS: Final = 10
 
 def cell_key(lookback: float, horizon: float) -> str:
     return f"{lookback:g}|{horizon:g}"
+
+
+def forecast_win_score(*, prediction: float, actual: float) -> int:
+    """Score whether the realised move reached the forecast threshold in either direction."""
+
+    if prediction > 0.0:
+        if actual >= prediction:
+            return 1
+        if actual <= -prediction:
+            return -1
+    elif prediction < 0.0:
+        if actual <= prediction:
+            return 1
+        if actual >= -prediction:
+            return -1
+    return 0
 
 
 def causal_training_positions(
@@ -186,6 +203,7 @@ class RollingC8Tracker:
     accumulators: dict[str, ScoreAccumulator] = field(default_factory=dict)
     pending: list[dict[str, Any]] = field(default_factory=list)
     latest_fit: dict[str, dict[str, Any]] = field(default_factory=dict)
+    recent_win_scores: list[dict[str, Any]] = field(default_factory=list)
     last_forecast_anchor_ts_ns: int | None = None
 
     @classmethod
@@ -214,6 +232,11 @@ class RollingC8Tracker:
             latest_fit={str(key): dict(value) for key, value in raw_latest.items()}
             if isinstance(raw_latest, dict)
             else {},
+            recent_win_scores=[
+                dict(value)
+                for value in loaded.get("recent_win_scores", [])
+                if isinstance(value, dict)
+            ],
             last_forecast_anchor_ts_ns=(
                 int(loaded["last_forecast_anchor_ts_ns"])
                 if loaded.get("last_forecast_anchor_ts_ns") is not None
@@ -279,15 +302,86 @@ class RollingC8Tracker:
             self.accumulators.setdefault(key, ScoreAccumulator()).score(
                 actual=actual, prediction=prediction, baseline=baseline
             )
-            outcomes.append(
+            point = forecast_win_score(prediction=prediction, actual=actual)
+            outcome = {
+                **record,
+                "actual_ticks": actual,
+                "win_score": point,
+                "scored_at": datetime.now(UTC).isoformat(),
+            }
+            outcomes.append(outcome)
+            self.recent_win_scores.append(
                 {
-                    **record,
-                    "actual_ticks": actual,
-                    "scored_at": datetime.now(UTC).isoformat(),
+                    "cell_key": key,
+                    "forecast_anchor_ts_ns": int(record["forecast_anchor_ts_ns"]),
+                    "response_end_ts_ns": int(record["response_end_ts_ns"]),
+                    "win_score": point,
                 }
             )
         self.pending = retained
+        self.prune_recent_win_scores(price_path.coverage_end_ts_ns)
         return outcomes
+
+    def restore_recent_win_scores(
+        self, outcomes: Sequence[Mapping[str, Any]], *, as_of_ts_ns: int | None
+    ) -> None:
+        """Restore the trailing score window from append-only receipts after an upgrade/restart."""
+
+        existing = {
+            (str(row["cell_key"]), int(row["forecast_anchor_ts_ns"]))
+            for row in self.recent_win_scores
+        }
+        for outcome in outcomes:
+            required = (
+                "cell_key",
+                "forecast_anchor_ts_ns",
+                "response_end_ts_ns",
+                "prediction_ticks",
+                "actual_ticks",
+            )
+            if not all(name in outcome for name in required):
+                continue
+            identity = (str(outcome["cell_key"]), int(outcome["forecast_anchor_ts_ns"]))
+            if identity in existing:
+                continue
+            point = outcome.get("win_score")
+            if point is None:
+                point = forecast_win_score(
+                    prediction=float(outcome["prediction_ticks"]),
+                    actual=float(outcome["actual_ticks"]),
+                )
+            self.recent_win_scores.append(
+                {
+                    "cell_key": identity[0],
+                    "forecast_anchor_ts_ns": identity[1],
+                    "response_end_ts_ns": int(outcome["response_end_ts_ns"]),
+                    "win_score": int(point),
+                }
+            )
+            existing.add(identity)
+        self.prune_recent_win_scores(as_of_ts_ns)
+
+    def prune_recent_win_scores(self, as_of_ts_ns: int | None) -> None:
+        if as_of_ts_ns is None:
+            return
+        cutoff = as_of_ts_ns - int(WIN_SCORE_WINDOW_SECONDS * 1_000_000_000)
+        self.recent_win_scores = [
+            row for row in self.recent_win_scores if int(row["response_end_ts_ns"]) > cutoff
+        ]
+
+    def rolling_win_score(self, key: str) -> dict[str, Any]:
+        values = [
+            int(row["win_score"])
+            for row in self.recent_win_scores
+            if str(row["cell_key"]) == key
+        ]
+        return {
+            "rolling_mean_win_score_5m": sum(values) / len(values) if values else None,
+            "rolling_win_score_n_5m": len(values),
+            "rolling_wins_5m": values.count(1),
+            "rolling_neutral_5m": values.count(0),
+            "rolling_losses_5m": values.count(-1),
+        }
 
     def payload(self, *, source: Mapping[str, Any], status: str = "running") -> dict[str, Any]:
         cells: list[dict[str, Any]] = []
@@ -302,6 +396,7 @@ class RollingC8Tracker:
                         "lookback_seconds": lookback,
                         "horizon_seconds": horizon,
                         **score,
+                        **self.rolling_win_score(key),
                         "latest_fit": fit,
                     }
                 )
@@ -326,11 +421,17 @@ class RollingC8Tracker:
             },
             "pending": self.pending,
             "latest_fit": self.latest_fit,
+            "recent_win_scores": self.recent_win_scores,
             "confirmatory_eligible": False,
             "order_entry_enabled": False,
             "metric_definition": (
                 "1-sum((y-yhat)^2)/sum((y-rolling_training_mean)^2), accumulated only "
                 "over forecasts issued after this worker started"
+            ),
+            "win_score_definition": (
+                "+1=same direction and realised magnitude reaches forecast; "
+                "-1=opposite direction and realised magnitude reaches forecast; "
+                "0=otherwise; displayed mean uses trailing five minutes of outcome end-times"
             ),
         }
 

@@ -92,6 +92,15 @@ artifacts and full read-only API objects remain unchanged.
 | `ROLL-OUT-01` | Default table and compact API use rolling state only | **Live verified** | `analytics/ofi_dashboard_server.py` | compact/render/route tests; live `/api/overview` reports 30 rolling cells at port 8766 |
 | `ROLL-OPS-01` | Durable no-socket worker, atomic state, append-only forecast/outcome receipts | **Live verified** | `cli/rolling_c8.py`; `analytics/rolling_c8.py` | tmux `shaurya-rolling-c8-20260821`; all 30 cells issued and both 0.5s/20s outcomes matured |
 
+## D47 five-minute rolling win score — `ANL-06-ROLLING-WIN-SCORE-5M`
+
+| ID | Requirement | Status | Code location | Test / acceptance evidence |
+|---|---|---|---|---|
+| `SCORE-DEF-01` | Score +1 at/exceeding forecast in predicted direction, -1 at/exceeding it oppositely, else 0 | **Implemented, tested** | `analytics/rolling_c8.py:forecast_win_score` | exact-boundary and both-direction unit test |
+| `SCORE-WIN-01` | Mean score uses response ends in latest five market-data minutes | **Implemented, tested** | `RollingC8Tracker.prune_recent_win_scores`, `.rolling_win_score` | deterministic window-pruning test |
+| `SCORE-RESTORE-01` | Upgrade/restart restores recent scores from append-only outcomes without duplicates | **Live verified** | `RollingC8Tracker.restore_recent_win_scores`; `cli/rolling_c8.py:_read_jsonl` | live D46 state preserved; 1,535 recent receipts restored on D47 restart |
+| `SCORE-OUT-01` | Show five-minute mean and n in every cell; expose +1/0/-1 counts | **Live verified** | `analytics/ofi_dashboard_server.py` | live `/api/overview` 30/30 non-empty score windows; HTML parity at port 8766 |
+
 ## D39 additive matrix — `FIXED-TARGET-COMPETITOR-PANEL`
 
 **Specification:** `docs/D39-FIXED-TARGET-PANEL-SPEC-2026-08-21.md`

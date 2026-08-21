@@ -5,6 +5,14 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### D47 — five-minute rolling forecast win score
+
+- Added the owner-defined `+1/0/-1` forecast-threshold score for every C8 horizon grid.
+- Displayed the trailing-five-market-minute mean and sample count in every table cell, with
+  `+1/0/-1` counts in the API/hover detail.
+- Restored the rolling score window from append-only outcome receipts across worker upgrades while
+  preserving cumulative OOS R2 and pending forecasts.
+
 ### D46 — causal 30-minute rolling C8 forecasts
 
 - Replaced the default table's D39/D40 moving-prefix 70/30 values with genuine five-second
