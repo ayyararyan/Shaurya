@@ -33,6 +33,7 @@ from shaurya.data.dhan_stream import (
     StreamMetrics,
 )
 from shaurya.data.quality import CollectorQualityAudit, write_quality_audit
+from shaurya.data.storage import resolve_raw_capture_root
 from shaurya.data.tape import JsonlTapeWriter
 
 SIG21_PROTOCOL_ID = "H-SIG21"
@@ -72,7 +73,20 @@ def _parser() -> argparse.ArgumentParser:
         help="Safety check: capture aborts unless the master maps the ID to this exact symbol.",
     )
     parser.add_argument("--duration-seconds", type=float, default=180.0)
-    parser.add_argument("--output-root", type=Path, default=Path("artifacts/dhan-live"))
+    parser.add_argument(
+        "--output-root",
+        type=Path,
+        default=None,
+        help=(
+            "Override the capture root for a controlled test. By default DAT writes to "
+            "/Volumes/Aryan/NSE/YYYY-MM-DD/raw after verifying the SMB mount."
+        ),
+    )
+    parser.add_argument(
+        "--allow-nonarchive-output",
+        action="store_true",
+        help="Permit an intentional isolated test capture outside the configured NSE archive.",
+    )
     parser.add_argument("--no-standard", action="store_true")
     parser.add_argument("--no-depth20", action="store_true")
     parser.add_argument(
@@ -232,6 +246,10 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         raise ValueError("duration-seconds must be positive")
     _validate_sig21_protocol(args)
     _validate_ofi_full_session_protocol(args)
+    output_root = resolve_raw_capture_root(
+        args.output_root,
+        allow_nonarchive=args.allow_nonarchive_output,
+    )
     credentials = DhanCredentials.from_env_file(args.credentials)
     mapping = DhanInstrumentMaster(args.security_master).find_by_security_id(args.security_id)
     if mapping.trading_symbol != args.expected_symbol:
@@ -240,7 +258,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             f"master has {mapping.trading_symbol!r}"
         )
     _validate_depth_tier_scope(args, mapping)
-    manifest = ArtifactManifest.create(args.output_root)
+    manifest = ArtifactManifest.create(output_root)
     metrics = StreamMetrics()
     writer = JsonlTapeWriter(manifest, fsync_every=100)
     config = DhanStreamConfig(

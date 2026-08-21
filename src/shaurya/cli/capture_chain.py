@@ -31,6 +31,7 @@ from shaurya.contracts.tape import TapeRow
 from shaurya.contracts.timing import IST
 from shaurya.data.dhan_client import DhanCredentials
 from shaurya.data.dhan_stream import DhanLiveStream, DhanStreamConfig, StreamMetrics
+from shaurya.data.storage import resolve_raw_capture_root
 from shaurya.data.tape import JsonlTapeWriter
 
 
@@ -54,7 +55,20 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--strike-window-fraction", type=float, default=0.06)
     parser.add_argument("--max-options", type=int, default=120)
     parser.add_argument("--duration-seconds", type=float, default=120.0)
-    parser.add_argument("--output-root", type=Path, default=Path("data/live-captures/anl03"))
+    parser.add_argument(
+        "--output-root",
+        type=Path,
+        default=None,
+        help=(
+            "Override the capture root for a controlled test. By default DAT writes to "
+            "/Volumes/Aryan/NSE/YYYY-MM-DD/raw after verifying the SMB mount."
+        ),
+    )
+    parser.add_argument(
+        "--allow-nonarchive-output",
+        action="store_true",
+        help="Permit an intentional isolated test capture outside the configured NSE archive.",
+    )
     parser.add_argument("--heartbeat-interval-seconds", type=float, default=10.0)
     parser.add_argument("--heartbeat-timeout-seconds", type=float, default=5.0)
     return parser
@@ -72,6 +86,10 @@ def _exclusive_json(path: Path, value: dict[str, Any]) -> None:
 async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     if args.duration_seconds <= 0:
         raise ValueError("duration-seconds must be positive")
+    output_root = resolve_raw_capture_root(
+        args.output_root,
+        allow_nonarchive=args.allow_nonarchive_output,
+    )
     credentials = DhanCredentials.from_env_file(args.credentials)
     master = DhanInstrumentMaster(args.security_master)
     underlyings = args.underlying or ["NIFTY"]
@@ -98,7 +116,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     if not instruments:
         raise ValueError("the requested universe selected no instruments")
 
-    manifest = ArtifactManifest.create(args.output_root)
+    manifest = ArtifactManifest.create(output_root)
     metrics = StreamMetrics()
     writer = JsonlTapeWriter(manifest, fsync_every=200)
     seen: Counter[str] = Counter()

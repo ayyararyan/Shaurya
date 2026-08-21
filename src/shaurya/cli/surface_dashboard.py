@@ -43,6 +43,7 @@ from shaurya.contracts.tape import TapeRow
 from shaurya.contracts.timing import IST
 from shaurya.data.dhan_client import DhanCredentials
 from shaurya.data.dhan_stream import DhanLiveStream, DhanStreamConfig, StreamMetrics
+from shaurya.data.storage import resolve_raw_capture_root
 from shaurya.data.tape import JsonlTapeReader, JsonlTapeWriter
 
 DEFAULT_HOST = "127.0.0.1"
@@ -124,8 +125,20 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--spot", type=float)
     parser.add_argument("--strike-window-fraction", type=float, default=0.06)
     parser.add_argument("--max-options", type=int, default=120)
-    parser.add_argument("--output-root", type=Path,
-                        default=Path("data/live-captures/anl03-live"))
+    parser.add_argument(
+        "--output-root",
+        type=Path,
+        default=None,
+        help=(
+            "Override the live capture root for a controlled test. By default DAT writes to "
+            "/Volumes/Aryan/NSE/YYYY-MM-DD/raw after verifying the SMB mount."
+        ),
+    )
+    parser.add_argument(
+        "--allow-nonarchive-output",
+        action="store_true",
+        help="Permit an intentional isolated test capture outside the configured NSE archive.",
+    )
     return parser
 
 
@@ -321,6 +334,10 @@ async def _run_live(args: argparse.Namespace) -> dict[str, Any]:
     ]
     if missing:
         raise SystemExit(f"live mode requires: {', '.join(sorted(missing))}")
+    output_root = resolve_raw_capture_root(
+        args.output_root,
+        allow_nonarchive=args.allow_nonarchive_output,
+    )
     credentials = DhanCredentials.from_env_file(args.credentials)
     master = DhanInstrumentMaster(args.security_master)
     mappings = tuple(master.mappings())
@@ -332,7 +349,7 @@ async def _run_live(args: argparse.Namespace) -> dict[str, Any]:
         strike_window_fraction=args.strike_window_fraction,
         max_options=args.max_options,
     )
-    manifest = ArtifactManifest.create(args.output_root)
+    manifest = ArtifactManifest.create(output_root)
     writer = JsonlTapeWriter(manifest, fsync_every=200)
     metadata = _metadata_from_mappings(
         universe.options, default_tick_size=args.default_option_tick_size

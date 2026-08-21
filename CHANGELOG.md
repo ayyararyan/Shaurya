@@ -5,6 +5,18 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### DAT-19 — canonical NSE server placement
+
+- Added one central fail-closed archive resolver for the verified IEX SMB share at
+  `/Volumes/Aryan/NSE`.
+- Standard Dhan, option-chain, and live surface capture entry points now default to
+  `YYYY-MM-DD/raw` in IST and create the companion `metadata`, `indexes`, and `derived` lanes.
+- Refuse the production default when `/Volumes/Aryan` is not the expected
+  `//Aryan@172.20.10.38/Aryan` SMB mount, preventing an unmounted-volume local fallback.
+- Reject local output overrides unless the caller also supplies the named controlled-test escape
+  hatch. The codec, file granularity, seek index, and warm/cold implementation remain separate
+  DAT-19 work.
+
 ### D41 — mid-return lags versus CCZ OFI, hypothesis freeze
 
 - Added agreed claim `EF-11/H1` and froze
