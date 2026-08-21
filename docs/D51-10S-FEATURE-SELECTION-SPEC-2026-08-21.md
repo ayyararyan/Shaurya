@@ -1,6 +1,6 @@
 # D51 — Ten-second futures-mid feature-selection experiment
 
-**Specification ID:** `D51-10S-FEATURE-SELECTION-2026-08-21`  
+**Specification ID:** `D51-10S-FEATURE-SELECTION-2026-08-21`
 **Version:** `1.6.0`
 **Status:** Approved, frozen and executed at the one-session exploratory boundary
 **Evidence boundary:** Any result using only the 2026-08-21 session is an **exploratory
