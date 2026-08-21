@@ -198,3 +198,27 @@ tape and is evidence level 3, not confirmatory.
 | `D41-INF-01` | HAC loss tests, DM, nested Clark--West and Holm families | **Implemented, tested, dry-run verified** | `mid_lag_ofi.py:hac_mean_test`, `holm_adjust`, `_comparison_tests` | deterministic synthetic tests and complete artifact-family audit |
 | `D41-OUT-01` | Full/compact artifacts, report, trial row and hashes | **Dry-run verified** | D41 runner; committed report/result | full SHA `19d1ee96…2b04`; compact SHA `96a96f55…bb9a` |
 | `D41-VAL-ALL` | Focused/full tests, Ruff, mypy, compile, artifact/hash/secret gates | **Tested** | repository-wide | 679 pytest; Ruff; 66-file strict mypy; compileall; artifact parity/hash checks |
+
+## D51 ten-second feature-selection foundation — `D51-10S-FEATURE-SELECTION-2026-08-21`
+
+**Specification:** `docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md`
+**Evidence boundary:** construction machinery is evidence level 2. No empirical model has been
+fit; any later result using only the 2026-08-21 session remains exploratory/non-confirmatory.
+
+| ID | Requirement | Status | Code location | Test / acceptance evidence |
+|---|---|---|---|---|
+| `D51-OBJ-01` | One continuous 10 s displayed-mid target after the fixed 0.5 s gap | **Implemented, tested** | `signals/feature_selection.py:TargetDefinition`, `build_feature_selection_rows` | exact target-name/unit/reference and timestamp-geometry test |
+| `D51-DATA-01` | Consume canonical retained objects; no Dhan/socket/parser/order path | **Implemented, tested** | imports and typed builder inputs in `signals/feature_selection.py` | source audit; constructor consumes `HorseRaceObservation`, `BookState`, `FrameDraft` only |
+| `D51-CAUSAL-01` | Every feature available by anchor; same-epoch joins; target strictly future | **Implemented, tested** | `FeatureSelectionRow.__post_init__`, as-of helpers | future-frame invariance, availability and epoch-boundary tests |
+| `D51-REG-01` | Versioned, unique target/feature registries with provenance and timing | **Implemented, tested** | `FeatureTargetRegistry`, `build_registry` | complete-family/axis and uniqueness test |
+| `D51-X-PRICE-01` | Six canonical trailing displayed-mid return lags | **Implemented, tested** | `build_feature_selection_rows` | exact source pass-through and registry-axis test |
+| `D51-X-BOOK-01` | Canonical five-level book/liquidity block | **Implemented, tested** | consumes `surface_futures_predictive.lob_features` | exact spread and missing-book tests |
+| `D51-X-OFI-01` | Canonical CCZ averages at 6 windows x 7 depths plus gradients | **Implemented, tested** | consumes `HorseRaceObservation.features`; `ccz_ofi.average_feature` | all 42 axes registered; M200 source pass-through test |
+| `D51-X-SURF-01` | eSSVI levels/changes/velocities, past-state EW innovations and quality | **Implemented, tested** | `_surface_frames_with_innovations`, canonical `FrameDraft` maps | strict-earlier innovation, future-invariance and missing-quality tests |
+| `D51-X-REGIME-01` | Intraday phase and causal lag/book state | **Implemented, tested** | deterministic regime block in `build_feature_selection_rows` | cyclic identity and lagged-scale test |
+| `D51-X-INT-01` | Four predeclared economic interactions only | **Implemented, tested** | interaction block in `build_feature_selection_rows` | exact product and missingness-propagation tests |
+| `D51-MISS-01` | Unsupported/non-finite inputs remain missing, never zero | **Implemented, tested** | `_finite`, `_put`, `_product` | missing target, state, quality and interaction tests |
+| `D51-ID-01` | Preserve unidentified order objects and explicit average-size proxy label | **Implemented** | D51 spec/object ledger; `BOOK_FEATURE_NAMES` | registry metadata/source audit |
+| `D51-OOS-01` | Step 1 performs no preprocessing, fitting, clustering or selection | **Implemented** | module boundary and D51 exclusions | source audit; no estimator/model dependency |
+| `D51-EXP-01` | Today-only evidence is exploratory/non-confirmatory | **Implemented, tested** | `CONFIRMATORY_ELIGIBLE`, `EVIDENCE_LABEL`, row diagnostics | label/diagnostic tests |
+| `D51-OUT-01` | Deterministic rows carry target interval, values, availability and version | **Implemented, tested** | `FeatureSelectionRow`, `FeatureConstructionResult` | full row-contract tests |
