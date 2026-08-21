@@ -112,6 +112,17 @@ artifacts and full read-only API objects remain unchanged.
 | `MW-CADENCE-01` | All 150 fits complete inside 5s after bootstrap | **Dry-run verified** | shared design matrices; bounded window workers; shared ridge path | active 3GB tape: 2.20s fit/state stage, 150/150 forecasts |
 | `MW-OUT-01` | Five ordered grids become the main page/API | **Live verified** | `analytics/ofi_dashboard_server.py:_matrix_views`, browser render | live port 8766 API: five ordered grids x 30 cells with distinct source labels |
 
+## D49 prospective C8 response surface — `ANL-06-C8-RESPONSE-SURFACE`
+
+**Binding specification:** `docs/D49-C8-RESPONSE-SURFACE-SPEC-2026-08-21.md`
+
+| ID | Requirement | Status | Code location | Test / acceptance evidence |
+|---|---|---|---|---|
+| `SURF-AXIS-01` | Exact six L values x seven h values, separately for five existing OFI sampling horizons | **Implemented, tested** | `analytics/ofi_response_surface.py` | exact 210-cell grid test |
+| `SURF-CAUSAL-01` | Prospective-only forecasts with rolling causally mature labels and no backfill | **Implemented; live verification pending** | `cli/ofi_response_surface.py`; shared causal fitter | isolated fresh tracker; live D49 receipts pending |
+| `SURF-DIAG-01` | Predeclared local smoothness diagnostics; no winner selection | **Implemented, tested** | `surface_diagnostics` | planar and isolated-spike regression test |
+| `SURF-ISOLATE-01` | No dashboard/UI/socket/order-path change | **Implemented; operational verification pending** | isolated CLI and artifact path | source/process comparison pending |
+
 ## D39 additive matrix — `FIXED-TARGET-COMPETITOR-PANEL`
 
 **Specification:** `docs/D39-FIXED-TARGET-PANEL-SPEC-2026-08-21.md`

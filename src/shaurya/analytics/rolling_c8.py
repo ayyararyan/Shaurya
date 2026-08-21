@@ -161,7 +161,12 @@ def fit_forecast_cell(
 
 
 def fit_forecast_grid(
-    observations: Sequence[HorseRaceObservation], *, forecast_position: int
+    observations: Sequence[HorseRaceObservation],
+    *,
+    forecast_position: int,
+    training_windows_seconds: Sequence[float] = TRAINING_WINDOWS_SECONDS,
+    lookbacks_seconds: Sequence[float] = LOOKBACKS_SECONDS,
+    horizons_seconds: Sequence[float] = HORIZONS_SECONDS,
 ) -> dict[tuple[float, float, float], dict[str, Any]]:
     """Fit all declared cells while materialising each feature matrix only once."""
 
@@ -180,7 +185,7 @@ def fit_forecast_grid(
     designs: dict[float, np.ndarray[Any, np.dtype[np.float64]]] = {}
     usable: dict[float, np.ndarray[Any, np.dtype[np.bool_]]] = {}
     names_by_lookback: dict[float, tuple[str, ...]] = {}
-    for lookback in LOOKBACKS_SECONDS:
+    for lookback in lookbacks_seconds:
         names = competitor_features("C8", lookback, LEVELS)
         names_by_lookback[lookback] = names
         rows: list[list[float]] = []
@@ -195,7 +200,7 @@ def fit_forecast_grid(
         designs[lookback] = np.asarray(rows, dtype=np.float64)
         usable[lookback] = np.asarray(valid, dtype=np.bool_)
     targets: dict[float, np.ndarray[Any, np.dtype[np.float64]]] = {}
-    for horizon in HORIZONS_SECONDS:
+    for horizon in horizons_seconds:
         targets[horizon] = np.asarray(
             [
                 (
@@ -213,7 +218,7 @@ def fit_forecast_grid(
     ) -> list[tuple[tuple[float, float, float], dict[str, Any]]]:
         fitted: list[tuple[tuple[float, float, float], dict[str, Any]]] = []
         lower = forecast.receive_ts_ns - int(training_window * 1_000_000_000)
-        for horizon in HORIZONS_SECONDS:
+        for horizon in horizons_seconds:
             maturity = int((CAUSAL_GAP_SECONDS + horizon) * 1_000_000_000)
             base = (
                 same_stream
@@ -221,7 +226,7 @@ def fit_forecast_grid(
                 & (timestamps + maturity <= forecast.receive_ts_ns)
                 & np.isfinite(targets[horizon])
             )
-            for lookback in LOOKBACKS_SECONDS:
+            for lookback in lookbacks_seconds:
                 positions = np.flatnonzero(base & usable[lookback])
                 if positions.size < MINIMUM_FIT_OBSERVATIONS:
                     result: dict[str, Any] = {
@@ -252,8 +257,8 @@ def fit_forecast_grid(
                 fitted.append(((training_window, lookback, horizon), result))
         return fitted
 
-    with ThreadPoolExecutor(max_workers=len(TRAINING_WINDOWS_SECONDS)) as executor:
-        windows = list(executor.map(fit_window, TRAINING_WINDOWS_SECONDS))
+    with ThreadPoolExecutor(max_workers=len(training_windows_seconds)) as executor:
+        windows = list(executor.map(fit_window, training_windows_seconds))
     return {key: value for window in windows for key, value in window}
 
 
