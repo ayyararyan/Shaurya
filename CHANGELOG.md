@@ -214,6 +214,16 @@ to strategies that pin the package.
   it did not meet frozen target correction and its frozen-delta markout proxy was -INR 28.95/lot.
   The lifecycle therefore retained it as an invalidation rather than a corrected opportunity. Evidence:
   `docs/live-evidence/ANL-07-AMENDMENT-4-2026-08-21.md`.
+- Owner amendment 5, explicitly approved 2026-08-21, replaces the 60-second EMA with a
+  120-second causal smoothing half-life and removes the rolling six-frame stability-range gate
+  altogether. The detector no longer stores per-contract fair-IV history, computes a rolling
+  max-minus-min range, or forces a stability-history rebuild after invalidation. Six accepted
+  smoother fits are still required, and current raw-smoothed/exact-smoothed agreement remains
+  capped at 0.50 volatility points. API policy now states
+  `reference_stability_window_enabled=false`; the dashboard shows `120 s`, `stability window off`,
+  smoother-fit count and point-in-time reference eligibility. Verification: 44 focused and 716
+  full-suite tests pass; whole-repository Ruff, strict mypy on 74 source files, and compileall
+  pass. Replacement-live verification remains pending.
 
 ### `X-OFI-DASHBOARD-2026-08-20` — dynamic read-only OFI horse-race dashboard (`ANL-06`)
 

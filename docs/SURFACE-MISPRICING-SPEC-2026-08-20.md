@@ -48,6 +48,41 @@ volatility points. The causal 60-second parameter-smoothing half-life, twenty-fo
 15-second reset gap, exact leave-strike refit, two-frame episode confirmation, uncertainty,
 cost, liquidity, and multiplicity gates are unchanged.
 
+**Owner amendment 5, 2026-08-21:** the rolling stability-window gate is removed altogether and
+the causal parameter-smoothing half-life is increased from 60 to 120 seconds. The smoother still
+requires six accepted raw fits before eligibility, and the current raw-versus-smoothed and exact-
+versus-smoothed 0.50-volatility-point agreement checks remain point-in-time robustness gates.
+There is no per-contract rolling max-minus-min IV test and no stability-history rebuild after an
+episode invalidates. All independent-reference, uncertainty, cost, liquidity, multiplicity,
+exact-refit, and two-frame lifecycle gates are unchanged.
+
+## Approved specification change — owner amendment 5
+
+**Requirements affected:** `MIS-EST-06`, `MIS-EST-08`, `MIS-STATE-10`, `MIS-OUT-01`
+
+**Superseded requirement:** 60-second smoothing half-life plus a six-reading rolling smoothed-IV
+range no larger than 0.50 volatility points and a six-reading rebuild after invalidation.
+
+**Approved requirement:** 120-second smoothing half-life; no rolling stability window, no rolling
+IV-range threshold, and no post-invalidation stability-history rebuild. Six-fit smoother warm-up
+and the current 0.50-point raw/exact agreement checks remain.
+
+**Reason:** the EMA already defines the temporal reference. Rejecting its recent movement with a
+second rolling range gate adds redundant inertia and can reject a cleanly moving volatility
+surface.
+
+**Effect on interpretation:** eligibility depends on a slower causal fair-IV estimate plus current
+raw/exact robustness, not on the smoothed reference having remained inside an arbitrary recent
+range.
+
+**Effect on outputs/comparability:** current policy reports a 120-second half-life and
+`reference_stability_window_enabled=false`; current rows expose smoother component count and
+point-in-time eligibility rather than a stability range. Historical frames retain their embedded
+older policy and fields.
+
+**Approval:** explicitly approved by Aryan Ayyar on 2026-08-21 with instruction to implement and
+update the dashboard immediately.
+
 ## Approved specification change — owner amendment 4
 
 **Requirements affected:** `MIS-EST-07`, `MIS-EST-08`, `MIS-EST-09`, `MIS-STATE-10`
@@ -106,8 +141,8 @@ displayed-quantity, exact-refit, and persistence gates below.
 |---|---|---|
 | Contract BBO, displayed quantity, receive timestamp | Observed | Latest causal CON-01 row at or before `t`; never forward-filled past the freshness gate. |
 | Strike-held-out eSSVI parameters and fair IV | Estimated | The target strike's CE and PE are absent from the reference fit. |
-| Temporally smoothed held-out eSSVI | Estimated | Past-and-current raw fold fits only; 60-second half-life, twenty-four-fit cap, six consecutive fits before eligibility, no raw fallback. |
-| Reference stability | Deterministically derived gate | Twelve-frame range of smoothed held-out fair IV and current raw-versus-smoothed fair-IV distance. |
+| Temporally smoothed held-out eSSVI | Estimated | Past-and-current raw fold fits only; 120-second half-life, twenty-four-fit cap, six accepted fits before eligibility, no raw fallback. |
+| Reference eligibility | Deterministically derived gate | Six-fit smoother warm-up and current raw-versus-smoothed fair-IV agreement; no rolling stability window or max-minus-min IV gate. |
 | Executable bid/ask IV | Deterministically derived | Black-76 inversion of the current bid/ask using the same current forward, maturity and rate as the fair IV. |
 | Continuous IV uncertainty | Estimated | Past-only distance-weighted empirical tail from same-expiry/type neighbours in continuous log-moneyness and log-relative-spread space; no hard moneyness or liquidity bucket. |
 | Black-76 fair price | Estimated | Inherits held-out surface, forward, maturity, rate, and model assumptions. |
@@ -161,19 +196,19 @@ displayed-quantity, exact-refit, and persistence gates below.
   complete strike pair. A fold-screen candidate that fails or changes direction is rejected.
 - `MIS-EST-06`: update a separate causal eSSVI parameter smoother for every deterministic
   cross-fit fold. Use the fit decision timestamp as the decay clock while retaining the oldest
-  contributing quote as the source/staleness timestamp. The default half-life is 60 seconds and
+  contributing quote as the source/staleness timestamp. The default half-life is 120 seconds and
   at most twenty-four raw fits are retained.
 - `MIS-EST-07`: a fold is in smoothing warm-up until six consecutive accepted raw fits have been
   incorporated. Reset its smoother after a gap above 15 seconds, an instrument-scope change, or
   an expiry-set change. A raw or reset-first fit can populate diagnostics but cannot generate an
   opportunity.
-- `MIS-EST-08`: before testing an observation, require six consecutive smoothed fair-IV readings
-  for that contract, a maximum-to-minimum range no larger than 0.50 volatility points, and a
-  current raw-versus-smoothed fair-IV distance no larger than 0.50 volatility points. All limits
-  are payload-visible policy, not hidden constants.
+- `MIS-EST-08`: before testing an observation, require the fold smoother to contain at least six
+  accepted raw fits and require the current raw-versus-smoothed fair-IV distance to be no larger
+  than 0.50 volatility points. No rolling per-contract stability window or max-minus-min IV test
+  is permitted. The point-in-time agreement limit is payload-visible policy, not a hidden constant.
 - `MIS-EST-09`: the exact leave-strike raw refit must retain the same direction and its fair IV
-  must lie within 0.50 volatility points of the stable fold-smoothed fair IV. The actionable fair
-  IV and IV band remain those of the stable smoothed fold; an isolated exact raw refit may confirm
+  must lie within 0.50 volatility points of the fold-smoothed fair IV. The actionable fair
+  IV and IV band remain those of the smoothed fold; an isolated exact raw refit may confirm
   robustness but may not replace the stable benchmark.
 - `MIS-EST-10`: direction is defined in executable IV space: ask IV below the fair-IV lower
   boundary is cheap; bid IV above the fair-IV upper boundary is rich. Mid-IV residuals supply the
@@ -259,15 +294,17 @@ ACTIVE -- stale/missing/failed/unsupported --> CENSORED
   `MIS-STATE-08` is not met, close the episode as `INVALIDATED`. Reference-led, mixed, stability-
   lost, multiplicity-lost and exact-confirmation-lost resolutions remain visible but cannot enter
   the corrected-opportunity count or correction-duration sample.
-- `MIS-STATE-10`: after invalidation, clear that contract's reference-stability history. It cannot
-  become pending again until a new six-frame stable history has accumulated.
+- `MIS-STATE-10`: invalidation does not reset the fold smoother or create a contract-specific
+  re-warm requirement. A contract may become pending again only by satisfying every ordinary
+  current eligibility, statistical, economic, exact-refit and two-frame persistence gate.
 
 ## 9. Required dashboard and API output (`MIS-OUT-*`)
 
 The ANL-03 screen adds a full-width panel below the surface with:
 
 - monitor status, eligibility, tested/outside/FDR/exact/pending/active counts;
-- smoothing warm-up/unstable counts and the complete smoothing/stability policy;
+- smoothing warm-up/reference-rejection counts and the complete smoothing/agreement policy,
+  including an explicit `stability window: off` disclosure;
 - an **Active confirmed** table sorted by net edge;
 - a **Recently corrected / invalidated / censored** table preserving outcomes;
 - contract, side, executable market price, fair price/band, gross/net ticks, net/lot, IV
@@ -279,8 +316,8 @@ The ANL-03 screen adds a full-width panel below the surface with:
 - continuous uncertainty neighbour count/effective sample size and empirical, forward,
   asynchrony, tick-equivalent and total IV widths;
 - current gross/net rupee execution overlay and frozen-delta gross/net markout per unit and lot;
-- smoothed fair IV, contemporaneous raw fair IV, raw-smoothed IV distance, six-frame smoothed-IV
-  range, smoothing component count, and benchmark-stability state.
+- smoothed fair IV, contemporaneous raw fair IV, raw-smoothed IV distance, smoothing component
+  count, and point-in-time reference-eligibility state. No rolling stability range is shown.
 
 `/api/state` and `/api/history` must carry the full policy, lifecycle, assumptions and rows.
 History playback must show the episode state frozen into that frame rather than today's state.
@@ -301,13 +338,14 @@ History playback must show the episode state frozen into that frame rather than 
   empirical uncertainty estimate; neighbour and effective sample sizes remain visible.
 - Frozen-delta markout arithmetic is sign-correct for cheap and rich episodes and is labelled as a
   scenario proxy.
-- A raw reference jump cannot activate during smoothing warm-up or while either IV-stability limit
-  is breached.
+- A raw reference jump cannot activate during smoothing warm-up or while the current raw-smoothed
+  or exact-smoothed agreement limit is breached.
 - Two fits with the same oldest contributing quote but later decision timestamps are smoothed
   causally rather than falling back to a raw surface.
 - A residual that disappears solely because the reference boundary moves is `INVALIDATED`, has no
   correction timestamp, and does not enter the corrected-opportunity duration sample.
-- An invalidated contract cannot immediately reactivate; it must rebuild all six stable frames.
+- Invalidation does not impose a separate rolling-history rebuild; ordinary two-frame confirmation
+  and all current qualification gates still apply before reactivation.
 - A displayed quantity below one lot never becomes actionable.
 - A missing target quote censors an active episode rather than calling it corrected.
 - Base-fit/arbitrage/support failure paths remain explicit.

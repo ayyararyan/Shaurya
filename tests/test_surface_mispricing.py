@@ -137,10 +137,8 @@ def _chain(
 def _detector(
     *,
     lot_size: int = 75,
-    stability_max_points: float = 5.0,
     raw_gap_max_points: float = 5.0,
     smoothing_min_frames: int = 2,
-    stability_frames: int = 2,
 ) -> SurfaceMispricingDetector:
     metadata = {
         _instrument(strike, option_type): InstrumentMetadata(
@@ -160,8 +158,6 @@ def _detector(
             confirmation_frames=2,
             correction_frames=2,
             reference_smoothing_min_frames=smoothing_min_frames,
-            reference_stability_frames=stability_frames,
-            reference_max_iv_range_points=stability_max_points,
             reference_max_raw_smoothed_iv_gap_points=raw_gap_max_points,
             buy_turnover_rate=0.0,
             sell_turnover_rate=0.0,
@@ -335,8 +331,8 @@ def test_gap_trace_separates_reference_market_movement_from_target_movement() ->
     assert rich_trace.delta_hedged_gross_per_unit == pytest.approx(-0.1)
 
 
-def test_reference_jump_is_rejected_by_stability_gate() -> None:
-    detector = _detector(stability_max_points=0.25, raw_gap_max_points=0.50)
+def test_reference_jump_is_rejected_by_current_raw_smoothed_agreement_gate() -> None:
+    detector = _detector(raw_gap_max_points=0.50)
     for seconds in (0, 5, 10, 15):
         now = VALUATION + timedelta(seconds=seconds)
         _evaluate(detector, now, _chain(now))
@@ -352,15 +348,13 @@ def test_reference_jump_is_rejected_by_stability_gate() -> None:
         ),
     )
     assert jumped["outside_band_count"] == 0
-    assert jumped["reference_unstable_count"] > 0
+    assert jumped["reference_rejected_count"] > 0
     assert jumped["active"] == []
 
 
-def test_default_six_frame_reference_warmup_precedes_any_opportunity() -> None:
+def test_default_six_fit_smoother_warmup_precedes_any_opportunity() -> None:
     detector = _detector(
         smoothing_min_frames=6,
-        stability_frames=6,
-        stability_max_points=0.50,
         raw_gap_max_points=0.50,
     )
     for seconds in range(0, 30, 5):
@@ -385,7 +379,7 @@ def test_default_six_frame_reference_warmup_precedes_any_opportunity() -> None:
         _chain(confirmed_time, target_prices=(4.98, 5.00)),
     )
     episode = next(item for item in confirmed["active"] if item["instrument_id"] == TARGET_ID)
-    assert episode["reference_stable"] is True
+    assert episode["reference_eligible"] is True
     assert episode["reference_smoothing_components"] >= 6
 
 
@@ -428,7 +422,8 @@ def test_reference_closed_episode_is_invalidated_not_corrected() -> None:
     assert episode.invalidated_at == VALUATION + timedelta(seconds=20)
     assert episode.gap_close_trace.attribution == "reference_market_led"
     assert episode.gap_close_trace.target_correction_achieved is False
-    assert len(detector._reference_iv_history[TARGET_ID]) == 0
+    assert not hasattr(detector, "_reference_iv_history")
+    assert episode.latest.reference_smoothing_components >= 2
 
 
 def test_dislocation_below_one_lot_never_becomes_actionable() -> None:

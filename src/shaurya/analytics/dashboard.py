@@ -612,9 +612,12 @@ function renderMispricing(payload) {
     ['FDR 1%', monitor.fdr_significant_count ?? 0],
     ['exact confirmed', monitor.exact_confirmed_count ?? 0],
     ['reference warming', monitor.reference_warming_count ?? 0],
-    ['reference unstable', monitor.reference_unstable_count ?? 0],
-    ['reference window', (policy.reference_stability_frames ?? '\u2014') + ' frames'],
-    ['IV tolerance', fmt(policy.reference_max_iv_range_points, 2) + ' pp'],
+    ['reference rejected', monitor.reference_rejected_count ??
+      monitor.reference_unstable_count ?? 0],
+    ['smoothing half-life', fmt(policy.reference_smoothing_half_life_seconds, 0) + ' s'],
+    ['stability window', policy.reference_stability_window_enabled === false ? 'off' : 'legacy'],
+    ['raw/exact tolerance',
+      fmt(policy.reference_max_raw_smoothed_iv_gap_points, 2) + ' pp'],
     ['pending', monitor.pending_count ?? 0],
     ['active', (monitor.active || []).length],
     ['invalidated', (monitor.recent || []).filter((item) => item.status === 'invalidated').length],
@@ -644,8 +647,9 @@ function renderMispricing(payload) {
         ? ('invalidated \u00b7 ' + words(trace.attribution || 'reference changed') +
           (trace.closure_gate ? ' \u00b7 ' + words(trace.closure_gate) : ''))
         : 'censored: ' + (episode.censor_reason || 'unavailable'))
-      : ('live \u00b7 ' + (episode.reference_stable ? 'stable reference' :
-          words(episode.reference_stability_reason || 'reference warming')));
+      : ('live \u00b7 ' + ((episode.reference_eligible ?? episode.reference_stable)
+          ? 'eligible reference' : words(episode.reference_eligibility_reason ||
+            episode.reference_stability_reason || 'reference warming')));
     return '<tr>' +
       '<td title="' + escapeHtml(episode.instrument_id) + '">' +
         escapeHtml(episode.expiry + ' ' + episode.strike + ' ' + episode.option_type) + '</td>' +
@@ -664,9 +668,10 @@ function renderMispricing(payload) {
       '<td class="num">' + escapeHtml(episode.residual_history_count) + ' / ' +
         fmt(episode.residual_effective_sample_size, 1) + '</td>' +
       '<td class="num">' + fmt(episode.raw_smoothed_iv_gap_points, 3) + '</td>' +
-      '<td class="num">' + fmt(episode.reference_iv_range_points, 3) + '</td>' +
-      '<td>' + escapeHtml(episode.reference_stable ? 'yes' :
-        words(episode.reference_stability_reason || 'no')) + '</td>' +
+      '<td class="num">' + escapeHtml(episode.reference_smoothing_components) + '</td>' +
+      '<td>' + escapeHtml((episode.reference_eligible ?? episode.reference_stable) ? 'yes' :
+        words(episode.reference_eligibility_reason ||
+          episode.reference_stability_reason || 'no')) + '</td>' +
       '<td class="num">' + fmt(episode.gross_iv_edge_points, 3) + '</td>' +
       '<td class="num">' + fmt(episode.net_edge_ticks, 2) + '</td>' +
       '<td class="num">' + fmt(episode.net_edge_per_lot, 2) + '</td>' +
@@ -1006,8 +1011,9 @@ _BODY = """<!doctype html>
 </main>
 <section class="mispricing-panel" id="mispricingPanel">
   <div class="mispricing-head">
-    <h2>Stable held-out executable-IV dislocations</h2>
-    <p>read-only research monitor &middot; 60 s causal surface smoothing &middot;
+    <h2>Smoothed held-out executable-IV dislocations</h2>
+    <p>read-only research monitor &middot; 120 s causal surface smoothing &middot;
+      no rolling stability-window gate &middot;
       continuous past-only IV uncertainty &middot; exact held-out check
       &middot; frozen-entry IV correction &middot; frozen-delta markout proxy</p>
   </div>
@@ -1021,8 +1027,8 @@ _BODY = """<!doctype html>
         <th class="num">exec IV %</th><th class="num">fair IV %</th>
         <th class="num">fair IV band %</th><th class="num">model u pp</th>
         <th class="num">total u pp</th><th class="num">neigh / eff n</th>
-        <th class="num">raw-smooth pp</th><th class="num">stability range pp</th>
-        <th>reference stable</th><th class="num">gross IV pp</th>
+        <th class="num">raw-smooth pp</th><th class="num">smoother fits</th>
+        <th>reference eligible</th><th class="num">gross IV pp</th>
         <th class="num">net ticks</th><th class="num">net / lot</th>
         <th class="num" title="frozen-entry-delta executable-quote proxy"
           >delta hedge net / lot</th>
@@ -1046,8 +1052,8 @@ _BODY = """<!doctype html>
         <th class="num">exec IV %</th><th class="num">fair IV %</th>
         <th class="num">fair IV band %</th><th class="num">model u pp</th>
         <th class="num">total u pp</th><th class="num">neigh / eff n</th>
-        <th class="num">raw-smooth pp</th><th class="num">stability range pp</th>
-        <th>reference stable</th><th class="num">gross IV pp</th>
+        <th class="num">raw-smooth pp</th><th class="num">smoother fits</th>
+        <th>reference eligible</th><th class="num">gross IV pp</th>
         <th class="num">net ticks</th><th class="num">net / lot</th>
         <th class="num" title="frozen-entry-delta executable-quote proxy"
           >delta hedge net / lot</th>

@@ -94,11 +94,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--mispricing-fdr-level", type=float, default=0.01)
     parser.add_argument("--mispricing-confirmation-frames", type=int, default=2)
     parser.add_argument("--mispricing-correction-frames", type=int, default=2)
-    parser.add_argument("--mispricing-reference-half-life-seconds", type=float, default=60.0)
+    parser.add_argument("--mispricing-reference-half-life-seconds", type=float, default=120.0)
     parser.add_argument("--mispricing-reference-min-frames", type=int, default=6)
     parser.add_argument("--mispricing-reference-max-gap-seconds", type=float, default=15.0)
-    parser.add_argument("--mispricing-reference-stability-frames", type=int, default=6)
-    parser.add_argument("--mispricing-reference-max-iv-range-points", type=float, default=0.50)
     parser.add_argument(
         "--mispricing-reference-max-raw-smoothed-iv-gap-points",
         type=float,
@@ -212,10 +210,6 @@ def _engine(
             reference_smoothing_min_frames=args.mispricing_reference_min_frames,
             reference_smoothing_max_gap_seconds=(
                 args.mispricing_reference_max_gap_seconds
-            ),
-            reference_stability_frames=args.mispricing_reference_stability_frames,
-            reference_max_iv_range_points=(
-                args.mispricing_reference_max_iv_range_points
             ),
             reference_max_raw_smoothed_iv_gap_points=(
                 args.mispricing_reference_max_raw_smoothed_iv_gap_points

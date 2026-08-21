@@ -88,12 +88,10 @@ class MispricingPolicy:
     fdr_level: float = 0.01
     confirmation_frames: int = 2
     correction_frames: int = 2
-    reference_smoothing_half_life_seconds: float = 60.0
+    reference_smoothing_half_life_seconds: float = 120.0
     reference_smoothing_max_history: int = 24
     reference_smoothing_min_frames: int = 6
     reference_smoothing_max_gap_seconds: float = 15.0
-    reference_stability_frames: int = 6
-    reference_max_iv_range_points: float = 0.50
     reference_max_raw_smoothed_iv_gap_points: float = 0.50
     default_tick_size: float = 0.05
     default_lot_size: int | None = None
@@ -138,16 +136,8 @@ class MispricingPolicy:
             raise ValueError("reference smoothing minimum must fit inside retained history")
         if self.reference_smoothing_max_gap_seconds <= 0:
             raise ValueError("reference smoothing maximum gap must be positive")
-        if self.reference_stability_frames < 2:
-            raise ValueError("reference stability requires at least two frames")
-        if (
-            min(
-                self.reference_max_iv_range_points,
-                self.reference_max_raw_smoothed_iv_gap_points,
-            )
-            <= 0
-        ):
-            raise ValueError("reference IV stability limits must be positive")
+        if self.reference_max_raw_smoothed_iv_gap_points <= 0:
+            raise ValueError("reference IV agreement limit must be positive")
         if self.default_tick_size <= 0:
             raise ValueError("default_tick_size must be positive")
         if self.default_lot_size is not None and self.default_lot_size <= 0:
@@ -180,12 +170,11 @@ class MispricingPolicy:
             "reference_smoothing_max_history": self.reference_smoothing_max_history,
             "reference_smoothing_min_frames": self.reference_smoothing_min_frames,
             "reference_smoothing_max_gap_seconds": (self.reference_smoothing_max_gap_seconds),
-            "reference_stability_frames": self.reference_stability_frames,
-            "reference_max_iv_range_points": self.reference_max_iv_range_points,
+            "reference_stability_window_enabled": False,
             "reference_max_raw_smoothed_iv_gap_points": (
                 self.reference_max_raw_smoothed_iv_gap_points
             ),
-            "reference_rewarm_after_invalidation": True,
+            "reference_rewarm_after_invalidation": False,
             "default_tick_size": self.default_tick_size,
             "default_lot_size": self.default_lot_size,
             "fee_schedule_version": FEE_SCHEDULE_VERSION,
@@ -262,9 +251,8 @@ class MispricingObservation:
     exact_fair_iv: float | None
     exact_smoothed_iv_gap_points: float | None
     reference_smoothing_components: int
-    reference_iv_range_points: float | None
-    reference_stable: bool
-    reference_stability_reason: str | None
+    reference_eligible: bool
+    reference_eligibility_reason: str | None
     fair_price: float
     fair_lower: float
     fair_upper: float
@@ -448,7 +436,7 @@ class MispricingFrame:
     fdr_significant_count: int
     exact_confirmed_count: int
     reference_warming_count: int
-    reference_unstable_count: int
+    reference_rejected_count: int
     pending_count: int
     active: tuple[MispricingEpisode, ...]
     recent: tuple[MispricingEpisode, ...]
@@ -468,7 +456,7 @@ class MispricingFrame:
             "fdr_significant_count": self.fdr_significant_count,
             "exact_confirmed_count": self.exact_confirmed_count,
             "reference_warming_count": self.reference_warming_count,
-            "reference_unstable_count": self.reference_unstable_count,
+            "reference_rejected_count": self.reference_rejected_count,
             "pending_count": self.pending_count,
             "active": [episode.to_dict() for episode in self.active],
             "recent": [episode.to_dict() for episode in self.recent],
@@ -632,9 +620,6 @@ class SurfaceMispricingDetector:
         default_factory=dict, init=False, repr=False
     )
     _fold_last_update: dict[int, datetime] = field(default_factory=dict, init=False, repr=False)
-    _reference_iv_history: dict[str, deque[float]] = field(
-        default_factory=lambda: defaultdict(deque), init=False, repr=False
-    )
     _pending: dict[str, _PendingEpisode] = field(default_factory=dict, init=False, repr=False)
     _active: dict[str, _ActiveEpisode] = field(default_factory=dict, init=False, repr=False)
     _recent: deque[MispricingEpisode] = field(init=False, repr=False)
@@ -822,21 +807,12 @@ class SurfaceMispricingDetector:
             status=status,
         )
 
-    def _with_reference_stability(
+    def _with_reference_eligibility(
         self, observation: MispricingObservation
     ) -> MispricingObservation:
-        history = self._reference_iv_history[observation.instrument_id]
-        history.append(observation.fair_iv)
-        while len(history) > self.policy.reference_stability_frames:
-            history.popleft()
-        iv_range_points = (max(history) - min(history)) * 100.0 if len(history) >= 2 else None
         reason: str | None = None
         if observation.reference_smoothing_components < self.policy.reference_smoothing_min_frames:
             reason = "reference_smoothing_warmup"
-        elif len(history) < self.policy.reference_stability_frames:
-            reason = "reference_iv_history_warmup"
-        elif iv_range_points is None or iv_range_points > self.policy.reference_max_iv_range_points:
-            reason = "reference_smoothed_iv_range_exceeded"
         elif (
             observation.raw_smoothed_iv_gap_points
             > self.policy.reference_max_raw_smoothed_iv_gap_points
@@ -844,9 +820,8 @@ class SurfaceMispricingDetector:
             reason = "reference_raw_smoothed_iv_gap_exceeded"
         return replace(
             observation,
-            reference_iv_range_points=iv_range_points,
-            reference_stable=reason is None,
-            reference_stability_reason=reason,
+            reference_eligible=reason is None,
+            reference_eligibility_reason=reason,
         )
 
     def _uncertainty_and_p(
@@ -1296,9 +1271,8 @@ class SurfaceMispricingDetector:
                 exact_fair_iv=None,
                 exact_smoothed_iv_gap_points=None,
                 reference_smoothing_components=reference_smoothing_components,
-                reference_iv_range_points=None,
-                reference_stable=False,
-                reference_stability_reason="reference_stability_not_evaluated",
+                reference_eligible=False,
+                reference_eligibility_reason="reference_eligibility_not_evaluated",
                 fair_price=fair_price,
                 fair_lower=fair_lower,
                 fair_upper=fair_upper,
@@ -1374,8 +1348,8 @@ class SurfaceMispricingDetector:
     @staticmethod
     def _closure_gate(active: _ActiveEpisode) -> str:
         latest = active.latest
-        if not latest.reference_stable:
-            return latest.reference_stability_reason or "reference_unstable"
+        if not latest.reference_eligible:
+            return latest.reference_eligibility_reason or "reference_ineligible"
         if latest.direction is None:
             return "inside_uncertainty_band"
         if latest.direction is not active.direction:
@@ -1529,7 +1503,6 @@ class SurfaceMispricingDetector:
                 )
                 self._recent.appendleft(closed)
                 del self._active[instrument_id]
-                self._reference_iv_history[instrument_id].clear()
                 continue
             active.latest = current
             active.peak_gross_edge = max(active.peak_gross_edge, current.gross_edge)
@@ -1557,7 +1530,6 @@ class SurfaceMispricingDetector:
                 )
                 self._recent.appendleft(closed)
                 del self._active[instrument_id]
-                self._reference_iv_history[instrument_id].clear()
 
         for instrument_id, observation in qualified.items():
             if instrument_id in self._active or observation.direction is None:
@@ -1606,7 +1578,7 @@ class SurfaceMispricingDetector:
         fdr_count: int,
         exact_count: int,
         reference_warming_count: int,
-        reference_unstable_count: int,
+        reference_rejected_count: int,
         successful_folds: int,
         failed_folds: int,
     ) -> MispricingFrame:
@@ -1628,7 +1600,7 @@ class SurfaceMispricingDetector:
             fdr_significant_count=fdr_count,
             exact_confirmed_count=exact_count,
             reference_warming_count=reference_warming_count,
-            reference_unstable_count=reference_unstable_count,
+            reference_rejected_count=reference_rejected_count,
             pending_count=len(self._pending),
             active=active,
             recent=tuple(self._recent),
@@ -1663,7 +1635,7 @@ class SurfaceMispricingDetector:
             fdr_count=0,
             exact_count=0,
             reference_warming_count=0,
-            reference_unstable_count=0,
+            reference_rejected_count=0,
             successful_folds=0,
             failed_folds=self.policy.cross_fit_folds,
         )
@@ -1768,12 +1740,14 @@ class SurfaceMispricingDetector:
                 # Warm-up still needs causal residuals.  Re-evaluate with a temporary zero
                 # history floor by pricing directly, then append below where possible.
                 continue
-            observation = self._with_reference_stability(observation)
+            observation = self._with_reference_eligibility(observation)
             observations[row.instrument_id] = observation
-            if not observation.reference_stable:
-                stability_reason = observation.reference_stability_reason or "reference_unstable"
-                counter[stability_reason] += 1
-                ineligible_by_contract[row.instrument_id] = stability_reason
+            if not observation.reference_eligible:
+                eligibility_reason = (
+                    observation.reference_eligibility_reason or "reference_ineligible"
+                )
+                counter[eligibility_reason] += 1
+                ineligible_by_contract[row.instrument_id] = eligibility_reason
             elif observation.empirical_p_value is not None:
                 preliminary[row.instrument_id] = observation
 
@@ -1953,26 +1927,14 @@ class SurfaceMispricingDetector:
         warmup = sum(
             count for reason, count in counter.items() if reason == "residual_history_warmup"
         )
-        reference_warming = sum(
-            counter.get(reason, 0)
-            for reason in (
-                "reference_smoothing_warmup",
-                "reference_iv_history_warmup",
-            )
-        )
-        reference_unstable = sum(
-            counter.get(reason, 0)
-            for reason in (
-                "reference_smoothed_iv_range_exceeded",
-                "reference_raw_smoothed_iv_gap_exceeded",
-            )
-        )
+        reference_warming = counter.get("reference_smoothing_warmup", 0)
+        reference_rejected = counter.get("reference_raw_smoothed_iv_gap_exceeded", 0)
         if warmup:
             reasons.append(f"{warmup} contracts still warming empirical residual history")
         if reference_warming:
-            reasons.append(f"{reference_warming} contracts still warming stable reference history")
-        if reference_unstable:
-            reasons.append(f"{reference_unstable} contracts rejected for reference instability")
+            reasons.append(f"{reference_warming} contracts still warming the reference smoother")
+        if reference_rejected:
+            reasons.append(f"{reference_rejected} contracts rejected for raw-smoothed disagreement")
         if not exact and not self._active:
             reasons.append("no confirmed after-cost surface-relative mispricing")
         status = "active" if self._active else "warming" if warmup or reference_warming else "clear"
@@ -1987,7 +1949,7 @@ class SurfaceMispricingDetector:
             fdr_count=len(significant_ids),
             exact_count=len(exact),
             reference_warming_count=reference_warming,
-            reference_unstable_count=reference_unstable,
+            reference_rejected_count=reference_rejected,
             successful_folds=len(references),
             failed_folds=failed_folds,
         )
