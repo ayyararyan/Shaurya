@@ -59,6 +59,15 @@ exact-confirmed candidates pending and no active episode. By 13:40:09 the pendin
 without activation, showing that the unchanged two-frame persistence gate continued to reject
 one-frame candidates.
 
+The first post-amendment active episode then appeared: `MP-20260821-000001`, 29 September 25300
+CE, cheap. It was first seen at 13:41:05, confirmed at 13:41:10, and invalidated at 13:41:20 after
+15.27 seconds. The target executable IV did not close the frozen target; the trace was
+reference-market-led, with target/reference IV contributions of -0.0040/+0.1082 volatility
+points and a -INR 28.95/lot frozen-delta markout proxy. It is retained as an invalidated episode,
+not a corrected opportunity. This is direct evidence that the looser stability gate increases
+sensitivity while the unchanged frozen-target attribution and invalidation rules still reject a
+reference-closed residual.
+
 ## Evidence level
 
 The amended policy, API, DAT-follow transport, and rendered dashboard are **Live verified**. The

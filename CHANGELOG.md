@@ -209,8 +209,10 @@ to strategies that pin the package.
   lane's Quote/Full socket. The first post-warm-up check tested 246 contracts and rejected 9 for reference
   instability, versus 52 tested and 208 rejected in the prior process's last recorded policy
   frame. A headless render visibly showed the six-frame/0.50-point policy and generic stability
-  range label. Several candidates reached exact-confirmed pending state but cleared before the
-  unchanged two-frame activation gate. Evidence:
+  range label. Several candidates reached exact-confirmed pending state. The first later active
+  episode, 29 September 25300 CE cheap, was invalidated reference-market-led after 15.27 seconds;
+  it did not meet frozen target correction and its frozen-delta markout proxy was -INR 28.95/lot.
+  The lifecycle therefore retained it as an invalidation rather than a corrected opportunity. Evidence:
   `docs/live-evidence/ANL-07-AMENDMENT-4-2026-08-21.md`.
 
 ### `X-OFI-DASHBOARD-2026-08-20` — dynamic read-only OFI horse-race dashboard (`ANL-06`)
