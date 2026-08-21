@@ -202,9 +202,9 @@ tape and is evidence level 3, not confirmatory.
 ## D51 ten-second feature-selection foundation — `D51-10S-FEATURE-SELECTION-2026-08-21`
 
 **Specification:** `docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md`
-**Evidence boundary:** construction and hard quality-gate machinery are evidence level 2. No
-empirical model has been fit; any later result using only the 2026-08-21 session remains
-exploratory/non-confirmatory.
+**Evidence boundary:** construction, hard quality gates and training-only correlated-feature
+reduction are evidence level 2. No empirical model has been fit; any later result using only the
+2026-08-21 session remains exploratory/non-confirmatory.
 
 | ID | Requirement | Status | Code location | Test / acceptance evidence |
 |---|---|---|---|---|
@@ -220,7 +220,7 @@ exploratory/non-confirmatory.
 | `D51-X-INT-01` | Four predeclared economic interactions only | **Implemented, tested** | interaction block in `build_feature_selection_rows` | exact product and missingness-propagation tests |
 | `D51-MISS-01` | Unsupported/non-finite inputs remain missing, never zero | **Implemented, tested** | `_finite`, `_put`, `_product` | missing target, state, quality and interaction tests |
 | `D51-ID-01` | Preserve unidentified order objects and explicit average-size proxy label | **Implemented** | D51 spec/object ledger; `BOOK_FEATURE_NAMES` | registry metadata/source audit |
-| `D51-OOS-01` | Step 1 performs no preprocessing, fitting, clustering or selection | **Implemented** | module boundary and D51 exclusions | source audit; no estimator/model dependency |
+| `D51-OOS-01` | Learned transforms use declared training rows only; targets/held-out rows never select clusters, cuts, representatives or PCA | **Implemented, tested** | `fit_correlated_feature_reduction`, training-only fingerprint | held-out feature mutation leaves the complete reduction artifact unchanged; API accepts no targets |
 | `D51-EXP-01` | Today-only evidence is exploratory/non-confirmatory | **Implemented, tested** | `CONFIRMATORY_ELIGIBLE`, `EVIDENCE_LABEL`, row diagnostics | label/diagnostic tests |
 | `D51-OUT-01` | Deterministic rows carry target interval, values, availability and version | **Implemented, tested** | `FeatureSelectionRow`, `FeatureConstructionResult` | full row-contract tests |
 | `D51-GATE-01` | Hard schema/version/target/finite/range/as-of availability enforcement | **Implemented, tested** | `apply_feature_quality_gates`, `_feature_in_range` | deliberate future timestamp, schema and range fixtures fail closed |
@@ -228,3 +228,8 @@ exploratory/non-confirmatory.
 | `D51-GATE-03` | Training-only coverage, near-constant and deterministic exact/affine duplicates | **Implemented, tested** | `apply_feature_quality_gates`, `_affine_duplicate` | held-out variation cannot rescue training constant; missing coverage and duplicate fixtures |
 | `D51-GATE-04` | Surface freshness, fit, support, stale-state and arbitrage gates | **Implemented, tested** | `SurfaceQualityGate`, `_surface_quality_failures` | deliberate stale/low-R2/low-support/arbitrage-fail fixture invalidates surface only |
 | `D51-GATE-05` | Versioned auditable gate artifact and deterministic fingerprint | **Implemented, tested** | `FeatureQualityGateArtifact`, `_input_fingerprint` | repeated identical gate pass has identical SHA-256 and eligibility |
+| `D51-CLUSTER-01` | Pairwise-available Spearman with explicit minimum support and unsupported-pair diagnostics | **Implemented, tested** | `_pairwise_spearman`, `PairwiseSpearmanDiagnostic` | perfect substitutes and disjoint-missing-pair fixtures |
+| `D51-CLUSTER-02` | Deterministic `1-|rho|` average-linkage maps at frozen 0.85/0.90/0.95 cuts; 0.90 primary | **Implemented, tested** | `fit_correlated_feature_reduction`, `_canonical_cluster_map` | exact three-map and repeated-fit determinism tests |
+| `D51-CLUSTER-03` | Representative uses pre-outcome measurement quality, training coverage, then stable name | **Implemented, tested** | `_representative`, `ClusterDefinition` | quality-priority perfect-substitute fixture; no target input |
+| `D51-CLUSTER-04` | Optional complete-case train-fitted first PC with saved center/loading/sign and apply-only missingness | **Implemented, tested** | `_fit_first_pc`, `apply_correlated_feature_reduction` | PCA fit/apply, missing member and singleton fixtures |
+| `D51-CLUSTER-05` | Versioned training-only reduction artifact; downstream importance unit is cluster | **Implemented, tested** | `CorrelatedFeatureReductionArtifact`, `_training_reduction_fingerprint` | held-out isolation, artifact equality and `importance_unit` assertions |

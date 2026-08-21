@@ -1,8 +1,9 @@
-"""D51 causal registry and construction layer for the ten-second futures-mid experiment.
+"""D51 causal feature-selection foundation for the ten-second futures-mid experiment.
 
-This module deliberately stops before preprocessing, clustering, fitting or selection.  It
-consumes the canonical OFI, LOB and eSSVI feature objects and records when every value became
-available.  The frozen design is ``docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md``.
+Steps 1--2 construct and quality-gate canonical OFI, LOB and eSSVI features.  Step 3 reduces
+correlated features using training rows only.  It deliberately stops before predictive fitting,
+importance, stability selection or empirical evaluation.  The frozen design is
+``docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md``.
 """
 
 from __future__ import annotations
@@ -14,6 +15,11 @@ from bisect import bisect_right
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Final, Literal, cast
+
+import numpy as np
+from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.spatial.distance import squareform
+from scipy.stats import rankdata
 
 from shaurya.data.depth_thinning_analysis import BookState
 from shaurya.signals.ccz_ofi import average_feature
@@ -30,13 +36,16 @@ from shaurya.signals.surface_futures_predictive import (
 )
 
 SPECIFICATION_ID: Final = "D51-10S-FEATURE-SELECTION-2026-08-21"
-SPECIFICATION_VERSION: Final = "1.1.0"
+SPECIFICATION_VERSION: Final = "1.2.0"
 DESIGN_DOCUMENT: Final = "docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md"
 REGISTRY_VERSION: Final = "d51-feature-registry-v1"
 TARGET_REGISTRY_VERSION: Final = "d51-target-registry-v1"
 CONFIRMATORY_ELIGIBLE: Final = False
 EVIDENCE_LABEL: Final = "exploratory_screening_today_only"
 GATE_ARTIFACT_VERSION: Final = "d51-quality-gates-v1"
+CORRELATION_ARTIFACT_VERSION: Final = "d51-correlation-reduction-v1"
+CORRELATION_SENSITIVITY_THRESHOLDS: Final = (0.85, 0.90, 0.95)
+PRIMARY_CORRELATION_THRESHOLD: Final = 0.90
 
 NANOSECONDS_PER_SECOND: Final = 1_000_000_000
 CAUSAL_GAP_SECONDS: Final = 0.5
@@ -320,6 +329,101 @@ class FeatureQualityGateArtifact:
     training_diagnostics: tuple[TrainingFeatureDiagnostic, ...]
     rows: tuple[GatedFeatureRow, ...]
     reason_counts: Mapping[str, int]
+
+
+PairStatus = Literal["estimated", "insufficient_pairs", "zero_rank_variance"]
+ClusterRepresentation = Literal["representative", "first_pc"]
+
+
+@dataclass(frozen=True, slots=True)
+class CorrelationReductionConfig:
+    """Predeclared Step-3 policy; no field may be selected using outcomes."""
+
+    minimum_pair_count: int = 3
+    sensitivity_thresholds: tuple[float, ...] = CORRELATION_SENSITIVITY_THRESHOLDS
+    primary_threshold: float = PRIMARY_CORRELATION_THRESHOLD
+    representation: ClusterRepresentation = "representative"
+    measurement_quality_by_feature: Mapping[str, float] | None = None
+    minimum_pca_complete_rows: int = 3
+
+    def __post_init__(self) -> None:
+        if self.minimum_pair_count < 2:
+            raise ValueError("minimum pair support must be at least two")
+        if self.sensitivity_thresholds != CORRELATION_SENSITIVITY_THRESHOLDS:
+            raise ValueError("D51 sensitivity thresholds are frozen at 0.85/0.90/0.95")
+        if self.primary_threshold != PRIMARY_CORRELATION_THRESHOLD:
+            raise ValueError("D51 primary threshold is frozen at 0.90")
+        if self.minimum_pca_complete_rows < 2:
+            raise ValueError("minimum PCA complete rows must be at least two")
+        if self.measurement_quality_by_feature is not None and any(
+            not math.isfinite(value) for value in self.measurement_quality_by_feature.values()
+        ):
+            raise ValueError("measurement-quality scores must be finite")
+
+
+@dataclass(frozen=True, slots=True)
+class PairwiseSpearmanDiagnostic:
+    left_feature: str
+    right_feature: str
+    pair_count: int
+    rho: float | None
+    distance: float
+    status: PairStatus
+
+
+@dataclass(frozen=True, slots=True)
+class ClusterDefinition:
+    cluster_id: str
+    members: tuple[str, ...]
+    representative: str
+    representative_measurement_quality: float
+    representative_training_coverage: float
+
+
+@dataclass(frozen=True, slots=True)
+class CorrelationClusterMap:
+    absolute_correlation_threshold: float
+    distance_cut: float
+    clusters: tuple[ClusterDefinition, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class FirstPCTransform:
+    cluster_id: str
+    members: tuple[str, ...]
+    center: tuple[float, ...]
+    loadings: tuple[float, ...]
+    complete_training_row_count: int
+    sign_anchor_feature: str
+    sign_convention: str = "largest_absolute_loading_positive_then_lexical_feature"
+
+
+@dataclass(frozen=True, slots=True)
+class CorrelatedFeatureReductionArtifact:
+    version: str
+    specification_id: str
+    specification_version: str
+    registry_version: str
+    source_gate_version: str
+    config: CorrelationReductionConfig
+    training_row_indices: tuple[int, ...]
+    training_input_fingerprint_sha256: str
+    eligible_input_features: tuple[str, ...]
+    pairwise_diagnostics: tuple[PairwiseSpearmanDiagnostic, ...]
+    sensitivity_maps: tuple[CorrelationClusterMap, ...]
+    primary_map: CorrelationClusterMap
+    first_pc_transforms: tuple[FirstPCTransform, ...]
+    importance_unit: Literal["cluster"] = "cluster"
+
+
+@dataclass(frozen=True, slots=True)
+class ReducedFeatureRow:
+    """Apply-only cluster view. Missing members remain explicit and are never zero-filled."""
+
+    source_row_index: int
+    values: Mapping[str, float | None]
+    missing_indicators: Mapping[str, bool]
+    validity_indicators: Mapping[str, bool]
 
 
 def _surface_level_names() -> tuple[str, ...]:
@@ -1174,3 +1278,316 @@ def apply_feature_quality_gates(
         tuple(gated_rows),
         reason_counts,
     )
+
+
+def _training_feature_vector(
+    artifact: FeatureQualityGateArtifact, feature_name: str
+) -> tuple[float | None, ...]:
+    return tuple(
+        artifact.rows[index].feature_values.get(feature_name)
+        if artifact.rows[index].row_valid
+        and artifact.rows[index].validity_indicators.get(feature_name, False)
+        else None
+        for index in artifact.training_row_indices
+    )
+
+
+def _pairwise_spearman(
+    left: Sequence[float | None],
+    right: Sequence[float | None],
+    *,
+    minimum_pair_count: int,
+) -> tuple[int, float | None, PairStatus]:
+    paired = tuple(
+        (left_value, right_value)
+        for left_value, right_value in zip(left, right, strict=True)
+        if left_value is not None and right_value is not None
+    )
+    if len(paired) < minimum_pair_count:
+        return len(paired), None, "insufficient_pairs"
+    left_ranks = np.asarray(rankdata([item[0] for item in paired], method="average"), dtype=float)
+    right_ranks = np.asarray(rankdata([item[1] for item in paired], method="average"), dtype=float)
+    left_centered = left_ranks - float(np.mean(left_ranks))
+    right_centered = right_ranks - float(np.mean(right_ranks))
+    denominator = float(np.linalg.norm(left_centered) * np.linalg.norm(right_centered))
+    if denominator == 0.0:
+        return len(paired), None, "zero_rank_variance"
+    rho = float(np.dot(left_centered, right_centered) / denominator)
+    return len(paired), max(-1.0, min(1.0, rho)), "estimated"
+
+
+def _training_reduction_fingerprint(
+    artifact: FeatureQualityGateArtifact,
+    feature_names: tuple[str, ...],
+    config: CorrelationReductionConfig,
+) -> str:
+    payload = {
+        "source_gate_version": artifact.version,
+        "registry_version": artifact.registry_version,
+        "training_row_indices": artifact.training_row_indices,
+        "features": feature_names,
+        "training_values": {
+            name: _training_feature_vector(artifact, name) for name in feature_names
+        },
+        "config": {
+            "minimum_pair_count": config.minimum_pair_count,
+            "sensitivity_thresholds": config.sensitivity_thresholds,
+            "primary_threshold": config.primary_threshold,
+            "representation": config.representation,
+            "measurement_quality_by_feature": sorted(
+                (config.measurement_quality_by_feature or {}).items()
+            ),
+            "minimum_pca_complete_rows": config.minimum_pca_complete_rows,
+        },
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _representative(
+    members: tuple[str, ...],
+    *,
+    coverage_by_feature: Mapping[str, float],
+    quality_by_feature: Mapping[str, float],
+) -> str:
+    """Choose by pre-outcome measurement quality, coverage, then lexical stable name."""
+
+    return min(
+        members,
+        key=lambda name: (
+            -quality_by_feature.get(name, 0.0),
+            -coverage_by_feature[name],
+            name,
+        ),
+    )
+
+
+def _canonical_cluster_map(
+    *,
+    feature_names: tuple[str, ...],
+    raw_labels: Sequence[int],
+    threshold: float,
+    coverage_by_feature: Mapping[str, float],
+    quality_by_feature: Mapping[str, float],
+) -> CorrelationClusterMap:
+    grouped: dict[int, list[str]] = {}
+    for name, label in zip(feature_names, raw_labels, strict=True):
+        grouped.setdefault(int(label), []).append(name)
+    clusters: list[ClusterDefinition] = []
+    for names in grouped.values():
+        members = tuple(sorted(names))
+        representative = _representative(
+            members,
+            coverage_by_feature=coverage_by_feature,
+            quality_by_feature=quality_by_feature,
+        )
+        clusters.append(
+            ClusterDefinition(
+                f"cluster__{representative}",
+                members,
+                representative,
+                quality_by_feature.get(representative, 0.0),
+                coverage_by_feature[representative],
+            )
+        )
+    clusters.sort(key=lambda item: item.cluster_id)
+    return CorrelationClusterMap(threshold, 1.0 - threshold, tuple(clusters))
+
+
+def _fit_first_pc(
+    cluster: ClusterDefinition,
+    *,
+    artifact: FeatureQualityGateArtifact,
+    minimum_complete_rows: int,
+) -> FirstPCTransform:
+    members = cluster.members
+    complete: list[list[float]] = []
+    for row_index in artifact.training_row_indices:
+        row = artifact.rows[row_index]
+        values = [row.feature_values.get(name) for name in members]
+        if row.row_valid and all(
+            value is not None and row.validity_indicators.get(name, False)
+            for name, value in zip(members, values, strict=True)
+        ):
+            complete.append([cast(float, value) for value in values])
+    required = 1 if len(members) == 1 else minimum_complete_rows
+    if len(complete) < required:
+        raise ValueError(
+            f"cluster {cluster.cluster_id} has {len(complete)} complete training rows; "
+            f"requires {required} for first-PC fitting"
+        )
+    matrix = np.asarray(complete, dtype=float)
+    center_array = np.mean(matrix, axis=0)
+    if len(members) == 1:
+        loading_array = np.asarray([1.0])
+    else:
+        centered = matrix - center_array
+        if not np.any(centered):
+            raise ValueError(f"cluster {cluster.cluster_id} has zero complete-case variance")
+        _, _, right_vectors = np.linalg.svd(centered, full_matrices=False)
+        loading_array = np.asarray(right_vectors[0], dtype=float)
+    absolute = np.abs(loading_array)
+    anchor_index = int(np.argmax(absolute))
+    if loading_array[anchor_index] < 0.0:
+        loading_array = -loading_array
+    return FirstPCTransform(
+        cluster.cluster_id,
+        members,
+        tuple(float(value) for value in center_array),
+        tuple(float(value) for value in loading_array),
+        len(complete),
+        members[anchor_index],
+    )
+
+
+def fit_correlated_feature_reduction(
+    artifact: FeatureQualityGateArtifact,
+    *,
+    config: CorrelationReductionConfig | None = None,
+) -> CorrelatedFeatureReductionArtifact:
+    """Fit deterministic correlation clusters from the gate's declared training rows only.
+
+    Targets and held-out row values are neither accepted as arguments nor read. Pairwise missing
+    observations are dropped only for that pair. A pair below the explicit support floor receives
+    distance one and therefore cannot merge at any frozen sensitivity cut.
+    """
+
+    policy = config or CorrelationReductionConfig()
+    feature_names = tuple(sorted(artifact.eligible_features))
+    if not feature_names:
+        raise ValueError("at least one gate-eligible feature is required")
+    quality = dict(policy.measurement_quality_by_feature or {})
+    unknown_quality = set(quality) - set(feature_names)
+    if unknown_quality:
+        raise ValueError(
+            f"measurement quality supplied for ineligible features: {sorted(unknown_quality)}"
+        )
+    vectors = {name: _training_feature_vector(artifact, name) for name in feature_names}
+    coverage = {
+        name: sum(value is not None for value in vectors[name]) / len(artifact.training_row_indices)
+        for name in feature_names
+    }
+    distances = np.zeros((len(feature_names), len(feature_names)), dtype=float)
+    diagnostics: list[PairwiseSpearmanDiagnostic] = []
+    for left_index, left_name in enumerate(feature_names):
+        for right_index in range(left_index + 1, len(feature_names)):
+            right_name = feature_names[right_index]
+            pair_count, rho, status = _pairwise_spearman(
+                vectors[left_name],
+                vectors[right_name],
+                minimum_pair_count=policy.minimum_pair_count,
+            )
+            distance = 1.0 if rho is None else 1.0 - abs(rho)
+            distances[left_index, right_index] = distance
+            distances[right_index, left_index] = distance
+            diagnostics.append(
+                PairwiseSpearmanDiagnostic(
+                    left_name, right_name, pair_count, rho, distance, status
+                )
+            )
+
+    if len(feature_names) == 1:
+        raw_labels_by_threshold = {
+            threshold: np.asarray([1], dtype=int)
+            for threshold in policy.sensitivity_thresholds
+        }
+    else:
+        condensed = squareform(distances, checks=True)
+        hierarchy = linkage(condensed, method="average", optimal_ordering=False)
+        raw_labels_by_threshold = {
+            threshold: fcluster(hierarchy, t=1.0 - threshold, criterion="distance")
+            for threshold in policy.sensitivity_thresholds
+        }
+    maps = tuple(
+        _canonical_cluster_map(
+            feature_names=feature_names,
+            raw_labels=tuple(int(value) for value in raw_labels_by_threshold[threshold]),
+            threshold=threshold,
+            coverage_by_feature=coverage,
+            quality_by_feature=quality,
+        )
+        for threshold in policy.sensitivity_thresholds
+    )
+    primary = next(
+        cluster_map
+        for cluster_map in maps
+        if cluster_map.absolute_correlation_threshold == policy.primary_threshold
+    )
+    pc_transforms = (
+        tuple(
+            _fit_first_pc(
+                cluster,
+                artifact=artifact,
+                minimum_complete_rows=policy.minimum_pca_complete_rows,
+            )
+            for cluster in primary.clusters
+        )
+        if policy.representation == "first_pc"
+        else ()
+    )
+    return CorrelatedFeatureReductionArtifact(
+        CORRELATION_ARTIFACT_VERSION,
+        SPECIFICATION_ID,
+        SPECIFICATION_VERSION,
+        artifact.registry_version,
+        artifact.version,
+        policy,
+        artifact.training_row_indices,
+        _training_reduction_fingerprint(artifact, feature_names, policy),
+        feature_names,
+        tuple(diagnostics),
+        maps,
+        primary,
+        pc_transforms,
+    )
+
+
+def apply_correlated_feature_reduction(
+    artifact: CorrelatedFeatureReductionArtifact,
+    rows: Sequence[GatedFeatureRow],
+) -> tuple[ReducedFeatureRow, ...]:
+    """Apply the frozen representative or first-PC map without refitting any state."""
+
+    pc_by_cluster = {item.cluster_id: item for item in artifact.first_pc_transforms}
+    reduced: list[ReducedFeatureRow] = []
+    for row in rows:
+        values: dict[str, float | None] = {}
+        missing: dict[str, bool] = {}
+        validity: dict[str, bool] = {}
+        for cluster in artifact.primary_map.clusters:
+            if artifact.config.representation == "representative":
+                source = cluster.representative
+                value = row.feature_values.get(source)
+                is_valid = (
+                    row.row_valid
+                    and value is not None
+                    and row.validity_indicators.get(source, False)
+                )
+                values[cluster.cluster_id] = value if is_valid else None
+                missing[cluster.cluster_id] = row.missing_indicators.get(source, value is None)
+                validity[cluster.cluster_id] = is_valid
+                continue
+            transform = pc_by_cluster[cluster.cluster_id]
+            source_values = [row.feature_values.get(name) for name in transform.members]
+            is_valid = row.row_valid and all(
+                value is not None and row.validity_indicators.get(name, False)
+                for name, value in zip(transform.members, source_values, strict=True)
+            )
+            values[cluster.cluster_id] = (
+                float(
+                    np.dot(
+                        np.asarray([cast(float, value) for value in source_values])
+                        - np.asarray(transform.center),
+                        np.asarray(transform.loadings),
+                    )
+                )
+                if is_valid
+                else None
+            )
+            missing[cluster.cluster_id] = any(
+                row.missing_indicators.get(name, value is None)
+                for name, value in zip(transform.members, source_values, strict=True)
+            )
+            validity[cluster.cluster_id] = is_valid
+        reduced.append(ReducedFeatureRow(row.source_row_index, values, missing, validity))
+    return tuple(reduced)
