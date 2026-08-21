@@ -28,6 +28,7 @@ dev = [
 [project.scripts]
 shaurya-dhan-capture = "shaurya.cli.capture_dhan:main"
 shaurya-chain-capture = "shaurya.cli.capture_chain:main"
+shaurya-ofi-dashboard = "shaurya.cli.ofi_dashboard:main"
 shaurya-surface-dashboard = "shaurya.cli.surface_dashboard:main"
 
 [tool.setuptools.packages.find]

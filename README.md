@@ -42,6 +42,12 @@ Two artifacts, deliberately separated:
 The Python side is where a model is *designed and validated*. The C++ side is where a validated
 model is *run against a live book*. Anything that touches a real order lives on the C++ side.
 
+**Market-data access (D43, decided 2026-08-21).** DAT is the only component that talks to Dhan,
+claims acquisitions, stores raw rows, builds indexes/archives, and exposes replay or live follow.
+SUR/eSSVI, SIG/OFI, VOL, BKT and ANL submit a broker-neutral `DatasetRequest`, receive a
+`DatasetHandle`, and ingest canonical rows through DAT. Compatible active requests share one
+capture instead of opening another socket.
+
 **Design philosophy (D8, decided 2026-08-17).** The data leads, not the model. The module does
 not propose a strategy and then tune parameters against data until it looks profitable — that is
 the overfitting trap that has caused real trouble before. Instead, exploratory and diagnostic
@@ -80,8 +86,12 @@ Implementation details and the DAT handoff are in [`docs/SURFACES.md`](docs/SURF
 ### 3.2 Market data
 - **Dhan** live streaming (ticks, depth, option chain) — the sole data-receive source
   (D7, amended 2026-08-18 by D18: Kotak dropped from data, order-placement only)
-- Historical fetch + local storage with a stable on-disk schema
-- Snapshot tape recording and deterministic replay
+- One append-only DAT catalogue and cross-process capture claim; downstream components never
+  hold data credentials or construct broker adapters
+- Permanent raw JSONL tapes with published hashes, a seekable time/channel/instrument index, and
+  an optional lossless gzip cold archive
+- Deterministic indexed replay, complete-line live follow, and DAT adoption of retained legacy
+  tapes
 
 ### 3.3 Execution
 - **Kotak** order placement, cancellation, order-status and fill polling
@@ -184,6 +194,9 @@ expensive — a silent scope reduction here breaks every strategy downstream, no
    the data shows — is not secondary to strategy-specific fitting; it comes first. A strategy is
    the mechanism chosen to exploit an opportunity the data has already revealed, never a model
    proposed up front and tuned against data until it looks profitable.
+8. **DAT is the single market-data access plane (D43).** Consumers request dataset handles and
+   ingest canonical rows through DAT; they do not open a second Dhan connection, discover capture
+   directories, implement another raw-file transport, or own storage lifecycle.
 
 ## 7. Roadmap
 
@@ -243,6 +256,11 @@ executed); construction does not begin until the component list is agreed; and b
 Dhan-plus-Kotak for data but **Kotak-only for order placement**, routed through a dedicated
 latency-sensitive C++ path. **Amended 2026-08-18 (D18):** Kotak dropped as a data-receive
 source — market-data ingestion is **Dhan-only**; Kotak remains the sole order-placement broker.
+
+**Decided 2026-08-21 (D43):** Dhan-only also means **DAT-only inside Shaurya**. Acquisition,
+catalogue, permanent raw storage, integrity/index/archive, replay and growing-file follow are DAT
+jobs. Every analytical or modelling component consumes a DAT dataset handle; compatible demand is
+deduplicated at the acquisition claim rather than fetched independently.
 
 **Still open — one question:** migration ambition (all six old strategies, or leave some frozen
 as history) — deliberately deferred, to be decided per strategy when it is next touched.

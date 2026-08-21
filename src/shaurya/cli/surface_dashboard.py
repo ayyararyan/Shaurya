@@ -2,19 +2,18 @@
 
 Two drive modes over one engine and one dashboard:
 
-* ``replay`` — DAT-05 replay of a retained tape. Fits run in tape time, so a ten-minute tape
-  reproduces a ten-minute session deterministically.
-* ``live`` — exactly one Dhan Quote/Full connection.
+* ``replay`` — DAT-05 replay of a completed DAT dataset. Fits run in tape time, so a ten-minute
+  tape reproduces a ten-minute session deterministically.
+* ``follow`` — read-only follow of an active DAT dataset. DAT owns the sole Dhan connection.
 
-The process is read-only in both modes: it subscribes, fits, and serves HTTP. It imports no
-order path and holds no broker write credential beyond the same read token the capture CLI
-uses (D19).
+The process is read-only in both modes: it requests a `CON-10` handle from DAT, ingests canonical
+rows, fits, and serves HTTP. It imports no broker adapter, credential, socket, capture manifest or
+order path (D43).
 """
 
 from __future__ import annotations
 
 import argparse
-import asyncio
 import json
 import sys
 import threading
@@ -32,8 +31,7 @@ from shaurya.analytics.surface_feed import (
     SurfaceEngine,
     default_log_moneyness_grid,
 )
-from shaurya.analytics.universe import select_chain_universe
-from shaurya.contracts.artifacts import ArtifactManifest
+from shaurya.contracts.data import DataChannel, DatasetHandle, DatasetRequest, DatasetStatus
 from shaurya.contracts.instruments import (
     DhanInstrumentMapping,
     DhanInstrumentMaster,
@@ -41,10 +39,9 @@ from shaurya.contracts.instruments import (
 )
 from shaurya.contracts.tape import TapeRow
 from shaurya.contracts.timing import IST
-from shaurya.data.dhan_client import DhanCredentials
-from shaurya.data.dhan_stream import DhanLiveStream, DhanStreamConfig, StreamMetrics
-from shaurya.data.storage import resolve_raw_capture_root
-from shaurya.data.tape import JsonlTapeReader, JsonlTapeWriter
+from shaurya.data.access import DataAccess, DataCatalog
+from shaurya.data.storage import resolve_data_catalog
+from shaurya.data.universe import select_chain_universe
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
@@ -52,7 +49,12 @@ DEFAULT_PORT = 8765
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", choices=("replay", "live"), required=True)
+    parser.add_argument(
+        "--mode",
+        choices=("replay", "follow", "live"),
+        required=True,
+        help="'live' is retained as an alias for DAT-owned 'follow'; it never opens Dhan",
+    )
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--expiry", action="append", required=True)
@@ -114,31 +116,38 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--serve-seconds", type=float, default=0.0,
                         help="Stop after this many seconds; 0 serves until interrupted.")
-    # replay
-    parser.add_argument("--tape", type=Path, help="replay mode: canonical JSONL tape")
+    parser.add_argument(
+        "--data-catalog",
+        type=Path,
+        default=None,
+        help="Override DAT metadata catalogue; defaults to today's verified NSE archive lane",
+    )
+    parser.add_argument(
+        "--trading-date",
+        type=date.fromisoformat,
+        default=datetime.now(IST).date(),
+        help="IST catalogue partition date (required for an archived replay from another day)",
+    )
+    parser.add_argument(
+        "--allow-nonarchive-catalog",
+        action="store_true",
+        help="Permit a controlled isolated DAT catalogue outside the verified NSE archive",
+    )
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument("--dataset-id", help="CON-10 DAT dataset ID")
+    source.add_argument(
+        "--tape",
+        type=Path,
+        help="legacy tape; DAT adopts and indexes it before SUR ingests",
+    )
     parser.add_argument("--replay-speed", type=float, default=0.0,
                         help="replay mode: 0 replays as fast as possible, 1.0 is real time")
-    # live
-    parser.add_argument("--credentials", type=Path)
     parser.add_argument("--security-master", type=Path)
     parser.add_argument("--underlying", default="NIFTY")
     parser.add_argument("--spot", type=float)
     parser.add_argument("--strike-window-fraction", type=float, default=0.06)
     parser.add_argument("--max-options", type=int, default=120)
-    parser.add_argument(
-        "--output-root",
-        type=Path,
-        default=None,
-        help=(
-            "Override the live capture root for a controlled test. By default DAT writes to "
-            "/Volumes/Aryan/NSE/YYYY-MM-DD/raw after verifying the SMB mount."
-        ),
-    )
-    parser.add_argument(
-        "--allow-nonarchive-output",
-        action="store_true",
-        help="Permit an intentional isolated test capture outside the configured NSE archive.",
-    )
+    parser.add_argument("--follow-poll-seconds", type=float, default=0.2)
     return parser
 
 
@@ -277,33 +286,88 @@ def _summarise(engine: SurfaceEngine) -> dict[str, Any]:
     }
 
 
-def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
-    if args.tape is None:
-        raise SystemExit("replay mode requires --tape")
-    reader = JsonlTapeReader(args.tape)
-    replay_metadata: dict[str, InstrumentMetadata] = {}
-    if args.security_master is not None:
-        replay_metadata = _metadata_from_mappings(
-            DhanInstrumentMaster(args.security_master).mappings(),
-            default_tick_size=args.default_option_tick_size,
+def _resolve_dataset(
+    args: argparse.Namespace,
+) -> tuple[DataAccess, DatasetHandle, dict[str, InstrumentMetadata]]:
+    mappings = (
+        tuple(DhanInstrumentMaster(args.security_master).mappings())
+        if args.security_master is not None
+        else ()
+    )
+    catalog_date = mappings[0].as_of_date if mappings else args.trading_date
+    catalog_path = resolve_data_catalog(
+        args.data_catalog,
+        trading_date=catalog_date,
+        allow_nonarchive=args.allow_nonarchive_catalog,
+    )
+    access = DataAccess(DataCatalog(catalog_path))
+    metadata = _metadata_from_mappings(
+        mappings, default_tick_size=args.default_option_tick_size
+    )
+    if args.dataset_id is not None:
+        return access, access.handle(args.dataset_id), metadata
+    if args.tape is not None:
+        return (
+            access,
+            access.adopt_legacy_tape(
+                args.tape,
+                consumer="SUR-09",
+                purpose="eSSVI surface ingestion",
+            ),
+            metadata,
         )
+    if args.security_master is None or args.spot is None:
+        raise SystemExit(
+            "dataset selection requires --dataset-id, --tape, or both "
+            "--security-master and --spot for a DAT request"
+        )
+    universe = select_chain_universe(
+        mappings,
+        underlying=args.underlying,
+        expiries=[date.fromisoformat(value) for value in args.expiry],
+        spot_reference=args.spot,
+        strike_window_fraction=args.strike_window_fraction,
+        max_options=args.max_options,
+    )
+    request = DatasetRequest(
+        consumer="SUR-09",
+        purpose="eSSVI surface ingestion",
+        trading_date=universe.instruments[0].as_of_date,
+        channels=(DataChannel.STANDARD,),
+        instrument_ids=tuple(item.instrument.canonical for item in universe.instruments),
+        allow_active=args.mode != "replay",
+    )
+    return access, access.request(request), _metadata_from_mappings(
+        universe.options,
+        default_tick_size=args.default_option_tick_size,
+    )
+
+
+def _run_replay(
+    args: argparse.Namespace,
+    access: DataAccess,
+    handle: DatasetHandle,
+    replay_metadata: dict[str, InstrumentMetadata],
+) -> dict[str, Any]:
+    if handle.status is DatasetStatus.ACTIVE:
+        raise ValueError("replay requires a completed DAT dataset; use follow for active data")
     engine = _engine(
         args,
-        run_id=args.tape.stem,
+        run_id=handle.dataset_id,
         source="replay",
         instrument_metadata=replay_metadata,
     )
     state = DashboardState(
         engine,
         title="Shaurya ANL-03 — implied volatility surface (REPLAY)",
-        source=f"replay {args.tape.name}",
+        source=f"DAT replay {handle.dataset_id}",
     )
     server, _ = serve_in_background(state, host=args.host, port=args.port)
     print(f"ANL-03 dashboard serving at http://{args.host}:{args.port}/", flush=True)
     started_wall = time.monotonic()
     first_tape: datetime | None = None
     try:
-        for row in reader.rows():
+        for row in access.rows(handle):
             stamp = row.receive_ts.astimezone(IST)
             if first_tape is None:
                 first_tape = stamp
@@ -323,115 +387,85 @@ def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
             time.sleep(args.serve_seconds)
     finally:
         server.shutdown()
-    return _summarise(engine)
+    summary = _summarise(engine)
+    summary["dataset_id"] = handle.dataset_id
+    summary["dataset_status"] = str(handle.status)
+    return summary
 
 
-async def _run_live(args: argparse.Namespace) -> dict[str, Any]:
-    missing = [
-        name
-        for name in ("credentials", "security_master", "spot")
-        if getattr(args, name) is None
-    ]
-    if missing:
-        raise SystemExit(f"live mode requires: {', '.join(sorted(missing))}")
-    output_root = resolve_raw_capture_root(
-        args.output_root,
-        allow_nonarchive=args.allow_nonarchive_output,
-    )
-    credentials = DhanCredentials.from_env_file(args.credentials)
-    master = DhanInstrumentMaster(args.security_master)
-    mappings = tuple(master.mappings())
-    universe = select_chain_universe(
-        mappings,
-        underlying=args.underlying,
-        expiries=[date.fromisoformat(value) for value in args.expiry],
-        spot_reference=args.spot,
-        strike_window_fraction=args.strike_window_fraction,
-        max_options=args.max_options,
-    )
-    manifest = ArtifactManifest.create(output_root)
-    writer = JsonlTapeWriter(manifest, fsync_every=200)
-    metadata = _metadata_from_mappings(
-        universe.options, default_tick_size=args.default_option_tick_size
-    )
+def _run_follow(
+    args: argparse.Namespace,
+    access: DataAccess,
+    handle: DatasetHandle,
+    metadata: dict[str, InstrumentMetadata],
+) -> dict[str, Any]:
+    if args.follow_poll_seconds <= 0:
+        raise ValueError("follow-poll-seconds must be positive")
     engine = _engine(
         args,
-        run_id=str(manifest.run_id),
+        run_id=handle.dataset_id,
         source="live",
         instrument_metadata=metadata,
     )
     state = DashboardState(
         engine,
-        title="Shaurya ANL-03 — implied volatility surface (LIVE)",
-        source=f"live dhan quote/full · {len(universe.instruments)} instruments",
+        title="Shaurya ANL-03 — implied volatility surface (DAT FOLLOW)",
+        source=f"DAT {handle.dataset_id} · {len(handle.instrument_ids)} instruments",
     )
     server, _ = serve_in_background(state, host=args.host, port=args.port)
     print(f"ANL-03 dashboard serving at http://{args.host}:{args.port}/", flush=True)
-
     lock = threading.Lock()
-
-    def consume(row: TapeRow) -> None:
-        writer.write(row)
-        with lock:
-            engine.ingest(row)
-
-    async def fit_loop() -> None:
-        while True:
-            await asyncio.sleep(min(1.0, args.fit_interval_seconds))
-            now = datetime.now(tz=IST)
-            with lock:
-                if engine.due_for_fit(now):
-                    engine.fit(now)
-
-    stream = DhanLiveStream(
-        credentials,
-        list(universe.instruments),
-        consume,
-        run_id=str(manifest.run_id),
-        config=DhanStreamConfig(
-            enable_standard_feed=True,
-            enable_20_level_depth=False,
-            enable_200_level_depth=False,
-        ),
-        metrics=StreamMetrics(),
-    )
-    stream_task = asyncio.create_task(stream.run())
-    fit_task = asyncio.create_task(fit_loop())
+    tail = access.follow(handle)
+    started = time.monotonic()
     error: BaseException | None = None
     try:
-        if args.serve_seconds > 0:
-            await asyncio.wait({stream_task}, timeout=args.serve_seconds)
-        else:
-            await stream_task
+        while args.serve_seconds == 0 or time.monotonic() - started < args.serve_seconds:
+            batch = tail.poll()
+            with lock:
+                for payload in batch.rows:
+                    engine.ingest(TapeRow.from_dict(payload))
+                now = datetime.now(tz=IST)
+                if engine.due_for_fit(now):
+                    engine.fit(now)
+            if batch.bytes_read == 0:
+                latest = access.handle(handle.dataset_id)
+                if (
+                    latest.status is not DatasetStatus.ACTIVE
+                    and tail.offset == Path(latest.tape_path).stat().st_size
+                ):
+                    handle = latest
+                    break
+            time.sleep(args.follow_poll_seconds)
     except BaseException as exc:  # noqa: BLE001 - reported in the summary
         error = exc
     finally:
-        for task in (stream_task, fit_task):
-            if not task.done():
-                task.cancel()
-        await asyncio.gather(stream_task, fit_task, return_exceptions=True)
-        writer.close(failed_error_type=type(error).__name__ if error else None)
         if args.post_stream_seconds > 0:
             print(
-                "stream stopped; serving for "
+                "DAT dataset stopped advancing; serving for "
                 f"{args.post_stream_seconds:.0f}s so feed death is observable",
                 flush=True,
             )
-            await asyncio.sleep(args.post_stream_seconds)
+            time.sleep(args.post_stream_seconds)
             summary_health = engine.sample_health(datetime.now(tz=IST))
             print(json.dumps({"post_stream_health": summary_health.to_dict()}), flush=True)
         server.shutdown()
     summary = _summarise(engine)
-    summary["universe"] = universe.to_dict()
-    summary["tape_path"] = str(writer.path)
-    summary["stream_error"] = type(error).__name__ if error else None
+    summary["dataset_id"] = handle.dataset_id
+    summary["dataset_status"] = str(handle.status)
+    summary["tape_path"] = handle.tape_path
+    summary["transport_error"] = type(error).__name__ if error else None
+    if error is not None:
+        raise error
     return summary
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
+    access, handle, metadata = _resolve_dataset(args)
     summary = (
-        _run_replay(args) if args.mode == "replay" else asyncio.run(_run_live(args))
+        _run_replay(args, access, handle, metadata)
+        if args.mode == "replay"
+        else _run_follow(args, access, handle, metadata)
     )
     json.dump(summary, sys.stdout, indent=2, sort_keys=True, default=str)
     sys.stdout.write("\n")

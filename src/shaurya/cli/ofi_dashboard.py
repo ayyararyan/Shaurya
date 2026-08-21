@@ -12,16 +12,21 @@ import hashlib
 import json
 import sys
 import time
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 from shaurya.analytics.ofi_dashboard import (
-    CompleteLineJsonlTail,
     OfiDashboardEngine,
     RefitArtifactSink,
     WalkForwardConfig,
 )
 from shaurya.analytics.ofi_dashboard_server import OfiDashboardState, serve_in_background
+from shaurya.contracts.data import DatasetHandle, DatasetStatus
+from shaurya.contracts.timing import IST
+from shaurya.data.access import DataAccess, DataCatalog
+from shaurya.data.storage import resolve_data_catalog
+from shaurya.data.tape import CompleteLineJsonlTail
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8776
@@ -30,7 +35,29 @@ DEFAULT_PORT = 8776
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("replay", "follow"), required=True)
-    parser.add_argument("--tape", type=Path, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--dataset-id", help="CON-10 DAT dataset ID from the shared catalogue")
+    source.add_argument(
+        "--tape",
+        type=Path,
+        help="Legacy evidence path; DAT adopts, indexes and returns a handle before ANL ingests",
+    )
+    parser.add_argument(
+        "--data-catalog",
+        type=Path,
+        default=None,
+    )
+    parser.add_argument(
+        "--trading-date",
+        type=date.fromisoformat,
+        default=datetime.now(IST).date(),
+        help="IST catalogue partition date (required for an archived replay from another day)",
+    )
+    parser.add_argument(
+        "--allow-nonarchive-catalog",
+        action="store_true",
+        help="Permit a controlled isolated DAT catalogue outside the verified NSE archive",
+    )
     parser.add_argument("--artifact-dir", type=Path, required=True)
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
@@ -72,16 +99,19 @@ def _config(args: argparse.Namespace) -> WalkForwardConfig:
 
 
 def _engine(
-    args: argparse.Namespace, tail: CompleteLineJsonlTail
+    args: argparse.Namespace,
+    tail: CompleteLineJsonlTail,
+    handle: DatasetHandle,
 ) -> tuple[OfiDashboardEngine, RefitArtifactSink]:
+    tape = Path(handle.tape_path)
     identity = (
-        f"{args.tape.resolve()}#sha256={_sha256(args.tape)}"
+        f"dat:{handle.dataset_id}#sha256={handle.tape_sha256 or _sha256(tape)}"
         if args.mode == "replay"
-        else f"{args.tape.resolve()}#growing-read-only"
+        else f"dat:{handle.dataset_id}#growing-read-only"
     )
     sink = RefitArtifactSink(args.artifact_dir)
     engine = OfiDashboardEngine(
-        run_id=f"anl06-{args.tape.stem}",
+        run_id=f"anl06-{handle.dataset_id}",
         drive_mode=args.mode,
         tape_identity=identity,
         config=_config(args),
@@ -127,8 +157,26 @@ def _ingest_batch(
 def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.poll_seconds <= 0 or args.replay_speed < 0 or args.serve_seconds < 0:
         raise ValueError("poll must be positive; replay speed and serve duration non-negative")
-    tail = CompleteLineJsonlTail(args.tape)
-    engine, _ = _engine(args, tail)
+    catalog_path = resolve_data_catalog(
+        args.data_catalog,
+        trading_date=args.trading_date,
+        allow_nonarchive=args.allow_nonarchive_catalog,
+    )
+    access = DataAccess(DataCatalog(catalog_path))
+    handle = (
+        access.handle(args.dataset_id)
+        if args.dataset_id is not None
+        else access.adopt_legacy_tape(
+            args.tape,
+            consumer="ANL-06",
+            purpose="dynamic OFI dashboard",
+        )
+    )
+    if args.mode == "replay" and handle.status is DatasetStatus.ACTIVE:
+        raise ValueError("replay requires a completed DAT dataset; use follow for active data")
+    tail = access.follow(handle)
+    tape = Path(handle.tape_path)
+    engine, _ = _engine(args, tail, handle)
     state = OfiDashboardState(engine, tail)
     server, _ = serve_in_background(state, host=args.host, port=args.port)
     print(f"ANL-06 read-only dashboard serving at http://{args.host}:{args.port}/", flush=True)
@@ -137,7 +185,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     error: BaseException | None = None
     try:
         if args.mode == "replay":
-            while tail.offset < args.tape.stat().st_size:
+            while tail.offset < tape.stat().st_size:
                 batch = tail.poll()
                 _ingest_batch(
                     engine,

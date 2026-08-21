@@ -2,7 +2,11 @@
 
 ## Objective
 
-Own Dhan-only market-data ingestion, broker-neutral identity, historical bars, option-chain validation, data-quality accounting, permanent raw-tape recording, and deterministic replay. DAT supplies the canonical observed input to SIG, BKT, SUR, GRK, VOL, and ANL; it never places orders (D7, D17, D18).
+Own the complete Dhan-only market-data access plane: acquisition, broker-neutral identity,
+historical bars, option-chain validation, data-quality accounting, permanent lossless raw-tape
+storage, catalogue registration, integrity/indexing, deterministic replay and live follow. DAT
+supplies the canonical observed input to SIG, BKT, SUR, GRK, VOL, and ANL; it never places orders
+(D7, D17, D18, D43).
 
 ## Object and identification ledger
 
@@ -24,6 +28,19 @@ Every tape row retains its `CON-06` category and data-quality flags. Missing pro
 - Dhan is the sole receive source. Kotak is order-placement only; Kite is absent (D17, D18).
 - Produces `CON-01` canonical tape rows and `CON-08` run manifests; consumes and refreshes `CON-05` instrument identity.
 - One tape format serves live capture, research, and deterministic replay. Replay must reproduce ordering and quality semantics, not merely parse the same file.
+- `CON-10` is the only consumer-facing retrieval boundary: request → dataset handle → DAT
+  replay/follow. Compatible active/completed supersets are reused. Consumer identity does not
+  create a second acquisition key.
+- Only DAT may import broker adapters, read Dhan credentials, open Dhan REST/WebSocket sessions,
+  construct subscriptions, write raw tapes or parse/tail raw storage. SUR, SIG, VOL, BKT and ANL
+  receive canonical rows through DAT.
+- New acquisitions are claimed under a cross-process lock and registered before the socket opens.
+  A concurrent compatible request receives the existing active handle and cannot open a duplicate
+  socket. Catalogue history is append-only; invalidated data remains registered and preserved.
+- Server-backed JSONL is the warm, appendable lossless representation. A sidecar index provides bounded
+  time seeking and channel/instrument filtering; a lossless compressed archive is the permanent
+  cold representation. Hashes bind tape, index and archive. Moving data between the settled
+  `/Volumes/Aryan/NSE/YYYY-MM-DD/` lanes does not change dataset identity or semantics.
 - Current Python implementation lives in `src/shaurya/data/` and `src/shaurya/contracts/`; the production C++ order path consumes canonical outputs through contracts and does not duplicate Dhan ingestion.
 - GCP scaling, where used, applies only to DAT → SIG → BKT → ANL. It does not move EXE/RSK/NAT off their latency-sensitive Kotak/AWS path.
 
@@ -48,9 +65,10 @@ Every tape row retains its `CON-06` category and data-quality flags. Missing pro
 | REQ-DAT-16 | Measure depth delivery by distinct receive-timestamp bursts, rows per burst, burst-gap distribution, and BBO-change rate; never infer event cadence from parsed-row count. | DAT-16, D23 | Retained-tape cadence analysis | `docs/live-evidence/DAT-16-2026-08-19.md`; 500 ms depth20 snapshot cadence live-verified at stated scope |
 | REQ-DAT-17 | Measure Full/5-level and depth200 clocks with the DAT-16 method, measure first-versus-later depth200 cadence and usable per-socket capacity, and state D27's binding lower bound for every pair of depth tiers without guessing the upstream mechanism. | DAT-17, D27 | `scripts/dat17_cadence_analysis.py`; `scripts/dat17_depth200_operational_probe.py` | `tests/test_cadence_analysis.py`; `docs/live-evidence/DAT-17-2026-08-19.md`; two 600 s zero-reconnect depth200 tapes and a timed four-future throttle artifact |
 | REQ-DAT-18 | Produce the consolidated multi-tier interpretation required for the DAT-09 width-versus-depth decision: admissible layouts, D27 horizon floors, the information gained/lost by Full versus depth20 versus depth200, and explicit separation of measured facts from owner choices. DAT-20's quiet-skip and active-band evidence must amend the earlier implication that depth200 cadence gaps themselves are information loss. | DAT-18, DAT-16, DAT-17, DAT-20, D27, D28 | Dated synthesis under `docs/live-evidence/` and DAT-09 plan update | Evidence-to-claim audit; owner-decision table; no unsupported generalisation beyond measured instruments/windows |
-| REQ-DAT-19 | Design lossless permanent raw-tape storage with stable schema, compression, partition/file granularity, seekable DAT-05 replay index, checksums/integrity, warm/cold tiering and explicit physical placement. Storage optimisation must preserve the raw level-by-level book needed by SIG-18 and SIG-21; lossy feature-only substitution requires explicit change control. | DAT-19, DAT-05, DAT-09, D12, D28 | `src/shaurya/data/storage.py` for the settled physical/date layout; compression and seek-index modules remain open | Daily-layout/mount-failure tests now; round-trip/checksum/seek tests, compression and replay benchmarks remain open |
+| REQ-DAT-19 | Implement lossless permanent raw-tape storage with stable schema, an append-safe warm JSONL representation, a seekable sidecar index, checksums, a lossless compressed cold archive, catalogue-visible physical locations and explicit retention state. Storage optimisation must preserve the raw level-by-level book needed by SIG-18 and SIG-21; lossy feature-only substitution requires explicit change control. | DAT-19, DAT-05, DAT-09, D12, D28, D42, D43 | `src/shaurya/data/storage.py`; `src/shaurya/data/tape.py`; `src/shaurya/data/access.py` | Daily-layout/mount-failure, round-trip/hash/seek/filter/archive-restore tests; catalogue/index artifacts; production compression/replay benchmark pending |
 | REQ-DAT-20 | Pre-register and test whether depth200 cadence gaps represent quiet-book intervals or feed loss by simultaneous single-clock Full, depth20 and depth200 capture; compare cross-tier containment, price-keyed change intensity, duration-matched skip windows and actual occupancy/span. Preserve residual phase-versus-content differences as not discriminated where exchange time/source sequence is unavailable, and do not infer rare-event predictability from feed observability. | DAT-20, D22, D27, D28 | `src/shaurya/data/depth_thinning_analysis.py`; `scripts/dat20_thinning_vs_loss_analysis.py` | `tests/test_depth_thinning_analysis.py`; `docs/live-evidence/DAT-20-2026-08-19.md`; retained three-tier tapes and result artifacts |
 | REQ-DAT-21 | Provide a protocol-locked, read-only full-session capture of the same-day NIFTY front-month future on Standard/Full, depth20 and depth200; use the date-versioned NSE F&O clock, prove actual per-channel timestamp coverage rather than requested duration, retain immutable identity/hashes, and keep OFI outcome permission distinct from SIG-21 calibration eligibility. | DAT-21, D27, D33, D36 | `src/shaurya/cli/capture_dhan.py`; full-session controller | Capture-profile and coverage-boundary tests; retained run manifest/metrics/quality/acceptance receipt |
+| REQ-DAT-22 | Expose the single DAT gateway for `CON-10` requests. Resolve compatible active/completed dataset supersets from one append-only catalogue; claim new capture under a cross-process lock; return immutable handles; expose validated indexed replay, complete-line live follow and legacy-tape adoption; and reject duplicate compatible acquisition. No downstream module may receive credentials or broker objects. | DAT-22, D43 | `src/shaurya/data/access.py`; `src/shaurya/cli/capture_dhan.py`; `src/shaurya/cli/capture_chain.py` | Contract/catalogue/claim/race/replay/follow/adoption tests; architecture import-boundary test; shared SUR/SIG request integration |
 
 Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded by D18.
 
@@ -70,7 +88,8 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 
 ## Outputs and acceptance tests
 
-- Versioned append-only JSONL (and later stable columnar storage) conforming to `CON-01`, plus a `CON-08` manifest, hashes, metrics, and quality audit.
+- Versioned append-only JSONL conforming to `CON-01`, a seek index, optional lossless cold archive,
+  one `CON-08` manifest, one `CON-10` dataset handle, hashes, metrics, and quality audit.
 - Acceptance is per enabled channel: a connected socket and successful heartbeat with zero packets is a failure, not success.
 - Parser fixtures cover standard packet subtypes, separate deep-book sides, partial books, 20/200-level layouts, and the 200-level flat subscription envelope.
 - Reconnect tests preserve a visible gap boundary and resubscribe semantics.
@@ -78,13 +97,15 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 - Physical placement is now configured at `/Volumes/Aryan/NSE/YYYY-MM-DD/` on the verified
   `//Aryan@172.20.10.38/Aryan` SMB share. Normal live DAT capture defaults to the daily `raw/`
   lane and fails closed if the share is not mounted. A local `--output-root` is rejected unless
-  the controlled-test override is also explicit. The exact codec, file granularity, seek index,
-  and warm/cold implementation remain open.
+  the controlled-test override is also explicit.
+- Two compatible consumer requests resolve to the same dataset ID; a second capture claim cannot
+  open a socket. Replay/follow consumers import DAT only and contain no Dhan credential or adapter
+  code.
 - Existing evidence remains scoped: DAT-01/03/04/07 are Tested; DAT-02 and DAT-10-17 are Live
   verified at their stated scopes; DAT-20 is Live verified for its central feed-observability
   claim at its stated scope; DAT-05 is Dry-run verified end to end (its writer retains earlier
-  live evidence); DAT-06 is Dry-run verified; DAT-09 planning/pooling is Tested. DAT-18 remains
-  not started; DAT-19 has physical placement/date partitioning implemented but is incomplete.
+  live evidence); DAT-06 is Dry-run verified; DAT-09 planning/pooling is Tested. DAT-18 and
+  production-volume verification of the new DAT-19/DAT-22 server access plane remain pending.
 
 ## Exclusions
 
@@ -106,9 +127,12 @@ Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded 
 - **DAT-15 coverage expansion:** options, midday, and a healthy simultaneous depth200-aligned
   capture remain unmeasured; the existing stressed cross-tier comparison does not identify a
   general depth-tier ranking.
-- **DAT-18/DAT-19:** the consolidated feed interpretation remains open. DAT-19's physical server
-  and date layout are settled and wired; compression, file granularity, a seekable replay index,
-  and warm/cold implementation remain incomplete and are not silently satisfied by JSONL.
+- **DAT-18:** the consolidated feed interpretation remains an owner-discussion item; DAT-20 does
+  not silently settle the final width-versus-depth portfolio.
+- **DAT-19/DAT-22:** the server-backed lossless catalogue/index/archive/access plane is implemented and
+  repository-tested on the settled server/date layout. Production-volume shared follow and
+  archive throughput/compression remain separate operational verification; they do not permit
+  consumer-owned Dhan access in the interim.
 
 ## Trade-direction classification at capture (D24)
 

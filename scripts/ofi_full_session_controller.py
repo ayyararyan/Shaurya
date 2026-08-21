@@ -39,7 +39,9 @@ from scripts.sig21_construction_replay import (
     manifest_sha256_for,
     sha256_file,
 )
+from shaurya.contracts.data import DataChannel, DatasetHandle, DatasetRequest, DatasetStatus
 from shaurya.contracts.timing import IST, nse_equity_derivatives_session_bounds
+from shaurya.data.access import DataAccess, DataCatalog, DatasetUnavailableError
 from shaurya.data.instrument_master import DhanDailyInstrumentMaster
 from shaurya.data.ofi_replication import (
     PROTOCOL_ID,
@@ -51,6 +53,7 @@ from shaurya.data.ofi_replication import (
     require_accepted_receipt,
     resolve_nifty_front_month_future,
 )
+from shaurya.data.storage import resolve_data_catalog, resolve_raw_capture_root
 
 CAPTURE_CONNECT_TIME = clock_time(9, 12)
 POST_CLOSE_BUFFER_SECONDS = 5
@@ -120,13 +123,6 @@ def _git_commit_is_remote_ancestor(repo: Path, commit: str) -> bool:
         text=True,
     )
     return result.returncode == 0
-
-
-def _find_one(directory: Path, pattern: str) -> Path:
-    matches = tuple(directory.glob(pattern))
-    if len(matches) != 1:
-        raise ValueError(f"expected one {pattern} under {directory}, found {len(matches)}")
-    return matches[0]
 
 
 def _cell(rows: Sequence[Mapping[str, Any]], **wanted: Any) -> dict[str, Any]:
@@ -245,7 +241,17 @@ class Controller:
         self.logs = self.run_root / "logs"
         self.checkpoints = self.run_root / "checkpoints"
         self.state_path = self.run_root / "state.json"
-        self.capture_root = args.capture_output_root.resolve()
+        self.capture_root = resolve_raw_capture_root(
+            args.capture_output_root,
+            trading_date=TRADING_DATE,
+            allow_nonarchive=args.allow_nonarchive_output,
+        )
+        self.data_catalog = resolve_data_catalog(
+            args.data_catalog,
+            trading_date=TRADING_DATE,
+            allow_nonarchive=args.allow_nonarchive_output,
+            nonarchive_capture_root=self.capture_root,
+        ).resolve()
         self.partial_analysis = args.analysis_output_root.resolve() / f".{PROTOCOL_ID}.partial"
         self.final_analysis = args.analysis_output_root.resolve() / PROTOCOL_ID
         self.python = self.repo / ".venv/bin/python"
@@ -318,7 +324,7 @@ class Controller:
         self.observed_commits[unit] = head
         return head
 
-    def preflight(self) -> tuple[Path, str, str]:
+    def preflight(self) -> tuple[Path, str, str, str]:
         self.update(stage="preflight", status="running")
         if date.fromisoformat(self.args.trading_date) != TRADING_DATE:
             raise ValueError("controller trading date differs from the frozen protocol")
@@ -351,7 +357,12 @@ class Controller:
         }
         atomic_json(self.run_root / "artifacts/instrument_identity.json", identity)
         self.update(stage="preflight", status="accepted", code_commit=head, instrument=identity)
-        return master_path, mapping.security_id, mapping.trading_symbol
+        return (
+            master_path,
+            mapping.security_id,
+            mapping.trading_symbol,
+            mapping.instrument.canonical,
+        )
 
     def wait_for_capture_time(self) -> None:
         connect_at = datetime.combine(TRADING_DATE, CAPTURE_CONNECT_TIME, tzinfo=IST)
@@ -390,17 +401,32 @@ class Controller:
             return None
         return raw
 
+    def capture_handles(self) -> tuple[DatasetHandle, ...]:
+        """Return DAT catalogue entries physically owned by this controller's capture root."""
+
+        root = self.capture_root
+        handles: list[DatasetHandle] = []
+        for handle in DataCatalog(self.data_catalog).handles().values():
+            tape = Path(handle.tape_path)
+            if tape.is_relative_to(root):
+                handles.append(handle)
+        return tuple(handles)
+
+    def capture_bytes(self) -> int:
+        return sum(
+            path.stat().st_size
+            for path in (Path(handle.tape_path) for handle in self.capture_handles())
+            if path.is_file()
+        )
+
     def monitor_existing_child(self, stage: str, pid: int) -> None:
         self.log(f"reattached state monitoring for surviving {stage} child PID {pid}")
         while self.pid_alive(pid):
-            tape_bytes = sum(
-                path.stat().st_size for path in self.capture_root.glob("*/tape_*.jsonl")
-            )
             self.update(
                 stage=stage,
                 status="recovering_existing_child",
                 active_child_pid=pid,
-                capture_bytes=tape_bytes,
+                capture_bytes=self.capture_bytes(),
             )
             time.sleep(POLL_SECONDS)
         self.update(stage=stage, status="existing_child_ended", active_child_pid=None)
@@ -409,7 +435,7 @@ class Controller:
         return (
             checkpoint_valid(self.checkpoints / "capture.json")
             or self.existing_child_pid("capture") is not None
-            or any(path.is_dir() for path in self.capture_root.glob("sha-*"))
+            or bool(self.capture_handles())
         )
 
     def run_child(self, stage: str, command: Sequence[str]) -> None:
@@ -425,14 +451,11 @@ class Controller:
                 "stderr": str(stderr_path),
             }
             while process.poll() is None:
-                tape_bytes = sum(
-                    path.stat().st_size for path in self.capture_root.glob("*/tape_*.jsonl")
-                )
                 self.update(
                     stage=stage,
                     status="running",
                     active_child_pid=process.pid,
-                    capture_bytes=tape_bytes,
+                    capture_bytes=self.capture_bytes(),
                 )
                 time.sleep(POLL_SECONDS)
         code = int(process.returncode or 0)
@@ -442,53 +465,85 @@ class Controller:
         if code != 0:
             raise RuntimeError(f"stage {stage} exited {code}; inspect {stderr_path}")
 
-    def capture(self, master: Path, security_id: str, symbol: str) -> Path:
+    def capture(
+        self,
+        master: Path,
+        security_id: str,
+        symbol: str,
+        instrument_id: str,
+    ) -> DatasetHandle:
+        access = DataAccess(DataCatalog(self.data_catalog))
         checkpoint = self.checkpoints / "capture.json"
         if checkpoint_valid(checkpoint):
             value = json.loads(checkpoint.read_text(encoding="utf-8"))
-            return Path(value["tape"])
+            dataset_id = value.get("dataset_id")
+            if isinstance(dataset_id, str):
+                return access.handle(dataset_id)
+            # One-time compatibility for a checkpoint created before D43.  DAT adopts and
+            # indexes the evidence before SIG receives it; SIG never owns tape discovery.
+            return access.adopt_legacy_tape(
+                Path(value["tape"]),
+                consumer="SIG-23",
+                purpose=PROTOCOL_ID,
+            )
         # `OPS-CCZ-02`: the pin is re-checked before **every** unit, and capture is a unit.  Its
         # gap was invisible while only the analysis stages re-checked, because the capture child
         # is the longest-lived process the controller starts and the repository has the most time
         # to move underneath it.
         self.assert_on_pin("capture")
+        request = DatasetRequest(
+            consumer="SIG-23",
+            purpose=PROTOCOL_ID,
+            trading_date=TRADING_DATE,
+            channels=(DataChannel.STANDARD, DataChannel.DEPTH20, DataChannel.DEPTH200),
+            instrument_ids=(instrument_id,),
+            allow_active=True,
+        )
         existing_pid = self.existing_child_pid("capture")
-        run_dirs_before = tuple(path for path in self.capture_root.glob("sha-*") if path.is_dir())
         if existing_pid is not None:
             self.monitor_existing_child("capture", existing_pid)
-        elif not run_dirs_before:
-            _, closed = nse_equity_derivatives_session_bounds(TRADING_DATE)
-            stop_at = closed + timedelta(seconds=POST_CLOSE_BUFFER_SECONDS)
-            duration = math.ceil((stop_at - datetime.now(IST)).total_seconds())
-            command = [
-                str(self.python),
-                "-m",
-                "shaurya.cli.capture_dhan",
-                "--credentials",
-                str(self.args.credentials.resolve()),
-                "--security-master",
-                str(master),
-                "--security-id",
-                security_id,
-                "--expected-symbol",
-                symbol,
-                "--duration-seconds",
-                str(duration),
-                "--output-root",
-                str(self.capture_root),
-                "--enable-depth200",
-                "--ofi-full-session-replication",
-                "--channel-start-stagger-seconds",
-                "0.5",
-            ]
-            self.run_child("capture", command)
-        run_dirs = sorted(
-            (path for path in self.capture_root.glob("sha-*") if path.is_dir()),
-            key=lambda path: path.stat().st_mtime_ns,
-        )
-        if len(run_dirs) != 1:
-            raise ValueError(f"capture root must contain exactly one run, found {len(run_dirs)}")
-        tape = _find_one(run_dirs[0], "tape_*.jsonl")
+        else:
+            try:
+                existing = access.request(request)
+            except DatasetUnavailableError:
+                existing = None
+            if existing is not None and existing.status is DatasetStatus.ACTIVE:
+                if existing.producer_pid is None:
+                    raise RuntimeError("active DAT dataset has no producer PID")
+                self.monitor_existing_child("capture", existing.producer_pid)
+            elif existing is None:
+                _, closed = nse_equity_derivatives_session_bounds(TRADING_DATE)
+                stop_at = closed + timedelta(seconds=POST_CLOSE_BUFFER_SECONDS)
+                duration = math.ceil((stop_at - datetime.now(IST)).total_seconds())
+                command = [
+                    str(self.python),
+                    "-m",
+                    "shaurya.cli.capture_dhan",
+                    "--credentials",
+                    str(self.args.credentials.resolve()),
+                    "--security-master",
+                    str(master),
+                    "--security-id",
+                    security_id,
+                    "--expected-symbol",
+                    symbol,
+                    "--duration-seconds",
+                    str(duration),
+                    "--output-root",
+                    str(self.capture_root),
+                    "--data-catalog",
+                    str(self.data_catalog),
+                    "--enable-depth200",
+                    "--ofi-full-session-replication",
+                    "--channel-start-stagger-seconds",
+                    "0.5",
+                ]
+                if self.args.allow_nonarchive_output:
+                    command.append("--allow-nonarchive-output")
+                self.run_child("capture", command)
+        completed_request = request.model_copy(update={"allow_active": False})
+        handle = access.request(completed_request)
+        tape = Path(handle.tape_path)
         metrics = capture_metrics_for(tape)
         computed = sha256_file(tape)
         recorded = manifest_sha256_for(tape)
@@ -505,6 +560,8 @@ class Controller:
             {
                 "stage": "capture",
                 "accepted_at": datetime.now(IST).isoformat(),
+                "dataset_id": handle.dataset_id,
+                "data_catalog": str(self.data_catalog),
                 "tape": str(tape),
                 "observed_code_commit": self.observed_commits.get("capture"),
                 # `OPS-CCZ-02`: the pin must still hold at acceptance, or the tape and the
@@ -513,7 +570,7 @@ class Controller:
                 "outputs": {str(tape): computed},
             },
         )
-        return tape
+        return handle
 
     def analysis_stage(self, stage: str, command: Sequence[str], outputs: Sequence[Path]) -> None:
         checkpoint = self.checkpoints / f"{stage}.json"
@@ -670,11 +727,11 @@ class Controller:
     def run(self) -> int:
         self.acquire_lock()
         try:
-            master, security_id, symbol = self.preflight()
+            master, security_id, symbol, instrument_id = self.preflight()
             if not self.capture_already_started():
                 self.wait_for_capture_time()
-            tape = self.capture(master, security_id, symbol)
-            self.analyze(tape)
+            dataset = self.capture(master, security_id, symbol, instrument_id)
+            self.analyze(Path(dataset.tape_path))
             self.update(
                 stage="complete",
                 status="complete",
@@ -699,7 +756,19 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-root", required=True, type=Path)
     parser.add_argument("--credentials", required=True, type=Path)
     parser.add_argument("--instrument-master-root", required=True, type=Path)
-    parser.add_argument("--capture-output-root", required=True, type=Path)
+    parser.add_argument(
+        "--capture-output-root",
+        type=Path,
+        default=None,
+        help="Override DAT raw storage; defaults to the verified NSE archive date partition",
+    )
+    parser.add_argument("--allow-nonarchive-output", action="store_true")
+    parser.add_argument(
+        "--data-catalog",
+        type=Path,
+        default=None,
+        help="D43 DAT catalogue; SIG resolves a dataset handle here instead of discovering runs",
+    )
     parser.add_argument("--analysis-output-root", required=True, type=Path)
     parser.add_argument("--expected-code-commit", required=True)
     parser.add_argument("--trading-date", default=TRADING_DATE.isoformat())

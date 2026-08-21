@@ -1,10 +1,25 @@
 # Shaurya — Next-Session Prompt
 
-**Prepared:** 2026-08-17, last updated 2026-08-19 ~21:00 IST (full-session OFI replication)
-**Use on return:** launch and supervise `R-OFI-FULLSESSION-2026-08-20`. The handoff immediately
-below supersedes every older reset section retained as history.
+**Prepared:** 2026-08-17, last updated 2026-08-21 (D43 DAT access plane)
+**Use on return:** preserve the D43 boundary below, then follow `TASKS.md` for the next approved
+research/operations step. Older reset sections are retained only as historical evidence.
 **Repository:** private `ayyararyan/Shaurya`
 **Canonical status ledger:** `TASKS.md`
+
+## RESET HANDOFF — 2026-08-21 D43 DAT SINGLE ACCESS PLANE, READ THIS FIRST
+
+DAT is now the sole internal market-data acquisition, storage and retrieval boundary. Every SUR,
+SIG, VOL, BKT or ANL consumer submits `DatasetRequest`, resolves `DatasetHandle`, and ingests via
+`DataAccess.rows` or `DataAccess.follow`. Do not restore consumer-owned Dhan credentials/sockets,
+raw-run globbing, capture manifests/writers or a second JSONL tail. Compatible active acquisition
+is shared under one locked DAT claim.
+
+The permanent raw JSONL tape remains canonical; DAT adds a seek index, published hashes, optional
+verified lossless gzip archive and an append-only lifecycle catalogue. Existing tapes are adopted
+without rewriting. The architecture is documented in
+`docs/DAT-ACCESS-ARCHITECTURE-2026-08-21.md`; binding requirements are CON-10, DAT-19/DAT-22,
+SUR-09, SIG-23 and ANL-08. No estimator, registration, tape row, causal timing rule or order
+authority changed.
 
 ## RESET HANDOFF — 2026-08-20 EFFECTIVE TOUCH / TOUCH-01, READ THIS FIRST
 

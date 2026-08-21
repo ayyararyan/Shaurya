@@ -30,6 +30,7 @@ Labels must survive serialization and downstream transformations. An estimated o
 - `CON-07`: exchange, receive, and decision timestamps in IST with explicit causality.
 - `CON-08`: unique run IDs and append-only manifests; invalidated runs remain preserved.
 - `CON-09`: strategy-independent opportunity/finding records required by D8.
+- `CON-10`: broker-neutral dataset requests and immutable DAT dataset handles required by D43.
 
 ## Requirements and traceability
 
@@ -44,6 +45,7 @@ Labels must survive serialization and downstream transformations. An estimated o
 | REQ-CON-07 | Distinguish exchange, receive, and decision timestamps; use IST and reject future-information consumption. | CON-07 | `src/shaurya/contracts/timing.py`; composed into ledger/surface/finding contracts | Causality-violation and timezone tests |
 | REQ-CON-08 | Issue unique sortable run IDs and append-only manifests with hashes, lifecycle events, and preserved invalidation state. | CON-08 | `src/shaurya/contracts/artifacts.py` | Collision, append-only, hash, invalidation tests; run manifest |
 | REQ-CON-09 | Define a strategy-independent finding record containing window, statistic, magnitude, uncertainty, search context, and object-category label. | CON-09, D8 | `src/shaurya/contracts/findings.py` | Schema/causality/label and golden-fixture tests; finding artifact |
+| REQ-CON-10 | Define a strict dataset request carrying consumer, channels, canonical instruments, trading date, optional causal coverage and active/completed policy, plus an immutable dataset handle carrying producer, acquisition fingerprint, status, storage/index/archive locations, hashes and observed coverage. The acquisition fingerprint excludes consumer identity so compatible requests share one raw dataset. | CON-10, D43 | `src/shaurya/contracts/data.py` | Contract, fingerprint, coverage, round-trip and incompatible-request tests; catalogue records |
 
 ## Outputs and acceptance tests
 

@@ -40,6 +40,7 @@ from shaurya.data.depth_thinning_analysis import (
     build_states,
     parse_receive_ts_ns,
 )
+from shaurya.data.tape import CompleteLineJsonlTail
 from shaurya.signals.ccz_ofi import ccz_metadata, fit_integrated_weights
 from shaurya.signals.deep_book_normal_activity import (
     SplitIndex,
@@ -82,6 +83,8 @@ COLLINEARITY_CORRELATION_THRESHOLD = 0.995
 COLLINEARITY_VIF_THRESHOLD = 100.0
 
 CellStatus = Literal["WARMING", "INSUFFICIENT", "ESTIMATED", "BLOCKED_UNIDENTIFIED"]
+
+__all__ = ["CompleteLineJsonlTail", "OfiDashboardEngine"]
 
 
 def _json_safe(value: Any) -> Any:
@@ -357,88 +360,6 @@ class CellAccumulator:
     future: ScoreAccumulator = field(default_factory=ScoreAccumulator)
     past: ScoreAccumulator = field(default_factory=ScoreAccumulator)
     blocks_scored: int = 0
-
-
-@dataclass(frozen=True, slots=True)
-class ParsedBatch:
-    rows: tuple[dict[str, Any], ...]
-    bytes_read: int
-    complete_lines: int
-
-
-class CompleteLineJsonlTail:
-    """Read only complete newline-terminated JSON objects from a growing file.
-
-    A partial final line stays in ``_buffer`` until a later poll completes it.  ``torn_lines``
-    counts logical lines observed incomplete, not bytes or polling attempts.
-    """
-
-    def __init__(self, path: Path, *, chunk_size: int = 1 << 20) -> None:
-        if chunk_size < 1:
-            raise ValueError("chunk_size must be positive")
-        if not path.is_file():
-            raise FileNotFoundError(path)
-        self.path = path
-        self.chunk_size = chunk_size
-        self.offset = 0
-        self._buffer = b""
-        self._partial_counted = False
-        self.rows_parsed = 0
-        self.malformed_lines = 0
-        self.torn_lines = 0
-
-    @property
-    def trailing_partial_bytes(self) -> int:
-        return len(self._buffer)
-
-    def poll(self, *, max_bytes: int | None = None) -> ParsedBatch:
-        size = self.path.stat().st_size
-        if size < self.offset:
-            raise RuntimeError("followed tape was truncated; refusing to reinterpret it")
-        available = size - self.offset
-        if max_bytes is not None:
-            available = min(available, max_bytes)
-        if available <= 0:
-            return ParsedBatch((), 0, 0)
-        with self.path.open("rb") as handle:
-            handle.seek(self.offset)
-            payload = handle.read(min(available, self.chunk_size))
-        self.offset += len(payload)
-        prior_partial_was_counted = self._partial_counted
-        combined = self._buffer + payload
-        pieces = combined.split(b"\n")
-        self._buffer = pieces.pop()
-        rows: list[dict[str, Any]] = []
-        for raw in pieces:
-            try:
-                value = json.loads(raw)
-                if not isinstance(value, dict):
-                    raise TypeError("JSONL row is not an object")
-            except (UnicodeDecodeError, json.JSONDecodeError, TypeError):
-                self.malformed_lines += 1
-                continue
-            rows.append(value)
-            self.rows_parsed += 1
-        if prior_partial_was_counted and pieces:
-            # The previously torn logical line completed.  If this same append also began the
-            # next line, that new line is a distinct torn line and must be counted below.
-            self._partial_counted = False
-        reached_current_eof = self.offset == size
-        if self._buffer and reached_current_eof and not self._partial_counted:
-            self.torn_lines += 1
-            self._partial_counted = True
-        if not self._buffer:
-            self._partial_counted = False
-        return ParsedBatch(tuple(rows), len(payload), len(pieces))
-
-    def drain_available(self) -> tuple[dict[str, Any], ...]:
-        rows: list[dict[str, Any]] = []
-        while self.offset < self.path.stat().st_size:
-            batch = self.poll()
-            rows.extend(batch.rows)
-            if batch.bytes_read == 0:
-                break
-        return tuple(rows)
 
 
 class RefitArtifactSink:

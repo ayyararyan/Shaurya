@@ -12,7 +12,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from shaurya.contracts.artifacts import ArtifactManifest
+from shaurya.contracts.data import DataChannel, DatasetRequest
 from shaurya.contracts.instruments import (
     DhanInstrumentMapping,
     DhanInstrumentMaster,
@@ -24,6 +24,11 @@ from shaurya.contracts.timing import (
     nse_equity_derivatives_session_bounds,
     nse_equity_derivatives_session_seconds,
 )
+from shaurya.data.access import (
+    DataCaptureSession,
+    DataCatalog,
+    DatasetAlreadyActiveError,
+)
 from shaurya.data.dhan_client import DhanCredentials
 from shaurya.data.dhan_stream import (
     DEPTH200_ELIGIBLE_KINDS,
@@ -33,8 +38,7 @@ from shaurya.data.dhan_stream import (
     StreamMetrics,
 )
 from shaurya.data.quality import CollectorQualityAudit, write_quality_audit
-from shaurya.data.storage import resolve_raw_capture_root
-from shaurya.data.tape import JsonlTapeWriter
+from shaurya.data.storage import resolve_data_catalog, resolve_raw_capture_root
 
 SIG21_PROTOCOL_ID = "H-SIG21"
 SIG21_REGISTRATION_COMMIT = "f2cf65011d02882191b5cfda566c1024119964d7"
@@ -86,6 +90,17 @@ def _parser() -> argparse.ArgumentParser:
         "--allow-nonarchive-output",
         action="store_true",
         help="Permit an intentional isolated test capture outside the configured NSE archive.",
+    )
+    parser.add_argument(
+        "--data-catalog",
+        type=Path,
+        default=None,
+        help="D43 shared append-only DAT catalogue used by every consumer",
+    )
+    parser.add_argument(
+        "--archive-on-close",
+        action="store_true",
+        help="also create and verify the lossless gzip cold archive before publishing completion",
     )
     parser.add_argument("--no-standard", action="store_true")
     parser.add_argument("--no-depth20", action="store_true")
@@ -246,21 +261,26 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         raise ValueError("duration-seconds must be positive")
     _validate_sig21_protocol(args)
     _validate_ofi_full_session_protocol(args)
-    output_root = resolve_raw_capture_root(
-        args.output_root,
-        allow_nonarchive=args.allow_nonarchive_output,
-    )
-    credentials = DhanCredentials.from_env_file(args.credentials)
     mapping = DhanInstrumentMaster(args.security_master).find_by_security_id(args.security_id)
     if mapping.trading_symbol != args.expected_symbol:
         raise ValueError(
             f"security-ID identity check failed: expected {args.expected_symbol!r}, "
             f"master has {mapping.trading_symbol!r}"
-        )
+    )
     _validate_depth_tier_scope(args, mapping)
-    manifest = ArtifactManifest.create(output_root)
+    output_root = resolve_raw_capture_root(
+        args.output_root,
+        trading_date=mapping.as_of_date,
+        allow_nonarchive=args.allow_nonarchive_output,
+    )
+    catalog_path = resolve_data_catalog(
+        args.data_catalog,
+        trading_date=mapping.as_of_date,
+        allow_nonarchive=args.allow_nonarchive_output,
+        nonarchive_capture_root=output_root,
+    )
+    credentials = DhanCredentials.from_env_file(args.credentials)
     metrics = StreamMetrics()
-    writer = JsonlTapeWriter(manifest, fsync_every=100)
     config = DhanStreamConfig(
         enable_standard_feed=not args.no_standard,
         enable_20_level_depth=not args.no_depth20,
@@ -270,10 +290,35 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         trade_quote_freshness_seconds=args.trade_quote_freshness_seconds,
         channel_start_stagger_seconds=args.channel_start_stagger_seconds,
     )
+    requested_channels = tuple(
+        DataChannel(channel) for channel in sorted(_required_channels(config))
+    )
+    request = DatasetRequest(
+        consumer="DAT-capture",
+        purpose=(
+            OFI_FULL_SESSION_PROTOCOL_ID
+            if args.ofi_full_session_replication
+            else SIG21_PROTOCOL_ID
+            if args.sig21_calibration
+            else "shared live market data"
+        ),
+        trading_date=mapping.as_of_date,
+        channels=requested_channels,
+        instrument_ids=(mapping.instrument.canonical,),
+        allow_active=True,
+    )
+    session = DataCaptureSession.create(
+        catalog=DataCatalog(catalog_path),
+        request=request,
+        output_root=output_root,
+        fsync_every=100,
+    )
+    manifest = session.manifest
+    writer = session.writer
     stream = DhanLiveStream(
         credentials,
         [mapping],
-        writer.write,
+        session.write,
         run_id=str(manifest.run_id),
         config=config,
         metrics=metrics,
@@ -294,7 +339,6 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         except BaseException as exc:
             stream_error = exc
     total_elapsed = time.monotonic() - started
-    writer.close(failed_error_type=type(stream_error).__name__ if stream_error else None)
     snapshot = metrics.snapshot(capture_elapsed)
     snapshot["shutdown_seconds"] = max(total_elapsed - capture_elapsed, 0.0)
     required_channels = _required_channels(config)
@@ -304,6 +348,8 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     snapshot.update(
         {
             "run_id": str(manifest.run_id),
+            "dataset_id": session.dataset_id,
+            "data_catalog": str(DataCatalog(catalog_path).path),
             "instrument_id": mapping.instrument.canonical,
             "dhan_security_id": mapping.security_id,
             "trading_symbol": mapping.trading_symbol,
@@ -342,24 +388,65 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     )
     write_quality_audit(manifest, audit)
     if stream_error:
-        manifest.invalidate(f"stream failed: {type(stream_error).__name__}")
-        return 2, {**snapshot, "run_dir": str(manifest.run_dir), "status": "invalidated"}
-    if writer.rows_written == 0:
-        manifest.invalidate("capture interval produced zero normalized rows")
-        return 3, {**snapshot, "run_dir": str(manifest.run_dir), "status": "invalidated"}
-    if missing_channels:
-        manifest.invalidate(
-            "enabled channels produced zero source packets: " + ",".join(missing_channels)
+        handle = session.close(
+            invalidation_reason=f"stream failed: {type(stream_error).__name__}",
+            archive=args.archive_on_close,
         )
-        return 4, {**snapshot, "run_dir": str(manifest.run_dir), "status": "invalidated"}
-    manifest.complete(rows=writer.rows_written, elapsed_seconds=capture_elapsed)
-    return 0, {**snapshot, "run_dir": str(manifest.run_dir), "status": "completed"}
+        return 2, {
+            **snapshot,
+            "run_dir": str(manifest.run_dir),
+            "dataset_handle": handle.model_dump(mode="json"),
+            "status": "invalidated",
+        }
+    if writer.rows_written == 0:
+        handle = session.close(
+            invalidation_reason="capture interval produced zero normalized rows",
+            archive=args.archive_on_close,
+        )
+        return 3, {
+            **snapshot,
+            "run_dir": str(manifest.run_dir),
+            "dataset_handle": handle.model_dump(mode="json"),
+            "status": "invalidated",
+        }
+    if missing_channels:
+        handle = session.close(
+            invalidation_reason=(
+                "enabled channels produced zero source packets: " + ",".join(missing_channels)
+            ),
+            archive=args.archive_on_close,
+        )
+        return 4, {
+            **snapshot,
+            "run_dir": str(manifest.run_dir),
+            "dataset_handle": handle.model_dump(mode="json"),
+            "status": "invalidated",
+        }
+    handle = session.close(archive=args.archive_on_close)
+    return 0, {
+        **snapshot,
+        "run_dir": str(manifest.run_dir),
+        "dataset_handle": handle.model_dump(mode="json"),
+        "status": "completed",
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         code, summary = asyncio.run(_capture(args))
+    except DatasetAlreadyActiveError as exc:
+        print(
+            json.dumps(
+                {
+                    "status": "reused_active_dataset",
+                    "dataset_handle": exc.handle.model_dump(mode="json"),
+                },
+                sort_keys=True,
+                indent=2,
+            )
+        )
+        return 0
     except BaseException as exc:
         # Never print exception text: an upstream networking exception may contain an auth URL.
         print(

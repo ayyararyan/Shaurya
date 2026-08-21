@@ -13,7 +13,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from shaurya.analytics.ofi_dashboard import CompleteLineJsonlTail, OfiDashboardEngine
+from shaurya.analytics.ofi_dashboard import OfiDashboardEngine
+from shaurya.data.tape import CompleteLineJsonlTail
 
 ALLOWED_METHODS = ("GET", "HEAD")
 

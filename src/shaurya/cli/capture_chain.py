@@ -24,15 +24,19 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from shaurya.analytics.universe import select_chain_universe
-from shaurya.contracts.artifacts import ArtifactManifest
+from shaurya.contracts.data import DataChannel, DatasetRequest
 from shaurya.contracts.instruments import DhanInstrumentMaster
 from shaurya.contracts.tape import TapeRow
 from shaurya.contracts.timing import IST
+from shaurya.data.access import (
+    DataCaptureSession,
+    DataCatalog,
+    DatasetAlreadyActiveError,
+)
 from shaurya.data.dhan_client import DhanCredentials
 from shaurya.data.dhan_stream import DhanLiveStream, DhanStreamConfig, StreamMetrics
-from shaurya.data.storage import resolve_raw_capture_root
-from shaurya.data.tape import JsonlTapeWriter
+from shaurya.data.storage import resolve_data_catalog, resolve_raw_capture_root
+from shaurya.data.universe import select_chain_universe
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -69,6 +73,12 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Permit an intentional isolated test capture outside the configured NSE archive.",
     )
+    parser.add_argument(
+        "--data-catalog",
+        type=Path,
+        default=None,
+    )
+    parser.add_argument("--archive-on-close", action="store_true")
     parser.add_argument("--heartbeat-interval-seconds", type=float, default=10.0)
     parser.add_argument("--heartbeat-timeout-seconds", type=float, default=5.0)
     return parser
@@ -86,11 +96,6 @@ def _exclusive_json(path: Path, value: dict[str, Any]) -> None:
 async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     if args.duration_seconds <= 0:
         raise ValueError("duration-seconds must be positive")
-    output_root = resolve_raw_capture_root(
-        args.output_root,
-        allow_nonarchive=args.allow_nonarchive_output,
-    )
-    credentials = DhanCredentials.from_env_file(args.credentials)
     master = DhanInstrumentMaster(args.security_master)
     underlyings = args.underlying or ["NIFTY"]
     mappings = list(master.mappings())
@@ -116,14 +121,42 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     if not instruments:
         raise ValueError("the requested universe selected no instruments")
 
-    manifest = ArtifactManifest.create(output_root)
+    trading_date = instruments[0].as_of_date
+    output_root = resolve_raw_capture_root(
+        args.output_root,
+        trading_date=trading_date,
+        allow_nonarchive=args.allow_nonarchive_output,
+    )
+    catalog_path = resolve_data_catalog(
+        args.data_catalog,
+        trading_date=trading_date,
+        allow_nonarchive=args.allow_nonarchive_output,
+        nonarchive_capture_root=output_root,
+    )
+    credentials = DhanCredentials.from_env_file(args.credentials)
+
     metrics = StreamMetrics()
-    writer = JsonlTapeWriter(manifest, fsync_every=200)
+    request = DatasetRequest(
+        consumer="DAT-chain-capture",
+        purpose="shared option-chain Standard/Full capture",
+        trading_date=trading_date,
+        channels=(DataChannel.STANDARD,),
+        instrument_ids=tuple(item.instrument.canonical for item in instruments),
+        allow_active=True,
+    )
+    session = DataCaptureSession.create(
+        catalog=DataCatalog(catalog_path),
+        request=request,
+        output_root=output_root,
+        fsync_every=200,
+    )
+    manifest = session.manifest
+    writer = session.writer
     seen: Counter[str] = Counter()
     first_seen: dict[str, str] = {}
 
     def consume(row: TapeRow) -> None:
-        writer.write(row)
+        session.write(row)
         seen[row.instrument_id] += 1
         first_seen.setdefault(row.instrument_id, row.receive_ts.astimezone(IST).isoformat())
 
@@ -156,13 +189,12 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             stream_error = RuntimeError("Dhan stream ended unexpectedly")
         except BaseException as exc:  # noqa: BLE001 - recorded, then reported
             stream_error = exc
-    writer.close(failed_error_type=type(stream_error).__name__ if stream_error else None)
-
     requested = [mapping.instrument.canonical for mapping in instruments]
     covered = [name for name in requested if seen[name] > 0]
     silent = [name for name in requested if seen[name] == 0]
     report: dict[str, Any] = {
         "run_id": str(manifest.run_id),
+        "dataset_id": session.dataset_id,
         "generated_at": datetime.now(tz=IST).isoformat(),
         "channel": "standard_quote_full_request_code_21",
         "subscription_batch_size": 100,
@@ -184,13 +216,34 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         "stream_error": type(stream_error).__name__ if stream_error else None,
         "tape_path": str(writer.path),
     }
-    _exclusive_json(manifest.run_dir / "chain_coverage.json", report)
+    coverage_path = manifest.run_dir / "chain_coverage.json"
+    _exclusive_json(coverage_path, report)
+    manifest.register_existing(coverage_path, kind="chain_coverage")
+    reason = (
+        f"stream failed: {type(stream_error).__name__}"
+        if stream_error is not None
+        else "capture interval produced zero covered instruments"
+        if not covered
+        else None
+    )
+    handle = session.close(
+        invalidation_reason=reason,
+        archive=args.archive_on_close,
+    )
+    report["dataset_handle"] = handle.model_dump(mode="json")
     return (0 if covered else 1), report
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    code, report = asyncio.run(_capture(args))
+    try:
+        code, report = asyncio.run(_capture(args))
+    except DatasetAlreadyActiveError as exc:
+        code = 0
+        report = {
+            "status": "reused_active_dataset",
+            "dataset_handle": exc.handle.model_dump(mode="json"),
+        }
     json.dump(report, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write("\n")
     return code

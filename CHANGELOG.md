@@ -9,13 +9,33 @@ to strategies that pin the package.
 
 - Added one central fail-closed archive resolver for the verified IEX SMB share at
   `/Volumes/Aryan/NSE`.
-- Standard Dhan, option-chain, and live surface capture entry points now default to
+- Standard Dhan and option-chain DAT capture entry points now default to
   `YYYY-MM-DD/raw` in IST and create the companion `metadata`, `indexes`, and `derived` lanes.
 - Refuse the production default when `/Volumes/Aryan` is not the expected
   `//Aryan@172.20.10.38/Aryan` SMB mount, preventing an unmounted-volume local fallback.
 - Reject local output overrides unless the caller also supplies the named controlled-test escape
-  hatch. The codec, file granularity, seek index, and warm/cold implementation remain separate
-  DAT-19 work.
+  hatch. D43 removes the former surface-owned capture path; surfaces follow the same DAT dataset
+  written to this archive.
+
+### D43 — DAT single market-data access plane
+
+- Added strict broker-neutral `DatasetRequest` and immutable `DatasetHandle` contracts. Consumer
+  identity is audit metadata rather than acquisition identity, so compatible SUR, SIG and ANL
+  requests resolve to one active or completed dataset.
+- Added one flock-serialised append-only DAT catalogue and cross-process acquisition claim.
+  Duplicate compatible capture attempts return the existing active handle and do not open a
+  second Dhan stream; dead producers are never reused.
+- Added permanent warm JSONL storage with published hashes, an incremental seek index for bounded
+  time/channel/instrument retrieval, verified lossless gzip cold archives, and streaming adoption
+  of legacy tapes. Tape, index and archive tampering fail closed.
+- Moved growing-file complete-line transport and option-chain universe selection into DAT.
+  Surface/eSSVI and OFI dashboards now resolve DAT handles for replay/follow; the OFI full-session
+  controller resolves its capture from the catalogue instead of globbing raw run directories.
+- Preserved all existing tape rows, surface fits, OFI estimators, registered samples and causal
+  semantics. The change is ownership and transport only; it adds no order path.
+- Acceptance: all 705 tests passed; repository-wide Ruff, strict mypy on 70 package source files
+  plus the changed full-session controller, compileall and diff checks are clean. Production-volume
+  shared follow/archive remains an explicit operational verification rather than an implied claim.
 
 ### D41 — mid-return lags versus CCZ OFI, hypothesis freeze
 

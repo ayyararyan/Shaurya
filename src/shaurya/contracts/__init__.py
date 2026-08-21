@@ -9,6 +9,7 @@ from .config import (
     RiskScope,
     ShauryaConfig,
 )
+from .data import DataChannel, DatasetHandle, DatasetRequest, DatasetStatus
 from .findings import (
     FindingRecord,
     FindingUncertainty,
@@ -37,6 +38,10 @@ __all__ = [
     "CausalTimestamps",
     "CredentialHandle",
     "DepthLevel",
+    "DataChannel",
+    "DatasetHandle",
+    "DatasetRequest",
+    "DatasetStatus",
     "DhanInstrumentMapping",
     "DhanInstrumentMaster",
     "ExchangeSegment",

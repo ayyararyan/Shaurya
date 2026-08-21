@@ -22,6 +22,9 @@ Make “data leads, strategy follows” operational (D8): construct a taxonomy-c
 ## Architecture and contracts
 
 - Consumes retained `CON-01` tape, `CON-05` identity, `CON-06` labels, and `CON-07` causal timestamps.
+- Selects every live or retained sample through a `CON-10` request and DAT dataset handle, then
+  consumes rows through DAT indexed replay/follow. SIG owns estimators and trial semantics, not
+  broker acquisition, credentials, raw storage discovery or JSONL transport (D43).
 - Emits `CON-09` opportunity/finding records upstream of any strategy decision.
 - Reuses VOL estimators, SUR/GRK options state, ANL markouts, and EXE fill realism; none is reimplemented inside SIG.
 - Consumes one central portfolio-Greek, position and margin state from the shared contracts/RSK
@@ -222,6 +225,7 @@ collected tape.
 | REQ-SIG-20 | Require each permanent-tier feature to be computable in one bounded-state forward pass without future data or same-day refit. | SIG-20, DAT-09 | TBD streaming feature API | Streaming/batch parity, bounded-state, leakage tests |
 | REQ-SIG-21 | Pre-register and test whether causal price-keyed anomalies in the normally quiet far depth200 ladder predict future mid-price responses. **Depth200 is the exclusive anomaly/treatment source; depth20 is only the response and near-book control surface and cannot substitute for it.** Separate atomic event types and contemporaneous/predictive effects; label relocation only as a displayed-liquidity proxy; exclude mechanical index cascades and boundary slides; condition expanding previous-session-only baselines on side, price distance, time and liquidity/HMM regime; enforce D27-admissible gaps, overlap/dependence controls, the complete declared multiplicity family, multi-session support and a numeric ex-ante power artifact before inspecting outcomes. The construction module is outcome-blind by contract, and any directional sign discovered in the first sample requires a new registration and later confirmation sample before promotion. | SIG-21, D20, D22, D27, D28, D31, D32, DAT-20 | `src/shaurya/signals/deep_book_anomaly.py`; `src/shaurya/signals/deep_book_response.py`; `src/shaurya/signals/deep_book_inference.py`; `src/shaurya/cli/capture_dhan.py` | Construction/leakage/channel-role fixtures; pushed `H-SIG21` registration; enforced calibration metrics; synthetic response/inference fixtures; numeric power gate; dependence-aware response report and `CON-09` finding |
 | REQ-SIG-22 | Execute the pushed full-session OFI replication protocol on one accepted three-tier NIFTY-futures tape. Reproduce the two pre-named leads separately from complete scalar/CKS/horse-race reranking; retain the causal gap, chronological split, embargo, mirrors, dependence checks and support diagnostics; fail one-tape cross-tape gates rather than fabricating stability; and prohibit signal/confirmation/economic claims. | SIG-22, D35, D36, DAT-21 | `scripts/deepbook_ofi_scan.py`; `scripts/cks_l1_ofi_scan.py`; `scripts/ofi_horserace.py`; full-session controller | Protocol/clip/replay tests; complete hash-pinned artifacts and fixed-lead report |
+| REQ-SIG-23 | Require every OFI and SIG ingestion path to resolve a DAT dataset handle and ingest through DAT replay/follow/index APIs. SIG cannot create a Dhan client/stream, read credentials, start capture, glob raw run directories, or maintain a second raw-file tail/parser. | SIG-23, D43, CON-10, DAT-22 | OFI controllers/CLIs plus DAT public access API | No-Dhan-import/raw-parser architecture test; handle-vs-direct replay parity; active follow integration |
 
 ## Outputs and acceptance tests
 
@@ -241,6 +245,8 @@ collected tape.
 - Feature-wise importance under unresolved collinearity.
 - Tick/order objects absent from the retained feed.
 - Strategy-specific parameter tuning before a data-shown opportunity exists.
+- Dhan credentials/adapters/sockets, capture ownership, raw tape discovery, or consumer-owned
+  JSONL parsing/tailing.
 
 ## Deferred items
 

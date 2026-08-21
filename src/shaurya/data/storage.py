@@ -135,3 +135,35 @@ def resolve_raw_capture_root(
             "isolated run."
         )
     return explicit
+
+
+def resolve_data_catalog(
+    explicit: Path | None,
+    *,
+    trading_date: date | None = None,
+    allow_nonarchive: bool = False,
+    nonarchive_capture_root: Path | None = None,
+) -> Path:
+    """Resolve the shared lifecycle catalogue into the daily metadata lane.
+
+    Controlled isolated captures keep their catalogue beside, but outside, the raw run root so
+    repeated test captures still share one claim. Production never falls back off the verified
+    archive merely because the metadata file does not exist yet.
+    """
+
+    layout = NSEArchiveLayout.configured(trading_date)
+    if explicit is None:
+        if allow_nonarchive and nonarchive_capture_root is not None:
+            return nonarchive_capture_root.resolve().parent / "datasets.jsonl"
+        return layout.prepare().metadata / "datasets.jsonl"
+    resolved_explicit = explicit.expanduser().resolve() if explicit.is_absolute() else explicit
+    if resolved_explicit.is_absolute() and resolved_explicit.is_relative_to(layout.root):
+        layout.prepare()
+        return resolved_explicit
+    if not allow_nonarchive:
+        raise NSEArchiveUnavailableError(
+            f"non-archive data catalogue rejected: {explicit}; production metadata is under "
+            f"{layout.root}. Use the controlled-test override only for an intentional "
+            "isolated run."
+        )
+    return explicit

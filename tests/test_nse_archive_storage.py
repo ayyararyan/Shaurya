@@ -18,6 +18,7 @@ from shaurya.data.storage import (
     NSE_ARCHIVE_ROOT_ENV,
     NSEArchiveLayout,
     NSEArchiveUnavailableError,
+    resolve_data_catalog,
     resolve_raw_capture_root,
 )
 
@@ -52,6 +53,31 @@ def test_explicit_test_root_does_not_require_or_create_server_layout(tmp_path: P
         == explicit
     )
     assert not explicit.exists()
+
+
+def test_default_catalog_uses_daily_metadata_lane(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    archive = tmp_path / "NSE"
+    archive.mkdir()
+    monkeypatch.setenv(NSE_ARCHIVE_ROOT_ENV, str(archive))
+
+    catalog = resolve_data_catalog(None, trading_date=date(2026, 8, 21))
+
+    assert catalog == archive / "2026-08-21" / "metadata" / "datasets.jsonl"
+
+
+def test_controlled_local_catalog_sits_beside_capture_root(tmp_path: Path) -> None:
+    raw = tmp_path / "raw"
+
+    catalog = resolve_data_catalog(
+        None,
+        trading_date=date(2026, 8, 21),
+        allow_nonarchive=True,
+        nonarchive_capture_root=raw,
+    )
+
+    assert catalog == tmp_path / "datasets.jsonl"
 
 
 def test_nonarchive_capture_is_rejected_without_controlled_override(tmp_path: Path) -> None:
@@ -100,3 +126,10 @@ def test_live_capture_entry_points_default_to_central_archive(
     parser_factory: Callable[[], argparse.ArgumentParser],
 ) -> None:
     assert parser_factory().get_default("output_root") is None
+
+
+@pytest.mark.parametrize("parser_factory", [dhan_parser, chain_parser, dashboard_parser])
+def test_capture_and_consumer_entry_points_default_to_archive_catalogue(
+    parser_factory: Callable[[], argparse.ArgumentParser],
+) -> None:
+    assert parser_factory().get_default("data_catalog") is None
