@@ -119,9 +119,9 @@ artifacts and full read-only API objects remain unchanged.
 | ID | Requirement | Status | Code location | Test / acceptance evidence |
 |---|---|---|---|---|
 | `SURF-AXIS-01` | Exact six L values x seven h values, separately for five existing OFI sampling horizons | **Implemented, tested** | `analytics/ofi_response_surface.py` | exact 210-cell grid test |
-| `SURF-CAUSAL-01` | Prospective-only forecasts with rolling causally mature labels and no backfill | **Implemented; live verification pending** | `cli/ofi_response_surface.py`; shared causal fitter | isolated fresh tracker; live D49 receipts pending |
+| `SURF-CAUSAL-01` | Prospective-only forecasts with rolling causally mature labels and no backfill | **Live verified** | `cli/ofi_response_surface.py`; shared causal fitter | 221/221 issued/scored per cell; 46,410 outcomes; zero pending |
 | `SURF-DIAG-01` | Predeclared local smoothness diagnostics; no winner selection | **Implemented, tested** | `surface_diagnostics` | planar and isolated-spike regression test |
-| `SURF-ISOLATE-01` | No dashboard/UI/socket/order-path change | **Implemented; operational verification pending** | isolated CLI and artifact path | source/process comparison pending |
+| `SURF-ISOLATE-01` | No dashboard/UI/socket/order-path change | **Live verified** | isolated CLI and artifact path | dashboard PIDs unchanged; detached scan exited cleanly |
 
 ## D39 additive matrix — `FIXED-TARGET-COMPETITOR-PANEL`
 
