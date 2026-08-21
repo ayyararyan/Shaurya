@@ -232,7 +232,12 @@ to strategies that pin the package.
   `reference_stability_window_enabled=false`; the dashboard shows `120 s`, `stability window off`,
   smoother-fit count and point-in-time reference eligibility. Verification: 44 focused and 716
   full-suite tests pass; whole-repository Ruff, strict mypy on 74 source files, and compileall
-  pass. Replacement-live verification remains pending.
+  pass. The replacement dashboard then reached the authoritative DAT tail with a 0.107-second
+  feed age, 425.6 packets/s, zero reconnects, an arbitrage-clean temporally smoothed fit, and
+  268/268 eligible contracts statistically tested with zero reference-agreement rejections.
+  Direct headless-Chrome rendering visibly showed `120 s`, `stability window off`, and the
+  0.50-point raw/exact tolerance. Evidence:
+  `docs/live-evidence/ANL-07-AMENDMENT-5-2026-08-21.md`.
 
 ### `X-OFI-DASHBOARD-2026-08-20` — dynamic read-only OFI horse-race dashboard (`ANL-06`)
 

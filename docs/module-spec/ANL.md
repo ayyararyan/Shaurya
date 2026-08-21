@@ -83,6 +83,8 @@ Gross P&L alone is insufficient: delta, gamma, vega, theta, spread capture, adve
   publication are now the binding intraday path. D38 and D40 completed on the first active-session
   prefix and D39 is publishing cell-by-cell; full 600-cell completion and later-prefix refresh are
   the remaining operational gates.
-- ANL-07 owner amendment 5 is Tested (44 focused and 716 full tests, Ruff, strict mypy on 74
-  source files, compileall); replacement live verification remains pending. Amendment 4's six-frame live evidence remains valid
-  historical calibration evidence, not evidence for the new 120-second/no-window policy.
+- ANL-07 owner amendment 5 is Live verified for the read-only classification/API/rendering scope:
+  44 focused and 716 full tests, Ruff, strict mypy on 74 source files, compileall, live DAT-tail
+  catch-up, fresh arbitrage-clean evaluation, and rendered policy labels all passed. Amendment 4's
+  six-frame evidence remains historical calibration evidence. Current evidence:
+  `docs/live-evidence/ANL-07-AMENDMENT-5-2026-08-21.md`.
