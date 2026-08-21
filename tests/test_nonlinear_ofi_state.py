@@ -51,6 +51,8 @@ def test_panel_uses_exact_existing_c8_geometry_and_declared_splits() -> None:
     masks = split_masks(panel.timestamps)
     assert panel.geometry.shape == (len(panel.timestamps), len(GEOMETRY_NAMES))
     assert np.isfinite(panel.geometry).all()
+    for column in (1, 2, 3, 4):
+        assert np.all((panel.geometry[:, column] >= 0.0) & (panel.geometry[:, column] <= 1.0))
     assert all(mask.any() for mask in masks.values())
 
 

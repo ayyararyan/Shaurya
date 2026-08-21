@@ -129,12 +129,12 @@ artifacts and full read-only API objects remain unchanged.
 
 | ID | Requirement | Status | Code location | Test / acceptance evidence |
 |---|---|---|---|---|
-| `D50-DATA-01` | Completed 2026-08-21 DAT tape, exact hash, five-second causal anchor clock | **Implemented; empirical run pending** | `cli/nonlinear_ofi_state.py`; `cadence_observations` | manifest-hash gate; cadence unit test |
-| `D50-GEO-01` | Eight causal geometry features derived only from existing C8 predictors | **Implemented, tested** | `nonlinear_ofi_state.py:_geometry` | finite exact-dimension panel test |
-| `D50-MODEL-01` | M0–M4 exact frozen horse race plus constant-shrinkage falsifier | **Implemented; empirical run pending** | `build_calibration_artifact` | declared model keys and metrics code |
-| `D50-CAUSAL-01` | Mature labels only, delayed Kalman updates, purged forward gate labels | **Implemented, tested** | `_rolling_prediction`, `_kalman_path`, `fit_gate` | future-target mutation regression; split gates |
-| `D50-VAL-01` | Train/validation/test chronological split; test never selects hyperparameters | **Implemented; empirical verification pending** | `split_masks`; estimator selection paths | exact split test and artifact causal flags |
-| `D50-OUT-01` | Full artifact, compact result and plain-English report | **Implemented; production pending** | D50 CLI and result finalizer | atomic writer; run acceptance pending |
+| `D50-DATA-01` | Completed 2026-08-21 DAT tape, exact hash, five-second causal anchor clock | **Empirically verified** | `cli/nonlinear_ofi_state.py`; `cadence_observations` | 439,949 source rows; 4,472 cadence rows; tape SHA recorded |
+| `D50-GEO-01` | Eight causal geometry features derived only from existing C8 predictors | **Empirically verified after correction** | `nonlinear_ofi_state.py:_geometry` | finite support and terminal `[0,1]` invariants; regression test |
+| `D50-MODEL-01` | M0–M4 exact frozen horse race plus constant-shrinkage falsifier | **Empirically verified** | `build_calibration_artifact` | 9,457 test model-horizon outcomes; compact result artifact |
+| `D50-CAUSAL-01` | Mature labels only, delayed Kalman updates, purged forward gate labels | **Empirically verified** | `_rolling_prediction`, `_kalman_path`, `fit_gate` | terminal causal flags true; test selection flag false |
+| `D50-VAL-01` | Train/validation/test chronological split; test never selects hyperparameters | **Empirically verified** | `split_masks`; estimator selection paths | 1,670/996/1,351 train/validation/test rows plus purges |
+| `D50-OUT-01` | Full artifact, compact result and plain-English report | **Accepted** | D50 CLI; D50 result and report documents | strict JSON read-back; artifact SHA `1b47c034…f36b` |
 
 ## D39 additive matrix — `FIXED-TARGET-COMPETITOR-PANEL`
 

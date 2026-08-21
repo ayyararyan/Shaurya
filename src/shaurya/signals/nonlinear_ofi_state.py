@@ -83,25 +83,26 @@ def _geometry(
     tensor = np.stack([designs[value][:, -LEVELS:] for value in SAMPLING_SECONDS], axis=1)
     absolute = np.abs(tensor)
     totals = absolute.sum(axis=2)
-    energy = np.log1p(np.mean(tensor**2, axis=(1, 2)))
-    coherence = np.mean(
-        np.divide(
-            np.abs(tensor.sum(axis=2)),
-            totals,
-            out=np.zeros_like(totals),
-            where=totals > 0,
-        ),
-        axis=1,
+    # NumPy under the production Python 3.14 build may reuse the left operand's temporary buffer
+    # for ``tensor**2``.  The original tensor is still required by every subsequent geometry
+    # feature, so square an explicit copy in place and preserve the source values.
+    squared = tensor.copy()
+    np.square(squared, out=squared)
+    energy = np.log1p(np.mean(squared, axis=(1, 2))).copy()
+    coherence_ratio = np.divide(
+        np.abs(tensor.sum(axis=2)),
+        totals,
+        out=np.zeros_like(totals),
+        where=totals > 0,
     )
-    touch = np.mean(
-        np.divide(
-            absolute[:, :, :3].sum(axis=2),
-            totals,
-            out=np.zeros_like(totals),
-            where=totals > 0,
-        ),
-        axis=1,
+    coherence = np.mean(coherence_ratio, axis=1).copy()
+    touch_ratio = np.divide(
+        absolute[:, :, :3].sum(axis=2),
+        totals,
+        out=np.zeros_like(totals),
+        where=totals > 0,
     )
+    touch = np.mean(touch_ratio, axis=1).copy()
     aggregate_by_scale = tensor.mean(axis=2)
     agreement = np.abs(np.sign(aggregate_by_scale).sum(axis=1)) / len(SAMPLING_SECONDS)
     aggregate = aggregate_by_scale.mean(axis=1)
@@ -119,6 +120,14 @@ def _geometry(
         acceleration[position] = (
             abs(float(aggregate[position] - aggregate[lag])) if lag >= 0 else 0.0
         )
+    for name, values in (
+        ("depth_coherence", coherence),
+        ("touch_concentration", touch),
+        ("multiscale_agreement", agreement),
+        ("ofi_persistence_60s", persistence),
+    ):
+        if np.any(values < -1e-12) or np.any(values > 1.0 + 1e-12):
+            raise ValueError(f"D50 bounded geometry invariant failed for {name}")
     reference = designs[SAMPLING_SECONDS[0]]
     return np.column_stack(
         (
@@ -162,7 +171,9 @@ def prepare_panel(observations: Sequence[HorseRaceObservation]) -> Panel:
         [[float(row.future_ticks[horizon]) for horizon in HORIZONS_SECONDS] for row in usable],
         dtype=np.float64,
     )
-    return Panel(timestamps, designs, targets, _geometry(timestamps, designs))
+    geometry = _geometry(timestamps, designs)
+    geometry.setflags(write=False)
+    return Panel(timestamps, designs, targets, geometry)
 
 
 def select_ridge_penalties(
@@ -548,6 +559,70 @@ def gate_diagnostics(
     }
 
 
+def geometry_diagnostics(
+    panel: Panel,
+    surface_height: np.ndarray[Any, Any],
+    mask: np.ndarray[Any, Any],
+) -> list[dict[str, Any]]:
+    """Post-estimation univariate shape diagnostic; it never selects or refits the gate."""
+
+    finite = mask & np.isfinite(surface_height)
+    rows: list[dict[str, Any]] = []
+    for column, name in enumerate(GEOMETRY_NAMES):
+        values = panel.geometry[finite, column]
+        outcome = surface_height[finite]
+        edges = np.quantile(values, np.linspace(0, 1, 6))
+        quintiles: list[dict[str, Any]] = []
+        for index in range(5):
+            selected = (values >= edges[index]) & (
+                values <= edges[index + 1] if index == 4 else values < edges[index + 1]
+            )
+            quintiles.append(
+                {
+                    "quintile": index + 1,
+                    "n": int(selected.sum()),
+                    "mean_feature": (float(values[selected].mean()) if selected.any() else None),
+                    "mean_future_surface_r2": (
+                        float(outcome[selected].mean()) if selected.any() else None
+                    ),
+                    "positive_rate": (
+                        float(np.mean(outcome[selected] > 0.0)) if selected.any() else None
+                    ),
+                }
+            )
+        rows.append({"feature": name, "quintiles": quintiles})
+    return rows
+
+
+def surface_timeline(
+    panel: Panel,
+    surface_height: np.ndarray[Any, Any],
+    masks: Mapping[str, np.ndarray[Any, Any]],
+) -> list[dict[str, Any]]:
+    width = int(300 * 1e9)
+    split_by_position = np.full(len(panel.timestamps), "purged", dtype=object)
+    for name, mask in masks.items():
+        split_by_position[mask] = name
+    rows: list[dict[str, Any]] = []
+    for bucket in np.unique(panel.timestamps // width):
+        selected = (panel.timestamps // width == bucket) & np.isfinite(surface_height)
+        if not selected.any():
+            continue
+        split_values, counts = np.unique(split_by_position[selected], return_counts=True)
+        split = str(split_values[int(np.argmax(counts))])
+        values = surface_height[selected]
+        rows.append(
+            {
+                "bucket_start_ts_ns": int(bucket * width),
+                "split": split,
+                "n": int(selected.sum()),
+                "median_surface_r2": float(np.median(values)),
+                "positive_rate": float(np.mean(values > 0.0)),
+            }
+        )
+    return rows
+
+
 def build_calibration_artifact(observations: Sequence[HorseRaceObservation]) -> dict[str, Any]:
     panel = prepare_panel(observations)
     masks = split_masks(panel.timestamps)
@@ -568,6 +643,21 @@ def build_calibration_artifact(observations: Sequence[HorseRaceObservation]) -> 
     metrics = {
         split: {
             model: metric_bundle(panel.targets[mask], value[mask], m0[mask])
+            for model, value in predictions.items()
+        }
+        for split, mask in masks.items()
+        if split in {"validation", "test"}
+    }
+    metrics_by_horizon = {
+        split: {
+            model: {
+                f"h{horizon:g}": metric_bundle(
+                    panel.targets[mask, column],
+                    value[mask, column],
+                    m0[mask, column],
+                )
+                for column, horizon in enumerate(HORIZONS_SECONDS)
+            }
             for model, value in predictions.items()
         }
         for split, mask in masks.items()
@@ -600,6 +690,24 @@ def build_calibration_artifact(observations: Sequence[HorseRaceObservation]) -> 
             ),
         }
     eligible = np.asarray(gate_fit.pop("label_eligible"), dtype=bool)
+    geometry_support = {
+        name: {
+            "minimum": float(np.min(panel.geometry[:, column])),
+            "maximum": float(np.max(panel.geometry[:, column])),
+        }
+        for column, name in enumerate(GEOMETRY_NAMES)
+    }
+    for name in (
+        "depth_coherence",
+        "touch_concentration",
+        "multiscale_agreement",
+        "ofi_persistence_60s",
+    ):
+        if (
+            geometry_support[name]["minimum"] < -1e-12
+            or geometry_support[name]["maximum"] > 1.0 + 1e-12
+        ):
+            raise ValueError(f"D50 terminal geometry invariant failed for {name}")
     return {
         "schema_version": "1.0.0",
         "specification_id": SPECIFICATION_ID,
@@ -624,13 +732,22 @@ def build_calibration_artifact(observations: Sequence[HorseRaceObservation]) -> 
             "geometry_names": list(GEOMETRY_NAMES),
             "test": gate_diagnostics(gate_probability, surface_height, masks["test"] & eligible),
         },
+        "geometry_support": geometry_support,
         "kalman": kalman_fit,
         "metrics": metrics,
+        "metrics_by_horizon": metrics_by_horizon,
         "constant_shrinkage_falsifier": shrinkage,
         "test_surface": {
             "median_future_r2": float(np.nanmedian(surface_height[masks["test"] & eligible])),
             "positive_rate": float(np.mean(surface_height[masks["test"] & eligible] > 0)),
             "n": int((masks["test"] & eligible).sum()),
+        },
+        "post_estimation_diagnostics": {
+            "geometry_test_quintiles": geometry_diagnostics(
+                panel, surface_height, masks["test"] & eligible
+            ),
+            "surface_timeline_5m": surface_timeline(panel, surface_height, masks),
+            "model_selection_effect": "none; these diagnostics were not used to refit models",
         },
         "causal_checks": {
             "five_second_clock": True,
