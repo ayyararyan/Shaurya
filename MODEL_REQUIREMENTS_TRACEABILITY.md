@@ -63,6 +63,20 @@ replaced by a dashboard result.
 | `LIVE-OUT-03` | Keep HTTP responsive during long ANL-06 refits by serving the last complete frame | **Implemented, tested** | `analytics/ofi_dashboard_server.py:OfiDashboardState.payload`, `.cells` | `test_ofi_dashboard.py::test_live_studies_remain_available_while_dashboard_refit_is_in_progress` |
 | `LIVE-CLAIM-01` | Label overlapping prefixes non-independent, non-confirmatory and incapable of order authority | **Implemented, tested** | live state and all full live artifacts | state-writer acceptance probe and source inspection |
 
+## D45 dashboard matrix-view amendment — `ANL-06-MATRIX-VIEW-2026-08-21`
+
+**Binding amendment:** `docs/OFI-DASHBOARD-MATRIX-VIEW-AMENDMENT-2026-08-21.md`
+**Interpretation boundary:** presentation hierarchy only. All frozen estimators, axes, metrics,
+artifacts and full read-only API objects remain unchanged.
+
+| ID | Requirement | Status | Code location | Test / acceptance evidence |
+|---|---|---|---|---|
+| `DASH-UX-01` | Default screen is one 6x6 C8/displayed-mid/M10 OOS R² matrix with sampling/lookback columns and predicted-horizon rows | **Implemented, tested** | `analytics/ofi_dashboard_server.py:matrixValues` / `render` browser functions | `test_ofi_dashboard.py::test_rendering_theme_and_matrix_view_field_parity` |
+| `DASH-UX-02` | Show only source freshness, D39/D40 progress and the exploratory boundary around the table | **Implemented, tested** | dashboard HTML and `render` browser function | rendering field-parity test |
+| `DASH-UX-03` | Poll a compact read-only payload while preserving every complete API route | **Implemented, tested** | `compact_dashboard_payload`; `GET /api/overview` | `test_compact_decision_payload_drops_bulk_state_and_keeps_primary_d39_slice`; read-only route test |
+| `DASH-UX-04` | Unspecified 20-second combinations render missing and are never fabricated | **Implemented, tested** | `matrixValues`; table cell renderer | rendering/source acceptance and live browser check |
+| `DASH-UX-VAL-ALL` | Focused/full tests, Ruff, strict mypy, compile, browser and live endpoint checks | **Live verified** | repository-wide | 26 focused and 711 full tests; Ruff; strict mypy on 72 source files; compileall; JavaScript syntax; live `/api/overview` matrix parity; headless-browser render at port 8766 |
+
 ## D39 additive matrix — `FIXED-TARGET-COMPETITOR-PANEL`
 
 **Specification:** `docs/D39-FIXED-TARGET-PANEL-SPEC-2026-08-21.md`

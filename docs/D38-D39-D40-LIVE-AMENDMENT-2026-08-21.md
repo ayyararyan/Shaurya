@@ -89,6 +89,14 @@ During a long ANL-06 refit the HTTP layer serves the last complete immutable ANL
 current live-study sidecar state. HTTP responsiveness must not depend on acquiring the estimator's
 fit lock.
 
+### 6.1 Owner decision-view amendment
+
+`docs/OFI-DASHBOARD-MATRIX-VIEW-AMENDMENT-2026-08-21.md` supersedes the first screen's visual
+hierarchy. The default view is one C8/displayed-mid/M10 OOS R-squared matrix: sampling/lookback
+horizon across columns and predicted horizon down rows. D38, D39/D40 detail and full-grid
+diagnostics remain available through complete read-only APIs; no measured field or artifact is
+deleted.
+
 ## 7. Acceptance requirements
 
 - `LIVE-OPS-01`: complete-line prefix hashing refuses a torn trailing row.

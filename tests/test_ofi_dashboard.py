@@ -23,8 +23,10 @@ from shaurya.analytics.ofi_dashboard import (
 )
 from shaurya.analytics.ofi_dashboard_server import (
     ALLOWED_METHODS,
+    MATRIX_HORIZONS_SECONDS,
     OfiDashboardState,
     build_server,
+    compact_dashboard_payload,
     render_html,
 )
 from shaurya.data.depth_thinning_analysis import DEPTH20, BookState
@@ -447,7 +449,7 @@ def test_ccz_integrated_weights_are_fitted_on_the_training_block_only() -> None:
         assert abs(sum(abs(weight) for weight in value["normalised_weights"]) - 1.0) < 1e-9
 
 
-def test_rendering_theme_and_frozen_field_parity(tmp_path: Path) -> None:
+def test_rendering_theme_and_matrix_view_field_parity(tmp_path: Path) -> None:
     engine, tail = _empty_dashboard(tmp_path)
     payload = engine.payload(
         rows_parsed=tail.rows_parsed,
@@ -469,25 +471,22 @@ def test_rendering_theme_and_frozen_field_parity(tmp_path: Path) -> None:
         "#8faa7c",
         "#f4f2ec",
         "#17191c",
-        "RAW OOS R² + INCREMENT OVER M0 + PLACEBO-BENCHMARKED INCREMENT ALWAYS VISIBLE",
-        # AMENDMENT-1 field parity: the ranking basis must be stated on the page, and
-        # both increments must stay on the cell face rather than in a tooltip.
-        "ranked by future increment over M0 among cells that pass that guard",
-        "\\u0394m0 ",
-        "\\u0394bench ",
-        "BRICK",
-        "WARMING",
-        "INSUFFICIENT",
-        "SAME-WINDOW CONSTRUCTION DIAGNOSTIC",
-        "BH-FDR",
+        "CCZ OFI (C8) · displayed mid · 10 book levels",
+        "Sampling / lookback horizon \\u2192",
+        "Predicted horizon \\u2193",
+        "Each cell is absolute held-out OOS R²",
+        "const HORIZONS=[0.5,1,2,5,10,20]",
+        "that combination was not estimated",
+        "Exploratory growing prefix",
         "READ-ONLY",
         "NO SOCKET",
         "NO ORDER PATH",
-        "LIVE D38 / D39 / D40",
-        "LIVE COMPLETE-PREFIX EXPLORATION",
-        "Successive prefixes overlap",
+        "fetch('/api/overview')",
     )
     assert all(field in html for field in required)
+    assert "WHAT MATTERS NOW" not in html
+    assert "Full ANL-06 diagnostic grids" not in html
+    assert "fetch('/api/cells')" not in html
     assert payload["axes"]["cells"] == CELL_COUNT
     assert len(payload["cells"]) == CELL_COUNT
     # 5% of the grid; the grid grew with M7 and M8, so the false-positive budget grew with it
@@ -509,6 +508,64 @@ def test_rendering_theme_and_frozen_field_parity(tmp_path: Path) -> None:
         "insufficient_cells",
         "last_completed_refit_wall_clock",
     }
+
+
+def test_compact_matrix_payload_drops_bulk_state_and_maps_d39_and_d40() -> None:
+    primary = {
+        "reference_price": "displayed_mid",
+        "levels": 10,
+        "h1_seconds": 1.0,
+        "h2_seconds": 5.0,
+        "verdict": "predictive",
+        "c8_ccz_ofi_absolute_oos_r2": 0.07,
+    }
+    payload = {
+        "schema_version": "test",
+        "drive_mode": "follow",
+        "tape_identity": "tape",
+        "run_id": "run",
+        "history_length": 2,
+        "status_rail": {"rows_parsed": 3},
+        "honesty": {"bh_fdr_positive_5pct": 0},
+        "leader": None,
+        "axes": {"cells": 225, "models": ["M0"]},
+        "config": {"refit_cadence_seconds": 60},
+        "cells": [{"large": "x" * 5000}],
+        "ccz": {"large": "x" * 5000},
+        "live_studies": {
+            "status": "cycle_complete",
+            "source": {"last_receive_ts": "2026-08-21T05:11:57+00:00"},
+            "d38": {},
+            "d39": {
+                "completed_cells": 600,
+                "total_cells": 600,
+                "cells": [primary, {**primary, "reference_price": "last_trade"}],
+            },
+            "d40": {
+                "completed_cells": 7,
+                "total_cells": 7,
+                "rows": [{"horizon_seconds": 20.0, "absolute_oos_r2": -0.22}],
+            },
+        },
+    }
+
+    compact = compact_dashboard_payload(payload)
+
+    assert "cells" not in compact
+    assert "ccz" not in compact
+    assert compact["live_studies"]["d39"]["primary_displayed_mid_m10"] == [primary]
+    assert compact["matrix"]["h1_seconds"] == list(MATRIX_HORIZONS_SECONDS)
+    assert compact["matrix"]["h2_seconds"] == list(MATRIX_HORIZONS_SECONDS)
+    matrix_cells = {
+        (cell["h1_seconds"], cell["h2_seconds"]): cell
+        for cell in compact["matrix"]["cells"]
+    }
+    assert matrix_cells[(1.0, 5.0)]["absolute_oos_r2"] == pytest.approx(0.07)
+    assert matrix_cells[(1.0, 5.0)]["source"] == "D39"
+    assert matrix_cells[(10.0, 20.0)]["absolute_oos_r2"] == pytest.approx(-0.22)
+    assert matrix_cells[(10.0, 20.0)]["source"] == "D40"
+    assert (20.0, 20.0) not in matrix_cells
+    assert len(json.dumps(compact)) < len(json.dumps(payload))
 
 
 def test_live_studies_remain_available_while_dashboard_refit_is_in_progress(
@@ -549,7 +606,7 @@ def test_read_only_server_exposes_live_study_get_route_and_no_write_method(
     thread.start()
     base = f"http://127.0.0.1:{server.server_address[1]}"
     try:
-        for route in ("/", "/api/state", "/api/cells", "/api/live-studies"):
+        for route in ("/", "/api/overview", "/api/state", "/api/cells", "/api/live-studies"):
             with urllib.request.urlopen(base + route, timeout=2) as response:
                 assert response.status == 200
         with urllib.request.urlopen(base + "/api/live-studies", timeout=2) as response:

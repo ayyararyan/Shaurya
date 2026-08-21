@@ -5,6 +5,23 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### D45 — simple OFI OOS R² matrix
+
+- Replaced the default 225-cell wall with one spreadsheet-style C8/displayed-mid/M10 table:
+  sampling/lookback horizon across columns, predicted horizon down rows, and absolute held-out OOS
+  R-squared in each estimated cell.
+- The 25 D39 cells populate the 0.5–10 second square; D40 supplies the 10-second lookback / 20-second
+  predicted-horizon cell. Unspecified 20-second combinations display `—`, never zero or an inferred
+  result.
+- The default screen retains only source freshness, D39/D40 progress and the exploratory boundary.
+  Full D38/D39/D40/ANL-06 objects remain unchanged in the complete read-only APIs and artifacts.
+- Added compact read-only `/api/overview` polling while preserving `/api/state`,
+  `/api/live-studies`, `/api/cells` and `/api/history`.
+- Acceptance: 26 focused and 711 full tests passed; repository-wide Ruff, strict mypy on 72
+  source files, compileall and JavaScript syntax are clean. The live read-only process at port
+  8766 renders the six-by-six matrix from a 26-cell compact payload (25 D39 plus one D40 20-second
+  cell); a headless-browser screenshot and endpoint parity check passed.
+
 ### D44 — live D38/D39/D40 dashboard execution
 
 - Superseded the erroneous close-only schedule: D38, D39 and D40 now execute intraday on immutable

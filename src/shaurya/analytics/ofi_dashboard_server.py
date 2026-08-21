@@ -18,6 +18,170 @@ from shaurya.analytics.ofi_dashboard import OfiDashboardEngine
 from shaurya.data.tape import CompleteLineJsonlTail
 
 ALLOWED_METHODS = ("GET", "HEAD")
+MATRIX_HORIZONS_SECONDS = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
+
+
+def _mapping(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    return {str(key): item for key, item in value.items()}
+
+
+def _sequence(value: Any) -> list[Any]:
+    return list(value) if isinstance(value, list) else []
+
+
+def _compact_leader(leader: Any) -> dict[str, Any] | None:
+    leader_map = _mapping(leader)
+    if not leader_map:
+        return None
+    accumulated = _mapping(leader_map.get("accumulated"))
+    return {
+        "model": leader_map.get("model"),
+        "h1_seconds": leader_map.get("h1_seconds"),
+        "h2_seconds": leader_map.get("h2_seconds"),
+        "accumulated": (
+            {
+                key: accumulated.get(key)
+                for key in (
+                    "future_incremental_oos_r2_over_m0",
+                    "future_raw_oos_r2",
+                    "placebo_benchmarked_increment",
+                    "past_incremental_oos_r2_over_m0",
+                )
+            }
+            if accumulated
+            else None
+        ),
+    }
+
+
+def _compact_live_studies(live: Any) -> dict[str, Any]:
+    live_map = _mapping(live)
+    if not live_map:
+        return {"status": "unavailable"}
+    source = _mapping(live_map.get("source"))
+    d38 = _mapping(live_map.get("d38"))
+    touch_01 = _mapping(d38.get("touch_01_print_locations"))
+    touch_02 = _mapping(d38.get("touch_02_effective_touch"))
+    d39 = _mapping(live_map.get("d39"))
+    d39_cells = _sequence(d39.get("cells"))
+    primary_d39 = [
+        cell
+        for cell in d39_cells
+        if isinstance(cell, dict)
+        and cell.get("reference_price") == "displayed_mid"
+        and cell.get("levels") == 10
+    ]
+    d40 = _mapping(live_map.get("d40"))
+    return {
+        "status": live_map.get("status"),
+        "current_stage": live_map.get("current_stage"),
+        "cycle": live_map.get("cycle"),
+        "updated_at": live_map.get("updated_at"),
+        "last_error": live_map.get("last_error"),
+        "confirmatory_eligible": live_map.get("confirmatory_eligible", False),
+        "successive_prefixes_independent": live_map.get(
+            "successive_prefixes_independent", False
+        ),
+        "source": {
+            key: source.get(key)
+            for key in (
+                "dataset_id",
+                "last_receive_ts",
+                "snapshot_at",
+                "observations",
+                "channel_rows",
+                "sample_role",
+            )
+        },
+        "d38": {
+            "status": d38.get("status"),
+            "updated_at": d38.get("updated_at"),
+            "overall": touch_01.get("overall"),
+            "displayed_spread_ticks": touch_01.get("displayed_spread_ticks"),
+            "effective_touch_by_window": touch_02.get("by_window", []),
+            "primary_window_seconds": touch_02.get("primary_window_seconds"),
+        },
+        "d39": {
+            "status": d39.get("status"),
+            "completed_cells": d39.get("completed_cells", 0),
+            "total_cells": d39.get("total_cells", 600),
+            "primary_displayed_mid_m10": primary_d39,
+        },
+        "d40": {
+            "status": d40.get("status"),
+            "completed_cells": d40.get("completed_cells", 0),
+            "total_cells": d40.get("total_cells", 7),
+            "rows": d40.get("rows", []),
+            "curve": d40.get("curve", {}),
+        },
+    }
+
+
+def _matrix_view(live: dict[str, Any]) -> dict[str, Any]:
+    d39 = _mapping(live.get("d39"))
+    d40 = _mapping(live.get("d40"))
+    values: dict[tuple[float, float], dict[str, Any]] = {}
+    for raw in _sequence(d39.get("primary_displayed_mid_m10")):
+        row = _mapping(raw)
+        h1 = row.get("h1_seconds")
+        h2 = row.get("h2_seconds")
+        value = row.get("c8_ccz_ofi_absolute_oos_r2")
+        if h1 is None or h2 is None or value is None:
+            continue
+        values[(float(h1), float(h2))] = {
+            "h1_seconds": float(h1),
+            "h2_seconds": float(h2),
+            "absolute_oos_r2": value,
+            "source": "D39",
+        }
+    for raw in _sequence(d40.get("rows")):
+        row = _mapping(raw)
+        h2 = row.get("horizon_seconds")
+        value = row.get("absolute_oos_r2")
+        if h2 is None or value is None or float(h2) not in MATRIX_HORIZONS_SECONDS:
+            continue
+        values[(10.0, float(h2))] = {
+            "h1_seconds": 10.0,
+            "h2_seconds": float(h2),
+            "absolute_oos_r2": value,
+            "source": "D40",
+        }
+    return {
+        "h1_seconds": list(MATRIX_HORIZONS_SECONDS),
+        "h2_seconds": list(MATRIX_HORIZONS_SECONDS),
+        "cells": [values[key] for key in sorted(values)],
+    }
+
+
+def compact_dashboard_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return the decision-view payload used by the browser's polling loop.
+
+    The full research state remains available at ``/api/state`` and ``/api/cells``.  The default
+    screen intentionally carries only the objects needed to answer the owner's current question.
+    """
+
+    config = _mapping(payload.get("config"))
+    live_studies = _compact_live_studies(payload.get("live_studies"))
+    return {
+        "schema_version": payload.get("schema_version"),
+        "drive_mode": payload.get("drive_mode"),
+        "tape_identity": payload.get("tape_identity"),
+        "run_id": payload.get("run_id"),
+        "history_length": payload.get("history_length"),
+        "status_rail": payload.get("status_rail", {}),
+        "honesty": payload.get("honesty", {}),
+        "leader": _compact_leader(payload.get("leader")),
+        "axes": payload.get("axes", {}),
+        "config": {"refit_cadence_seconds": config.get("refit_cadence_seconds")},
+        "live_studies": live_studies,
+        "matrix": _matrix_view(live_studies),
+        "confirmatory_eligible": payload.get("confirmatory_eligible", False),
+        "read_only": payload.get("read_only", True),
+        "no_socket": payload.get("no_socket", True),
+        "no_order_path": payload.get("no_order_path", True),
+    }
 
 
 class OfiDashboardState:
@@ -86,6 +250,9 @@ class OfiDashboardState:
             value["refit_in_progress"] = self.engine.fit_in_progress
             return value
 
+    def overview(self) -> dict[str, Any]:
+        return compact_dashboard_payload(self.payload())
+
     def html(self) -> str:
         return render_html(self.payload())
 
@@ -93,13 +260,13 @@ class OfiDashboardState:
 _STYLE = """
 :root {
   --ink:#1d1f22; --ink2:#575a5f; --ink3:#8b8d90; --rule:#dcd8ce;
-  --rule2:#e8e4da; --bg:#f4f2ec; --panel:#faf8f2; --slate:#46586b;
-  --brass:#b5851f; --brick:#8f3327; --sage:#5b7a52; color-scheme:light;
+  --bg:#f4f2ec; --panel:#faf8f2; --wash:#eeeadf; --slate:#46586b; --brass:#b5851f;
+  --brick:#8f3327; --sage:#5b7a52; color-scheme:light;
 }
 :root[data-theme="dark"] {
   --ink:#e6e2d8; --ink2:#a4a29a; --ink3:#76746e; --rule:#2d3137;
-  --rule2:#24272b; --bg:#17191c; --panel:#1c1f23; --slate:#8199b0;
-  --brass:#d3a44a; --brick:#c05c46; --sage:#8faa7c; color-scheme:dark;
+  --bg:#17191c; --panel:#1c1f23; --wash:#202328; --slate:#8199b0; --brass:#d3a44a;
+  --brick:#c05c46; --sage:#8faa7c; color-scheme:dark;
 }
 * { box-sizing:border-box; }
 html,body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
@@ -107,101 +274,46 @@ html,body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
   Menlo,Consolas,"Liberation Mono",monospace; font-size:12px; line-height:1.45;
   font-variant-numeric:tabular-nums; }
 header { display:flex; gap:14px; align-items:center; padding:11px 18px 10px;
-  border-bottom:1px solid var(--rule); position:sticky; top:0; background:var(--bg); z-index:5; }
+  border-bottom:1px solid var(--rule); background:var(--bg); }
 h1 { margin:0; font-size:12.5px; letter-spacing:.06em; }
 .spacer { flex:1; }
-.stamp,.eyebrow { color:var(--ink3); font-size:9px; letter-spacing:.15em;
-  text-transform:uppercase; }
+.stamp { color:var(--ink3); font-size:9px; letter-spacing:.15em; text-transform:uppercase; }
 .stamp strong { color:var(--brass); }
 button { font:inherit; font-size:9px; letter-spacing:.14em; text-transform:uppercase;
   color:var(--ink2); background:none; border:1px solid var(--rule); padding:4px 9px; cursor:pointer; }
-.rail { display:flex; flex-wrap:wrap; border-bottom:1px solid var(--rule);
-  border-left:3px solid var(--slate); padding:8px 18px 9px; }
-.rail.stale { border-left-color:var(--brass); }
-.rail-cell { min-width:110px; padding:0 15px; border-left:1px solid var(--rule2); }
-.rail-cell:first-child { border-left:0; padding-left:0; }
-.label { color:var(--ink3); font-size:8.5px; letter-spacing:.14em; text-transform:uppercase; }
-.value { color:var(--ink); font-size:14px; white-space:nowrap; }
-.hero { display:grid; grid-template-columns:minmax(330px,1.3fr) repeat(3,minmax(150px,.55fr));
-  border-bottom:1px solid var(--rule); }
-.hero > div { padding:15px 18px; border-left:1px solid var(--rule2); }
-.hero > div:first-child { border-left:3px solid var(--slate); }
-.hero-main { font-size:43px; line-height:1; letter-spacing:-.035em; margin:5px 0 7px; }
-.hero-main em { font-size:15px; font-style:normal; color:var(--ink3); }
-.hero-id { color:var(--ink2); font-size:13px; }
-.hero-stat b { display:block; font-size:25px; font-weight:400; margin-top:7px; }
-.hero-stat small { display:block; color:var(--ink3); margin-top:5px; }
-.honesty { display:grid; grid-template-columns:repeat(5,1fr); border-bottom:1px solid var(--rule); }
-.honesty > div { padding:11px 18px; border-left:1px solid var(--rule2); }
-.honesty > div:first-child { border-left:3px solid var(--brass); }
-.honesty b { display:block; font-size:20px; font-weight:400; }
-.honesty small { color:var(--ink3); }
-main { padding:17px 18px 36px; }
-.section-head { display:flex; align-items:center; gap:10px; margin:15px 0 9px; }
-.section-head h2 { margin:0; color:var(--ink3); font-size:9.5px; letter-spacing:.17em;
-  text-transform:uppercase; white-space:nowrap; }
-.section-head:after { content:""; height:1px; background:var(--rule); flex:1; }
-.models { display:grid; grid-template-columns:repeat(2,minmax(560px,1fr)); gap:18px; }
-.model { min-width:0; }
-.model-title { display:flex; align-items:baseline; gap:9px; margin:0 0 6px; }
-.model-title b { font-size:15px; }
-.model-title span { color:var(--ink3); font-size:9px; letter-spacing:.1em; text-transform:uppercase; }
-.heatmap { display:grid; grid-template-columns:44px repeat(5,minmax(96px,1fr));
-  border-top:1px solid var(--rule); border-left:1px solid var(--rule); }
-.axis,.cell { min-height:84px; padding:6px; border-right:1px solid var(--rule);
-  border-bottom:1px solid var(--rule); overflow:hidden; }
-.axis { display:flex; align-items:center; justify-content:center; color:var(--ink3);
-  font-size:8px; letter-spacing:.1em; text-transform:uppercase; min-height:25px; }
-.cell { background:color-mix(in srgb,var(--slate) calc(var(--mag)*32%),transparent);
-  position:relative; }
-.cell.brick { background:color-mix(in srgb,var(--brick) 34%,transparent);
-  box-shadow:inset 3px 0 0 var(--brick); }
-.cell.warming { background:transparent; color:var(--brass); }
-.cell.insufficient,.cell.blocked { background:transparent; color:var(--ink3); }
-.cell .score { font-size:14px; line-height:1.15; padding-right:38px; }
-.cell .bench { font-size:12px; margin-top:3px; }
-.cell .bench2 { font-size:10.5px; margin-top:2px; color:var(--ink2); }
-.cell .block { color:var(--ink3); font-size:8.5px; margin-top:4px;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.cell .q { position:absolute; right:5px; top:4px; color:var(--ink3); font-size:8px; }
-.glyph { margin-right:3px; }
-.diagnostic { border-left:3px solid var(--brass); padding:9px 12px; color:var(--ink2);
-  background:var(--panel); }
-.live-studies { display:grid; grid-template-columns:repeat(3,minmax(280px,1fr)); gap:12px;
-  margin-bottom:14px; }
-.study-card { border:1px solid var(--rule); background:var(--panel); padding:11px 12px;
-  min-width:0; overflow:auto; }
-.study-card h3 { margin:0 0 7px; font-size:13px; }
-.study-meta { color:var(--ink3); font-size:9px; margin-bottom:7px; }
-.study-stat { display:grid; grid-template-columns:1fr auto; gap:8px; border-top:1px solid var(--rule2);
-  padding:4px 0; }
-.study-stat b { font-weight:400; }
-.study-table { width:100%; border-collapse:collapse; font-size:9px; }
-.study-table th,.study-table td { border-top:1px solid var(--rule2); padding:3px 5px;
-  text-align:right; white-space:nowrap; }
-.study-table th:first-child,.study-table td:first-child { text-align:left; }
-.study-warning { border-left:3px solid var(--brass); padding:7px 9px; color:var(--ink2);
-  background:var(--panel); margin-bottom:10px; }
-.legend { color:var(--ink3); font-size:9px; margin:7px 0 0; }
-.brick-word { color:var(--brick); }.sage-word { color:var(--sage); }
-@media(max-width:1330px) { .models{grid-template-columns:1fr}.hero{grid-template-columns:1fr 1fr}
-  .honesty{grid-template-columns:1fr 1fr}.hero>div:first-child{grid-column:1/-1}
-  .live-studies{grid-template-columns:1fr} }
+.matrix-page { max-width:980px; margin:44px auto; padding:0 22px; }
+.matrix-title { margin:0; font-size:24px; letter-spacing:-.025em; }
+.matrix-subtitle { margin:7px 0 22px; color:var(--ink2); font-size:13px; }
+.matrix-status { display:flex; flex-wrap:wrap; gap:7px 18px; padding:9px 0;
+  border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); color:var(--ink2); }
+.matrix-wrap { overflow:auto; margin-top:20px; }
+.result-matrix { width:100%; min-width:720px; border-collapse:collapse; table-layout:fixed;
+  background:var(--panel); font-size:14px; }
+.result-matrix th,.result-matrix td { border:1px solid var(--rule); padding:15px 12px; text-align:center; }
+.result-matrix thead th { background:var(--wash); font-size:15px; }
+.result-matrix tbody th { background:var(--wash); text-align:left; font-size:15px; }
+.result-matrix .corner { width:190px; text-align:left; vertical-align:bottom; }
+.result-matrix .corner span,.result-matrix .corner strong { display:block; }
+.result-matrix .corner span { color:var(--ink2); font-size:10px; letter-spacing:.09em; text-transform:uppercase; }
+.result-matrix .corner strong { margin-top:11px; font-weight:600; }
+.result-matrix td.positive { color:var(--sage); background:color-mix(in srgb,var(--sage) 8%,var(--panel)); }
+.result-matrix td.negative { color:var(--brick); background:color-mix(in srgb,var(--brick) 7%,var(--panel)); }
+.result-matrix td.missing { color:var(--ink3); }
+.matrix-note { margin-top:12px; color:var(--ink3); font-size:11px; }
+@media(max-width:620px) {
+  header .stamp { display:none; }
+  .matrix-page { margin-top:24px; padding:0 10px; }
+  .matrix-title { font-size:20px; }
+}
 """
-
-
 _SCRIPT = r"""
-const fmt = (x,d=3) => x === null || x === undefined || Number.isNaN(Number(x))
-  ? '\u2014' : Number(x).toFixed(d);
-const pct = (x,d=2) => x === null || x === undefined ? '\u2014' : (Number(x)*100).toFixed(d);
-let lastPayload = __PAYLOAD__;
-
-function themeName(){ return document.documentElement.dataset.theme === 'dark' ? 'dark':'light'; }
+const HORIZONS=[0.5,1,2,5,10,20];
+let lastPayload=__PAYLOAD__;
+function themeName(){return document.documentElement.dataset.theme==='dark'?'dark':'light';}
 function applyTheme(name){
   document.documentElement.dataset.theme=name;
   try{localStorage.setItem('anl06-theme',name);}catch(error){}
-  const button=document.getElementById('themeToggle');
-  button.textContent=name==='dark'?'\u25D1 LIGHT':'\u25D0 DARK';
+  document.getElementById('themeToggle').textContent=name==='dark'?'\u25D1 LIGHT':'\u25D0 DARK';
 }
 function initTheme(){
   let name=null; try{name=localStorage.getItem('anl06-theme');}catch(error){}
@@ -209,149 +321,60 @@ function initTheme(){
   applyTheme(name);
 }
 function toggleTheme(){applyTheme(themeName()==='dark'?'light':'dark');}
-
-function rail(payload){
-  const r=payload.status_rail;
-  const stale=r.fit_age_seconds!==null && r.fit_age_seconds>payload.config.refit_cadence_seconds*2;
-  const values=[['mode',payload.drive_mode],['tape',payload.tape_identity.split('/').pop()],
-    ['run id',payload.run_id],['anchors',r.anchors_consumed],['rows',r.rows_parsed],
-    ['torn / partial',r.torn_lines+' / '+r.trailing_partial_bytes+' B'],
-    ['malformed',r.malformed_lines],['epoch',r.current_epoch],['fit age',fmt(r.fit_age_seconds,1)+' s'],
-    ['refits done / skipped',r.refits_completed+' / '+r.refits_skipped],
-    ['warming / insufficient',r.warming_cells+' / '+r.insufficient_cells],
-    ['last refit',r.last_completed_refit_wall_clock? r.last_completed_refit_wall_clock.slice(11,19)+' UTC':'NEVER']];
-  const holder=document.getElementById('rail'); holder.className='rail'+(stale?' stale':'');
-  holder.innerHTML=values.map(([k,v])=>'<div class="rail-cell"><div class="label">'+k+
-    '</div><div class="value">'+(v??'\u2014')+'</div></div>').join('');
+function pct(value){return value===null||value===undefined?'\u2014':(Number(value)*100).toFixed(2)+'%';}
+function clock(ts){
+  if(!ts) return '\u2014'; const date=new Date(ts); if(Number.isNaN(date.getTime())) return ts;
+  return date.toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' IST';
 }
-function hero(payload){
-  const cell=payload.leader; const holder=document.getElementById('hero');
-  if(!cell || !cell.accumulated){
-    holder.innerHTML='<div><div class="eyebrow">authoritative accumulated leader</div>'+
-      '<div class="hero-main">WARMING</div><div class="hero-id">No cell is ranked before the gate.</div></div>'+
-      '<div class="hero-stat"><span class="label">chance expectation</span><b>'+payload.honesty.expected_by_chance_at_5pct+
-      '</b><small>of 175 at 5%</small></div>'; return;
-  }
-  const a=cell.accumulated;
-  holder.innerHTML='<div><div class="eyebrow">authoritative accumulated future increment over M0 \u00B7 placebo guard passed</div>'+
-    '<div class="hero-main">'+(Number(a.future_incremental_oos_r2_over_m0)>=0?'\u25B2 ':'\u25BC ')+
-    pct(a.future_incremental_oos_r2_over_m0)+'<em> pp</em></div><div class="hero-id">'+cell.model+
-    ' \u00B7 h1 '+cell.h1_seconds+' s \u00B7 h2 '+cell.h2_seconds+
-    ' s \u00B7 deterministically derived from two estimated increments</div></div>'+
-    '<div class="hero-stat"><span class="label">raw OOS R\u00B2</span><b>'+pct(a.future_raw_oos_r2)+
-    '%</b><small>estimated \u00B7 accumulated</small></div>'+
-    '<div class="hero-stat"><span class="label">placebo-benchmarked (guard)</span><b>'+pct(a.placebo_benchmarked_increment)+
-    ' pp</b><small>estimated \u00B7 versus M0</small></div>'+
-    '<div class="hero-stat"><span class="label">past-mirror increment</span><b>'+pct(a.past_incremental_oos_r2_over_m0)+
-    ' pp</b><small>estimated benchmark \u00B7 chance '+payload.honesty.expected_by_chance_at_5pct+'/175</small></div>';
+function matrixValues(payload){
+  const values=new Map();
+  ((payload.matrix||{}).cells||[]).forEach(row=>values.set(Number(row.h1_seconds)+'|'+Number(row.h2_seconds),{
+    value:row.absolute_oos_r2,source:row.source}));
+  return values;
 }
-function honesty(payload){
-  const h=payload.honesty;
-  document.getElementById('honesty').innerHTML=[
-    ['green now',h.cells_green_now,'estimated \u00B7 p \u2264 5%, future beats mirror'],
-    ['expected by chance',fmt(h.expected_by_chance_at_5pct,2),'deterministically derived \u00B7 175 cells'],
-    ['BH-FDR positive',h.bh_fdr_positive_5pct,'estimated \u00B7 dependence-aware q \u2264 5%'],
-    ['ever green',h.cells_ever_green,'deterministically derived churn record'],
-    ['distinct leaders',h.distinct_cells_that_have_led,'derived \u00B7 current '+(h.current_leader||'\u2014')]
-  ].map(([k,v,s])=>'<div><span class="label">'+k+'</span><b>'+v+'</b><small>'+s+'</small></div>').join('');
+function render(payload){
+  lastPayload=payload; const studies=payload.live_studies||{},source=studies.source||{};
+  const d39=studies.d39||{},d40=studies.d40||{},values=matrixValues(payload);
+  document.getElementById('status').innerHTML=[
+    'Source through <b>'+clock(source.last_receive_ts)+'</b>',
+    'D39 <b>'+(d39.completed_cells||0)+' / '+(d39.total_cells||600)+'</b>',
+    'D40 <b>'+(d40.completed_cells||0)+' / '+(d40.total_cells||7)+'</b>',
+    '<b>Exploratory growing prefix</b>'
+  ].map(item=>'<span>'+item+'</span>').join('');
+  const head='<tr><th class="corner"><span>Sampling / lookback horizon \u2192</span><strong>Predicted horizon \u2193</strong></th>'+
+    HORIZONS.map(h=>'<th>'+h+'s</th>').join('')+'</tr>';
+  const body=HORIZONS.map(h2=>'<tr><th>'+h2+'s</th>'+HORIZONS.map(h1=>{
+    const cell=values.get(h1+'|'+h2); if(!cell) return '<td class="missing">\u2014</td>';
+    const value=Number(cell.value); const cls=value>=0?'positive':'negative';
+    return '<td class="'+cls+'" title="'+cell.source+' C8 absolute OOS R-squared">'+pct(value)+'</td>';
+  }).join('')+'</tr>').join('');
+  document.getElementById('matrix').innerHTML='<thead>'+head+'</thead><tbody>'+body+'</tbody>';
+  document.getElementById('source').textContent=String(payload.drive_mode||'').toUpperCase()+' \u00B7 '+payload.history_length+' REFITS';
 }
-function liveStudies(payload){
-  const root=document.getElementById('liveStudies'); const s=payload.live_studies||{};
-  const d38=s.d38||{},d39=s.d39||{},d40=s.d40||{},source=s.source||{};
-  const overall=((d38.touch_01_print_locations||{}).overall)||{};
-  const spread=((d38.touch_01_print_locations||{}).displayed_spread_ticks)||{};
-  const coverage=(((d38.touch_02_effective_touch||{}).by_window)||[]);
-  const d38stats=[['classified prints',overall.n],['strictly inside',pct(overall.inside_share)+'%'],
-    ['at touch',pct(overall.at_touch_share)+'%'],['outside',pct(overall.outside_share)+'%'],
-    ['median spread',fmt(spread.p50,1)+' ticks']];
-  const d38html='<div class="study-card"><h3>D38 / LIVE TOUCH</h3><div class="study-meta">'+
-    (d38.status||'pending')+' · '+(d38.updated_at||'—')+'</div>'+d38stats.map(([k,v])=>
-    '<div class="study-stat"><span>'+k+'</span><b>'+(v??'—')+'</b></div>').join('')+
-    '<table class="study-table"><tr><th>window</th><th>coverage</th></tr>'+coverage.map(row=>
-    '<tr><td>'+row.window_seconds+' s</td><td>'+pct(row.coverage)+'%</td></tr>').join('')+'</table></div>';
-  const d40rows=d40.rows||[];
-  const d40html='<div class="study-card"><h3>D40 / LIVE 10–120s CURVE</h3><div class="study-meta">'+
-    (d40.status||'pending')+' · '+(d40.completed_cells||0)+' / '+(d40.total_cells||7)+' horizons</div>'+
-    '<table class="study-table"><tr><th>horizon</th><th>abs OOS R²</th><th>N test</th></tr>'+d40rows.map(row=>
-    '<tr><td>'+row.horizon_seconds+' s</td><td>'+pct(row.absolute_oos_r2)+'%</td><td>'+
-    (row.test_n??'—')+'</td></tr>').join('')+'</table><div class="study-meta">peak '+
-    ((d40.curve||{}).peak_horizon_seconds??'—')+' s · first decline '+
-    ((d40.curve||{}).first_decline_horizon_seconds??'—')+' s</div></div>';
-  const d39primary=(d39.cells||[]).filter(row=>row.reference_price==='displayed_mid'&&Number(row.levels)===10);
-  const d39html='<div class="study-card"><h3>D39 / LIVE FIXED-TARGET PANEL</h3><div class="study-meta">'+
-    (d39.status||'pending')+' · '+(d39.completed_cells||0)+' / '+(d39.total_cells||600)+' outer cells</div>'+
-    '<table class="study-table"><tr><th>h1→h2</th><th>C2 lag</th><th>C8 CCZ</th><th>C12 union</th><th>verdict</th></tr>'+
-    d39primary.slice(-25).map(row=>'<tr><td>'+row.h1_seconds+'→'+row.h2_seconds+'</td><td>'+pct(row.c2_lagged_return_absolute_oos_r2)+
-    '%</td><td>'+pct(row.c8_ccz_ofi_absolute_oos_r2)+'%</td><td>'+pct(row.c12_lagged_plus_ofi_absolute_oos_r2)+
-    '%</td><td>'+((row.verdict)||'—')+'</td></tr>').join('')+'</table></div>';
-  root.innerHTML='<div class="study-warning"><b>LIVE COMPLETE-PREFIX EXPLORATION.</b> D38, D39 and D40 run during the session. '+
-    'Successive prefixes overlap and are not independent replications. Source through '+(source.last_receive_ts||'—')+
-    ' · stage '+(s.current_stage||'—')+' · '+(s.status||'waiting')+'.</div><div class="live-studies">'+
-    d38html+d40html+d39html+'</div>';
-}
-function cellHtml(cell){
-  const cls=cell.status==='ESTIMATED'?(cell.past_mirror_exceeds_or_equals_future?'brick':''):
-    (cell.status==='WARMING'?'warming':cell.status==='INSUFFICIENT'?'insufficient':'blocked');
-  if(cell.status!=='ESTIMATED') return '<div class="cell '+cls+'" style="--mag:0" title="'+cell.reason+'">'+
-    '<div class="score">'+cell.status+'</div><div class="block">train '+cell.support.common_train_n+
-    ' \u00B7 test '+cell.support.common_test_n+'</div></div>';
-  const a=cell.accumulated,b=cell.block; const sign=Number(a.future_incremental_oos_r2_over_m0)>=0?'\u25B2':'\u25BC';
-  const mag=Math.min(1,Math.abs(Number(a.future_incremental_oos_r2_over_m0))*12);
-  const title='future increment '+pct(a.future_incremental_oos_r2_over_m0)+' pp; past mirror '+
-    pct(a.past_incremental_oos_r2_over_m0)+' pp; '+cell.coefficient_interpretation;
-  return '<div class="cell '+cls+'" style="--mag:'+mag+'" title="'+title+'">'+
-    '<div class="q">q EST '+pct(cell.bh_fdr_q_value,1)+'</div><div class="score">EST R\u00B2 '+
-    pct(a.future_raw_oos_r2)+'%</div><div class="bench"><span class="glyph">'+sign+'</span>\u0394m0 '+
-    pct(a.future_incremental_oos_r2_over_m0)+' pp EST</div><div class="bench2">\u0394bench '+
-    pct(a.placebo_benchmarked_increment)+' pp DERIVED</div><div class="block">BLOCK EST R\u00B2 '+
-    pct(b.future_raw_oos_r2)+'% \u00B7 \u0394 '+pct(b.placebo_benchmarked_increment)+' pp</div></div>';
-}
-function grids(payload){
-  const hs=payload.axes.h1_seconds, horizons=payload.axes.h2_seconds;
-  const lookup=new Map(payload.cells.map(c=>[c.cell_key,c]));
-  document.getElementById('models').innerHTML=payload.axes.models.map(model=>{
-    let grid='<div class="axis">h1 \\ h2</div>'+horizons.map(h=>'<div class="axis">'+h+' s</div>').join('');
-    hs.forEach(h1=>{ grid+='<div class="axis">'+h1+' s</div>';
-      horizons.forEach(h2=>{grid+=cellHtml(lookup.get(model+'|'+h1+'|'+h2));}); });
-    return '<section class="model"><div class="model-title"><b>'+model+'</b><span>5 \u00D7 5 complete grid</span></div>'+
-      '<div class="heatmap">'+grid+'</div></section>';
-  }).join('');
-}
-function render(payload){lastPayload=payload;rail(payload);hero(payload);honesty(payload);liveStudies(payload);grids(payload);
-  document.getElementById('source').textContent=payload.drive_mode.toUpperCase()+' \u00B7 '+payload.history_length+' REFITS';}
-async function refresh(){try{const response=await fetch('/api/state');render(await response.json());}
+async function refresh(){try{const response=await fetch('/api/overview');render(await response.json());}
   catch(error){document.getElementById('source').textContent='SERVER UNREACHABLE';}}
-initTheme();render(lastPayload);setInterval(refresh,1000);
+initTheme();render(lastPayload);setInterval(refresh,5000);
 """
 
 
 _BODY = """<!doctype html>
 <html lang="en" data-theme="light"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Shaurya ANL-06 — dynamic OFI horse race</title><style>__STYLE__</style></head>
-<body><header><h1>SHAURYA ANL-06 / DYNAMIC OFI HORSE RACE</h1>
+<title>Shaurya OFI — OOS R² table</title><style>__STYLE__</style></head>
+<body><header><h1>SHAURYA OFI / OOS R² TABLE</h1>
 <span class="stamp"><strong>READ-ONLY</strong> · EXPLORATORY · NOT A SIGNAL · NO SOCKET · NO ORDER PATH</span>
 <span class="spacer"></span><span class="stamp" id="source"></span>
 <button id="themeToggle" type="button" onclick="toggleTheme()">◐ DARK</button></header>
-<div id="rail" class="rail"></div><section id="hero" class="hero"></section>
-<section id="honesty" class="honesty"></section><main>
-<div class="section-head"><h2>LIVE D38 / D39 / D40 · COMPLETE-PREFIX RESULTS AND PROGRESS</h2></div>
-<section id="liveStudies"></section>
-<div class="section-head"><h2>ACCUMULATED WALK-FORWARD GRID · RAW OOS R² + INCREMENT OVER M0 + PLACEBO-BENCHMARKED INCREMENT ALWAYS VISIBLE</h2></div>
-<div id="models" class="models"></div>
-<p class="legend"><span class="brick-word">BRICK</span> is reserved for past-mirror increment ≥ future increment.
-The leader is ranked by future increment over M0 among cells that pass that guard, never by the
-benchmarked difference: future-minus-past rewards a collapsed placebo, so it is the guard and not the
-sort key (AMENDMENT-1, 2026-08-20). Magnitude otherwise uses a single-hue slate ramp on the same
-ranking statistic. Sign is always a glyph and signed number. WARMING,
-INSUFFICIENT, BLOCKED and negative cells remain visible. q is the BH-FDR adjusted dependence-aware view.</p>
-<div class="section-head"><h2>SAME-WINDOW CONSTRUCTION DIAGNOSTIC · STRUCTURALLY SEPARATED</h2></div>
-<div class="diagnostic">Contemporaneous fits are construction diagnostics only. They are never ranked,
-never enter the leader, and never change the 175-cell future family.</div></main>
+<main class="matrix-page"><h2 class="matrix-title">CCZ OFI (C8) · displayed mid · 10 book levels</h2>
+<p class="matrix-subtitle">Each cell is absolute held-out OOS R². Columns are the OFI sampling/lookback horizon; rows are the future price horizon.</p>
+<div id="status" class="matrix-status"></div><div class="matrix-wrap">
+<table id="matrix" class="result-matrix" aria-label="CCZ OFI absolute out-of-sample R-squared by sampling and predicted horizon"></table></div>
+<p class="matrix-note"><b>—</b> = that combination was not estimated in the frozen D39/D40 specification. Values are provisional growing-prefix estimates; the closed-session recomputation is authoritative.</p></main>
 <script>__SCRIPT__</script></body></html>"""
 
 
 def render_html(payload: dict[str, Any]) -> str:
+    payload = compact_dashboard_payload(payload)
     payload_json = json.dumps(payload, separators=(",", ":"), default=str).replace("</", "<\\/")
     return (
         _BODY.replace("__STYLE__", _STYLE)
@@ -383,6 +406,9 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/state":
             self._send(json.dumps(self.state.payload()).encode(), "application/json")
+            return
+        if parsed.path == "/api/overview":
+            self._send(json.dumps(self.state.overview()).encode(), "application/json")
             return
         if parsed.path == "/api/cells":
             self._send(json.dumps(self.state.cells()).encode(), "application/json")

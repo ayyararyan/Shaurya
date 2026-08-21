@@ -9,6 +9,10 @@ walk-forward score was inspected.
 screen. Never causal, confirmed, tradeable, economic, representative, or a signal. It does not
 feed `H-SIG21`, does not consume `SIG-21` calibration authority, and carries no order path.
 
+**Owner presentation amendment:** `docs/OFI-DASHBOARD-MATRIX-VIEW-AMENDMENT-2026-08-21.md`
+supersedes the default-screen layout in §7/§10. The full frozen grid and all measurements remain
+available unchanged through progressive disclosure and the read-only APIs.
+
 Owner decisions taken by voice 2026-08-20 ~10:24 IST, recorded here rather than assumed:
 full grid; **both** placebo-benchmarked and raw out-of-sample R2 displayed; build first and
 verify in replay, then attach; inherit the `ANL-05` shell (light/dark toggle, monospace type,
