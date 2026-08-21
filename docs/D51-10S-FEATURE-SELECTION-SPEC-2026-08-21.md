@@ -1,7 +1,7 @@
 # D51 — Ten-second futures-mid feature-selection experiment
 
 **Specification ID:** `D51-10S-FEATURE-SELECTION-2026-08-21`  
-**Version:** `1.2.0`
+**Version:** `1.3.0`
 **Status:** Approved and frozen from Aryan's 2026-08-21 instruction  
 **Evidence boundary:** Any result using only the 2026-08-21 session is an **exploratory
 screening result**, never a stable or confirmatory feature finding.
@@ -53,6 +53,11 @@ would be a meaning-changing specification amendment.
 | `D51-CLUSTER-03` | Select one deterministic representative per cluster using only a pre-outcome measurement-quality score, then training coverage, then lexical stable naming. No target association or individual importance enters the choice. |
 | `D51-CLUSTER-04` | Optionally fit a first-PC representation on complete training cases only. Save ordered members, centers, loadings, complete-case support and the fixed sign convention; application never refits and any missing member leaves the PC missing. |
 | `D51-CLUSTER-05` | Emit a versioned reproducible reduction artifact with a training-only fingerprint, pair diagnostics, every sensitivity map, the primary cluster map and any PCA transforms. All later importance is assigned to clusters, not substitutable individual features. |
+| `D51-MODEL-01` | Fit one saved preprocessing transform on supplied training rows only: explicit per-feature train median imputation, missing indicators, centering and scaling. Validation/test rows only apply that state; missingness is never interpreted as economic zero. |
+| `D51-MODEL-02` | Provide a transparent elastic-net regression with saved intercept, coefficients, ordered transform and deterministic apply. Retain every caller-supplied feature and its missing indicator; correlated predictors are regularised rather than silently discarded. |
+| `D51-MODEL-03` | Provide a dependency-light deterministic shallow gradient-boosted regression-tree challenger with bounded depth/leaves, learning rate, minimum leaf size and train-derived deterministic threshold candidates. A supplied validation set may select stopping iteration only; it cannot fit transforms or thresholds. |
+| `D51-MODEL-04` | Freeze elastic-net and boosted-tree structural grids before outcomes and expose zero-return, training-mean and declared-state linear baselines under the same finite prediction and regression-metric contracts. |
+| `D51-MODEL-05` | Save and deterministically read back complete apply-only model state for both predictive classes, including preprocessing and tree structure. Test rows are apply-only. |
 
 ## 3. Model-object and identification ledger
 
@@ -150,16 +155,52 @@ positive, with lexical feature order breaking absolute-loading ties. A singleton
 or invalid. The training fingerprint contains only training values, eligible names and the
 predeclared policy: mutation of a target or held-out value cannot change it.
 
-## 7. Explicit exclusions through Step 3
+## 7. Predictive model ladder (Step 4)
 
-Imputation, predictive scaling, elastic-net/group-lasso, boosted trees, stability selection,
-walk-forward split construction, purging/embargo implementation, importance, ablation, economic
-selection and empirical fitting are owned by later steps. Step 3 consumes caller-declared
-training indices but does not create folds. PCA is available only as the explicitly requested
-cluster representation above; it is not a predictive model. No trade or deployment claim follows
-from the construction, quality-gate or correlation-reduction layers.
+Step 4 consumes caller-supplied feature rows and targets; it does not construct a fold, inspect
+real data or select a winning configuration. Both predictive classes use the same training-only
+transform. For each ordered input feature, the transform saves the finite training median,
+appends a separately named Boolean missing indicator, then saves the training center and scale of
+all resulting columns. A zero-variance column receives scale one rather than being discarded.
+Application uses this saved state exactly, so validation/test distribution changes cannot alter
+imputation or scaling. The filled numeric value is a modelling transform accompanied by an
+explicit missing indicator; it is not an assertion that the missing economic state was zero.
 
-## 8. Acceptance tests
+The transparent baseline is cyclic-coordinate elastic-net squared-error regression. Its artifact
+saves the complete ordered transform, intercept, coefficient for every transformed column,
+convergence state and frozen configuration. Correlated inputs remain present; no model-stage
+univariate or correlation deletion is permitted.
+
+The nonlinear challenger is squared-error gradient boosting over deterministic shallow CART
+regression trees. Candidate thresholds are fixed quantiles of the transformed training design.
+Each tree is bounded by the configured depth, leaf count and minimum leaf observations. Split
+gain ties resolve by stable leaf, feature and threshold ordering. When validation rows are
+supplied, their only authority is to choose the retained number of trees through predeclared
+patience/minimum-improvement rules. Zero retained trees (the training-mean intercept) is valid.
+Validation never affects the transform, candidate thresholds, split fitting or leaf values.
+
+The pre-outcome structural grids are:
+
+- elastic net: `alpha in {0.0001, 0.001, 0.01, 0.1, 1.0}` crossed with
+  `l1_ratio in {0.1, 0.5, 0.9, 1.0}`;
+- boosted trees: `(depth, leaves) in {(1,2), (2,4), (3,8)}`, learning rate in
+  `{0.03, 0.05, 0.1}`, and minimum leaf size in `{10,25,50}`.
+
+The grid is an immutable candidate registry, not an outcome-driven selection result. The model
+module also exposes zero-return, training-mean and caller-declared state-only ridge baselines, a
+common prediction result, and finite MSE/MAE, R-squared, correlation and directional-accuracy
+metrics. Model JSON includes every apply-time quantity and uses stable key ordering.
+
+## 8. Explicit exclusions through Step 4
+
+Sparse group lasso, stability selection, walk-forward split construction, purging/embargo
+implementation, hyperparameter/model selection, importance, ablation, economic selection and
+empirical fitting remain owned by later steps. Step 4 accepts already-declared training and
+optional validation rows but does not create folds or touch a test target during fitting. PCA is
+available only as the Step-3 cluster representation above. No trade or deployment claim follows
+from the construction, quality-gate, correlation-reduction or predictive-model interfaces.
+
+## 9. Acceptance tests
 
 1. Registry names are unique and contain every frozen family/axis.
 2. Target geometry is exactly anchor + 0.5 seconds to anchor + 10.5 seconds.
@@ -188,9 +229,22 @@ from the construction, quality-gate or correlation-reduction layers.
     refitting; missing application members remain missing rather than becoming zero.
 18. The artifact declares `cluster` as the only downstream importance unit and contains no
     target-derived importance.
+19. The predictive transform learns median, center and scale from training rows only and appends
+    a named missing indicator for every input without dropping zero-variance/correlated columns.
+20. Elastic net retains correlated predictors, saves all coefficients/intercept/transform state,
+    applies deterministically and produces finite predictions under missing input.
+21. On a synthetic pure interaction, a depth-bounded boosted-tree challenger materially improves
+    held-out squared error over elastic net without using held-out rows for thresholds/transforms.
+22. Boosting respects depth/leaves/minimum-leaf bounds and early-stops solely against a supplied
+    validation target; repeated fits are byte-for-byte deterministic.
+23. Both predictive classes serialize/read back with identical predictions; zero, mean and state
+    baselines use the common prediction and metric contracts.
+24. No Step-4 test or implementation performs a real-data fit, hyperparameter/model selection,
+    cluster importance, ablation, stability selection, fold construction or order-path action.
 
-## 9. Completion criterion
+## 10. Completion criterion
 
-Steps 1--3 are complete at evidence level 2 when this specification, registry/construction,
-gate and correlation-reduction code, traceability rows and focused deterministic tests are
-committed and passing. No empirical result is required or claimed at this stage.
+Steps 1--4 are complete at evidence level 2 when this specification, registry/construction,
+gate, correlation-reduction and two-class predictive-model code, traceability rows and focused
+deterministic tests are committed and passing. No empirical result or model choice is required or
+claimed at this stage.

@@ -1,8 +1,9 @@
 """D51 causal feature-selection foundation for the ten-second futures-mid experiment.
 
 Steps 1--2 construct and quality-gate canonical OFI, LOB and eSSVI features.  Step 3 reduces
-correlated features using training rows only.  It deliberately stops before predictive fitting,
-importance, stability selection or empirical evaluation.  The frozen design is
+correlated features using training rows only. Step 4 supplies a transparent elastic-net baseline
+and a deterministic shallow boosted-tree challenger. It deliberately stops before importance,
+stability selection, fold construction or empirical evaluation. The frozen design is
 ``docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md``.
 """
 
@@ -17,6 +18,7 @@ from dataclasses import dataclass
 from typing import Final, Literal, cast
 
 import numpy as np
+from numpy.typing import NDArray
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
 from scipy.stats import rankdata
@@ -36,7 +38,7 @@ from shaurya.signals.surface_futures_predictive import (
 )
 
 SPECIFICATION_ID: Final = "D51-10S-FEATURE-SELECTION-2026-08-21"
-SPECIFICATION_VERSION: Final = "1.2.0"
+SPECIFICATION_VERSION: Final = "1.3.0"
 DESIGN_DOCUMENT: Final = "docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md"
 REGISTRY_VERSION: Final = "d51-feature-registry-v1"
 TARGET_REGISTRY_VERSION: Final = "d51-target-registry-v1"
@@ -44,6 +46,7 @@ CONFIRMATORY_ELIGIBLE: Final = False
 EVIDENCE_LABEL: Final = "exploratory_screening_today_only"
 GATE_ARTIFACT_VERSION: Final = "d51-quality-gates-v1"
 CORRELATION_ARTIFACT_VERSION: Final = "d51-correlation-reduction-v1"
+PREDICTIVE_MODEL_ARTIFACT_VERSION: Final = "d51-predictive-model-v1"
 CORRELATION_SENSITIVITY_THRESHOLDS: Final = (0.85, 0.90, 0.95)
 PRIMARY_CORRELATION_THRESHOLD: Final = 0.90
 
@@ -424,6 +427,160 @@ class ReducedFeatureRow:
     values: Mapping[str, float | None]
     missing_indicators: Mapping[str, bool]
     validity_indicators: Mapping[str, bool]
+
+
+ModelInputRow = Mapping[str, float | None] | ReducedFeatureRow
+ModelKind = Literal[
+    "zero_return_baseline",
+    "training_mean_baseline",
+    "state_linear_baseline",
+    "elastic_net",
+    "shallow_gradient_boosting",
+]
+
+
+ELASTIC_NET_CONFIG_GRID: Final = tuple(
+    (alpha, l1_ratio)
+    for alpha in (0.0001, 0.001, 0.01, 0.1, 1.0)
+    for l1_ratio in (0.1, 0.5, 0.9, 1.0)
+)
+BOOSTED_TREE_CONFIG_GRID: Final = tuple(
+    (maximum_depth, maximum_leaves, learning_rate, minimum_leaf_size)
+    for maximum_depth, maximum_leaves in ((1, 2), (2, 4), (3, 8))
+    for learning_rate in (0.03, 0.05, 0.1)
+    for minimum_leaf_size in (10, 25, 50)
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ModelTransform:
+    """Train-fitted feature transform; missing values are never interpreted as economic zero."""
+
+    input_features: tuple[str, ...]
+    output_features: tuple[str, ...]
+    medians: tuple[float, ...]
+    centers: tuple[float, ...]
+    scales: tuple[float, ...]
+    training_row_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class ElasticNetConfig:
+    alpha: float = 0.01
+    l1_ratio: float = 0.5
+    maximum_iterations: int = 10_000
+    tolerance: float = 1e-10
+
+    def __post_init__(self) -> None:
+        if (self.alpha, self.l1_ratio) not in ELASTIC_NET_CONFIG_GRID:
+            raise ValueError("elastic-net alpha/l1 ratio must come from the frozen grid")
+        if self.maximum_iterations < 1 or self.tolerance <= 0.0:
+            raise ValueError("elastic-net iteration limit and tolerance must be positive")
+
+
+@dataclass(frozen=True, slots=True)
+class ElasticNetModel:
+    version: str
+    transform: ModelTransform
+    config: ElasticNetConfig
+    intercept: float
+    coefficients: tuple[float, ...]
+    iterations: int
+    converged: bool
+    model_kind: Literal["elastic_net"] = "elastic_net"
+
+
+@dataclass(frozen=True, slots=True)
+class BoostedTreeConfig:
+    maximum_depth: int = 2
+    maximum_leaves: int = 4
+    learning_rate: float = 0.05
+    minimum_leaf_size: int = 10
+    maximum_estimators: int = 200
+    threshold_candidates: int = 31
+    early_stopping_patience: int = 20
+    early_stopping_minimum_improvement: float = 0.0
+
+    def __post_init__(self) -> None:
+        grid_key = (
+            self.maximum_depth,
+            self.maximum_leaves,
+            self.learning_rate,
+            self.minimum_leaf_size,
+        )
+        if grid_key not in BOOSTED_TREE_CONFIG_GRID:
+            raise ValueError("boosted-tree structural parameters must come from the frozen grid")
+        if self.maximum_estimators < 1 or self.threshold_candidates < 1:
+            raise ValueError("estimator and threshold-candidate counts must be positive")
+        if self.early_stopping_patience < 1:
+            raise ValueError("early-stopping patience must be positive")
+        if self.early_stopping_minimum_improvement < 0.0:
+            raise ValueError("early-stopping minimum improvement must be non-negative")
+
+
+@dataclass(frozen=True, slots=True)
+class RegressionTreeNode:
+    value: float
+    feature_index: int | None = None
+    threshold: float | None = None
+    left: RegressionTreeNode | None = None
+    right: RegressionTreeNode | None = None
+
+    @property
+    def is_leaf(self) -> bool:
+        return self.feature_index is None
+
+
+@dataclass(frozen=True, slots=True)
+class ShallowGradientBoostingModel:
+    version: str
+    transform: ModelTransform
+    config: BoostedTreeConfig
+    intercept: float
+    trees: tuple[RegressionTreeNode, ...]
+    best_iteration: int
+    validation_loss_by_iteration: tuple[float, ...]
+    model_kind: Literal["shallow_gradient_boosting"] = "shallow_gradient_boosting"
+
+
+@dataclass(frozen=True, slots=True)
+class ConstantBaselineModel:
+    value: float
+    model_kind: Literal["zero_return_baseline", "training_mean_baseline"]
+
+
+@dataclass(frozen=True, slots=True)
+class StateLinearBaselineModel:
+    transform: ModelTransform
+    intercept: float
+    coefficients: tuple[float, ...]
+    ridge_penalty: float
+    model_kind: Literal["state_linear_baseline"] = "state_linear_baseline"
+
+
+PredictiveModel = (
+    ElasticNetModel
+    | ShallowGradientBoostingModel
+    | ConstantBaselineModel
+    | StateLinearBaselineModel
+)
+
+
+@dataclass(frozen=True, slots=True)
+class PredictionResult:
+    model_kind: ModelKind
+    predictions: tuple[float, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RegressionMetrics:
+    observation_count: int
+    mean_squared_error: float
+    mean_absolute_error: float
+    r_squared_vs_zero: float | None
+    r_squared_vs_training_mean: float | None
+    pearson_correlation: float | None
+    directional_accuracy: float
 
 
 def _surface_level_names() -> tuple[str, ...]:
@@ -1591,3 +1748,587 @@ def apply_correlated_feature_reduction(
             validity[cluster.cluster_id] = is_valid
         reduced.append(ReducedFeatureRow(row.source_row_index, values, missing, validity))
     return tuple(reduced)
+
+
+def _model_row_values(row: ModelInputRow) -> Mapping[str, float | None]:
+    return row.values if isinstance(row, ReducedFeatureRow) else row
+
+
+def _validate_targets(targets: Sequence[float], expected_rows: int) -> NDArray[np.float64]:
+    if len(targets) != expected_rows or expected_rows == 0:
+        raise ValueError("targets must be non-empty and match the supplied rows")
+    array = np.asarray(targets, dtype=float)
+    if array.ndim != 1 or not np.all(np.isfinite(array)):
+        raise ValueError("targets must be a finite one-dimensional sequence")
+    return array
+
+
+def fit_model_transform(
+    rows: Sequence[ModelInputRow], *, feature_names: Sequence[str]
+) -> ModelTransform:
+    """Fit median-imputation, missing indicators, centering and scaling on training rows only."""
+
+    names = tuple(feature_names)
+    if not rows or not names:
+        raise ValueError("training rows and feature names must be non-empty")
+    if len(names) != len(set(names)):
+        raise ValueError("model feature names must be unique")
+    raw = np.full((len(rows), len(names)), np.nan, dtype=float)
+    for row_index, row in enumerate(rows):
+        values = _model_row_values(row)
+        for column, name in enumerate(names):
+            value = _finite(values.get(name))
+            if value is not None:
+                raw[row_index, column] = value
+    medians: list[float] = []
+    for column, name in enumerate(names):
+        finite = raw[np.isfinite(raw[:, column]), column]
+        if finite.size == 0:
+            raise ValueError(f"training feature {name} has no finite values")
+        medians.append(float(np.median(finite)))
+    missing = ~np.isfinite(raw)
+    imputed = np.where(missing, np.asarray(medians)[None, :], raw)
+    design = np.concatenate((imputed, missing.astype(float)), axis=1)
+    centers = np.mean(design, axis=0)
+    scales = np.std(design, axis=0)
+    scales = np.where(scales > 0.0, scales, 1.0)
+    output_names = (*names, *(f"missing__{name}" for name in names))
+    return ModelTransform(
+        names,
+        tuple(output_names),
+        tuple(medians),
+        tuple(float(value) for value in centers),
+        tuple(float(value) for value in scales),
+        len(rows),
+    )
+
+
+def apply_model_transform(
+    transform: ModelTransform, rows: Sequence[ModelInputRow]
+) -> NDArray[np.float64]:
+    """Apply saved training state. Held-out rows cannot refit medians, centers or scales."""
+
+    raw = np.full((len(rows), len(transform.input_features)), np.nan, dtype=float)
+    for row_index, row in enumerate(rows):
+        values = _model_row_values(row)
+        for column, name in enumerate(transform.input_features):
+            value = _finite(values.get(name))
+            if value is not None:
+                raw[row_index, column] = value
+    missing = ~np.isfinite(raw)
+    imputed = np.where(missing, np.asarray(transform.medians)[None, :], raw)
+    design = np.concatenate((imputed, missing.astype(float)), axis=1)
+    transformed = (design - np.asarray(transform.centers)) / np.asarray(transform.scales)
+    if not np.all(np.isfinite(transformed)):
+        raise ValueError("model transform produced non-finite values")
+    return np.asarray(transformed, dtype=float)
+
+
+def fit_elastic_net(
+    training_rows: Sequence[ModelInputRow],
+    training_targets: Sequence[float],
+    *,
+    feature_names: Sequence[str],
+    config: ElasticNetConfig | None = None,
+) -> ElasticNetModel:
+    """Fit deterministic cyclic-coordinate elastic net without removing correlated columns."""
+
+    policy = config or ElasticNetConfig()
+    target = _validate_targets(training_targets, len(training_rows))
+    transform = fit_model_transform(training_rows, feature_names=feature_names)
+    design = apply_model_transform(transform, training_rows)
+    centered_target = target - float(np.mean(target))
+    coefficients = np.zeros(design.shape[1], dtype=float)
+    prediction = np.zeros(len(target), dtype=float)
+    converged = False
+    iterations = 0
+    for _iteration in range(1, policy.maximum_iterations + 1):
+        iterations = _iteration
+        maximum_change = 0.0
+        for column in range(design.shape[1]):
+            values = design[:, column]
+            residual_without_column = centered_target - prediction + values * coefficients[column]
+            correlation = float(np.dot(values, residual_without_column) / len(target))
+            threshold = policy.alpha * policy.l1_ratio
+            shrunk = math.copysign(max(abs(correlation) - threshold, 0.0), correlation)
+            denominator = float(np.dot(values, values) / len(target)) + policy.alpha * (
+                1.0 - policy.l1_ratio
+            )
+            updated = shrunk / denominator if denominator > 0.0 else 0.0
+            change = updated - coefficients[column]
+            if change != 0.0:
+                prediction += values * change
+                coefficients[column] = updated
+                maximum_change = max(maximum_change, abs(change))
+        if maximum_change <= policy.tolerance:
+            converged = True
+            break
+    return ElasticNetModel(
+        PREDICTIVE_MODEL_ARTIFACT_VERSION,
+        transform,
+        policy,
+        float(np.mean(target)),
+        tuple(float(value) for value in coefficients),
+        iterations,
+        converged,
+    )
+
+
+@dataclass(slots=True)
+class _TreeLeaf:
+    node_id: int
+    indices: NDArray[np.int64]
+    depth: int
+
+
+def _threshold_grid(
+    design: NDArray[np.float64], candidates: int
+) -> tuple[tuple[float, ...], ...]:
+    probabilities = np.arange(1, candidates + 1, dtype=float) / (candidates + 1)
+    return tuple(
+        tuple(float(value) for value in np.unique(np.quantile(design[:, column], probabilities)))
+        for column in range(design.shape[1])
+    )
+
+
+def _best_leaf_split(
+    design: NDArray[np.float64],
+    target: NDArray[np.float64],
+    leaf: _TreeLeaf,
+    thresholds: tuple[tuple[float, ...], ...],
+    minimum_leaf_size: int,
+) -> tuple[float, int, float, NDArray[np.int64], NDArray[np.int64]] | None:
+    indices = leaf.indices
+    if len(indices) < 2 * minimum_leaf_size:
+        return None
+    values = target[indices]
+    parent_sse = float(np.sum((values - np.mean(values)) ** 2))
+    best: tuple[float, int, float, NDArray[np.int64], NDArray[np.int64]] | None = None
+    for feature_index, candidates in enumerate(thresholds):
+        column = design[indices, feature_index]
+        for threshold in candidates:
+            left_mask = column <= threshold
+            left = indices[left_mask]
+            right = indices[~left_mask]
+            if len(left) < minimum_leaf_size or len(right) < minimum_leaf_size:
+                continue
+            left_values = target[left]
+            right_values = target[right]
+            child_sse = float(
+                np.sum((left_values - np.mean(left_values)) ** 2)
+                + np.sum((right_values - np.mean(right_values)) ** 2)
+            )
+            gain = parent_sse - child_sse
+            candidate = (gain, feature_index, threshold, left, right)
+            if best is None or gain > best[0] + 1e-15 or (
+                abs(gain - best[0]) <= 1e-15
+                and (feature_index, threshold) < (best[1], best[2])
+            ):
+                best = candidate
+    return best if best is not None and best[0] > 0.0 else None
+
+
+def _fit_regression_tree(
+    design: NDArray[np.float64],
+    target: NDArray[np.float64],
+    *,
+    thresholds: tuple[tuple[float, ...], ...],
+    config: BoostedTreeConfig,
+) -> RegressionTreeNode:
+    leaves: dict[int, _TreeLeaf] = {0: _TreeLeaf(0, np.arange(len(target)), 0)}
+    children: dict[int, tuple[int, float, int, int]] = {}
+    next_id = 1
+    while len(leaves) < config.maximum_leaves:
+        choices: list[
+            tuple[
+                float,
+                int,
+                int,
+                float,
+                NDArray[np.int64],
+                NDArray[np.int64],
+            ]
+        ] = []
+        for leaf_id, leaf in sorted(leaves.items()):
+            if leaf.depth >= config.maximum_depth:
+                continue
+            split = _best_leaf_split(
+                design, target, leaf, thresholds, config.minimum_leaf_size
+            )
+            if split is not None:
+                gain, feature_index, threshold, left, right = split
+                choices.append((gain, leaf_id, feature_index, threshold, left, right))
+        if not choices:
+            break
+        gain, leaf_id, feature_index, threshold, left, right = min(
+            choices, key=lambda item: (-item[0], item[1], item[2], item[3])
+        )
+        del gain
+        parent = leaves.pop(leaf_id)
+        left_id, right_id = next_id, next_id + 1
+        next_id += 2
+        leaves[left_id] = _TreeLeaf(left_id, left, parent.depth + 1)
+        leaves[right_id] = _TreeLeaf(right_id, right, parent.depth + 1)
+        children[leaf_id] = (feature_index, threshold, left_id, right_id)
+
+    def freeze(node_id: int) -> RegressionTreeNode:
+        if node_id in leaves:
+            indices = leaves[node_id].indices
+            return RegressionTreeNode(float(np.mean(target[indices])))
+        feature_index, threshold, left_id, right_id = children[node_id]
+        return RegressionTreeNode(
+            0.0,
+            feature_index,
+            threshold,
+            freeze(left_id),
+            freeze(right_id),
+        )
+
+    return freeze(0)
+
+
+def _predict_tree_row(node: RegressionTreeNode, row: NDArray[np.float64]) -> float:
+    current = node
+    while not current.is_leaf:
+        assert current.feature_index is not None and current.threshold is not None
+        assert current.left is not None and current.right is not None
+        current = current.left if row[current.feature_index] <= current.threshold else current.right
+    return current.value
+
+
+def _predict_tree(
+    node: RegressionTreeNode, design: NDArray[np.float64]
+) -> NDArray[np.float64]:
+    return np.asarray([_predict_tree_row(node, row) for row in design], dtype=float)
+
+
+def fit_shallow_gradient_boosting(
+    training_rows: Sequence[ModelInputRow],
+    training_targets: Sequence[float],
+    *,
+    feature_names: Sequence[str],
+    config: BoostedTreeConfig | None = None,
+    validation_rows: Sequence[ModelInputRow] | None = None,
+    validation_targets: Sequence[float] | None = None,
+) -> ShallowGradientBoostingModel:
+    """Fit deterministic shallow boosted trees; validation may select only tree count."""
+
+    policy = config or BoostedTreeConfig()
+    train_target = _validate_targets(training_targets, len(training_rows))
+    if (validation_rows is None) != (validation_targets is None):
+        raise ValueError("validation rows and targets must be supplied together")
+    transform = fit_model_transform(training_rows, feature_names=feature_names)
+    train_design = apply_model_transform(transform, training_rows)
+    validation_design = (
+        apply_model_transform(transform, validation_rows) if validation_rows is not None else None
+    )
+    if validation_rows is not None:
+        assert validation_targets is not None
+        validation_target = _validate_targets(validation_targets, len(validation_rows))
+    else:
+        validation_target = None
+    thresholds = _threshold_grid(train_design, policy.threshold_candidates)
+    intercept = float(np.mean(train_target))
+    train_prediction = np.full(len(train_target), intercept, dtype=float)
+    validation_prediction = (
+        np.full(len(validation_target), intercept, dtype=float)
+        if validation_target is not None
+        else None
+    )
+    trees: list[RegressionTreeNode] = []
+    validation_losses: list[float] = []
+    best_iteration = 0
+    best_loss = (
+        float(np.mean((validation_target - intercept) ** 2))
+        if validation_target is not None
+        else math.inf
+    )
+    stale_rounds = 0
+    for _ in range(policy.maximum_estimators):
+        tree = _fit_regression_tree(
+            train_design,
+            train_target - train_prediction,
+            thresholds=thresholds,
+            config=policy,
+        )
+        trees.append(tree)
+        train_prediction += policy.learning_rate * _predict_tree(tree, train_design)
+        if validation_target is None or validation_prediction is None or validation_design is None:
+            best_iteration = len(trees)
+            continue
+        validation_prediction += policy.learning_rate * _predict_tree(tree, validation_design)
+        loss = float(np.mean((validation_target - validation_prediction) ** 2))
+        validation_losses.append(loss)
+        if loss < best_loss - policy.early_stopping_minimum_improvement:
+            best_loss = loss
+            best_iteration = len(trees)
+            stale_rounds = 0
+        else:
+            stale_rounds += 1
+            if stale_rounds >= policy.early_stopping_patience:
+                break
+    if validation_target is not None:
+        trees = trees[:best_iteration]
+    return ShallowGradientBoostingModel(
+        PREDICTIVE_MODEL_ARTIFACT_VERSION,
+        transform,
+        policy,
+        intercept,
+        tuple(trees),
+        best_iteration,
+        tuple(validation_losses),
+    )
+
+
+def zero_return_baseline() -> ConstantBaselineModel:
+    return ConstantBaselineModel(0.0, "zero_return_baseline")
+
+
+def fit_training_mean_baseline(training_targets: Sequence[float]) -> ConstantBaselineModel:
+    target = _validate_targets(training_targets, len(training_targets))
+    return ConstantBaselineModel(float(np.mean(target)), "training_mean_baseline")
+
+
+def fit_state_linear_baseline(
+    training_rows: Sequence[ModelInputRow],
+    training_targets: Sequence[float],
+    *,
+    state_feature_names: Sequence[str],
+    ridge_penalty: float = 1e-6,
+) -> StateLinearBaselineModel:
+    """Fit a small declared-state ridge baseline using the same train-only missing transform."""
+
+    if ridge_penalty < 0.0 or not math.isfinite(ridge_penalty):
+        raise ValueError("ridge penalty must be finite and non-negative")
+    target = _validate_targets(training_targets, len(training_rows))
+    transform = fit_model_transform(training_rows, feature_names=state_feature_names)
+    design = apply_model_transform(transform, training_rows)
+    centered_target = target - float(np.mean(target))
+    gram = design.T @ design + ridge_penalty * np.eye(design.shape[1])
+    coefficients = np.linalg.solve(gram, design.T @ centered_target)
+    return StateLinearBaselineModel(
+        transform,
+        float(np.mean(target)),
+        tuple(float(value) for value in coefficients),
+        ridge_penalty,
+    )
+
+
+def predict_model(model: PredictiveModel, rows: Sequence[ModelInputRow]) -> PredictionResult:
+    """Common deterministic prediction contract for baselines and both model classes."""
+
+    if isinstance(model, ConstantBaselineModel):
+        predictions = np.full(len(rows), model.value, dtype=float)
+    else:
+        design = apply_model_transform(model.transform, rows)
+        if isinstance(model, ShallowGradientBoostingModel):
+            predictions = np.full(len(rows), model.intercept, dtype=float)
+            for tree in model.trees:
+                predictions += model.config.learning_rate * _predict_tree(tree, design)
+        else:
+            predictions = model.intercept + design @ np.asarray(model.coefficients)
+    if not np.all(np.isfinite(predictions)):
+        raise ValueError("model produced non-finite predictions")
+    return PredictionResult(model.model_kind, tuple(float(value) for value in predictions))
+
+
+def regression_metrics(
+    targets: Sequence[float],
+    predictions: Sequence[float],
+    *,
+    training_mean: float,
+) -> RegressionMetrics:
+    target = _validate_targets(targets, len(predictions))
+    predicted = np.asarray(predictions, dtype=float)
+    if predicted.ndim != 1:
+        raise ValueError("predictions must be one-dimensional")
+    if not math.isfinite(training_mean) or not np.all(np.isfinite(predicted)):
+        raise ValueError("predictions and training mean must be finite")
+    errors = target - predicted
+    squared_error = float(np.sum(errors**2))
+    zero_error = float(np.sum(target**2))
+    mean_error = float(np.sum((target - training_mean) ** 2))
+    target_centered = target - float(np.mean(target))
+    predicted_centered = predicted - float(np.mean(predicted))
+    denominator = float(np.linalg.norm(target_centered) * np.linalg.norm(predicted_centered))
+    correlation = (
+        float(np.dot(target_centered, predicted_centered) / denominator)
+        if denominator > 0.0
+        else None
+    )
+    return RegressionMetrics(
+        len(target),
+        float(np.mean(errors**2)),
+        float(np.mean(np.abs(errors))),
+        1.0 - squared_error / zero_error if zero_error > 0.0 else None,
+        1.0 - squared_error / mean_error if mean_error > 0.0 else None,
+        correlation,
+        float(np.mean(np.sign(target) == np.sign(predicted))),
+    )
+
+
+def _transform_to_dict(transform: ModelTransform) -> dict[str, object]:
+    return {
+        "input_features": transform.input_features,
+        "output_features": transform.output_features,
+        "medians": transform.medians,
+        "centers": transform.centers,
+        "scales": transform.scales,
+        "training_row_count": transform.training_row_count,
+    }
+
+
+def _transform_from_dict(payload: Mapping[str, object]) -> ModelTransform:
+    return ModelTransform(
+        tuple(cast(Sequence[str], payload["input_features"])),
+        tuple(cast(Sequence[str], payload["output_features"])),
+        tuple(float(value) for value in cast(Sequence[float], payload["medians"])),
+        tuple(float(value) for value in cast(Sequence[float], payload["centers"])),
+        tuple(float(value) for value in cast(Sequence[float], payload["scales"])),
+        int(cast(int, payload["training_row_count"])),
+    )
+
+
+def _tree_to_dict(node: RegressionTreeNode) -> dict[str, object]:
+    if node.is_leaf:
+        return {"value": node.value}
+    assert node.feature_index is not None and node.threshold is not None
+    assert node.left is not None and node.right is not None
+    return {
+        "value": node.value,
+        "feature_index": node.feature_index,
+        "threshold": node.threshold,
+        "left": _tree_to_dict(node.left),
+        "right": _tree_to_dict(node.right),
+    }
+
+
+def _tree_from_dict(payload: Mapping[str, object]) -> RegressionTreeNode:
+    if "feature_index" not in payload:
+        return RegressionTreeNode(float(cast(float, payload["value"])))
+    return RegressionTreeNode(
+        float(cast(float, payload["value"])),
+        int(cast(int, payload["feature_index"])),
+        float(cast(float, payload["threshold"])),
+        _tree_from_dict(cast(Mapping[str, object], payload["left"])),
+        _tree_from_dict(cast(Mapping[str, object], payload["right"])),
+    )
+
+
+def predictive_model_to_json(model: PredictiveModel) -> str:
+    """Serialize the complete apply-only state with stable, sorted JSON keys."""
+
+    payload: dict[str, object] = {"model_kind": model.model_kind}
+    if isinstance(model, ConstantBaselineModel):
+        payload["value"] = model.value
+    elif isinstance(model, ElasticNetModel):
+        payload.update(
+            version=model.version,
+            transform=_transform_to_dict(model.transform),
+            config={
+                "alpha": model.config.alpha,
+                "l1_ratio": model.config.l1_ratio,
+                "maximum_iterations": model.config.maximum_iterations,
+                "tolerance": model.config.tolerance,
+            },
+            intercept=model.intercept,
+            coefficients=model.coefficients,
+            iterations=model.iterations,
+            converged=model.converged,
+        )
+    elif isinstance(model, StateLinearBaselineModel):
+        payload.update(
+            transform=_transform_to_dict(model.transform),
+            intercept=model.intercept,
+            coefficients=model.coefficients,
+            ridge_penalty=model.ridge_penalty,
+        )
+    else:
+        payload.update(
+            version=model.version,
+            transform=_transform_to_dict(model.transform),
+            config={
+                "maximum_depth": model.config.maximum_depth,
+                "maximum_leaves": model.config.maximum_leaves,
+                "learning_rate": model.config.learning_rate,
+                "minimum_leaf_size": model.config.minimum_leaf_size,
+                "maximum_estimators": model.config.maximum_estimators,
+                "threshold_candidates": model.config.threshold_candidates,
+                "early_stopping_patience": model.config.early_stopping_patience,
+                "early_stopping_minimum_improvement": (
+                    model.config.early_stopping_minimum_improvement
+                ),
+            },
+            intercept=model.intercept,
+            trees=tuple(_tree_to_dict(tree) for tree in model.trees),
+            best_iteration=model.best_iteration,
+            validation_loss_by_iteration=model.validation_loss_by_iteration,
+        )
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def predictive_model_from_json(encoded: str) -> PredictiveModel:
+    payload = cast(Mapping[str, object], json.loads(encoded))
+    kind = payload.get("model_kind")
+    if kind in ("zero_return_baseline", "training_mean_baseline"):
+        return ConstantBaselineModel(
+            float(cast(float, payload["value"])),
+            kind,
+        )
+    transform = _transform_from_dict(cast(Mapping[str, object], payload["transform"]))
+    if kind == "elastic_net":
+        config_payload = cast(Mapping[str, object], payload["config"])
+        elastic_config = ElasticNetConfig(
+            alpha=float(cast(float, config_payload["alpha"])),
+            l1_ratio=float(cast(float, config_payload["l1_ratio"])),
+            maximum_iterations=int(cast(int, config_payload["maximum_iterations"])),
+            tolerance=float(cast(float, config_payload["tolerance"])),
+        )
+        return ElasticNetModel(
+            str(payload["version"]),
+            transform,
+            elastic_config,
+            float(cast(float, payload["intercept"])),
+            tuple(float(value) for value in cast(Sequence[float], payload["coefficients"])),
+            int(cast(int, payload["iterations"])),
+            bool(payload["converged"]),
+        )
+    if kind == "state_linear_baseline":
+        return StateLinearBaselineModel(
+            transform,
+            float(cast(float, payload["intercept"])),
+            tuple(float(value) for value in cast(Sequence[float], payload["coefficients"])),
+            float(cast(float, payload["ridge_penalty"])),
+        )
+    if kind == "shallow_gradient_boosting":
+        config_payload = cast(Mapping[str, object], payload["config"])
+        boosted_config = BoostedTreeConfig(
+            maximum_depth=int(cast(int, config_payload["maximum_depth"])),
+            maximum_leaves=int(cast(int, config_payload["maximum_leaves"])),
+            learning_rate=float(cast(float, config_payload["learning_rate"])),
+            minimum_leaf_size=int(cast(int, config_payload["minimum_leaf_size"])),
+            maximum_estimators=int(cast(int, config_payload["maximum_estimators"])),
+            threshold_candidates=int(cast(int, config_payload["threshold_candidates"])),
+            early_stopping_patience=int(
+                cast(int, config_payload["early_stopping_patience"])
+            ),
+            early_stopping_minimum_improvement=float(
+                cast(float, config_payload["early_stopping_minimum_improvement"])
+            ),
+        )
+        return ShallowGradientBoostingModel(
+            str(payload["version"]),
+            transform,
+            boosted_config,
+            float(cast(float, payload["intercept"])),
+            tuple(
+                _tree_from_dict(item)
+                for item in cast(Sequence[Mapping[str, object]], payload["trees"])
+            ),
+            int(cast(int, payload["best_iteration"])),
+            tuple(
+                float(value)
+                for value in cast(Sequence[float], payload["validation_loss_by_iteration"])
+            ),
+        )
+    raise ValueError(f"unknown predictive model kind: {kind!r}")
