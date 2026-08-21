@@ -1,7 +1,7 @@
 # D51 — Ten-second futures-mid feature-selection experiment
 
 **Specification ID:** `D51-10S-FEATURE-SELECTION-2026-08-21`  
-**Version:** `1.4.0`
+**Version:** `1.5.0`
 **Status:** Approved and frozen from Aryan's 2026-08-21 instruction  
 **Evidence boundary:** Any result using only the 2026-08-21 session is an **exploratory
 screening result**, never a stable or confirmatory feature finding.
@@ -63,6 +63,12 @@ would be a meaning-changing specification amendment.
 | `D51-IMP-03` | Measure grouped permutation importance by jointly permuting every model column representing one cluster in deterministic contiguous evaluation-time blocks. Keep the full fitted model fixed and publish every predeclared repeat/seed. |
 | `D51-IMP-04` | Enforce identical ordered evaluation rows for every paired comparison and retain rowwise squared losses plus contiguous block sums/mean differences for later dependence-aware uncertainty. Do not perform inference or stability selection here. |
 | `D51-IMP-05` | Emit deterministic read-back-safe artifacts carrying model/config/split/data fingerprints, full cluster membership and representation columns, family, support, full/comparator metrics, delta/direction, paired losses and block-permutation identities. Evaluation targets may score comparisons but never choose clusters, families, models or configurations. |
+| `D51-STAB-01` | Consume caller-supplied walk-forward fold results without constructing, reordering or fitting folds. Aggregate selection frequency, median delta OOS R-squared, positive-fold fraction and direction consistency separately for every frozen cluster/model pair. |
+| `D51-STAB-02` | Freeze promotion gates before empirical output: at least 20 distinct eligible sessions and five eligible folds; at least 70% positive folds, 70% selection frequency and 70% direction consistency where defined; strictly positive median delta; no one-session dominance; no stronger past mirror; and strictly positive cost/latency-adjusted value when supplied. |
+| `D51-STAB-03` | A result with fewer than 20 distinct eligible sessions is labelled `exploratory_insufficient_sessions`; a one-session result can never be stable or promoted. Publish day/session support and volatility, spread and time-phase regime coverage, leave-one-session-out diagnostics and mirror/economic guards. |
+| `D51-STAB-04` | Preserve fold/block paired-loss aggregates for later dependence-aware uncertainty, and publish training/evaluation support plus learning-curve diagnostics. Do not compute confidence intervals, p-values or an empirical promotion in this implementation step. |
+| `D51-STAB-05` | Provide deterministic training-only contiguous-block elastic-net stability resampling. Save seeds, sampled training indices and configuration; a cluster is selected when any coefficient belonging to any of its model columns or explicit missingness columns is nonzero. Never publish or promote an individual column. |
+| `D51-STAB-06` | Emit deterministic exact-readback final cluster-selection and elastic-net-resampling artifacts with stable fingerprints, complete cluster membership and stable reason codes. |
 
 ## 3. Model-object and identification ledger
 
@@ -232,17 +238,50 @@ resolved configuration, split row IDs, supplied data/targets and fitted full mod
 model or permuted-input identities as applicable. No impurity importance or SHAP quantity exists in
 the Step-5 contract.
 
-## 9. Explicit exclusions through Step 5
+## 9. Cluster stability selection and aggregation (Step 6)
 
-Sparse group lasso, multi-fold stability selection, walk-forward split construction,
-purging/embargo implementation, hyperparameter/model selection, promotion decisions,
-dependence-aware inference, economic selection and empirical fitting remain owned by later steps.
-Step 5 accepts already-declared training, optional validation and evaluation rows but does not
-create folds or touch an evaluation target during fitting. PCA is available only as the Step-3
-cluster representation above. No trade or deployment claim follows from the construction,
-quality-gate, correlation-reduction, predictive-model or usefulness interfaces.
+Step 6 accepts already-constructed walk-forward results. Each input names one fold, one fixed
+model/configuration identity and one complete Step-3 cluster, along with eligible session IDs,
+selection state, conditional delta OOS R-squared, optional fitted-effect direction, regime labels,
+leave-one-session-out deltas, optional past-mirror and cost/latency-adjusted values, support and
+Step-5 paired loss blocks. The aggregator sorts but never constructs, reassigns or refits a fold.
+Every final row remains a cluster/model row; evidence is never divided among correlated members.
 
-## 10. Acceptance tests
+The frozen promotion rule is conjunctive. A cluster/model row requires at least 20 distinct
+eligible sessions and five eligible folds; positive delta in at least 70% of folds; selection in
+at least 70% of folds; at least 70% agreement among defined non-zero directions; a strictly
+positive median delta; no supplied leave-one-session-out result that turns a positive full-fold
+delta non-positive; a supplied past-mirror median no larger than the future median; and a strictly
+positive supplied median cost/latency-adjusted value. Optional gates are evaluated whenever their
+inputs are supplied and remain explicitly absent otherwise. Any result with fewer than 20 sessions
+is `exploratory_insufficient_sessions`, including the hard one-session case. Other failures are
+`rejected`; only a row clearing every applicable gate is `promoted`. Promotion here means a stable
+research cluster candidate, not a trading, causal or deployment claim.
+
+The final selection table publishes distinct session and fold counts, volatility/spread/time-phase
+coverage, leave-one-session-out dominance, mirror/economic summaries, training/evaluation support,
+support-indexed learning-curve summaries and the supplied block-loss differences. Block losses are
+aggregated by their observation counts and retained fold by fold for later dependence-aware
+uncertainty; Step 6 performs no inference.
+
+The companion elastic-net stability path resamples supplied training rows only. It partitions the
+caller's row order into contiguous blocks, selects blocks without replacement under every saved
+seed, fits the already-frozen Step-4 elastic net, and marks a cluster selected if any coefficient
+attached to any cluster model column or its explicit missingness column is nonzero. Artifacts carry
+sampled row indices and cluster selection frequencies, not individual coefficients or individual
+feature promotion.
+
+## 10. Explicit exclusions through Step 6
+
+Sparse group lasso, walk-forward split construction, purging/embargo implementation,
+hyperparameter/model selection, dependence-aware inference, real-data economic selection and
+empirical fitting remain owned by later steps. Step 5 accepts already-declared training, optional
+validation and evaluation rows but does not create folds or touch an evaluation target during
+fitting. Step 6 consumes supplied fold results and can apply the frozen promotion rule to those
+inputs, but this implementation performs no empirical run. PCA is available only as the Step-3
+cluster representation above. No trade or deployment claim follows from any Step 1--6 interface.
+
+## 11. Acceptance tests
 
 1. Registry names are unique and contain every frozen family/axis.
 2. Target geometry is exactly anchor + 0.5 seconds to anchor + 10.5 seconds.
@@ -297,11 +336,21 @@ quality-gate, correlation-reduction, predictive-model or usefulness interfaces.
     model, resolved configuration or split identity.
 31. The complete importance artifact serializes and reads back exactly with its cluster membership,
     support, metrics, deltas, directions, loss blocks and fingerprints intact.
+32. A stable synthetic cluster supported by at least 20 distinct sessions and five folds clears
+    every frozen gate, with its regime, loss-block, support and learning-curve diagnostics intact.
+33. One-session evidence returns `exploratory_insufficient_sessions`, never stable or promoted.
+34. An unstable fitted direction, one-session dominance or stronger past mirror independently
+    produces a stable reason-coded rejection.
+35. Contiguous-block elastic-net resampling is deterministic under saved seeds and selects a
+    correlated cluster jointly when any member/model-column coefficient is nonzero; no individual
+    coefficient or feature promotion appears in the artifact.
+36. Both final Step-6 artifacts serialize and read back exactly, and repeated identical inputs
+    produce identical fingerprints and results.
 
-## 11. Completion criterion
+## 12. Completion criterion
 
-Steps 1--5 are complete at evidence level 2 when this specification, registry/construction,
-gate, correlation-reduction, two-class predictive-model and conditional-cluster-usefulness code,
-traceability rows and focused deterministic tests are committed and passing. No fold construction,
-multi-fold stability result, empirical result or model/cluster promotion is required or claimed at
-this stage.
+Steps 1--6 are complete at evidence level 2 when this specification, registry/construction,
+gate, correlation-reduction, two-class predictive-model, conditional-cluster-usefulness and
+cluster-stability code, traceability rows and focused deterministic tests are committed and
+passing. No fold construction, real multi-session result, inference, empirical result, trading
+promotion or order authority is required or claimed at this stage.

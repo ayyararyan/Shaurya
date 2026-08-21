@@ -3,9 +3,10 @@
 Steps 1--2 construct and quality-gate canonical OFI, LOB and eSSVI features. Step 3 reduces
 correlated features using training rows only. Step 4 supplies a transparent elastic-net baseline
 and a deterministic shallow boosted-tree challenger. Step 5 measures conditional held-out
-usefulness only for whole correlation clusters and feature families. It deliberately stops before
-stability selection, fold construction, promotion decisions or empirical evaluation. The frozen
-design is ``docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md``.
+usefulness only for whole correlation clusters and feature families. Step 6 aggregates supplied
+walk-forward results and performs training-only cluster stability resampling. It deliberately
+does not construct folds, run empirical data, perform inference or create an order path. The
+frozen design is ``docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md``.
 """
 
 from __future__ import annotations
@@ -39,7 +40,7 @@ from shaurya.signals.surface_futures_predictive import (
 )
 
 SPECIFICATION_ID: Final = "D51-10S-FEATURE-SELECTION-2026-08-21"
-SPECIFICATION_VERSION: Final = "1.4.0"
+SPECIFICATION_VERSION: Final = "1.5.0"
 DESIGN_DOCUMENT: Final = "docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md"
 REGISTRY_VERSION: Final = "d51-feature-registry-v1"
 TARGET_REGISTRY_VERSION: Final = "d51-target-registry-v1"
@@ -49,6 +50,8 @@ GATE_ARTIFACT_VERSION: Final = "d51-quality-gates-v1"
 CORRELATION_ARTIFACT_VERSION: Final = "d51-correlation-reduction-v1"
 PREDICTIVE_MODEL_ARTIFACT_VERSION: Final = "d51-predictive-model-v1"
 CONDITIONAL_USEFULNESS_ARTIFACT_VERSION: Final = "d51-conditional-usefulness-v1"
+STABILITY_SELECTION_ARTIFACT_VERSION: Final = "d51-stability-selection-v1"
+ELASTIC_NET_STABILITY_ARTIFACT_VERSION: Final = "d51-elastic-net-stability-v1"
 CORRELATION_SENSITIVITY_THRESHOLDS: Final = (0.85, 0.90, 0.95)
 PRIMARY_CORRELATION_THRESHOLD: Final = 0.90
 
@@ -689,6 +692,201 @@ class ConditionalUsefulnessArtifact:
     cluster_ablation_comparisons: tuple[UsefulnessComparison, ...]
     family_ablation_comparisons: tuple[UsefulnessComparison, ...]
     block_permutation_comparisons: tuple[UsefulnessComparison, ...]
+
+
+StabilityDirection = Literal["positive", "zero", "negative"]
+PromotionStatus = Literal[
+    "promoted",
+    "rejected",
+    "exploratory_insufficient_sessions",
+]
+StabilityReason = Literal[
+    "insufficient_distinct_sessions",
+    "insufficient_eligible_folds",
+    "positive_fold_fraction_below_gate",
+    "selection_frequency_below_gate",
+    "direction_consistency_below_gate",
+    "nonpositive_median_delta",
+    "one_session_dominance",
+    "past_mirror_stronger",
+    "nonpositive_cost_latency_adjusted_value",
+]
+
+
+@dataclass(frozen=True, slots=True)
+class ClusterFoldStabilityResult:
+    """One caller-supplied walk-forward fold/model result for one indivisible cluster."""
+
+    fold_id: str
+    model_id: str
+    cluster: ImportanceClusterDefinition
+    eligible_session_ids: tuple[str, ...]
+    selected: bool
+    delta_oos_r_squared: float
+    direction: StabilityDirection | None
+    volatility_regimes: tuple[str, ...] = ()
+    spread_regimes: tuple[str, ...] = ()
+    time_phases: tuple[str, ...] = ()
+    leave_one_session_out_delta_oos_r_squared: tuple[tuple[str, float], ...] = ()
+    past_mirror_delta_oos_r_squared: float | None = None
+    cost_latency_adjusted_value: float | None = None
+    support_training_rows: int = 0
+    support_evaluation_rows: int = 0
+    paired_loss_blocks: tuple[PairedLossBlock, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.fold_id or not self.model_id:
+            raise ValueError("fold and model identifiers must be non-empty")
+        if not self.eligible_session_ids or len(set(self.eligible_session_ids)) != len(
+            self.eligible_session_ids
+        ):
+            raise ValueError("eligible session identifiers must be non-empty and unique")
+        if not math.isfinite(self.delta_oos_r_squared):
+            raise ValueError("fold delta OOS R-squared must be finite")
+        if self.support_training_rows < 0 or self.support_evaluation_rows < 0:
+            raise ValueError("fold support counts must be non-negative")
+        omitted = self.leave_one_session_out_delta_oos_r_squared
+        if len({session_id for session_id, _ in omitted}) != len(omitted):
+            raise ValueError("leave-one-session-out identifiers must be unique")
+        if {session_id for session_id, _ in omitted} != set(self.eligible_session_ids):
+            raise ValueError("leave-one-session-out evidence must cover every eligible session")
+        optional_values = (
+            *(value for _, value in omitted),
+            self.past_mirror_delta_oos_r_squared,
+            self.cost_latency_adjusted_value,
+        )
+        if any(value is not None and not math.isfinite(value) for value in optional_values):
+            raise ValueError("optional fold evidence must be finite when supplied")
+
+
+@dataclass(frozen=True, slots=True)
+class StabilityPromotionConfig:
+    """Pre-outcome Step-6 gates; changing these thresholds changes the frozen decision rule."""
+
+    minimum_distinct_sessions: int = 20
+    minimum_eligible_folds: int = 5
+    minimum_positive_fold_fraction: float = 0.70
+    minimum_selection_frequency: float = 0.70
+    minimum_direction_consistency: float = 0.70
+
+    def __post_init__(self) -> None:
+        if self.minimum_distinct_sessions != 20 or self.minimum_eligible_folds != 5:
+            raise ValueError("D51 support gates are frozen at 20 sessions and five folds")
+        fractions = (
+            self.minimum_positive_fold_fraction,
+            self.minimum_selection_frequency,
+            self.minimum_direction_consistency,
+        )
+        if fractions != (0.70, 0.70, 0.70):
+            raise ValueError("D51 positive/selection/direction gates are frozen at 70%")
+
+
+@dataclass(frozen=True, slots=True)
+class FoldLossAggregate:
+    fold_id: str
+    block_index: int
+    observation_count: int
+    comparator_minus_full_squared_loss_sum: float
+    comparator_minus_full_mean_squared_loss: float
+
+
+@dataclass(frozen=True, slots=True)
+class LearningCurveSupportPoint:
+    support_training_rows: int
+    fold_count: int
+    median_delta_oos_r_squared: float
+    fraction_positive: float
+
+
+@dataclass(frozen=True, slots=True)
+class ClusterModelStabilitySelection:
+    cluster_id: str
+    model_id: str
+    family: str
+    members: tuple[str, ...]
+    model_features: tuple[str, ...]
+    status: PromotionStatus
+    reason_codes: tuple[StabilityReason, ...]
+    eligible_fold_count: int
+    distinct_eligible_session_count: int
+    selection_frequency: float
+    median_delta_oos_r_squared: float
+    fraction_positive_folds: float
+    direction_consistency: float | None
+    consistent_direction: Literal["positive", "negative"] | None
+    volatility_regime_coverage: tuple[str, ...]
+    spread_regime_coverage: tuple[str, ...]
+    time_phase_coverage: tuple[str, ...]
+    one_session_dominance: bool
+    past_mirror_median_delta_oos_r_squared: float | None
+    cost_latency_adjusted_median_value: float | None
+    support_training_rows: tuple[int, ...]
+    support_evaluation_rows: tuple[int, ...]
+    learning_curve: tuple[LearningCurveSupportPoint, ...]
+    fold_loss_aggregates: tuple[FoldLossAggregate, ...]
+    aggregate_comparator_minus_full_mean_squared_loss: float | None
+
+
+@dataclass(frozen=True, slots=True)
+class StabilitySelectionArtifact:
+    version: str
+    specification_id: str
+    specification_version: str
+    importance_unit: Literal["cluster"]
+    config: StabilityPromotionConfig
+    input_fingerprint_sha256: str
+    selections: tuple[ClusterModelStabilitySelection, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ElasticNetStabilityConfig:
+    """Training-only contiguous-block resampling configuration, frozen before outcomes."""
+
+    elastic_net: ElasticNetConfig = ElasticNetConfig()
+    resample_count: int = 100
+    contiguous_block_size: int = 20
+    sampled_block_fraction: float = 0.70
+    base_seed: int = 51_620_260
+
+    def __post_init__(self) -> None:
+        if self.resample_count < 1 or self.contiguous_block_size < 1:
+            raise ValueError("resample count and contiguous block size must be positive")
+        if not 0.0 < self.sampled_block_fraction <= 1.0:
+            raise ValueError("sampled block fraction must lie in (0, 1]")
+        if self.base_seed < 0:
+            raise ValueError("base seed must be non-negative")
+
+
+@dataclass(frozen=True, slots=True)
+class ElasticNetClusterResample:
+    resample_index: int
+    seed: int
+    sampled_training_row_indices: tuple[int, ...]
+    selected_cluster_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ElasticNetClusterSelectionFrequency:
+    cluster_id: str
+    family: str
+    members: tuple[str, ...]
+    model_features: tuple[str, ...]
+    selected_resample_count: int
+    selection_frequency: float
+
+
+@dataclass(frozen=True, slots=True)
+class ElasticNetClusterStabilityArtifact:
+    version: str
+    specification_id: str
+    specification_version: str
+    importance_unit: Literal["cluster"]
+    config: ElasticNetStabilityConfig
+    training_input_fingerprint_sha256: str
+    training_row_count: int
+    cluster_definitions: tuple[ImportanceClusterDefinition, ...]
+    resamples: tuple[ElasticNetClusterResample, ...]
+    cluster_selection_frequencies: tuple[ElasticNetClusterSelectionFrequency, ...]
 
 
 def _surface_level_names() -> tuple[str, ...]:
@@ -2978,4 +3176,442 @@ def conditional_usefulness_artifact_from_json(encoded: str) -> ConditionalUseful
                 Sequence[Mapping[str, object]], payload["block_permutation_comparisons"]
             )
         ),
+    )
+
+
+def aggregate_cluster_stability_selection(
+    fold_results: Sequence[ClusterFoldStabilityResult],
+    *,
+    config: StabilityPromotionConfig | None = None,
+) -> StabilitySelectionArtifact:
+    """Aggregate supplied folds under frozen cluster-level promotion gates.
+
+    This function does not create, reorder or refit a walk-forward fold. It preserves supplied
+    loss blocks as uncertainty-ready inputs and emits no confidence interval or significance
+    claim.
+    """
+
+    policy = config or StabilityPromotionConfig()
+    results = tuple(
+        sorted(
+            fold_results,
+            key=lambda item: (item.cluster.cluster_id, item.model_id, item.fold_id),
+        )
+    )
+    if not results:
+        raise ValueError("at least one supplied fold result is required")
+    keys = tuple((item.fold_id, item.model_id, item.cluster.cluster_id) for item in results)
+    if len(keys) != len(set(keys)):
+        raise ValueError("each fold/model/cluster result must be unique")
+    grouped: dict[tuple[str, str], list[ClusterFoldStabilityResult]] = {}
+    for item in results:
+        grouped.setdefault((item.cluster.cluster_id, item.model_id), []).append(item)
+
+    selections: list[ClusterModelStabilitySelection] = []
+    for (cluster_id, model_id), group in sorted(grouped.items()):
+        canonical = group[0].cluster
+        if any(item.cluster != canonical for item in group[1:]):
+            raise ValueError("cluster definition changed across supplied folds")
+        deltas = tuple(item.delta_oos_r_squared for item in group)
+        median_delta = float(np.median(np.asarray(deltas, dtype=float)))
+        sessions = tuple(sorted({value for item in group for value in item.eligible_session_ids}))
+        selection_frequency = sum(item.selected for item in group) / len(group)
+        fraction_positive = sum(value > 0.0 for value in deltas) / len(group)
+        directional = tuple(
+            item.direction for item in group if item.direction in ("positive", "negative")
+        )
+        consistent_direction: Literal["positive", "negative"] | None
+        if directional:
+            positive_count = directional.count("positive")
+            negative_count = directional.count("negative")
+            consistent_direction = (
+                "positive" if positive_count >= negative_count else "negative"
+            )
+            direction_consistency: float | None = max(positive_count, negative_count) / len(
+                directional
+            )
+        else:
+            consistent_direction = None
+            direction_consistency = None
+
+        one_session_dominance = any(
+            item.delta_oos_r_squared > 0.0 and omitted_delta <= 0.0
+            for item in group
+            for _, omitted_delta in item.leave_one_session_out_delta_oos_r_squared
+        )
+        mirror_values = tuple(
+            item.past_mirror_delta_oos_r_squared
+            for item in group
+            if item.past_mirror_delta_oos_r_squared is not None
+        )
+        mirror_median = (
+            float(np.median(np.asarray(mirror_values, dtype=float))) if mirror_values else None
+        )
+        cost_values = tuple(
+            item.cost_latency_adjusted_value
+            for item in group
+            if item.cost_latency_adjusted_value is not None
+        )
+        cost_median = (
+            float(np.median(np.asarray(cost_values, dtype=float))) if cost_values else None
+        )
+
+        loss_aggregates: list[FoldLossAggregate] = []
+        loss_sum = 0.0
+        loss_count = 0
+        for item in group:
+            for block in item.paired_loss_blocks:
+                block_sum = (
+                    block.comparator_minus_full_mean_squared_loss * block.observation_count
+                )
+                loss_aggregates.append(
+                    FoldLossAggregate(
+                        item.fold_id,
+                        block.block_index,
+                        block.observation_count,
+                        block_sum,
+                        block.comparator_minus_full_mean_squared_loss,
+                    )
+                )
+                loss_sum += block_sum
+                loss_count += block.observation_count
+        support_groups: dict[int, list[float]] = {}
+        for item in group:
+            support_groups.setdefault(item.support_training_rows, []).append(
+                item.delta_oos_r_squared
+            )
+        learning_curve = tuple(
+            LearningCurveSupportPoint(
+                support,
+                len(values),
+                float(np.median(np.asarray(values, dtype=float))),
+                sum(value > 0.0 for value in values) / len(values),
+            )
+            for support, values in sorted(support_groups.items())
+        )
+
+        reasons: list[StabilityReason] = []
+        if len(sessions) < policy.minimum_distinct_sessions:
+            reasons.append("insufficient_distinct_sessions")
+        if len(group) < policy.minimum_eligible_folds:
+            reasons.append("insufficient_eligible_folds")
+        if fraction_positive < policy.minimum_positive_fold_fraction:
+            reasons.append("positive_fold_fraction_below_gate")
+        if selection_frequency < policy.minimum_selection_frequency:
+            reasons.append("selection_frequency_below_gate")
+        if (
+            direction_consistency is not None
+            and direction_consistency < policy.minimum_direction_consistency
+        ):
+            reasons.append("direction_consistency_below_gate")
+        if median_delta <= 0.0:
+            reasons.append("nonpositive_median_delta")
+        if one_session_dominance:
+            reasons.append("one_session_dominance")
+        if mirror_median is not None and mirror_median > median_delta:
+            reasons.append("past_mirror_stronger")
+        if cost_median is not None and cost_median <= 0.0:
+            reasons.append("nonpositive_cost_latency_adjusted_value")
+        status: PromotionStatus
+        if len(sessions) < policy.minimum_distinct_sessions:
+            status = "exploratory_insufficient_sessions"
+        elif reasons:
+            status = "rejected"
+        else:
+            status = "promoted"
+
+        selections.append(
+            ClusterModelStabilitySelection(
+                cluster_id,
+                model_id,
+                canonical.family,
+                canonical.members,
+                canonical.model_features,
+                status,
+                tuple(reasons),
+                len(group),
+                len(sessions),
+                selection_frequency,
+                median_delta,
+                fraction_positive,
+                direction_consistency,
+                consistent_direction,
+                tuple(sorted({value for item in group for value in item.volatility_regimes})),
+                tuple(sorted({value for item in group for value in item.spread_regimes})),
+                tuple(sorted({value for item in group for value in item.time_phases})),
+                one_session_dominance,
+                mirror_median,
+                cost_median,
+                tuple(item.support_training_rows for item in group),
+                tuple(item.support_evaluation_rows for item in group),
+                learning_curve,
+                tuple(loss_aggregates),
+                loss_sum / loss_count if loss_count else None,
+            )
+        )
+    input_payload = tuple(asdict(item) for item in results)
+    return StabilitySelectionArtifact(
+        STABILITY_SELECTION_ARTIFACT_VERSION,
+        SPECIFICATION_ID,
+        SPECIFICATION_VERSION,
+        "cluster",
+        policy,
+        _stable_sha256(input_payload),
+        tuple(selections),
+    )
+
+
+def stability_selection_artifact_to_json(artifact: StabilitySelectionArtifact) -> str:
+    """Serialize the reproducible final cluster selection table."""
+
+    return json.dumps(asdict(artifact), sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def _learning_curve_from_payload(
+    payload: Sequence[Mapping[str, object]],
+) -> tuple[LearningCurveSupportPoint, ...]:
+    return tuple(
+        LearningCurveSupportPoint(
+            int(cast(int, item["support_training_rows"])),
+            int(cast(int, item["fold_count"])),
+            float(cast(float, item["median_delta_oos_r_squared"])),
+            float(cast(float, item["fraction_positive"])),
+        )
+        for item in payload
+    )
+
+
+def stability_selection_artifact_from_json(encoded: str) -> StabilitySelectionArtifact:
+    """Read back a final selection table without recomputing gates."""
+
+    payload = cast(Mapping[str, object], json.loads(encoded))
+    if payload.get("importance_unit") != "cluster":
+        raise ValueError("stability selection artifact importance unit must be cluster")
+    config_payload = cast(Mapping[str, object], payload["config"])
+    policy = StabilityPromotionConfig(
+        int(cast(int, config_payload["minimum_distinct_sessions"])),
+        int(cast(int, config_payload["minimum_eligible_folds"])),
+        float(cast(float, config_payload["minimum_positive_fold_fraction"])),
+        float(cast(float, config_payload["minimum_selection_frequency"])),
+        float(cast(float, config_payload["minimum_direction_consistency"])),
+    )
+    selections: list[ClusterModelStabilitySelection] = []
+    for item in cast(Sequence[Mapping[str, object]], payload["selections"]):
+        losses = tuple(
+            FoldLossAggregate(
+                str(block["fold_id"]),
+                int(cast(int, block["block_index"])),
+                int(cast(int, block["observation_count"])),
+                float(cast(float, block["comparator_minus_full_squared_loss_sum"])),
+                float(cast(float, block["comparator_minus_full_mean_squared_loss"])),
+            )
+            for block in cast(Sequence[Mapping[str, object]], item["fold_loss_aggregates"])
+        )
+        aggregate_loss = item["aggregate_comparator_minus_full_mean_squared_loss"]
+        mirror = item["past_mirror_median_delta_oos_r_squared"]
+        cost = item["cost_latency_adjusted_median_value"]
+        consistency = item["direction_consistency"]
+        selections.append(
+            ClusterModelStabilitySelection(
+                str(item["cluster_id"]),
+                str(item["model_id"]),
+                str(item["family"]),
+                tuple(cast(Sequence[str], item["members"])),
+                tuple(cast(Sequence[str], item["model_features"])),
+                cast(PromotionStatus, item["status"]),
+                tuple(cast(Sequence[StabilityReason], item["reason_codes"])),
+                int(cast(int, item["eligible_fold_count"])),
+                int(cast(int, item["distinct_eligible_session_count"])),
+                float(cast(float, item["selection_frequency"])),
+                float(cast(float, item["median_delta_oos_r_squared"])),
+                float(cast(float, item["fraction_positive_folds"])),
+                None if consistency is None else float(cast(float, consistency)),
+                cast(Literal["positive", "negative"] | None, item["consistent_direction"]),
+                tuple(cast(Sequence[str], item["volatility_regime_coverage"])),
+                tuple(cast(Sequence[str], item["spread_regime_coverage"])),
+                tuple(cast(Sequence[str], item["time_phase_coverage"])),
+                bool(item["one_session_dominance"]),
+                None if mirror is None else float(cast(float, mirror)),
+                None if cost is None else float(cast(float, cost)),
+                tuple(int(value) for value in cast(Sequence[int], item["support_training_rows"])),
+                tuple(int(value) for value in cast(Sequence[int], item["support_evaluation_rows"])),
+                _learning_curve_from_payload(
+                    cast(Sequence[Mapping[str, object]], item["learning_curve"])
+                ),
+                losses,
+                None if aggregate_loss is None else float(cast(float, aggregate_loss)),
+            )
+        )
+    return StabilitySelectionArtifact(
+        str(payload["version"]),
+        str(payload["specification_id"]),
+        str(payload["specification_version"]),
+        "cluster",
+        policy,
+        str(payload["input_fingerprint_sha256"]),
+        tuple(selections),
+    )
+
+
+def fit_cluster_elastic_net_stability(
+    training_rows: Sequence[ModelInputRow],
+    training_targets: Sequence[float],
+    *,
+    cluster_definitions: Sequence[ImportanceClusterDefinition],
+    config: ElasticNetStabilityConfig | None = None,
+) -> ElasticNetClusterStabilityArtifact:
+    """Run deterministic contiguous-block elastic-net resampling on training rows only."""
+
+    policy = config or ElasticNetStabilityConfig()
+    clusters = tuple(sorted(cluster_definitions, key=lambda item: item.cluster_id))
+    if not clusters or len({item.cluster_id for item in clusters}) != len(clusters):
+        raise ValueError("cluster definitions must be non-empty with unique ids")
+    features = tuple(name for cluster in clusters for name in cluster.model_features)
+    if len(features) != len(set(features)):
+        raise ValueError("model features cannot be split across correlation clusters")
+    target = _validate_targets(training_targets, len(training_rows))
+    blocks = tuple(
+        tuple(range(start, min(start + policy.contiguous_block_size, len(training_rows))))
+        for start in range(0, len(training_rows), policy.contiguous_block_size)
+    )
+    block_count = max(1, math.ceil(len(blocks) * policy.sampled_block_fraction))
+    resamples: list[ElasticNetClusterResample] = []
+    selected_counts = {cluster.cluster_id: 0 for cluster in clusters}
+    for resample_index in range(policy.resample_count):
+        seed = policy.base_seed + resample_index
+        rng = np.random.default_rng(seed)
+        chosen_blocks = tuple(sorted(int(value) for value in rng.choice(
+            len(blocks), size=block_count, replace=False
+        )))
+        sampled_indices = tuple(index for block in chosen_blocks for index in blocks[block])
+        sampled_rows = tuple(training_rows[index] for index in sampled_indices)
+        sampled_targets = tuple(float(target[index]) for index in sampled_indices)
+        model = fit_elastic_net(
+            sampled_rows,
+            sampled_targets,
+            feature_names=features,
+            config=policy.elastic_net,
+        )
+        coefficient_by_output = dict(
+            zip(model.transform.output_features, model.coefficients, strict=True)
+        )
+        selected: list[str] = []
+        for cluster in clusters:
+            outputs = tuple(
+                output
+                for feature in cluster.model_features
+                for output in (feature, f"missing__{feature}")
+            )
+            if any(abs(coefficient_by_output[name]) > 1e-15 for name in outputs):
+                selected.append(cluster.cluster_id)
+                selected_counts[cluster.cluster_id] += 1
+        resamples.append(
+            ElasticNetClusterResample(resample_index, seed, sampled_indices, tuple(selected))
+        )
+    frequencies = tuple(
+        ElasticNetClusterSelectionFrequency(
+            cluster.cluster_id,
+            cluster.family,
+            cluster.members,
+            cluster.model_features,
+            selected_counts[cluster.cluster_id],
+            selected_counts[cluster.cluster_id] / policy.resample_count,
+        )
+        for cluster in clusters
+    )
+    fingerprint_payload = {
+        "rows": _data_fingerprint_payload(
+            training_rows,
+            training_targets,
+            tuple(str(index) for index in range(len(training_rows))),
+        ),
+        "clusters": tuple(asdict(cluster) for cluster in clusters),
+    }
+    return ElasticNetClusterStabilityArtifact(
+        ELASTIC_NET_STABILITY_ARTIFACT_VERSION,
+        SPECIFICATION_ID,
+        SPECIFICATION_VERSION,
+        "cluster",
+        policy,
+        _stable_sha256(fingerprint_payload),
+        len(training_rows),
+        clusters,
+        tuple(resamples),
+        frequencies,
+    )
+
+
+def elastic_net_cluster_stability_artifact_to_json(
+    artifact: ElasticNetClusterStabilityArtifact,
+) -> str:
+    return json.dumps(asdict(artifact), sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def elastic_net_cluster_stability_artifact_from_json(
+    encoded: str,
+) -> ElasticNetClusterStabilityArtifact:
+    """Read back cluster-only resampling evidence; no individual coefficient is published."""
+
+    payload = cast(Mapping[str, object], json.loads(encoded))
+    if payload.get("importance_unit") != "cluster":
+        raise ValueError("elastic-net stability artifact importance unit must be cluster")
+    config_payload = cast(Mapping[str, object], payload["config"])
+    elastic_payload = cast(Mapping[str, object], config_payload["elastic_net"])
+    policy = ElasticNetStabilityConfig(
+        ElasticNetConfig(
+            float(cast(float, elastic_payload["alpha"])),
+            float(cast(float, elastic_payload["l1_ratio"])),
+            int(cast(int, elastic_payload["maximum_iterations"])),
+            float(cast(float, elastic_payload["tolerance"])),
+        ),
+        int(cast(int, config_payload["resample_count"])),
+        int(cast(int, config_payload["contiguous_block_size"])),
+        float(cast(float, config_payload["sampled_block_fraction"])),
+        int(cast(int, config_payload["base_seed"])),
+    )
+    clusters = tuple(
+        ImportanceClusterDefinition(
+            str(item["cluster_id"]),
+            tuple(cast(Sequence[str], item["members"])),
+            tuple(cast(Sequence[str], item["model_features"])),
+            str(item["family"]),
+        )
+        for item in cast(Sequence[Mapping[str, object]], payload["cluster_definitions"])
+    )
+    resamples = tuple(
+        ElasticNetClusterResample(
+            int(cast(int, item["resample_index"])),
+            int(cast(int, item["seed"])),
+            tuple(
+                int(value)
+                for value in cast(Sequence[int], item["sampled_training_row_indices"])
+            ),
+            tuple(cast(Sequence[str], item["selected_cluster_ids"])),
+        )
+        for item in cast(Sequence[Mapping[str, object]], payload["resamples"])
+    )
+    frequencies = tuple(
+        ElasticNetClusterSelectionFrequency(
+            str(item["cluster_id"]),
+            str(item["family"]),
+            tuple(cast(Sequence[str], item["members"])),
+            tuple(cast(Sequence[str], item["model_features"])),
+            int(cast(int, item["selected_resample_count"])),
+            float(cast(float, item["selection_frequency"])),
+        )
+        for item in cast(
+            Sequence[Mapping[str, object]], payload["cluster_selection_frequencies"]
+        )
+    )
+    return ElasticNetClusterStabilityArtifact(
+        str(payload["version"]),
+        str(payload["specification_id"]),
+        str(payload["specification_version"]),
+        "cluster",
+        policy,
+        str(payload["training_input_fingerprint_sha256"]),
+        int(cast(int, payload["training_row_count"])),
+        clusters,
+        resamples,
+        frequencies,
     )
