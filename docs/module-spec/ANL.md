@@ -83,6 +83,7 @@ Gross P&L alone is insufficient: delta, gamma, vega, theta, spread capture, adve
   publication are now the binding intraday path. D38 and D40 completed on the first active-session
   prefix and D39 is publishing cell-by-cell; full 600-cell completion and later-prefix refresh are
   the remaining operational gates.
-- ANL-07 is Implemented and Tested against synthetic causal chains; real-chain replay and live
-  verification remain pending. Until then the detector is not Dry-run or Live verified even
-  though the dashboard and API plumbing are tested.
+- ANL-07 owner amendment 4 is Live verified at the read-only classification/dashboard scope:
+  six-frame/0.50-point policy in API and rendered output, arbitrage-clean DAT-follow fits, and
+  live candidate/persistence lifecycle. This does not promote it to a signal, fill, P&L, or
+  latent-value claim. Evidence: `docs/live-evidence/ANL-07-AMENDMENT-4-2026-08-21.md`.

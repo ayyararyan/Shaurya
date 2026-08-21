@@ -204,6 +204,14 @@ to strategies that pin the package.
   dashboard now displays the active reference window and IV tolerance and uses a non-hard-coded
   stability-range column label. Pre-live verification: 44 focused tests and 712 full-suite tests
   passed; whole-repository Ruff, strict mypy on 72 source files, and compileall passed.
+- Owner-amendment-4 live replacement is verified at the existing port-8765 endpoint. The dashboard
+  now follows DAT dataset `sha-20260821T080612.138551Z-9b5bd89e`; the DAT capture owns the surface
+  lane's Quote/Full socket. The first post-warm-up check tested 246 contracts and rejected 9 for reference
+  instability, versus 52 tested and 208 rejected in the prior process's last recorded policy
+  frame. A headless render visibly showed the six-frame/0.50-point policy and generic stability
+  range label. Several candidates reached exact-confirmed pending state but cleared before the
+  unchanged two-frame activation gate. Evidence:
+  `docs/live-evidence/ANL-07-AMENDMENT-4-2026-08-21.md`.
 
 ### `X-OFI-DASHBOARD-2026-08-20` — dynamic read-only OFI horse-race dashboard (`ANL-06`)
 
