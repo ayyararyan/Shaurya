@@ -356,14 +356,19 @@ def test_reference_jump_is_rejected_by_stability_gate() -> None:
     assert jumped["active"] == []
 
 
-def test_default_one_minute_reference_warmup_precedes_any_opportunity() -> None:
-    detector = _detector(smoothing_min_frames=12, stability_frames=12)
-    for seconds in range(0, 60, 5):
+def test_default_six_frame_reference_warmup_precedes_any_opportunity() -> None:
+    detector = _detector(
+        smoothing_min_frames=6,
+        stability_frames=6,
+        stability_max_points=0.50,
+        raw_gap_max_points=0.50,
+    )
+    for seconds in range(0, 30, 5):
         now = VALUATION + timedelta(seconds=seconds)
         frame = _evaluate(detector, now, _chain(now))
         assert frame["active"] == []
 
-    first_time = VALUATION + timedelta(seconds=60)
+    first_time = VALUATION + timedelta(seconds=30)
     first = _evaluate(
         detector,
         first_time,
@@ -373,7 +378,7 @@ def test_default_one_minute_reference_warmup_precedes_any_opportunity() -> None:
     assert first["pending_count"] >= 1
     assert first["active"] == []
 
-    confirmed_time = VALUATION + timedelta(seconds=65)
+    confirmed_time = VALUATION + timedelta(seconds=35)
     confirmed = _evaluate(
         detector,
         confirmed_time,
@@ -381,7 +386,7 @@ def test_default_one_minute_reference_warmup_precedes_any_opportunity() -> None:
     )
     episode = next(item for item in confirmed["active"] if item["instrument_id"] == TARGET_ID)
     assert episode["reference_stable"] is True
-    assert episode["reference_smoothing_components"] >= 12
+    assert episode["reference_smoothing_components"] >= 6
 
 
 def test_reference_closed_episode_is_invalidated_not_corrected() -> None:

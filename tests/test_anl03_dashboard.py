@@ -22,6 +22,7 @@ from shaurya.analytics.surface_feed import (
     expiry_timestamp,
 )
 from shaurya.analytics.universe import select_chain_universe
+from shaurya.cli.surface_dashboard import _parser as surface_dashboard_parser
 from shaurya.contracts.categories import ObjectCategory
 from shaurya.contracts.instruments import (
     DhanInstrumentMapping,
@@ -40,6 +41,16 @@ FAR = date(2026, 9, 29)
 FORWARDS = {NEAR: 24_100.0, FAR: 24_250.0}
 PARAMETERS = {NEAR: (0.0009, -0.32, 0.022), FAR: (0.0040, -0.28, 0.038)}
 SECONDS_PER_YEAR = 365.0 * 24.0 * 3600.0
+
+
+def test_surface_dashboard_cli_uses_owner_amendment_four_stability_defaults() -> None:
+    args = surface_dashboard_parser().parse_args(
+        ["--mode", "replay", "--expiry", NEAR.isoformat()]
+    )
+    assert args.mispricing_reference_min_frames == 6
+    assert args.mispricing_reference_stability_frames == 6
+    assert args.mispricing_reference_max_iv_range_points == 0.50
+    assert args.mispricing_reference_max_raw_smoothed_iv_gap_points == 0.50
 
 
 def test_expiry_close_is_date_versioned_at_the_2026_extension_boundary() -> None:
@@ -328,7 +339,9 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert "reference warming" in html
     assert "reference unstable" in html
     assert "raw-smooth pp" in html
-    assert "12-fit range pp" in html
+    assert "stability range pp" in html
+    assert "reference window" in html
+    assert "IV tolerance" in html
     assert "target required pp" in html
     assert "entry gap pp" in html
     assert "target Δ pp" in html
@@ -354,7 +367,10 @@ def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> N
     )
     assert monitor["policy"]["order_authority"] == "none_read_only_research_monitor"
     assert monitor["policy"]["reference_smoothing_half_life_seconds"] == 60.0
-    assert monitor["policy"]["reference_smoothing_min_frames"] == 12
+    assert monitor["policy"]["reference_smoothing_min_frames"] == 6
+    assert monitor["policy"]["reference_stability_frames"] == 6
+    assert monitor["policy"]["reference_max_iv_range_points"] == 0.50
+    assert monitor["policy"]["reference_max_raw_smoothed_iv_gap_points"] == 0.50
     assert monitor["policy"]["residual_uncertainty_method"] == (
         "past_only_gaussian_weighted_knn_iv"
     )

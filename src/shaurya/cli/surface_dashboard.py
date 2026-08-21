@@ -95,14 +95,14 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--mispricing-confirmation-frames", type=int, default=2)
     parser.add_argument("--mispricing-correction-frames", type=int, default=2)
     parser.add_argument("--mispricing-reference-half-life-seconds", type=float, default=60.0)
-    parser.add_argument("--mispricing-reference-min-frames", type=int, default=12)
+    parser.add_argument("--mispricing-reference-min-frames", type=int, default=6)
     parser.add_argument("--mispricing-reference-max-gap-seconds", type=float, default=15.0)
-    parser.add_argument("--mispricing-reference-stability-frames", type=int, default=12)
-    parser.add_argument("--mispricing-reference-max-iv-range-points", type=float, default=0.10)
+    parser.add_argument("--mispricing-reference-stability-frames", type=int, default=6)
+    parser.add_argument("--mispricing-reference-max-iv-range-points", type=float, default=0.50)
     parser.add_argument(
         "--mispricing-reference-max-raw-smoothed-iv-gap-points",
         type=float,
-        default=0.10,
+        default=0.50,
     )
     parser.add_argument("--mispricing-buy-turnover-rate", type=float, default=0.0004504340)
     parser.add_argument("--mispricing-sell-turnover-rate", type=float, default=0.0019204340)

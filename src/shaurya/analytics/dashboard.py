@@ -602,6 +602,7 @@ function escapeHtml(value) {
 
 function renderMispricing(payload) {
   const monitor = payload.mispricing || {active: [], recent: [], reasons: []};
+  const policy = monitor.policy || {};
   const summary = document.getElementById('mispricingSummary');
   const bits = [
     ['state', monitor.status || 'unavailable'],
@@ -612,6 +613,8 @@ function renderMispricing(payload) {
     ['exact confirmed', monitor.exact_confirmed_count ?? 0],
     ['reference warming', monitor.reference_warming_count ?? 0],
     ['reference unstable', monitor.reference_unstable_count ?? 0],
+    ['reference window', (policy.reference_stability_frames ?? '\u2014') + ' frames'],
+    ['IV tolerance', fmt(policy.reference_max_iv_range_points, 2) + ' pp'],
     ['pending', monitor.pending_count ?? 0],
     ['active', (monitor.active || []).length],
     ['invalidated', (monitor.recent || []).filter((item) => item.status === 'invalidated').length],
@@ -1018,7 +1021,7 @@ _BODY = """<!doctype html>
         <th class="num">exec IV %</th><th class="num">fair IV %</th>
         <th class="num">fair IV band %</th><th class="num">model u pp</th>
         <th class="num">total u pp</th><th class="num">neigh / eff n</th>
-        <th class="num">raw-smooth pp</th><th class="num">12-fit range pp</th>
+        <th class="num">raw-smooth pp</th><th class="num">stability range pp</th>
         <th>reference stable</th><th class="num">gross IV pp</th>
         <th class="num">net ticks</th><th class="num">net / lot</th>
         <th class="num" title="frozen-entry-delta executable-quote proxy"
@@ -1043,7 +1046,7 @@ _BODY = """<!doctype html>
         <th class="num">exec IV %</th><th class="num">fair IV %</th>
         <th class="num">fair IV band %</th><th class="num">model u pp</th>
         <th class="num">total u pp</th><th class="num">neigh / eff n</th>
-        <th class="num">raw-smooth pp</th><th class="num">12-fit range pp</th>
+        <th class="num">raw-smooth pp</th><th class="num">stability range pp</th>
         <th>reference stable</th><th class="num">gross IV pp</th>
         <th class="num">net ticks</th><th class="num">net / lot</th>
         <th class="num" title="frozen-entry-delta executable-quote proxy"

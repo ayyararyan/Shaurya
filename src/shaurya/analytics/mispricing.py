@@ -90,11 +90,11 @@ class MispricingPolicy:
     correction_frames: int = 2
     reference_smoothing_half_life_seconds: float = 60.0
     reference_smoothing_max_history: int = 24
-    reference_smoothing_min_frames: int = 12
+    reference_smoothing_min_frames: int = 6
     reference_smoothing_max_gap_seconds: float = 15.0
-    reference_stability_frames: int = 12
-    reference_max_iv_range_points: float = 0.10
-    reference_max_raw_smoothed_iv_gap_points: float = 0.10
+    reference_stability_frames: int = 6
+    reference_max_iv_range_points: float = 0.50
+    reference_max_raw_smoothed_iv_gap_points: float = 0.50
     default_tick_size: float = 0.05
     default_lot_size: int | None = None
     buy_turnover_rate: float = 0.0004504340

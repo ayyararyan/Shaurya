@@ -196,6 +196,14 @@ to strategies that pin the package.
   dashboard/API schema, reference warm-up/invalidation and the no-order dependency boundary. A
   six-key, fully capped 120,000-sample performance gate completed all 450 continuous-neighbour
   queries in 0.18 seconds. Replacement live verification remains separate.
+- Owner amendment 4, explicitly approved 2026-08-21, supersedes the twelve-frame/0.10-point
+  stability policy. The causal smoother now warms for six accepted fits; contract stability uses
+  six readings; and smoothed-range, raw-versus-smoothed, and exact-versus-smoothed limits are all
+  0.50 volatility points. The 60-second decay half-life and all independent-reference,
+  uncertainty, execution, FDR, exact-refit, and two-frame episode gates remain unchanged. The
+  dashboard now displays the active reference window and IV tolerance and uses a non-hard-coded
+  stability-range column label. Pre-live verification: 44 focused tests and 712 full-suite tests
+  passed; whole-repository Ruff, strict mypy on 72 source files, and compileall passed.
 
 ### `X-OFI-DASHBOARD-2026-08-20` — dynamic read-only OFI horse-race dashboard (`ANL-06`)
 
