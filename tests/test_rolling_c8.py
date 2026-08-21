@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from shaurya.analytics.rolling_c8 import (
     RollingC8Tracker,
     ScoreAccumulator,
     causal_training_positions,
+    cell_key,
     fit_forecast_cell,
+    fit_forecast_grid,
     forecast_win_score,
 )
 from shaurya.signals.fixed_target_panel import competitor_features
@@ -65,6 +70,26 @@ def test_forecast_fits_c8_without_requiring_the_forecast_target() -> None:
     assert isinstance(result["prediction_ticks"], float)
 
 
+def test_batched_multi_window_fit_matches_original_cell_estimator() -> None:
+    observations = [_observation(second) for second in range(1000, 2001, 5)]
+    observations[-1] = _observation(2000, labelled=False)
+    position = len(observations) - 1
+
+    original = fit_forecast_cell(
+        observations,
+        forecast_position=position,
+        lookback=1.0,
+        horizon=5.0,
+        training_window_seconds=1800.0,
+    )
+    batched = fit_forecast_grid(observations, forecast_position=position)[(1800.0, 1.0, 5.0)]
+
+    assert batched["prediction_ticks"] == original["prediction_ticks"]
+    assert batched["baseline_ticks"] == original["baseline_ticks"]
+    assert batched["selected_ridge_alpha"] == original["selected_ridge_alpha"]
+    assert batched["train_n"] == original["train_n"]
+
+
 def test_cumulative_r2_uses_each_forecasts_rolling_training_mean() -> None:
     score = ScoreAccumulator()
     score.score(actual=2.0, prediction=1.5, baseline=0.0)
@@ -86,6 +111,33 @@ def test_fresh_tracker_does_not_backfill_historical_forecasts() -> None:
     assert all(cell["scored_n"] == 0 for cell in tracker.payload(source={})["cells"])
 
 
+def test_legacy_single_grid_state_migrates_only_to_thirty_minutes(tmp_path: Path) -> None:
+    path = tmp_path / "legacy.json"
+    path.write_text(
+        json.dumps(
+            {
+                "started_at": "2026-08-21T08:31:34+00:00",
+                "accumulators": {"1|5": {"forecasts_issued": 7, "scored_n": 6}},
+                "pending": [],
+                "latest_fit": {"1|5": {"status": "forecast", "train_n": 7000}},
+                "recent_win_scores": [],
+                "last_forecast_anchor_ts_ns": 100,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    tracker = RollingC8Tracker.load(path)
+
+    assert tracker.accumulators[cell_key(1.0, 5.0, 1800.0)].forecasts_issued == 7
+    assert cell_key(1.0, 5.0, 120.0) not in tracker.accumulators
+    cells = tracker.payload(source={})["cells"]
+    thirty = next(cell for cell in cells if cell["cell_key"] == cell_key(1.0, 5.0, 1800.0))
+    two = next(cell for cell in cells if cell["cell_key"] == cell_key(1.0, 5.0, 120.0))
+    assert thirty["forecasts_issued"] == 7
+    assert two["forecasts_issued"] == 0
+
+
 def test_forecast_win_score_uses_forecast_magnitude_in_both_directions() -> None:
     assert forecast_win_score(prediction=2.0, actual=2.0) == 1
     assert forecast_win_score(prediction=2.0, actual=3.0) == 1
@@ -101,21 +153,21 @@ def test_rolling_win_score_keeps_only_latest_five_minutes() -> None:
     tracker.restore_recent_win_scores(
         [
             {
-                "cell_key": "1|5",
+                "cell_key": cell_key(1.0, 5.0),
                 "forecast_anchor_ts_ns": 1 * SECOND,
                 "response_end_ts_ns": 100 * SECOND,
                 "prediction_ticks": 2.0,
                 "actual_ticks": 2.0,
             },
             {
-                "cell_key": "1|5",
+                "cell_key": cell_key(1.0, 5.0),
                 "forecast_anchor_ts_ns": 2 * SECOND,
                 "response_end_ts_ns": 401 * SECOND,
                 "prediction_ticks": 2.0,
                 "actual_ticks": -3.0,
             },
             {
-                "cell_key": "1|5",
+                "cell_key": cell_key(1.0, 5.0),
                 "forecast_anchor_ts_ns": 3 * SECOND,
                 "response_end_ts_ns": 500 * SECOND,
                 "prediction_ticks": 2.0,
@@ -125,7 +177,7 @@ def test_rolling_win_score_keeps_only_latest_five_minutes() -> None:
         as_of_ts_ns=500 * SECOND,
     )
 
-    score = tracker.rolling_win_score("1|5")
+    score = tracker.rolling_win_score(cell_key(1.0, 5.0))
 
     assert score == {
         "rolling_mean_win_score_5m": -0.5,

@@ -101,6 +101,17 @@ artifacts and full read-only API objects remain unchanged.
 | `SCORE-RESTORE-01` | Upgrade/restart restores recent scores from append-only outcomes without duplicates | **Live verified** | `RollingC8Tracker.restore_recent_win_scores`; `cli/rolling_c8.py:_read_jsonl` | live D46 state preserved; 1,535 recent receipts restored on D47 restart |
 | `SCORE-OUT-01` | Show five-minute mean and n in every cell; expose +1/0/-1 counts | **Live verified** | `analytics/ofi_dashboard_server.py` | live `/api/overview` 30/30 non-empty score windows; HTML parity at port 8766 |
 
+## D48 multi-beta-window dashboard — `ANL-06-MULTI-WINDOW-C8`
+
+| ID | Requirement | Status | Code location | Test / acceptance evidence |
+|---|---|---|---|---|
+| `MW-AXIS-01` | Five beta windows 2/5/10/15/30m; identical 30-cell grids | **Implemented, tested** | `analytics/rolling_c8.py:TRAINING_WINDOWS_SECONDS`, `RollingC8Tracker.payload` | active-tape dry run 150/150; grid API tests |
+| `MW-CAUSAL-01` | Each window uses only its own trailing same-epoch, mature-label rows | **Implemented, tested** | `causal_training_positions`, `fit_forecast_grid` | causal boundary tests; active dry-run support ranges |
+| `MW-PARITY-01` | Batched ridge path preserves original per-cell C8 predictions | **Implemented, tested** | `fit_forecast_grid`; `fixed_target_panel.py:_select_alpha` | direct prediction/alpha parity test |
+| `MW-MIGRATE-01` | Existing state maps only to 30m; new windows start without backfill | **Implemented, tested** | `RollingC8Tracker.load`, `_canonical_key` | legacy-state migration test |
+| `MW-CADENCE-01` | All 150 fits complete inside 5s after bootstrap | **Dry-run verified** | shared design matrices; bounded window workers; shared ridge path | active 3GB tape: 2.20s fit/state stage, 150/150 forecasts |
+| `MW-OUT-01` | Five ordered grids become the main page/API | **Live verified** | `analytics/ofi_dashboard_server.py:_matrix_views`, browser render | live port 8766 API: five ordered grids x 30 cells with distinct source labels |
+
 ## D39 additive matrix — `FIXED-TARGET-COMPETITOR-PANEL`
 
 **Specification:** `docs/D39-FIXED-TARGET-PANEL-SPEC-2026-08-21.md`

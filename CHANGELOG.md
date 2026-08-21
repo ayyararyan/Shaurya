@@ -5,6 +5,14 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### D48 — five beta-estimation windows on the main OFI dashboard
+
+- Expanded the live C8 table into identical 2/5/10/15/30-minute beta-estimation grids.
+- Preserved the existing 30-minute cumulative state while refusing historical backfill for the
+  four new windows.
+- Shared exact ridge-path decompositions and feature matrices so all 150 cells fit inside the
+  existing five-second cadence budget on the active tape.
+
 ### D47 — five-minute rolling forecast win score
 
 - Added the owner-defined `+1/0/-1` forecast-threshold score for every C8 horizon grid.

@@ -10,6 +10,10 @@ and OOS R-squared only after the future outcome is observed.
 **Supersedes:** D45's D39/D40 value source and progress strip. D39 and D40 remain preserved
 historical studies and complete read-only API artifacts; they are not the live table estimator.
 
+**Expanded by D48:**
+`OFI-DASHBOARD-MULTI-BETA-WINDOW-AMENDMENT-2026-08-21.md` retains this 30-minute grid and adds
+identical 2/5/10/15-minute beta-estimation grids. D48 is the current main-dashboard specification.
+
 ## 1. Statistical object
 
 For forecast anchor `t`, lookback `h1 in {0.5,1,2,5,10}` seconds and future horizon

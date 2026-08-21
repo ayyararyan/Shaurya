@@ -27,6 +27,7 @@ from shaurya.signals.deep_book_normal_activity import (
     SplitIndex,
     chronological_embargoed_split,
     fit_ridge,
+    fit_ridge_path,
 )
 from shaurya.signals.deep_book_ofi import CAUSAL_GAP_SECONDS, FUTURES_TICK_SIZE
 from shaurya.signals.effective_touch import TradePrint
@@ -402,13 +403,13 @@ def _select_alpha(
             continue
         inner_target = train_target[:cut]
         drift = float(inner_target.mean())
-        for alpha in RIDGE_ALPHAS:
-            fit = fit_ridge(
-                train_design[:cut],
-                inner_target - drift,
-                feature_names=names,
-                penalty=alpha,
-            )
+        fits = fit_ridge_path(
+            train_design[:cut],
+            inner_target - drift,
+            feature_names=names,
+            penalties=RIDGE_ALPHAS,
+        )
+        for alpha, fit in fits.items():
             prediction = drift + fit.predict(train_design[validation])
             scores[alpha].append(float(np.mean((train_target[validation] - prediction) ** 2)))
     means = {

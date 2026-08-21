@@ -25,6 +25,7 @@ from shaurya.analytics.ofi_dashboard_server import (
     ALLOWED_METHODS,
     MATRIX_HORIZONS_SECONDS,
     MATRIX_LOOKBACKS_SECONDS,
+    MATRIX_TRAINING_WINDOWS_MINUTES,
     OfiDashboardState,
     build_server,
     compact_dashboard_payload,
@@ -473,9 +474,9 @@ def test_rendering_theme_and_matrix_view_field_parity(tmp_path: Path) -> None:
         "#f4f2ec",
         "#17191c",
         "CCZ OFI (C8) · displayed mid · 10 book levels",
-        "Sampling / lookback horizon \\u2192",
-        "Predicted horizon \\u2193",
-        "Each forecast refits C8 on only the preceding 30 minutes",
+        "OFI sampling horizon \\u2192",
+        "Forecast horizon \\u2193",
+        "past 2, 5, 10, 15 or 30 minutes",
         "const LOOKBACKS=[0.5,1,2,5,10],HORIZONS=[0.5,1,2,5,10,20]",
         "Live walk-forward",
         "5m score '+score+' · n='+cell.scoreN",
@@ -551,11 +552,12 @@ def test_compact_matrix_payload_uses_only_rolling_c8_scores() -> None:
         },
         "rolling_c8": {
             "status": "running",
-            "training_window_seconds": 1800.0,
+            "training_windows_seconds": [120.0, 300.0, 600.0, 900.0, 1800.0],
             "forecast_cadence_seconds": 5.0,
             "source": {"last_receive_ts": "2026-08-21T05:12:02+00:00"},
             "cells": [
                 {
+                    "training_window_minutes": 30.0,
                     "lookback_seconds": 1.0,
                     "horizon_seconds": 5.0,
                     "cumulative_oos_r2": 0.13,
@@ -576,11 +578,15 @@ def test_compact_matrix_payload_uses_only_rolling_c8_scores() -> None:
     assert "cells" not in compact
     assert "ccz" not in compact
     assert compact["live_studies"]["d39"]["primary_displayed_mid_m10"] == [primary]
-    assert compact["matrix"]["h1_seconds"] == list(MATRIX_LOOKBACKS_SECONDS)
-    assert compact["matrix"]["h2_seconds"] == list(MATRIX_HORIZONS_SECONDS)
+    assert [matrix["training_window_minutes"] for matrix in compact["matrices"]] == list(
+        MATRIX_TRAINING_WINDOWS_MINUTES
+    )
+    matrix = compact["matrices"][-1]
+    assert matrix["h1_seconds"] == list(MATRIX_LOOKBACKS_SECONDS)
+    assert matrix["h2_seconds"] == list(MATRIX_HORIZONS_SECONDS)
     matrix_cells = {
         (cell["h1_seconds"], cell["h2_seconds"]): cell
-        for cell in compact["matrix"]["cells"]
+        for cell in matrix["cells"]
     }
     assert matrix_cells[(1.0, 5.0)]["cumulative_oos_r2"] == pytest.approx(0.13)
     assert matrix_cells[(1.0, 5.0)]["rolling_mean_win_score_5m"] == pytest.approx(0.2)

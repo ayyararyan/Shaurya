@@ -1,4 +1,4 @@
-"""Follow one DAT tape and publish causal 30-minute rolling C8 forecasts."""
+"""Follow one DAT tape and publish causal multi-window rolling C8 forecasts."""
 
 from __future__ import annotations
 
@@ -211,8 +211,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             raise ValueError("active pre-DAT tape requires --legacy-producer-pid")
         handle = access.adopt_active_legacy_tape(
             args.tape,
-            consumer="ANL-06-ROLLING-C8-30M",
-            purpose="causal 30-minute rolling C8 forecast dashboard",
+            consumer="ANL-06-MULTI-WINDOW-C8",
+            purpose="causal 2/5/10/15/30-minute rolling C8 forecast dashboard",
             producer_pid=args.legacy_producer_pid,
         )
     if handle.status is DatasetStatus.INVALIDATED:

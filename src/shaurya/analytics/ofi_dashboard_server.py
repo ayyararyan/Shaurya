@@ -20,6 +20,7 @@ from shaurya.data.tape import CompleteLineJsonlTail
 ALLOWED_METHODS = ("GET", "HEAD")
 MATRIX_LOOKBACKS_SECONDS = (0.5, 1.0, 2.0, 5.0, 10.0)
 MATRIX_HORIZONS_SECONDS = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
+MATRIX_TRAINING_WINDOWS_MINUTES = (2.0, 5.0, 10.0, 15.0, 30.0)
 
 
 def _mapping(value: Any) -> dict[str, Any]:
@@ -130,7 +131,7 @@ def _compact_rolling_c8(rolling: Any) -> dict[str, Any]:
             "status",
             "started_at",
             "updated_at",
-            "training_window_seconds",
+            "training_windows_seconds",
             "forecast_cadence_seconds",
             "causal_gap_seconds",
             "model",
@@ -146,16 +147,19 @@ def _compact_rolling_c8(rolling: Any) -> dict[str, Any]:
     }
 
 
-def _matrix_view(rolling: dict[str, Any]) -> dict[str, Any]:
-    values: dict[tuple[float, float], dict[str, Any]] = {}
+def _matrix_views(rolling: dict[str, Any]) -> list[dict[str, Any]]:
+    values: dict[tuple[float, float, float], dict[str, Any]] = {}
     for raw in _sequence(rolling.get("cells")):
         row = _mapping(raw)
+        training_minutes = row.get("training_window_minutes")
         h1 = row.get("lookback_seconds")
         h2 = row.get("horizon_seconds")
         score = row.get("cumulative_oos_r2")
-        if h1 is None or h2 is None:
+        if training_minutes is None or h1 is None or h2 is None:
             continue
-        values[(float(h1), float(h2))] = {
+        key = (float(training_minutes), float(h1), float(h2))
+        values[key] = {
+            "training_window_minutes": float(training_minutes),
             "h1_seconds": float(h1),
             "h2_seconds": float(h2),
             "cumulative_oos_r2": score,
@@ -166,13 +170,22 @@ def _matrix_view(rolling: dict[str, Any]) -> dict[str, Any]:
             "rolling_losses_5m": row.get("rolling_losses_5m", 0),
             "scored_n": row.get("scored_n", 0),
             "forecasts_issued": row.get("forecasts_issued", 0),
-            "source": "rolling_c8_30m",
+            "source": f"rolling_c8_{float(training_minutes):g}m",
         }
-    return {
-        "h1_seconds": list(MATRIX_LOOKBACKS_SECONDS),
-        "h2_seconds": list(MATRIX_HORIZONS_SECONDS),
-        "cells": [values[key] for key in sorted(values)],
-    }
+    return [
+        {
+            "training_window_minutes": minutes,
+            "h1_seconds": list(MATRIX_LOOKBACKS_SECONDS),
+            "h2_seconds": list(MATRIX_HORIZONS_SECONDS),
+            "cells": [
+                values[(minutes, h1, h2)]
+                for h1 in MATRIX_LOOKBACKS_SECONDS
+                for h2 in MATRIX_HORIZONS_SECONDS
+                if (minutes, h1, h2) in values
+            ],
+        }
+        for minutes in MATRIX_TRAINING_WINDOWS_MINUTES
+    ]
 
 
 def compact_dashboard_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -198,7 +211,7 @@ def compact_dashboard_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "config": {"refit_cadence_seconds": config.get("refit_cadence_seconds")},
         "live_studies": live_studies,
         "rolling_c8": rolling_c8,
-        "matrix": _matrix_view(rolling_c8),
+        "matrices": _matrix_views(rolling_c8),
         "confirmatory_eligible": payload.get("confirmatory_eligible", False),
         "read_only": payload.get("read_only", True),
         "no_socket": payload.get("no_socket", True),
@@ -327,6 +340,9 @@ button { font:inherit; font-size:9px; letter-spacing:.14em; text-transform:upper
 .matrix-status { display:flex; flex-wrap:wrap; gap:7px 18px; padding:9px 0;
   border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); color:var(--ink2); }
 .matrix-wrap { overflow:auto; margin-top:20px; }
+.grid-panel { margin-top:32px; }
+.grid-panel h3 { margin:0 0 7px; font-size:16px; }
+.grid-panel p { margin:0; color:var(--ink3); }
 .result-matrix { width:100%; min-width:720px; border-collapse:collapse; table-layout:fixed;
   background:var(--panel); font-size:14px; }
 .result-matrix th,.result-matrix td { border:1px solid var(--rule); padding:15px 12px; text-align:center; }
@@ -367,9 +383,9 @@ function clock(ts){
   if(!ts) return '\u2014'; const date=new Date(ts); if(Number.isNaN(date.getTime())) return ts;
   return date.toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' IST';
 }
-function matrixValues(payload){
+function matrixValues(matrix){
   const values=new Map();
-  ((payload.matrix||{}).cells||[]).forEach(row=>values.set(Number(row.h1_seconds)+'|'+Number(row.h2_seconds),{
+  ((matrix||{}).cells||[]).forEach(row=>values.set(Number(row.h1_seconds)+'|'+Number(row.h2_seconds),{
     value:row.cumulative_oos_r2,score:row.rolling_mean_win_score_5m,
     scoreN:row.rolling_win_score_n_5m,wins:row.rolling_wins_5m,
     neutral:row.rolling_neutral_5m,losses:row.rolling_losses_5m,
@@ -378,26 +394,30 @@ function matrixValues(payload){
 }
 function render(payload){
   lastPayload=payload; const rolling=payload.rolling_c8||{},source=rolling.source||{};
-  const values=matrixValues(payload);
   document.getElementById('status').innerHTML=[
     'Source through <b>'+clock(source.last_receive_ts)+'</b>',
-    'Training window <b>past 30 min</b>',
+    'Beta windows <b>2 / 5 / 10 / 15 / 30 min</b>',
     'Forecast every <b>'+(rolling.forecast_cadence_seconds||5)+'s</b>',
     'Pending outcomes <b>'+(rolling.pending_count||0)+'</b>',
     '<b>Live walk-forward</b>'
   ].map(item=>'<span>'+item+'</span>').join('');
-  const head='<tr><th class="corner"><span>Sampling / lookback horizon \u2192</span><strong>Predicted horizon \u2193</strong></th>'+
-    LOOKBACKS.map(h=>'<th>'+h+'s</th>').join('')+'</tr>';
-  const body=HORIZONS.map(h2=>'<tr><th>'+h2+'s</th>'+LOOKBACKS.map(h1=>{
-    const cell=values.get(h1+'|'+h2); if(!cell||cell.value===null||cell.value===undefined)
-      return '<td class="missing" title="Waiting for matured live forecasts">\u2014</td>';
-    const value=Number(cell.value); const cls=value>=0?'positive':'negative';
-    const score=cell.score===null||cell.score===undefined?'\u2014':Number(cell.score).toFixed(2);
-    return '<td class="'+cls+'" title="Cumulative OOS R-squared · n='+cell.scored+
-      ' · 5m points +1/0/-1='+cell.wins+'/'+cell.neutral+'/'+cell.losses+'">'+pct(value)+
-      '<span class="accuracy">5m score '+score+' · n='+cell.scoreN+'</span></td>';
-  }).join('')+'</tr>').join('');
-  document.getElementById('matrix').innerHTML='<thead>'+head+'</thead><tbody>'+body+'</tbody>';
+  document.getElementById('matrices').innerHTML=(payload.matrices||[]).map(matrix=>{
+    const values=matrixValues(matrix);
+    const head='<tr><th class="corner"><span>OFI sampling horizon \u2192</span><strong>Forecast horizon \u2193</strong></th>'+
+      LOOKBACKS.map(h=>'<th>'+h+'s</th>').join('')+'</tr>';
+    const body=HORIZONS.map(h2=>'<tr><th>'+h2+'s</th>'+LOOKBACKS.map(h1=>{
+      const cell=values.get(h1+'|'+h2); if(!cell||cell.value===null||cell.value===undefined)
+        return '<td class="missing" title="Waiting for matured live forecasts">\u2014</td>';
+      const value=Number(cell.value); const cls=value>=0?'positive':'negative';
+      const score=cell.score===null||cell.score===undefined?'\u2014':Number(cell.score).toFixed(2);
+      return '<td class="'+cls+'" title="Cumulative OOS R-squared · n='+cell.scored+
+        ' · 5m points +1/0/-1='+cell.wins+'/'+cell.neutral+'/'+cell.losses+'">'+pct(value)+
+        '<span class="accuracy">5m score '+score+' · n='+cell.scoreN+'</span></td>';
+    }).join('')+'</tr>').join('');
+    return '<section class="grid-panel"><h3>Betas estimated on past '+matrix.training_window_minutes+
+      ' minutes</h3><p>C8 · displayed mid · M=10</p><div class="matrix-wrap"><table class="result-matrix">'+
+      '<thead>'+head+'</thead><tbody>'+body+'</tbody></table></div></section>';
+  }).join('');
   document.getElementById('source').textContent=String(payload.drive_mode||'').toUpperCase()+' \u00B7 '+payload.history_length+' REFITS';
 }
 async function refresh(){try{const response=await fetch('/api/overview');render(await response.json());}
@@ -415,9 +435,8 @@ _BODY = """<!doctype html>
 <span class="spacer"></span><span class="stamp" id="source"></span>
 <button id="themeToggle" type="button" onclick="toggleTheme()">◐ DARK</button></header>
 <main class="matrix-page"><h2 class="matrix-title">CCZ OFI (C8) · displayed mid · 10 book levels</h2>
-<p class="matrix-subtitle">Each forecast refits C8 on only the preceding 30 minutes. Cells accumulate OOS R² as those live future outcomes become observable.</p>
-<div id="status" class="matrix-status"></div><div class="matrix-wrap">
-<table id="matrix" class="result-matrix" aria-label="CCZ OFI absolute out-of-sample R-squared by sampling and predicted horizon"></table></div>
+<p class="matrix-subtitle">Five identical grids compare how quickly C8 betas adapt when estimated on the past 2, 5, 10, 15 or 30 minutes.</p>
+<div id="status" class="matrix-status"></div><div id="matrices"></div>
 <p class="matrix-note"><b>5m score:</b> +1 when the realised move reaches the forecast magnitude in its direction; −1 when it reaches that magnitude in the opposite direction; 0 otherwise. The displayed score is the trailing-five-minute mean. R² remains cumulative from corrected-worker launch.</p></main>
 <script>__SCRIPT__</script></body></html>"""
 

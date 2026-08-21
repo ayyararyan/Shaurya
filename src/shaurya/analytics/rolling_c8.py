@@ -1,15 +1,16 @@
-"""Causal 30-minute rolling C8 forecasts for the live OFI table.
+"""Causal multi-window rolling C8 forecasts for the live OFI tables.
 
 At every forecast anchor the estimator sees only labelled anchors from the immediately preceding
-30 minutes whose complete response is already observable.  Forecasts are scored once their own
-future displayed-mid response matures.  The state is cumulative from worker launch and is never
-backfilled from already observed outcomes.
+declared estimation window whose complete response is already observable. Forecasts are scored
+once their own future displayed-mid response matures. New estimation windows are never backfilled
+from already observed outcomes.
 """
 
 from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from math import isfinite
@@ -29,8 +30,9 @@ from shaurya.signals.fixed_target_panel import (
 from shaurya.signals.ofi_horserace import HorseRaceObservation
 from shaurya.signals.reference_prices import PricePath
 
-SPECIFICATION_ID: Final = "D46 / ANL-06-ROLLING-C8-30M"
+SPECIFICATION_ID: Final = "D48 / ANL-06-MULTI-WINDOW-C8"
 TRAINING_WINDOW_SECONDS: Final = 30.0 * 60.0
+TRAINING_WINDOWS_SECONDS: Final = (120.0, 300.0, 600.0, 900.0, 1800.0)
 FORECAST_CADENCE_SECONDS: Final = 5.0
 WIN_SCORE_WINDOW_SECONDS: Final = 5.0 * 60.0
 LOOKBACKS_SECONDS: Final = (0.5, 1.0, 2.0, 5.0, 10.0)
@@ -38,8 +40,26 @@ HORIZONS_SECONDS: Final = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
 LEVELS: Final = 10
 
 
-def cell_key(lookback: float, horizon: float) -> str:
-    return f"{lookback:g}|{horizon:g}"
+def cell_key(
+    lookback: float,
+    horizon: float,
+    training_window_seconds: float = TRAINING_WINDOW_SECONDS,
+) -> str:
+    return f"{training_window_seconds / 60:g}m|{lookback:g}|{horizon:g}"
+
+
+def _canonical_key(value: Any, *, training_window_seconds: Any = None) -> str:
+    raw = str(value)
+    if raw.count("|") == 2:
+        return raw
+    if raw.count("|") != 1:
+        raise ValueError(f"invalid rolling C8 cell key {raw}")
+    window = (
+        float(training_window_seconds)
+        if training_window_seconds is not None
+        else TRAINING_WINDOW_SECONDS
+    )
+    return f"{window / 60:g}m|{raw}"
 
 
 def forecast_win_score(*, prediction: float, actual: float) -> int:
@@ -98,6 +118,7 @@ def fit_forecast_cell(
     forecast_position: int,
     lookback: float,
     horizon: float,
+    training_window_seconds: float = TRAINING_WINDOW_SECONDS,
 ) -> dict[str, Any]:
     forecast = observations[forecast_position]
     names = competitor_features("C8", lookback, LEVELS)
@@ -106,6 +127,7 @@ def fit_forecast_cell(
         forecast=forecast,
         lookback=lookback,
         horizon=horizon,
+        training_window_seconds=training_window_seconds,
     )
     if len(train) < MINIMUM_FIT_OBSERVATIONS:
         return {"status": "warming", "train_n": len(train)}
@@ -136,6 +158,103 @@ def fit_forecast_cell(
         "baseline_ticks": float(train_target.mean()),
         "selected_ridge_alpha": fit["selected_alpha"],
     }
+
+
+def fit_forecast_grid(
+    observations: Sequence[HorseRaceObservation], *, forecast_position: int
+) -> dict[tuple[float, float, float], dict[str, Any]]:
+    """Fit all declared cells while materialising each feature matrix only once."""
+
+    forecast = observations[forecast_position]
+    timestamps = np.asarray(
+        [observation.receive_ts_ns for observation in observations], dtype=np.int64
+    )
+    same_stream = np.asarray(
+        [
+            observation.tape_index == forecast.tape_index
+            and observation.connection_epoch == forecast.connection_epoch
+            for observation in observations
+        ],
+        dtype=np.bool_,
+    )
+    designs: dict[float, np.ndarray[Any, np.dtype[np.float64]]] = {}
+    usable: dict[float, np.ndarray[Any, np.dtype[np.bool_]]] = {}
+    names_by_lookback: dict[float, tuple[str, ...]] = {}
+    for lookback in LOOKBACKS_SECONDS:
+        names = competitor_features("C8", lookback, LEVELS)
+        names_by_lookback[lookback] = names
+        rows: list[list[float]] = []
+        valid: list[bool] = []
+        for observation in observations:
+            try:
+                row = [float(observation.features[name]) for name in names]
+            except KeyError:
+                row = [float("nan")] * len(names)
+            rows.append(row)
+            valid.append(all(isfinite(value) for value in row))
+        designs[lookback] = np.asarray(rows, dtype=np.float64)
+        usable[lookback] = np.asarray(valid, dtype=np.bool_)
+    targets: dict[float, np.ndarray[Any, np.dtype[np.float64]]] = {}
+    for horizon in HORIZONS_SECONDS:
+        targets[horizon] = np.asarray(
+            [
+                (
+                    float(value)
+                    if (value := observation.future_ticks.get(horizon)) is not None
+                    else np.nan
+                )
+                for observation in observations
+            ],
+            dtype=np.float64,
+        )
+
+    def fit_window(
+        training_window: float,
+    ) -> list[tuple[tuple[float, float, float], dict[str, Any]]]:
+        fitted: list[tuple[tuple[float, float, float], dict[str, Any]]] = []
+        lower = forecast.receive_ts_ns - int(training_window * 1_000_000_000)
+        for horizon in HORIZONS_SECONDS:
+            maturity = int((CAUSAL_GAP_SECONDS + horizon) * 1_000_000_000)
+            base = (
+                same_stream
+                & (timestamps >= lower)
+                & (timestamps + maturity <= forecast.receive_ts_ns)
+                & np.isfinite(targets[horizon])
+            )
+            for lookback in LOOKBACKS_SECONDS:
+                positions = np.flatnonzero(base & usable[lookback])
+                if positions.size < MINIMUM_FIT_OBSERVATIONS:
+                    result: dict[str, Any] = {
+                        "status": "warming",
+                        "train_n": int(positions.size),
+                    }
+                else:
+                    train_target = targets[horizon][positions]
+                    train_timestamps = timestamps[positions]
+                    prediction, fit = _fit_predictions(
+                        "C8",
+                        names_by_lookback[lookback],
+                        designs[lookback][positions],
+                        designs[lookback][forecast_position : forecast_position + 1],
+                        train_target,
+                        np.zeros(1, dtype=np.float64),
+                        train_timestamps,
+                    )
+                    result = {
+                        "status": "forecast",
+                        "train_n": int(positions.size),
+                        "training_start_ts_ns": int(train_timestamps[0]),
+                        "training_end_ts_ns": int(train_timestamps[-1]),
+                        "prediction_ticks": float(prediction[0]),
+                        "baseline_ticks": float(train_target.mean()),
+                        "selected_ridge_alpha": fit["selected_alpha"],
+                    }
+                fitted.append(((training_window, lookback, horizon), result))
+        return fitted
+
+    with ThreadPoolExecutor(max_workers=len(TRAINING_WINDOWS_SECONDS)) as executor:
+        windows = list(executor.map(fit_window, TRAINING_WINDOWS_SECONDS))
+    return {key: value for window in windows for key, value in window}
 
 
 @dataclass(slots=True)
@@ -219,24 +338,37 @@ class RollingC8Tracker:
             raise ValueError("rolling state is not an object")
         raw_accumulators = loaded.get("accumulators", {})
         raw_latest = loaded.get("latest_fit", {})
+        pending = [dict(value) for value in loaded.get("pending", []) if isinstance(value, dict)]
+        for record in pending:
+            window = record.setdefault("training_window_seconds", TRAINING_WINDOW_SECONDS)
+            record["training_window_minutes"] = float(window) / 60.0
+            record["cell_key"] = _canonical_key(
+                record.get("cell_key"), training_window_seconds=window
+            )
+        recent = [
+            dict(value)
+            for value in loaded.get("recent_win_scores", [])
+            if isinstance(value, dict)
+        ]
+        for record in recent:
+            window = record.setdefault("training_window_seconds", TRAINING_WINDOW_SECONDS)
+            record["cell_key"] = _canonical_key(
+                record.get("cell_key"), training_window_seconds=window
+            )
         return cls(
             started_at=str(loaded.get("started_at") or datetime.now(UTC).isoformat()),
             accumulators={
-                str(key): ScoreAccumulator.from_mapping(value)
+                _canonical_key(key): ScoreAccumulator.from_mapping(value)
                 for key, value in raw_accumulators.items()
                 if isinstance(value, dict)
             }
             if isinstance(raw_accumulators, dict)
             else {},
-            pending=[dict(value) for value in loaded.get("pending", []) if isinstance(value, dict)],
-            latest_fit={str(key): dict(value) for key, value in raw_latest.items()}
+            pending=pending,
+            latest_fit={_canonical_key(key): dict(value) for key, value in raw_latest.items()}
             if isinstance(raw_latest, dict)
             else {},
-            recent_win_scores=[
-                dict(value)
-                for value in loaded.get("recent_win_scores", [])
-                if isinstance(value, dict)
-            ],
+            recent_win_scores=recent,
             last_forecast_anchor_ts_ns=(
                 int(loaded["last_forecast_anchor_ts_ns"])
                 if loaded.get("last_forecast_anchor_ts_ns") is not None
@@ -257,32 +389,32 @@ class RollingC8Tracker:
         ):
             return []
         issued: list[dict[str, Any]] = []
-        for lookback in LOOKBACKS_SECONDS:
-            for horizon in HORIZONS_SECONDS:
-                fitted = fit_forecast_cell(
-                    observations,
-                    forecast_position=forecast_position,
-                    lookback=lookback,
-                    horizon=horizon,
-                )
-                key = cell_key(lookback, horizon)
-                self.latest_fit[key] = fitted
-                if fitted["status"] != "forecast":
-                    continue
-                record = {
-                    "cell_key": key,
-                    "lookback_seconds": lookback,
-                    "horizon_seconds": horizon,
-                    "forecast_anchor_ts_ns": anchor.receive_ts_ns,
-                    "response_start_ts_ns": anchor.receive_ts_ns
-                    + int(CAUSAL_GAP_SECONDS * 1_000_000_000),
-                    "response_end_ts_ns": anchor.receive_ts_ns
-                    + int((CAUSAL_GAP_SECONDS + horizon) * 1_000_000_000),
-                    **fitted,
-                }
-                self.pending.append(record)
-                self.accumulators.setdefault(key, ScoreAccumulator()).forecasts_issued += 1
-                issued.append(record)
+
+        fitted_grid = fit_forecast_grid(observations, forecast_position=forecast_position)
+        for training_window in TRAINING_WINDOWS_SECONDS:
+            for lookback in LOOKBACKS_SECONDS:
+                for horizon in HORIZONS_SECONDS:
+                    fitted = fitted_grid[(training_window, lookback, horizon)]
+                    key = cell_key(lookback, horizon, training_window)
+                    self.latest_fit[key] = fitted
+                    if fitted["status"] != "forecast":
+                        continue
+                    record = {
+                        "cell_key": key,
+                        "training_window_seconds": training_window,
+                        "training_window_minutes": training_window / 60.0,
+                        "lookback_seconds": lookback,
+                        "horizon_seconds": horizon,
+                        "forecast_anchor_ts_ns": anchor.receive_ts_ns,
+                        "response_start_ts_ns": anchor.receive_ts_ns
+                        + int(CAUSAL_GAP_SECONDS * 1_000_000_000),
+                        "response_end_ts_ns": anchor.receive_ts_ns
+                        + int((CAUSAL_GAP_SECONDS + horizon) * 1_000_000_000),
+                        **fitted,
+                    }
+                    self.pending.append(record)
+                    self.accumulators.setdefault(key, ScoreAccumulator()).forecasts_issued += 1
+                    issued.append(record)
         self.last_forecast_anchor_ts_ns = anchor.receive_ts_ns
         return issued
 
@@ -313,6 +445,9 @@ class RollingC8Tracker:
             self.recent_win_scores.append(
                 {
                     "cell_key": key,
+                    "training_window_seconds": float(
+                        record.get("training_window_seconds", TRAINING_WINDOW_SECONDS)
+                    ),
                     "forecast_anchor_ts_ns": int(record["forecast_anchor_ts_ns"]),
                     "response_end_ts_ns": int(record["response_end_ts_ns"]),
                     "win_score": point,
@@ -341,7 +476,11 @@ class RollingC8Tracker:
             )
             if not all(name in outcome for name in required):
                 continue
-            identity = (str(outcome["cell_key"]), int(outcome["forecast_anchor_ts_ns"]))
+            key = _canonical_key(
+                outcome["cell_key"],
+                training_window_seconds=outcome.get("training_window_seconds"),
+            )
+            identity = (key, int(outcome["forecast_anchor_ts_ns"]))
             if identity in existing:
                 continue
             point = outcome.get("win_score")
@@ -353,6 +492,9 @@ class RollingC8Tracker:
             self.recent_win_scores.append(
                 {
                     "cell_key": identity[0],
+                    "training_window_seconds": float(
+                        outcome.get("training_window_seconds", TRAINING_WINDOW_SECONDS)
+                    ),
                     "forecast_anchor_ts_ns": identity[1],
                     "response_end_ts_ns": int(outcome["response_end_ts_ns"]),
                     "win_score": int(point),
@@ -385,28 +527,31 @@ class RollingC8Tracker:
 
     def payload(self, *, source: Mapping[str, Any], status: str = "running") -> dict[str, Any]:
         cells: list[dict[str, Any]] = []
-        for lookback in LOOKBACKS_SECONDS:
-            for horizon in HORIZONS_SECONDS:
-                key = cell_key(lookback, horizon)
-                score = self.accumulators.get(key, ScoreAccumulator()).payload()
-                fit = self.latest_fit.get(key, {"status": "warming", "train_n": 0})
-                cells.append(
-                    {
-                        "cell_key": key,
-                        "lookback_seconds": lookback,
-                        "horizon_seconds": horizon,
-                        **score,
-                        **self.rolling_win_score(key),
-                        "latest_fit": fit,
-                    }
-                )
+        for training_window in TRAINING_WINDOWS_SECONDS:
+            for lookback in LOOKBACKS_SECONDS:
+                for horizon in HORIZONS_SECONDS:
+                    key = cell_key(lookback, horizon, training_window)
+                    score = self.accumulators.get(key, ScoreAccumulator()).payload()
+                    fit = self.latest_fit.get(key, {"status": "warming", "train_n": 0})
+                    cells.append(
+                        {
+                            "cell_key": key,
+                            "training_window_seconds": training_window,
+                            "training_window_minutes": training_window / 60.0,
+                            "lookback_seconds": lookback,
+                            "horizon_seconds": horizon,
+                            **score,
+                            **self.rolling_win_score(key),
+                            "latest_fit": fit,
+                        }
+                    )
         return {
-            "schema_version": "1.0.0",
+            "schema_version": "2.0.0",
             "specification_id": SPECIFICATION_ID,
             "status": status,
             "started_at": self.started_at,
             "updated_at": datetime.now(UTC).isoformat(),
-            "training_window_seconds": TRAINING_WINDOW_SECONDS,
+            "training_windows_seconds": list(TRAINING_WINDOWS_SECONDS),
             "forecast_cadence_seconds": FORECAST_CADENCE_SECONDS,
             "causal_gap_seconds": CAUSAL_GAP_SECONDS,
             "model": "C8",
