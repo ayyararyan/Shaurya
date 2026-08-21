@@ -58,6 +58,11 @@ def _parser() -> argparse.ArgumentParser:
         help="atomic D38/D39/D40 live-study state embedded in the dashboard",
     )
     parser.add_argument(
+        "--rolling-c8-state",
+        type=Path,
+        help="atomic causal 30-minute rolling C8 state used by the default table",
+    )
+    parser.add_argument(
         "--trading-date",
         type=date.fromisoformat,
         default=datetime.now(IST).date(),
@@ -195,7 +200,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     tail = access.follow(handle)
     tape = Path(handle.tape_path)
     engine, _ = _engine(args, tail, handle)
-    state = OfiDashboardState(engine, tail, live_studies_path=args.live_studies_state)
+    state = OfiDashboardState(
+        engine,
+        tail,
+        live_studies_path=args.live_studies_state,
+        rolling_c8_path=args.rolling_c8_state,
+    )
     server, _ = serve_in_background(state, host=args.host, port=args.port)
     print(f"ANL-06 read-only dashboard serving at http://{args.host}:{args.port}/", flush=True)
     started = time.monotonic()

@@ -409,6 +409,7 @@ def build_horserace_observations(
     level_counts: Sequence[int] = CCZ_LEVEL_COUNTS,
     effective_touch_window_seconds: float = PRIMARY_EFFECTIVE_TOUCH_WINDOW,
     response_horizons: Sequence[float] | None = None,
+    retain_unlabelled: bool = False,
 ) -> tuple[list[HorseRaceObservation], dict[str, Any]]:
     """Construct all predictors and responses at one common causal anchor clock.
 
@@ -620,7 +621,7 @@ def build_horserace_observations(
             failures["incomplete_history"] += 1
             continue
         response_anchor = state.receive_ts_ns + gap_ns
-        if mid_series.as_of(response_anchor) is None:
+        if not retain_unlabelled and mid_series.as_of(response_anchor) is None:
             failures["no_response_anchor"] += 1
             continue
         future: dict[float, float] = {}
@@ -633,7 +634,9 @@ def build_horserace_observations(
             mirror = _mid_return(mid_series, state.receive_ts_ns - horizon_ns, state.receive_ts_ns)
             if mirror is not None:
                 past[horizon] = mirror
-        if not any(horizon in future for horizon in RETURN_HORIZONS_SECONDS):
+        if not retain_unlabelled and not any(
+            horizon in future for horizon in RETURN_HORIZONS_SECONDS
+        ):
             failures["no_future_coverage"] += 1
             continue
         same: dict[float, float] = {}

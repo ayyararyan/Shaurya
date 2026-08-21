@@ -97,6 +97,14 @@ horizon across columns and predicted horizon down rows. D38, D39/D40 detail and 
 diagnostics remain available through complete read-only APIs; no measured field or artifact is
 deleted.
 
+### 6.2 Rolling-regime correction
+
+`docs/OFI-DASHBOARD-ROLLING-30M-AMENDMENT-2026-08-21.md` supersedes D39/D40 as the default
+table's value source. D38/D39/D40 continue running and remain available as historical/full-study
+APIs, but their moving-prefix 70/30 estimates must not be presented as the current-regime live
+forecast. The default table now reports only genuine post-launch forecasts from C8 coefficients
+re-estimated on the preceding 30 minutes.
+
 ## 7. Acceptance requirements
 
 - `LIVE-OPS-01`: complete-line prefix hashing refuses a torn trailing row.

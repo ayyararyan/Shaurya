@@ -24,6 +24,7 @@ from shaurya.analytics.ofi_dashboard import (
 from shaurya.analytics.ofi_dashboard_server import (
     ALLOWED_METHODS,
     MATRIX_HORIZONS_SECONDS,
+    MATRIX_LOOKBACKS_SECONDS,
     OfiDashboardState,
     build_server,
     compact_dashboard_payload,
@@ -474,10 +475,11 @@ def test_rendering_theme_and_matrix_view_field_parity(tmp_path: Path) -> None:
         "CCZ OFI (C8) · displayed mid · 10 book levels",
         "Sampling / lookback horizon \\u2192",
         "Predicted horizon \\u2193",
-        "Each cell is absolute held-out OOS R²",
-        "const HORIZONS=[0.5,1,2,5,10,20]",
-        "that combination was not estimated",
-        "Exploratory growing prefix",
+        "Each forecast refits C8 on only the preceding 30 minutes",
+        "const LOOKBACKS=[0.5,1,2,5,10],HORIZONS=[0.5,1,2,5,10,20]",
+        "no post-launch forecast has matured yet",
+        "Live walk-forward",
+        "Acc '+accuracy+' · n='+cell.scored",
         "READ-ONLY",
         "NO SOCKET",
         "NO ORDER PATH",
@@ -510,7 +512,7 @@ def test_rendering_theme_and_matrix_view_field_parity(tmp_path: Path) -> None:
     }
 
 
-def test_compact_matrix_payload_drops_bulk_state_and_maps_d39_and_d40() -> None:
+def test_compact_matrix_payload_uses_only_rolling_c8_scores() -> None:
     primary = {
         "reference_price": "displayed_mid",
         "levels": 10,
@@ -547,6 +549,22 @@ def test_compact_matrix_payload_drops_bulk_state_and_maps_d39_and_d40() -> None:
                 "rows": [{"horizon_seconds": 20.0, "absolute_oos_r2": -0.22}],
             },
         },
+        "rolling_c8": {
+            "status": "running",
+            "training_window_seconds": 1800.0,
+            "forecast_cadence_seconds": 5.0,
+            "source": {"last_receive_ts": "2026-08-21T05:12:02+00:00"},
+            "cells": [
+                {
+                    "lookback_seconds": 1.0,
+                    "horizon_seconds": 5.0,
+                    "cumulative_oos_r2": 0.13,
+                    "cumulative_direction_accuracy": 0.6,
+                    "scored_n": 25,
+                    "forecasts_issued": 27,
+                }
+            ],
+        },
     }
 
     compact = compact_dashboard_payload(payload)
@@ -554,17 +572,15 @@ def test_compact_matrix_payload_drops_bulk_state_and_maps_d39_and_d40() -> None:
     assert "cells" not in compact
     assert "ccz" not in compact
     assert compact["live_studies"]["d39"]["primary_displayed_mid_m10"] == [primary]
-    assert compact["matrix"]["h1_seconds"] == list(MATRIX_HORIZONS_SECONDS)
+    assert compact["matrix"]["h1_seconds"] == list(MATRIX_LOOKBACKS_SECONDS)
     assert compact["matrix"]["h2_seconds"] == list(MATRIX_HORIZONS_SECONDS)
     matrix_cells = {
         (cell["h1_seconds"], cell["h2_seconds"]): cell
         for cell in compact["matrix"]["cells"]
     }
-    assert matrix_cells[(1.0, 5.0)]["absolute_oos_r2"] == pytest.approx(0.07)
-    assert matrix_cells[(1.0, 5.0)]["source"] == "D39"
-    assert matrix_cells[(10.0, 20.0)]["absolute_oos_r2"] == pytest.approx(-0.22)
-    assert matrix_cells[(10.0, 20.0)]["source"] == "D40"
-    assert (20.0, 20.0) not in matrix_cells
+    assert matrix_cells[(1.0, 5.0)]["cumulative_oos_r2"] == pytest.approx(0.13)
+    assert matrix_cells[(1.0, 5.0)]["source"] == "rolling_c8_30m"
+    assert (10.0, 20.0) not in matrix_cells
     assert len(json.dumps(compact)) < len(json.dumps(payload))
 
 
@@ -600,17 +616,30 @@ def test_read_only_server_exposes_live_study_get_route_and_no_write_method(
     engine, tail = _empty_dashboard(tmp_path)
     live_path = tmp_path / "live-studies.json"
     live_path.write_text('{"status":"running","current_stage":"d40"}\n', encoding="utf-8")
-    state = OfiDashboardState(engine, tail, live_studies_path=live_path)
+    rolling_path = tmp_path / "rolling-c8.json"
+    rolling_path.write_text('{"status":"running","model":"C8"}\n', encoding="utf-8")
+    state = OfiDashboardState(
+        engine, tail, live_studies_path=live_path, rolling_c8_path=rolling_path
+    )
     server = build_server(state, port=0)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     base = f"http://127.0.0.1:{server.server_address[1]}"
     try:
-        for route in ("/", "/api/overview", "/api/state", "/api/cells", "/api/live-studies"):
+        for route in (
+            "/",
+            "/api/overview",
+            "/api/state",
+            "/api/cells",
+            "/api/live-studies",
+            "/api/rolling-c8",
+        ):
             with urllib.request.urlopen(base + route, timeout=2) as response:
                 assert response.status == 200
         with urllib.request.urlopen(base + "/api/live-studies", timeout=2) as response:
             assert json.load(response)["current_stage"] == "d40"
+        with urllib.request.urlopen(base + "/api/rolling-c8", timeout=2) as response:
+            assert json.load(response)["model"] == "C8"
         with pytest.raises(urllib.error.HTTPError) as missing_history:
             urllib.request.urlopen(base + "/api/history?index=0", timeout=2)
         assert missing_history.value.code == 404
@@ -654,6 +683,8 @@ def test_cli_module_has_no_socket_credential_or_order_path_import() -> None:
             "src/shaurya/cli/ofi_dashboard.py",
             "src/shaurya/analytics/live_ofi_studies.py",
             "src/shaurya/cli/live_ofi_studies.py",
+            "src/shaurya/analytics/rolling_c8.py",
+            "src/shaurya/cli/rolling_c8.py",
         )
     ).lower()
     forbidden_imports = (

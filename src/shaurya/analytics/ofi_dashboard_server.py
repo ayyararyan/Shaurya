@@ -18,6 +18,7 @@ from shaurya.analytics.ofi_dashboard import OfiDashboardEngine
 from shaurya.data.tape import CompleteLineJsonlTail
 
 ALLOWED_METHODS = ("GET", "HEAD")
+MATRIX_LOOKBACKS_SECONDS = (0.5, 1.0, 2.0, 5.0, 10.0)
 MATRIX_HORIZONS_SECONDS = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
 
 
@@ -119,37 +120,52 @@ def _compact_live_studies(live: Any) -> dict[str, Any]:
     }
 
 
-def _matrix_view(live: dict[str, Any]) -> dict[str, Any]:
-    d39 = _mapping(live.get("d39"))
-    d40 = _mapping(live.get("d40"))
+def _compact_rolling_c8(rolling: Any) -> dict[str, Any]:
+    value = _mapping(rolling)
+    if not value:
+        return {"status": "not_configured", "cells": []}
+    return {
+        key: value.get(key)
+        for key in (
+            "status",
+            "started_at",
+            "updated_at",
+            "training_window_seconds",
+            "forecast_cadence_seconds",
+            "causal_gap_seconds",
+            "model",
+            "reference_price",
+            "levels",
+            "source",
+            "last_forecast_anchor_ts_ns",
+            "pending_count",
+            "cells",
+            "metric_definition",
+            "confirmatory_eligible",
+        )
+    }
+
+
+def _matrix_view(rolling: dict[str, Any]) -> dict[str, Any]:
     values: dict[tuple[float, float], dict[str, Any]] = {}
-    for raw in _sequence(d39.get("primary_displayed_mid_m10")):
+    for raw in _sequence(rolling.get("cells")):
         row = _mapping(raw)
-        h1 = row.get("h1_seconds")
-        h2 = row.get("h2_seconds")
-        value = row.get("c8_ccz_ofi_absolute_oos_r2")
-        if h1 is None or h2 is None or value is None:
+        h1 = row.get("lookback_seconds")
+        h2 = row.get("horizon_seconds")
+        score = row.get("cumulative_oos_r2")
+        if h1 is None or h2 is None:
             continue
         values[(float(h1), float(h2))] = {
             "h1_seconds": float(h1),
             "h2_seconds": float(h2),
-            "absolute_oos_r2": value,
-            "source": "D39",
-        }
-    for raw in _sequence(d40.get("rows")):
-        row = _mapping(raw)
-        h2 = row.get("horizon_seconds")
-        value = row.get("absolute_oos_r2")
-        if h2 is None or value is None or float(h2) not in MATRIX_HORIZONS_SECONDS:
-            continue
-        values[(10.0, float(h2))] = {
-            "h1_seconds": 10.0,
-            "h2_seconds": float(h2),
-            "absolute_oos_r2": value,
-            "source": "D40",
+            "cumulative_oos_r2": score,
+            "cumulative_direction_accuracy": row.get("cumulative_direction_accuracy"),
+            "scored_n": row.get("scored_n", 0),
+            "forecasts_issued": row.get("forecasts_issued", 0),
+            "source": "rolling_c8_30m",
         }
     return {
-        "h1_seconds": list(MATRIX_HORIZONS_SECONDS),
+        "h1_seconds": list(MATRIX_LOOKBACKS_SECONDS),
         "h2_seconds": list(MATRIX_HORIZONS_SECONDS),
         "cells": [values[key] for key in sorted(values)],
     }
@@ -164,6 +180,7 @@ def compact_dashboard_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
     config = _mapping(payload.get("config"))
     live_studies = _compact_live_studies(payload.get("live_studies"))
+    rolling_c8 = _compact_rolling_c8(payload.get("rolling_c8"))
     return {
         "schema_version": payload.get("schema_version"),
         "drive_mode": payload.get("drive_mode"),
@@ -176,7 +193,8 @@ def compact_dashboard_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "axes": payload.get("axes", {}),
         "config": {"refit_cadence_seconds": config.get("refit_cadence_seconds")},
         "live_studies": live_studies,
-        "matrix": _matrix_view(live_studies),
+        "rolling_c8": rolling_c8,
+        "matrix": _matrix_view(rolling_c8),
         "confirmatory_eligible": payload.get("confirmatory_eligible", False),
         "read_only": payload.get("read_only", True),
         "no_socket": payload.get("no_socket", True),
@@ -191,10 +209,12 @@ class OfiDashboardState:
         tail: CompleteLineJsonlTail,
         *,
         live_studies_path: Path | None = None,
+        rolling_c8_path: Path | None = None,
     ) -> None:
         self.engine = engine
         self.tail = tail
         self.live_studies_path = live_studies_path
+        self.rolling_c8_path = rolling_c8_path
         self._lock = threading.RLock()
         self._cached_payload = self._engine_payload()
         self._cached_cells = self.engine.cells_payload()
@@ -224,6 +244,21 @@ class OfiDashboardState:
             return {"status": "unavailable", "error": "state_is_not_an_object"}
         return loaded
 
+    def rolling_c8(self) -> dict[str, Any]:
+        if self.rolling_c8_path is None:
+            return {"status": "not_configured"}
+        try:
+            loaded: Any = json.loads(self.rolling_c8_path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return {"status": "waiting_for_worker", "path": str(self.rolling_c8_path)}
+        except (OSError, json.JSONDecodeError) as exc:
+            return {
+                "status": "unavailable",
+                "path": str(self.rolling_c8_path),
+                "error": type(exc).__name__,
+            }
+        return loaded if isinstance(loaded, dict) else {"status": "unavailable"}
+
     def payload(self) -> dict[str, Any]:
         with self._lock:
             # A full 225-cell refit holds the engine lock for minutes. Serving the last complete
@@ -236,6 +271,7 @@ class OfiDashboardState:
             status_rail["refit_in_progress"] = self.engine.fit_in_progress
             value["status_rail"] = status_rail
             value["live_studies"] = self.live_studies()
+            value["rolling_c8"] = self.rolling_c8()
             return value
 
     def history(self, index: int) -> dict[str, Any]:
@@ -299,6 +335,7 @@ button { font:inherit; font-size:9px; letter-spacing:.14em; text-transform:upper
 .result-matrix td.positive { color:var(--sage); background:color-mix(in srgb,var(--sage) 8%,var(--panel)); }
 .result-matrix td.negative { color:var(--brick); background:color-mix(in srgb,var(--brick) 7%,var(--panel)); }
 .result-matrix td.missing { color:var(--ink3); }
+.result-matrix td .accuracy { display:block; margin-top:3px; color:var(--ink2); font-size:10px; }
 .matrix-note { margin-top:12px; color:var(--ink3); font-size:11px; }
 @media(max-width:620px) {
   header .stamp { display:none; }
@@ -307,7 +344,7 @@ button { font:inherit; font-size:9px; letter-spacing:.14em; text-transform:upper
 }
 """
 _SCRIPT = r"""
-const HORIZONS=[0.5,1,2,5,10,20];
+const LOOKBACKS=[0.5,1,2,5,10],HORIZONS=[0.5,1,2,5,10,20];
 let lastPayload=__PAYLOAD__;
 function themeName(){return document.documentElement.dataset.theme==='dark'?'dark':'light';}
 function applyTheme(name){
@@ -329,24 +366,29 @@ function clock(ts){
 function matrixValues(payload){
   const values=new Map();
   ((payload.matrix||{}).cells||[]).forEach(row=>values.set(Number(row.h1_seconds)+'|'+Number(row.h2_seconds),{
-    value:row.absolute_oos_r2,source:row.source}));
+    value:row.cumulative_oos_r2,accuracy:row.cumulative_direction_accuracy,
+    scored:row.scored_n,issued:row.forecasts_issued,source:row.source}));
   return values;
 }
 function render(payload){
-  lastPayload=payload; const studies=payload.live_studies||{},source=studies.source||{};
-  const d39=studies.d39||{},d40=studies.d40||{},values=matrixValues(payload);
+  lastPayload=payload; const rolling=payload.rolling_c8||{},source=rolling.source||{};
+  const values=matrixValues(payload);
   document.getElementById('status').innerHTML=[
     'Source through <b>'+clock(source.last_receive_ts)+'</b>',
-    'D39 <b>'+(d39.completed_cells||0)+' / '+(d39.total_cells||600)+'</b>',
-    'D40 <b>'+(d40.completed_cells||0)+' / '+(d40.total_cells||7)+'</b>',
-    '<b>Exploratory growing prefix</b>'
+    'Training window <b>past 30 min</b>',
+    'Forecast every <b>'+(rolling.forecast_cadence_seconds||5)+'s</b>',
+    'Pending outcomes <b>'+(rolling.pending_count||0)+'</b>',
+    '<b>Live walk-forward</b>'
   ].map(item=>'<span>'+item+'</span>').join('');
   const head='<tr><th class="corner"><span>Sampling / lookback horizon \u2192</span><strong>Predicted horizon \u2193</strong></th>'+
-    HORIZONS.map(h=>'<th>'+h+'s</th>').join('')+'</tr>';
-  const body=HORIZONS.map(h2=>'<tr><th>'+h2+'s</th>'+HORIZONS.map(h1=>{
-    const cell=values.get(h1+'|'+h2); if(!cell) return '<td class="missing">\u2014</td>';
+    LOOKBACKS.map(h=>'<th>'+h+'s</th>').join('')+'</tr>';
+  const body=HORIZONS.map(h2=>'<tr><th>'+h2+'s</th>'+LOOKBACKS.map(h1=>{
+    const cell=values.get(h1+'|'+h2); if(!cell||cell.value===null||cell.value===undefined)
+      return '<td class="missing" title="Waiting for matured live forecasts">\u2014</td>';
     const value=Number(cell.value); const cls=value>=0?'positive':'negative';
-    return '<td class="'+cls+'" title="'+cell.source+' C8 absolute OOS R-squared">'+pct(value)+'</td>';
+    const accuracy=cell.accuracy===null||cell.accuracy===undefined?'\u2014':pct(cell.accuracy);
+    return '<td class="'+cls+'" title="Cumulative OOS R-squared · n='+cell.scored+
+      '">'+pct(value)+'<span class="accuracy">Acc '+accuracy+' · n='+cell.scored+'</span></td>';
   }).join('')+'</tr>').join('');
   document.getElementById('matrix').innerHTML='<thead>'+head+'</thead><tbody>'+body+'</tbody>';
   document.getElementById('source').textContent=String(payload.drive_mode||'').toUpperCase()+' \u00B7 '+payload.history_length+' REFITS';
@@ -360,16 +402,16 @@ initTheme();render(lastPayload);setInterval(refresh,5000);
 _BODY = """<!doctype html>
 <html lang="en" data-theme="light"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Shaurya OFI — OOS R² table</title><style>__STYLE__</style></head>
-<body><header><h1>SHAURYA OFI / OOS R² TABLE</h1>
+<title>Shaurya OFI — rolling OOS R² table</title><style>__STYLE__</style></head>
+<body><header><h1>SHAURYA OFI / ROLLING OOS R²</h1>
 <span class="stamp"><strong>READ-ONLY</strong> · EXPLORATORY · NOT A SIGNAL · NO SOCKET · NO ORDER PATH</span>
 <span class="spacer"></span><span class="stamp" id="source"></span>
 <button id="themeToggle" type="button" onclick="toggleTheme()">◐ DARK</button></header>
 <main class="matrix-page"><h2 class="matrix-title">CCZ OFI (C8) · displayed mid · 10 book levels</h2>
-<p class="matrix-subtitle">Each cell is absolute held-out OOS R². Columns are the OFI sampling/lookback horizon; rows are the future price horizon.</p>
+<p class="matrix-subtitle">Each forecast refits C8 on only the preceding 30 minutes. Cells accumulate OOS R² as those live future outcomes become observable.</p>
 <div id="status" class="matrix-status"></div><div class="matrix-wrap">
 <table id="matrix" class="result-matrix" aria-label="CCZ OFI absolute out-of-sample R-squared by sampling and predicted horizon"></table></div>
-<p class="matrix-note"><b>—</b> = that combination was not estimated in the frozen D39/D40 specification. Values are provisional growing-prefix estimates; the closed-session recomputation is authoritative.</p></main>
+<p class="matrix-note"><b>—</b> = no post-launch forecast has matured yet. R² compares each forecast with that forecast's own rolling-training mean; hover a value for scored count and direction accuracy. Snapshot-implied net displayed OFI; exploratory, not an order signal.</p></main>
 <script>__SCRIPT__</script></body></html>"""
 
 
@@ -415,6 +457,9 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/live-studies":
             self._send(json.dumps(self.state.live_studies()).encode(), "application/json")
+            return
+        if parsed.path == "/api/rolling-c8":
+            self._send(json.dumps(self.state.rolling_c8()).encode(), "application/json")
             return
         if parsed.path == "/api/history":
             raw = parse_qs(parsed.query).get("index", ["0"])[0]

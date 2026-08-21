@@ -8,8 +8,10 @@
 **Directed by Aryan Ayyar:** 2026-08-21. The default dashboard must be a simple spreadsheet-style
 table, not a collection of cards, leaderboards, diagnostic grids or narrative summaries.
 
-**Interpretation change:** none. The selected displayed object is the exact common D39/D40 model:
-`C8`, displayed-mid target, `M=10`. No estimator, target, sample, inference rule or artifact changes.
+**Superseded value source:** D46 (`OFI-DASHBOARD-ROLLING-30M-AMENDMENT-2026-08-21.md`) replaces
+the fixed D39/D40 70/30 values below with causal 30-minute rolling live forecasts. This file still
+governs the simple table presentation; its original D39/D40 mapping is retained as historical
+traceability, not as the current dashboard estimator.
 
 ## 1. Default table
 

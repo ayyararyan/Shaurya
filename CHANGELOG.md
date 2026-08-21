@@ -5,6 +5,15 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### D46 — causal 30-minute rolling C8 forecasts
+
+- Replaced the default table's D39/D40 moving-prefix 70/30 values with genuine five-second
+  walk-forward forecasts refitted on the immediately preceding 30 minutes.
+- Added causal label-maturity gates, cumulative per-forecast-baseline OOS R2, directional
+  accuracy, MAE/RMSE/support, atomic state, and append-only forecast/outcome receipts.
+- Preserved D38/D39/D40 studies and APIs; clarified that Dhan provides snapshot-implied net OFI,
+  not separately identified gross arrival/cancellation intensities.
+
 ### D45 — simple OFI OOS R² matrix
 
 - Replaced the default 225-cell wall with one spreadsheet-style C8/displayed-mid/M10 table:

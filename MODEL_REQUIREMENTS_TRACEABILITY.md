@@ -77,6 +77,21 @@ artifacts and full read-only API objects remain unchanged.
 | `DASH-UX-04` | Unspecified 20-second combinations render missing and are never fabricated | **Implemented, tested** | `matrixValues`; table cell renderer | rendering/source acceptance and live browser check |
 | `DASH-UX-VAL-ALL` | Focused/full tests, Ruff, strict mypy, compile, browser and live endpoint checks | **Live verified** | repository-wide | 26 focused and 711 full tests; Ruff; strict mypy on 72 source files; compileall; JavaScript syntax; live `/api/overview` matrix parity; headless-browser render at port 8766 |
 
+## D46 rolling current-regime amendment — `ANL-06-ROLLING-C8-30M`
+
+**Binding amendment:** `docs/OFI-DASHBOARD-ROLLING-30M-AMENDMENT-2026-08-21.md`
+**Supersedes:** D45's D39/D40 value source, not the preserved D39/D40 studies or APIs.
+
+| ID | Requirement | Status | Code location | Test / acceptance evidence |
+|---|---|---|---|---|
+| `ROLL-DATA-01` | Tail complete rows from the active DAT tape with a bounded rolling buffer | **Implemented, tested** | `cli/rolling_c8.py:RollingTapeBuffer` | binary-offset dry run on active 3.0 GB tape; focused tests |
+| `ROLL-CAUSAL-01` | Train only on same-epoch anchors in preceding 30m whose labels matured by forecast time | **Implemented, tested** | `analytics/rolling_c8.py:causal_training_positions` | `test_training_is_last_30_minutes_and_every_label_is_mature` |
+| `ROLL-EST-01` | C8/displayed-mid/M10 ridge fit at 5s cadence for five lookbacks x six horizons | **Implemented, tested** | `analytics/rolling_c8.py:fit_forecast_cell`; `cli/rolling_c8.py` | focused fit test; active-tape dry run produced 30/30 forecasts |
+| `ROLL-OOS-01` | Issue forecasts before outcomes; score on maturity; never backfill startup history | **Implemented, tested** | `RollingC8Tracker.issue`, `.mature`, `.fresh` | fresh-tracker and maturity tests |
+| `ROLL-METRIC-01` | Cumulative R2 uses per-forecast rolling-training-mean baseline; retain accuracy/MAE/RMSE/support | **Implemented, tested** | `ScoreAccumulator` | exact synthetic cumulative-R2 test |
+| `ROLL-OUT-01` | Default table and compact API use rolling state only | **Live verified** | `analytics/ofi_dashboard_server.py` | compact/render/route tests; live `/api/overview` reports 30 rolling cells at port 8766 |
+| `ROLL-OPS-01` | Durable no-socket worker, atomic state, append-only forecast/outcome receipts | **Live verified** | `cli/rolling_c8.py`; `analytics/rolling_c8.py` | tmux `shaurya-rolling-c8-20260821`; all 30 cells issued and both 0.5s/20s outcomes matured |
+
 ## D39 additive matrix — `FIXED-TARGET-COMPETITOR-PANEL`
 
 **Specification:** `docs/D39-FIXED-TARGET-PANEL-SPEC-2026-08-21.md`
