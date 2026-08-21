@@ -1,7 +1,7 @@
 # D51 — Ten-second futures-mid feature-selection experiment
 
 **Specification ID:** `D51-10S-FEATURE-SELECTION-2026-08-21`  
-**Version:** `1.3.0`
+**Version:** `1.4.0`
 **Status:** Approved and frozen from Aryan's 2026-08-21 instruction  
 **Evidence boundary:** Any result using only the 2026-08-21 session is an **exploratory
 screening result**, never a stable or confirmatory feature finding.
@@ -58,6 +58,11 @@ would be a meaning-changing specification amendment.
 | `D51-MODEL-03` | Provide a dependency-light deterministic shallow gradient-boosted regression-tree challenger with bounded depth/leaves, learning rate, minimum leaf size and train-derived deterministic threshold candidates. A supplied validation set may select stopping iteration only; it cannot fit transforms or thresholds. |
 | `D51-MODEL-04` | Freeze elastic-net and boosted-tree structural grids before outcomes and expose zero-return, training-mean and declared-state linear baselines under the same finite prediction and regression-metric contracts. |
 | `D51-MODEL-05` | Save and deterministically read back complete apply-only model state for both predictive classes, including preprocessing and tree structure. Test rows are apply-only. |
+| `D51-IMP-01` | Treat the frozen correlation cluster as the smallest importance unit. Never rank or assign evidence to individual substitutable members; feature-family ablations remove whole declared clusters. |
+| `D51-IMP-02` | Measure conditional cluster/family usefulness by retraining the same fixed model/configuration on the same supplied training rows after dropping the whole unit. Define delta OOS R-squared as full minus ablated, so positive means useful. |
+| `D51-IMP-03` | Measure grouped permutation importance by jointly permuting every model column representing one cluster in deterministic contiguous evaluation-time blocks. Keep the full fitted model fixed and publish every predeclared repeat/seed. |
+| `D51-IMP-04` | Enforce identical ordered evaluation rows for every paired comparison and retain rowwise squared losses plus contiguous block sums/mean differences for later dependence-aware uncertainty. Do not perform inference or stability selection here. |
+| `D51-IMP-05` | Emit deterministic read-back-safe artifacts carrying model/config/split/data fingerprints, full cluster membership and representation columns, family, support, full/comparator metrics, delta/direction, paired losses and block-permutation identities. Evaluation targets may score comparisons but never choose clusters, families, models or configurations. |
 
 ## 3. Model-object and identification ledger
 
@@ -191,16 +196,53 @@ module also exposes zero-return, training-mean and caller-declared state-only ri
 common prediction result, and finite MSE/MAE, R-squared, correlation and directional-accuracy
 metrics. Model JSON includes every apply-time quantity and uses stable key ordering.
 
-## 8. Explicit exclusions through Step 4
+## 8. Conditional out-of-sample usefulness (Step 5)
 
-Sparse group lasso, stability selection, walk-forward split construction, purging/embargo
-implementation, hyperparameter/model selection, importance, ablation, economic selection and
-empirical fitting remain owned by later steps. Step 4 accepts already-declared training and
-optional validation rows but does not create folds or touch a test target during fitting. PCA is
-available only as the Step-3 cluster representation above. No trade or deployment claim follows
-from the construction, quality-gate, correlation-reduction or predictive-model interfaces.
+Step 5 consumes caller-supplied training, optional validation and evaluation rows. It neither
+constructs a fold nor selects a model/configuration. A declared `ImportanceClusterDefinition`
+records the complete correlated membership, the one or more columns that represent that cluster
+in the supplied model rows, and its economic feature family. Representation columns must be a
+partition: one model column cannot receive separate credit in two clusters.
 
-## 9. Acceptance tests
+For a cluster `g`, the fixed-model retraining estimand is
+
+\[
+I_g=R^2_{\mathrm{OOS,full}}-R^2_{\mathrm{OOS,drop}\ g},
+\]
+
+where both R-squared values use the training-target mean as the held-out benchmark. Positive
+`I_g` means that dropping the complete cluster harmed future held-out fit. Zero and negative
+values remain visible. Every drop fit relearns its preprocessing and predictor on the identical
+supplied training rows; optional validation can only select boosted-tree stopping iteration under
+the Step-4 rule. Evaluation rows and targets are apply/score-only. A family ablation uses the same
+operation after removing every whole cluster assigned to that declared family.
+
+Grouped block permutation keeps the full fitted model fixed. In the caller's ordered evaluation
+rows, it partitions observations into contiguous blocks of the frozen size, deterministically
+permutes equal-length block order, and jointly moves every representation column belonging to one
+cluster. The trailing partial block cannot be exchanged with a differently sized block. Seeds are
+derived deterministically from the frozen base seed, canonical cluster order and repeat number;
+every repeat is published separately rather than searched for a favourable result.
+
+All comparisons require the exact same unique ordered evaluation-row IDs. Their artifact retains
+the full and comparator squared loss for every common row, their paired difference, and contiguous
+loss-block sums/mean differences. These are uncertainty-ready inputs, not confidence intervals or
+claims of independent observations. The artifact also records stable SHA-256 identities for the
+resolved configuration, split row IDs, supplied data/targets and fitted full model, plus comparator
+model or permuted-input identities as applicable. No impurity importance or SHAP quantity exists in
+the Step-5 contract.
+
+## 9. Explicit exclusions through Step 5
+
+Sparse group lasso, multi-fold stability selection, walk-forward split construction,
+purging/embargo implementation, hyperparameter/model selection, promotion decisions,
+dependence-aware inference, economic selection and empirical fitting remain owned by later steps.
+Step 5 accepts already-declared training, optional validation and evaluation rows but does not
+create folds or touch an evaluation target during fitting. PCA is available only as the Step-3
+cluster representation above. No trade or deployment claim follows from the construction,
+quality-gate, correlation-reduction, predictive-model or usefulness interfaces.
+
+## 10. Acceptance tests
 
 1. Registry names are unique and contain every frozen family/axis.
 2. Target geometry is exactly anchor + 0.5 seconds to anchor + 10.5 seconds.
@@ -241,10 +283,25 @@ from the construction, quality-gate, correlation-reduction or predictive-model i
     baselines use the common prediction and metric contracts.
 24. No Step-4 test or implementation performs a real-data fit, hyperparameter/model selection,
     cluster importance, ablation, stability selection, fold construction or order-path action.
+25. A synthetic known-signal cluster has positive full-minus-drop OOS R-squared while a declared
+    noise cluster is near zero.
+26. Redundant substitutes are removed and permuted jointly; no result ranks or allocates credit to
+    either individual member.
+27. Feature-family ablations remove complete declared clusters and publish the same full-model
+    reference metrics.
+28. Grouped permutation jointly moves all cluster representation columns in contiguous blocks;
+    repeated runs with the same seeds are exactly deterministic.
+29. A comparison on differing, reordered or duplicate row IDs fails rather than silently changing
+    support; every valid result retains rowwise and contiguous-block paired losses.
+30. Mutating evaluation targets can alter scores/data identity but cannot alter the fitted full
+    model, resolved configuration or split identity.
+31. The complete importance artifact serializes and reads back exactly with its cluster membership,
+    support, metrics, deltas, directions, loss blocks and fingerprints intact.
 
-## 10. Completion criterion
+## 11. Completion criterion
 
-Steps 1--4 are complete at evidence level 2 when this specification, registry/construction,
-gate, correlation-reduction and two-class predictive-model code, traceability rows and focused
-deterministic tests are committed and passing. No empirical result or model choice is required or
-claimed at this stage.
+Steps 1--5 are complete at evidence level 2 when this specification, registry/construction,
+gate, correlation-reduction, two-class predictive-model and conditional-cluster-usefulness code,
+traceability rows and focused deterministic tests are committed and passing. No fold construction,
+multi-fold stability result, empirical result or model/cluster promotion is required or claimed at
+this stage.

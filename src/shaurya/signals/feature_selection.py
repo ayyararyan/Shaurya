@@ -1,10 +1,11 @@
 """D51 causal feature-selection foundation for the ten-second futures-mid experiment.
 
-Steps 1--2 construct and quality-gate canonical OFI, LOB and eSSVI features.  Step 3 reduces
+Steps 1--2 construct and quality-gate canonical OFI, LOB and eSSVI features. Step 3 reduces
 correlated features using training rows only. Step 4 supplies a transparent elastic-net baseline
-and a deterministic shallow boosted-tree challenger. It deliberately stops before importance,
-stability selection, fold construction or empirical evaluation. The frozen design is
-``docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md``.
+and a deterministic shallow boosted-tree challenger. Step 5 measures conditional held-out
+usefulness only for whole correlation clusters and feature families. It deliberately stops before
+stability selection, fold construction, promotion decisions or empirical evaluation. The frozen
+design is ``docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md``.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ import json
 import math
 from bisect import bisect_right
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Final, Literal, cast
 
 import numpy as np
@@ -38,7 +39,7 @@ from shaurya.signals.surface_futures_predictive import (
 )
 
 SPECIFICATION_ID: Final = "D51-10S-FEATURE-SELECTION-2026-08-21"
-SPECIFICATION_VERSION: Final = "1.3.0"
+SPECIFICATION_VERSION: Final = "1.4.0"
 DESIGN_DOCUMENT: Final = "docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md"
 REGISTRY_VERSION: Final = "d51-feature-registry-v1"
 TARGET_REGISTRY_VERSION: Final = "d51-target-registry-v1"
@@ -47,6 +48,7 @@ EVIDENCE_LABEL: Final = "exploratory_screening_today_only"
 GATE_ARTIFACT_VERSION: Final = "d51-quality-gates-v1"
 CORRELATION_ARTIFACT_VERSION: Final = "d51-correlation-reduction-v1"
 PREDICTIVE_MODEL_ARTIFACT_VERSION: Final = "d51-predictive-model-v1"
+CONDITIONAL_USEFULNESS_ARTIFACT_VERSION: Final = "d51-conditional-usefulness-v1"
 CORRELATION_SENSITIVITY_THRESHOLDS: Final = (0.85, 0.90, 0.95)
 PRIMARY_CORRELATION_THRESHOLD: Final = 0.90
 
@@ -581,6 +583,112 @@ class RegressionMetrics:
     r_squared_vs_training_mean: float | None
     pearson_correlation: float | None
     directional_accuracy: float
+
+
+UsefulnessDirection = Literal["positive", "zero", "negative"]
+ComparisonKind = Literal["drop_cluster", "drop_family", "block_permutation"]
+
+
+@dataclass(frozen=True, slots=True)
+class ImportanceClusterDefinition:
+    """One indivisible evidence unit and the columns used to represent it in a model."""
+
+    cluster_id: str
+    members: tuple[str, ...]
+    model_features: tuple[str, ...]
+    family: str
+
+    def __post_init__(self) -> None:
+        if not self.cluster_id or not self.family:
+            raise ValueError("cluster id and family must be non-empty")
+        if not self.members or len(self.members) != len(set(self.members)):
+            raise ValueError("cluster members must be non-empty and unique")
+        if not self.model_features or len(self.model_features) != len(set(self.model_features)):
+            raise ValueError("cluster model features must be non-empty and unique")
+
+
+@dataclass(frozen=True, slots=True)
+class ConditionalUsefulnessConfig:
+    """Frozen Step-5 comparison policy; it does not select a model or evidence unit."""
+
+    model_kind: Literal["elastic_net", "shallow_gradient_boosting"] = "elastic_net"
+    elastic_net: ElasticNetConfig = ElasticNetConfig()
+    boosted_tree: BoostedTreeConfig = BoostedTreeConfig()
+    permutation_block_size: int = 10
+    permutation_repeats: int = 10
+    permutation_seed: int = 51_202_608
+    loss_block_size: int = 10
+
+    def __post_init__(self) -> None:
+        if self.permutation_block_size < 1 or self.permutation_repeats < 1:
+            raise ValueError("permutation block size and repeats must be positive")
+        if self.permutation_seed < 0:
+            raise ValueError("permutation seed must be non-negative")
+        if self.loss_block_size < 1:
+            raise ValueError("loss block size must be positive")
+
+
+@dataclass(frozen=True, slots=True)
+class PairedLossBlock:
+    block_index: int
+    first_row_id: str
+    last_row_id: str
+    observation_count: int
+    full_squared_loss_sum: float
+    comparator_squared_loss_sum: float
+    comparator_minus_full_mean_squared_loss: float
+
+
+@dataclass(frozen=True, slots=True)
+class PairedLossComparison:
+    common_row_count: int
+    common_row_fingerprint_sha256: str
+    full_squared_losses: tuple[float, ...]
+    comparator_squared_losses: tuple[float, ...]
+    comparator_minus_full_squared_losses: tuple[float, ...]
+    blocks: tuple[PairedLossBlock, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class UsefulnessComparison:
+    comparison_kind: ComparisonKind
+    comparison_id: str
+    cluster_ids: tuple[str, ...]
+    model_features: tuple[str, ...]
+    support_training_rows: int
+    support_validation_rows: int
+    support_evaluation_rows: int
+    comparator_model_fingerprint_sha256: str | None
+    comparator_input_fingerprint_sha256: str | None
+    full_metrics: RegressionMetrics
+    comparator_metrics: RegressionMetrics
+    delta_oos_r_squared: float
+    direction: UsefulnessDirection
+    paired_losses: PairedLossComparison
+    permutation_repeat: int | None = None
+    permutation_seed: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ConditionalUsefulnessArtifact:
+    version: str
+    specification_id: str
+    specification_version: str
+    evidence_label: str
+    importance_unit: Literal["cluster"]
+    config: ConditionalUsefulnessConfig
+    config_fingerprint_sha256: str
+    split_fingerprint_sha256: str
+    data_fingerprint_sha256: str
+    full_model_fingerprint_sha256: str
+    cluster_definitions: tuple[ImportanceClusterDefinition, ...]
+    training_row_ids: tuple[str, ...]
+    validation_row_ids: tuple[str, ...]
+    evaluation_row_ids: tuple[str, ...]
+    full_metrics: RegressionMetrics
+    cluster_ablation_comparisons: tuple[UsefulnessComparison, ...]
+    family_ablation_comparisons: tuple[UsefulnessComparison, ...]
+    block_permutation_comparisons: tuple[UsefulnessComparison, ...]
 
 
 def _surface_level_names() -> tuple[str, ...]:
@@ -2332,3 +2440,542 @@ def predictive_model_from_json(encoded: str) -> PredictiveModel:
             ),
         )
     raise ValueError(f"unknown predictive model kind: {kind!r}")
+
+
+def _stable_sha256(payload: object) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _metrics_oos_r_squared(metrics: RegressionMetrics) -> float:
+    value = metrics.r_squared_vs_training_mean
+    if value is None:
+        raise ValueError("OOS R-squared is undefined because evaluation targets have zero variance")
+    return value
+
+
+def _usefulness_direction(delta: float) -> UsefulnessDirection:
+    if delta > 1e-15:
+        return "positive"
+    if delta < -1e-15:
+        return "negative"
+    return "zero"
+
+
+def paired_common_row_loss_comparison(
+    *,
+    full_row_ids: Sequence[str],
+    comparator_row_ids: Sequence[str],
+    targets: Sequence[float],
+    full_predictions: Sequence[float],
+    comparator_predictions: Sequence[float],
+    block_size: int,
+) -> PairedLossComparison:
+    """Return paired squared losses only when both models score the exact same ordered rows."""
+
+    full_ids = tuple(full_row_ids)
+    comparator_ids = tuple(comparator_row_ids)
+    if not full_ids or full_ids != comparator_ids:
+        raise ValueError("full and comparator predictions must use identical ordered common rows")
+    if len(full_ids) != len(set(full_ids)):
+        raise ValueError("common-row identifiers must be unique")
+    if block_size < 1:
+        raise ValueError("loss block size must be positive")
+    target = _validate_targets(targets, len(full_ids))
+    full = np.asarray(full_predictions, dtype=float)
+    comparator = np.asarray(comparator_predictions, dtype=float)
+    if full.shape != target.shape or comparator.shape != target.shape:
+        raise ValueError("paired predictions must match common-row target length")
+    if not np.all(np.isfinite(full)) or not np.all(np.isfinite(comparator)):
+        raise ValueError("paired predictions must be finite")
+    full_losses = (target - full) ** 2
+    comparator_losses = (target - comparator) ** 2
+    difference = comparator_losses - full_losses
+    blocks: list[PairedLossBlock] = []
+    for block_index, start in enumerate(range(0, len(full_ids), block_size)):
+        stop = min(start + block_size, len(full_ids))
+        blocks.append(
+            PairedLossBlock(
+                block_index,
+                full_ids[start],
+                full_ids[stop - 1],
+                stop - start,
+                float(np.sum(full_losses[start:stop])),
+                float(np.sum(comparator_losses[start:stop])),
+                float(np.mean(difference[start:stop])),
+            )
+        )
+    return PairedLossComparison(
+        len(full_ids),
+        _stable_sha256({"ordered_common_row_ids": full_ids}),
+        tuple(float(value) for value in full_losses),
+        tuple(float(value) for value in comparator_losses),
+        tuple(float(value) for value in difference),
+        tuple(blocks),
+    )
+
+
+def _fit_usefulness_model(
+    training_rows: Sequence[ModelInputRow],
+    training_targets: Sequence[float],
+    *,
+    feature_names: tuple[str, ...],
+    config: ConditionalUsefulnessConfig,
+    validation_rows: Sequence[ModelInputRow] | None,
+    validation_targets: Sequence[float] | None,
+) -> PredictiveModel:
+    if not feature_names:
+        return fit_training_mean_baseline(training_targets)
+    if config.model_kind == "elastic_net":
+        return fit_elastic_net(
+            training_rows,
+            training_targets,
+            feature_names=feature_names,
+            config=config.elastic_net,
+        )
+    return fit_shallow_gradient_boosting(
+        training_rows,
+        training_targets,
+        feature_names=feature_names,
+        config=config.boosted_tree,
+        validation_rows=validation_rows,
+        validation_targets=validation_targets,
+    )
+
+
+def _importance_config_payload(config: ConditionalUsefulnessConfig) -> Mapping[str, object]:
+    return cast(Mapping[str, object], asdict(config))
+
+
+def _data_fingerprint_payload(
+    rows: Sequence[ModelInputRow], targets: Sequence[float], row_ids: Sequence[str]
+) -> tuple[Mapping[str, object], ...]:
+    return tuple(
+        {
+            "row_id": row_id,
+            "target": float(target),
+            "values": tuple(
+                sorted(
+                    (name, _finite(value))
+                    for name, value in _model_row_values(row).items()
+                )
+            ),
+        }
+        for row, target, row_id in zip(rows, targets, row_ids, strict=True)
+    )
+
+
+def _block_permuted_rows(
+    rows: Sequence[ModelInputRow],
+    *,
+    permuted_features: tuple[str, ...],
+    block_size: int,
+    seed: int,
+) -> tuple[Mapping[str, float | None], ...]:
+    if len(rows) < 2 * block_size:
+        raise ValueError("block permutation requires at least two complete blocks")
+    blocks = tuple(
+        tuple(range(start, min(start + block_size, len(rows))))
+        for start in range(0, len(rows), block_size)
+    )
+    sources_by_length: dict[int, list[tuple[int, ...]]] = {}
+    for block in blocks:
+        sources_by_length.setdefault(len(block), []).append(block)
+    rng = np.random.default_rng(seed)
+    source_for_destination: dict[int, int] = {}
+    for length in sorted(sources_by_length):
+        destinations = sources_by_length[length]
+        order = rng.permutation(len(destinations))
+        for destination, source_position in zip(destinations, order, strict=True):
+            source = destinations[int(source_position)]
+            for destination_index, source_index in zip(destination, source, strict=True):
+                source_for_destination[destination_index] = source_index
+    result: list[Mapping[str, float | None]] = []
+    for row_index, row in enumerate(rows):
+        values = dict(_model_row_values(row))
+        source_values = _model_row_values(rows[source_for_destination[row_index]])
+        for name in permuted_features:
+            values[name] = source_values.get(name)
+        result.append(values)
+    return tuple(result)
+
+
+def evaluate_conditional_oos_usefulness(
+    *,
+    training_rows: Sequence[ModelInputRow],
+    training_targets: Sequence[float],
+    training_row_ids: Sequence[str],
+    evaluation_rows: Sequence[ModelInputRow],
+    evaluation_targets: Sequence[float],
+    evaluation_row_ids: Sequence[str],
+    cluster_definitions: Sequence[ImportanceClusterDefinition],
+    config: ConditionalUsefulnessConfig | None = None,
+    validation_rows: Sequence[ModelInputRow] | None = None,
+    validation_targets: Sequence[float] | None = None,
+    validation_row_ids: Sequence[str] | None = None,
+) -> ConditionalUsefulnessArtifact:
+    """Measure conditional held-out usefulness without selecting clusters, models or folds.
+
+    Drop comparisons refit the requested fixed model after removing a whole cluster or all
+    clusters in one declared family. Block permutation keeps the full fitted model fixed and
+    jointly moves every representation column for a cluster in contiguous blocks. Evaluation
+    targets are used only for apply-only metrics and paired losses.
+    """
+
+    policy = config or ConditionalUsefulnessConfig()
+    clusters = tuple(sorted(cluster_definitions, key=lambda item: item.cluster_id))
+    if not clusters or len({item.cluster_id for item in clusters}) != len(clusters):
+        raise ValueError("cluster definitions must be non-empty with unique ids")
+    members = tuple(name for cluster in clusters for name in cluster.members)
+    if len(members) != len(set(members)):
+        raise ValueError("correlated feature members cannot be split across clusters")
+    model_features = tuple(
+        name for cluster in clusters for name in cluster.model_features
+    )
+    if len(model_features) != len(set(model_features)):
+        raise ValueError("model features cannot be split across correlation clusters")
+    train_ids = tuple(training_row_ids)
+    eval_ids = tuple(evaluation_row_ids)
+    if len(train_ids) != len(training_rows) or len(eval_ids) != len(evaluation_rows):
+        raise ValueError("row identifiers must match their supplied split rows")
+    if not train_ids or not eval_ids or len(set(train_ids)) != len(train_ids):
+        raise ValueError("training/evaluation row identifiers must be non-empty and unique")
+    if len(set(eval_ids)) != len(eval_ids) or set(train_ids) & set(eval_ids):
+        raise ValueError("training and evaluation identifiers must be unique and disjoint")
+    _validate_targets(training_targets, len(training_rows))
+    _validate_targets(evaluation_targets, len(evaluation_rows))
+    if (validation_rows is None) != (validation_targets is None) or (
+        validation_rows is None
+    ) != (validation_row_ids is None):
+        raise ValueError("validation rows, targets and identifiers must be supplied together")
+    validation_ids = tuple(validation_row_ids or ())
+    if validation_rows is not None and validation_targets is not None:
+        _validate_targets(validation_targets, len(validation_rows))
+        if len(validation_ids) != len(validation_rows) or len(set(validation_ids)) != len(
+            validation_ids
+        ):
+            raise ValueError("validation identifiers must match rows and be unique")
+        if (set(validation_ids) & set(train_ids)) or (set(validation_ids) & set(eval_ids)):
+            raise ValueError("training, validation and evaluation identifiers must be disjoint")
+
+    training_mean = float(np.mean(np.asarray(training_targets, dtype=float)))
+    full_model = _fit_usefulness_model(
+        training_rows,
+        training_targets,
+        feature_names=model_features,
+        config=policy,
+        validation_rows=validation_rows,
+        validation_targets=validation_targets,
+    )
+    full_model_json = predictive_model_to_json(full_model)
+    full_predictions = predict_model(full_model, evaluation_rows).predictions
+    full_metrics = regression_metrics(
+        evaluation_targets, full_predictions, training_mean=training_mean
+    )
+    full_r_squared = _metrics_oos_r_squared(full_metrics)
+
+    def drop_comparison(
+        *, comparison_kind: Literal["drop_cluster", "drop_family"],
+        comparison_id: str,
+        dropped: tuple[ImportanceClusterDefinition, ...],
+    ) -> UsefulnessComparison:
+        dropped_features = {name for item in dropped for name in item.model_features}
+        retained = tuple(name for name in model_features if name not in dropped_features)
+        comparator_model = _fit_usefulness_model(
+            training_rows,
+            training_targets,
+            feature_names=retained,
+            config=policy,
+            validation_rows=validation_rows,
+            validation_targets=validation_targets,
+        )
+        comparator_json = predictive_model_to_json(comparator_model)
+        comparator_predictions = predict_model(comparator_model, evaluation_rows).predictions
+        comparator_metrics = regression_metrics(
+            evaluation_targets, comparator_predictions, training_mean=training_mean
+        )
+        delta = full_r_squared - _metrics_oos_r_squared(comparator_metrics)
+        paired = paired_common_row_loss_comparison(
+            full_row_ids=eval_ids,
+            comparator_row_ids=eval_ids,
+            targets=evaluation_targets,
+            full_predictions=full_predictions,
+            comparator_predictions=comparator_predictions,
+            block_size=policy.loss_block_size,
+        )
+        return UsefulnessComparison(
+            comparison_kind,
+            comparison_id,
+            tuple(item.cluster_id for item in dropped),
+            tuple(name for item in dropped for name in item.model_features),
+            len(training_rows),
+            0 if validation_rows is None else len(validation_rows),
+            len(evaluation_rows),
+            hashlib.sha256(comparator_json.encode("utf-8")).hexdigest(),
+            None,
+            full_metrics,
+            comparator_metrics,
+            delta,
+            _usefulness_direction(delta),
+            paired,
+        )
+
+    cluster_comparisons = tuple(
+        drop_comparison(
+            comparison_kind="drop_cluster",
+            comparison_id=cluster.cluster_id,
+            dropped=(cluster,),
+        )
+        for cluster in clusters
+    )
+    family_comparisons = tuple(
+        drop_comparison(
+            comparison_kind="drop_family",
+            comparison_id=family,
+            dropped=tuple(item for item in clusters if item.family == family),
+        )
+        for family in sorted({item.family for item in clusters})
+    )
+    permutation_comparisons: list[UsefulnessComparison] = []
+    for cluster_index, cluster in enumerate(clusters):
+        for repeat in range(policy.permutation_repeats):
+            seed = policy.permutation_seed + cluster_index * policy.permutation_repeats + repeat
+            permuted_rows = _block_permuted_rows(
+                evaluation_rows,
+                permuted_features=cluster.model_features,
+                block_size=policy.permutation_block_size,
+                seed=seed,
+            )
+            comparator_predictions = predict_model(full_model, permuted_rows).predictions
+            comparator_metrics = regression_metrics(
+                evaluation_targets, comparator_predictions, training_mean=training_mean
+            )
+            delta = full_r_squared - _metrics_oos_r_squared(comparator_metrics)
+            paired = paired_common_row_loss_comparison(
+                full_row_ids=eval_ids,
+                comparator_row_ids=eval_ids,
+                targets=evaluation_targets,
+                full_predictions=full_predictions,
+                comparator_predictions=comparator_predictions,
+                block_size=policy.loss_block_size,
+            )
+            permutation_comparisons.append(
+                UsefulnessComparison(
+                    "block_permutation",
+                    cluster.cluster_id,
+                    (cluster.cluster_id,),
+                    cluster.model_features,
+                    len(training_rows),
+                    0 if validation_rows is None else len(validation_rows),
+                    len(evaluation_rows),
+                    None,
+                    _stable_sha256(
+                        {
+                            "seed": seed,
+                            "rows": _data_fingerprint_payload(
+                                permuted_rows, evaluation_targets, eval_ids
+                            ),
+                        }
+                    ),
+                    full_metrics,
+                    comparator_metrics,
+                    delta,
+                    _usefulness_direction(delta),
+                    paired,
+                    repeat,
+                    seed,
+                )
+            )
+
+    split_fingerprint = _stable_sha256(
+        {"training": train_ids, "validation": validation_ids, "evaluation": eval_ids}
+    )
+    data_payload: dict[str, object] = {
+        "training": _data_fingerprint_payload(training_rows, training_targets, train_ids),
+        "evaluation": _data_fingerprint_payload(evaluation_rows, evaluation_targets, eval_ids),
+    }
+    if validation_rows is not None and validation_targets is not None:
+        data_payload["validation"] = _data_fingerprint_payload(
+            validation_rows, validation_targets, validation_ids
+        )
+    return ConditionalUsefulnessArtifact(
+        CONDITIONAL_USEFULNESS_ARTIFACT_VERSION,
+        SPECIFICATION_ID,
+        SPECIFICATION_VERSION,
+        EVIDENCE_LABEL,
+        "cluster",
+        policy,
+        _stable_sha256(_importance_config_payload(policy)),
+        split_fingerprint,
+        _stable_sha256(data_payload),
+        hashlib.sha256(full_model_json.encode("utf-8")).hexdigest(),
+        clusters,
+        train_ids,
+        validation_ids,
+        eval_ids,
+        full_metrics,
+        cluster_comparisons,
+        family_comparisons,
+        tuple(permutation_comparisons),
+    )
+
+
+def conditional_usefulness_artifact_to_json(artifact: ConditionalUsefulnessArtifact) -> str:
+    """Serialize the complete Step-5 audit record with stable key ordering."""
+
+    return json.dumps(asdict(artifact), sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def _metrics_from_payload(payload: Mapping[str, object]) -> RegressionMetrics:
+    correlation = payload["pearson_correlation"]
+    zero_r2 = payload["r_squared_vs_zero"]
+    mean_r2 = payload["r_squared_vs_training_mean"]
+    return RegressionMetrics(
+        int(cast(int, payload["observation_count"])),
+        float(cast(float, payload["mean_squared_error"])),
+        float(cast(float, payload["mean_absolute_error"])),
+        None if zero_r2 is None else float(cast(float, zero_r2)),
+        None if mean_r2 is None else float(cast(float, mean_r2)),
+        None if correlation is None else float(cast(float, correlation)),
+        float(cast(float, payload["directional_accuracy"])),
+    )
+
+
+def _paired_losses_from_payload(payload: Mapping[str, object]) -> PairedLossComparison:
+    blocks = tuple(
+        PairedLossBlock(
+            int(cast(int, item["block_index"])),
+            str(item["first_row_id"]),
+            str(item["last_row_id"]),
+            int(cast(int, item["observation_count"])),
+            float(cast(float, item["full_squared_loss_sum"])),
+            float(cast(float, item["comparator_squared_loss_sum"])),
+            float(cast(float, item["comparator_minus_full_mean_squared_loss"])),
+        )
+        for item in cast(Sequence[Mapping[str, object]], payload["blocks"])
+    )
+    return PairedLossComparison(
+        int(cast(int, payload["common_row_count"])),
+        str(payload["common_row_fingerprint_sha256"]),
+        tuple(float(value) for value in cast(Sequence[float], payload["full_squared_losses"])),
+        tuple(
+            float(value)
+            for value in cast(Sequence[float], payload["comparator_squared_losses"])
+        ),
+        tuple(
+            float(value)
+            for value in cast(
+                Sequence[float], payload["comparator_minus_full_squared_losses"]
+            )
+        ),
+        blocks,
+    )
+
+
+def _comparison_from_payload(payload: Mapping[str, object]) -> UsefulnessComparison:
+    return UsefulnessComparison(
+        cast(ComparisonKind, payload["comparison_kind"]),
+        str(payload["comparison_id"]),
+        tuple(cast(Sequence[str], payload["cluster_ids"])),
+        tuple(cast(Sequence[str], payload["model_features"])),
+        int(cast(int, payload["support_training_rows"])),
+        int(cast(int, payload["support_validation_rows"])),
+        int(cast(int, payload["support_evaluation_rows"])),
+        None
+        if payload["comparator_model_fingerprint_sha256"] is None
+        else str(payload["comparator_model_fingerprint_sha256"]),
+        None
+        if payload["comparator_input_fingerprint_sha256"] is None
+        else str(payload["comparator_input_fingerprint_sha256"]),
+        _metrics_from_payload(cast(Mapping[str, object], payload["full_metrics"])),
+        _metrics_from_payload(cast(Mapping[str, object], payload["comparator_metrics"])),
+        float(cast(float, payload["delta_oos_r_squared"])),
+        cast(UsefulnessDirection, payload["direction"]),
+        _paired_losses_from_payload(cast(Mapping[str, object], payload["paired_losses"])),
+        None
+        if payload["permutation_repeat"] is None
+        else int(cast(int, payload["permutation_repeat"])),
+        None
+        if payload["permutation_seed"] is None
+        else int(cast(int, payload["permutation_seed"])),
+    )
+
+
+def conditional_usefulness_artifact_from_json(encoded: str) -> ConditionalUsefulnessArtifact:
+    """Read back a complete Step-5 artifact without refitting or recomputing comparisons."""
+
+    payload = cast(Mapping[str, object], json.loads(encoded))
+    if payload.get("importance_unit") != "cluster":
+        raise ValueError("conditional usefulness artifact importance unit must be cluster")
+    config_payload = cast(Mapping[str, object], payload["config"])
+    elastic_payload = cast(Mapping[str, object], config_payload["elastic_net"])
+    boosted_payload = cast(Mapping[str, object], config_payload["boosted_tree"])
+    config = ConditionalUsefulnessConfig(
+        model_kind=cast(
+            Literal["elastic_net", "shallow_gradient_boosting"], config_payload["model_kind"]
+        ),
+        elastic_net=ElasticNetConfig(
+            float(cast(float, elastic_payload["alpha"])),
+            float(cast(float, elastic_payload["l1_ratio"])),
+            int(cast(int, elastic_payload["maximum_iterations"])),
+            float(cast(float, elastic_payload["tolerance"])),
+        ),
+        boosted_tree=BoostedTreeConfig(
+            int(cast(int, boosted_payload["maximum_depth"])),
+            int(cast(int, boosted_payload["maximum_leaves"])),
+            float(cast(float, boosted_payload["learning_rate"])),
+            int(cast(int, boosted_payload["minimum_leaf_size"])),
+            int(cast(int, boosted_payload["maximum_estimators"])),
+            int(cast(int, boosted_payload["threshold_candidates"])),
+            int(cast(int, boosted_payload["early_stopping_patience"])),
+            float(cast(float, boosted_payload["early_stopping_minimum_improvement"])),
+        ),
+        permutation_block_size=int(cast(int, config_payload["permutation_block_size"])),
+        permutation_repeats=int(cast(int, config_payload["permutation_repeats"])),
+        permutation_seed=int(cast(int, config_payload["permutation_seed"])),
+        loss_block_size=int(cast(int, config_payload["loss_block_size"])),
+    )
+    clusters = tuple(
+        ImportanceClusterDefinition(
+            str(item["cluster_id"]),
+            tuple(cast(Sequence[str], item["members"])),
+            tuple(cast(Sequence[str], item["model_features"])),
+            str(item["family"]),
+        )
+        for item in cast(Sequence[Mapping[str, object]], payload["cluster_definitions"])
+    )
+    return ConditionalUsefulnessArtifact(
+        str(payload["version"]),
+        str(payload["specification_id"]),
+        str(payload["specification_version"]),
+        str(payload["evidence_label"]),
+        "cluster",
+        config,
+        str(payload["config_fingerprint_sha256"]),
+        str(payload["split_fingerprint_sha256"]),
+        str(payload["data_fingerprint_sha256"]),
+        str(payload["full_model_fingerprint_sha256"]),
+        clusters,
+        tuple(cast(Sequence[str], payload["training_row_ids"])),
+        tuple(cast(Sequence[str], payload["validation_row_ids"])),
+        tuple(cast(Sequence[str], payload["evaluation_row_ids"])),
+        _metrics_from_payload(cast(Mapping[str, object], payload["full_metrics"])),
+        tuple(
+            _comparison_from_payload(item)
+            for item in cast(
+                Sequence[Mapping[str, object]], payload["cluster_ablation_comparisons"]
+            )
+        ),
+        tuple(
+            _comparison_from_payload(item)
+            for item in cast(
+                Sequence[Mapping[str, object]], payload["family_ablation_comparisons"]
+            )
+        ),
+        tuple(
+            _comparison_from_payload(item)
+            for item in cast(
+                Sequence[Mapping[str, object]], payload["block_permutation_comparisons"]
+            )
+        ),
+    )

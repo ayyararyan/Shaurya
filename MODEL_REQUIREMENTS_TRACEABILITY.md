@@ -202,9 +202,10 @@ tape and is evidence level 3, not confirmatory.
 ## D51 ten-second feature-selection foundation — `D51-10S-FEATURE-SELECTION-2026-08-21`
 
 **Specification:** `docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md`
-**Evidence boundary:** construction, hard quality gates and training-only correlated-feature
-reduction are evidence level 2. No empirical model has been fit; any later result using only the
-2026-08-21 session remains exploratory/non-confirmatory.
+**Evidence boundary:** construction, hard quality gates, training-only correlated-feature
+reduction, predictive model interfaces and conditional cluster/family usefulness interfaces are
+evidence level 2. No empirical model has been fit; any later result using only the 2026-08-21
+session remains exploratory/non-confirmatory.
 
 | ID | Requirement | Status | Code location | Test / acceptance evidence |
 |---|---|---|---|---|
@@ -238,3 +239,8 @@ reduction are evidence level 2. No empirical model has been fit; any later resul
 | `D51-MODEL-03` | Deterministic shallow boosted-tree challenger with bounded structure, train thresholds and validation-only early stopping | **Implemented, tested** | `BoostedTreeConfig`, `RegressionTreeNode`, `fit_shallow_gradient_boosting` | nonlinear-interaction advantage, early-stopping isolation and determinism tests |
 | `D51-MODEL-04` | Frozen pre-outcome grids plus zero, training-mean and declared-state baselines under common contracts | **Implemented, tested** | `ELASTIC_NET_CONFIG_GRID`, `BOOSTED_TREE_CONFIG_GRID`, baseline fitters, `PredictionResult`, `RegressionMetrics` | grid-membership and common baseline/metric-contract test |
 | `D51-MODEL-05` | Complete deterministic model serialization/readback and finite apply-only predictions | **Implemented, tested** | `predictive_model_to_json`, `predictive_model_from_json`, `predict_model` | parameterized elastic/tree byte-stability, readback equality and missing-input finiteness test |
+| `D51-IMP-01` | Correlation cluster is the smallest evidence unit; family ablations remove whole clusters; no individual collinear credit | **Implemented, tested** | `ImportanceClusterDefinition`, `evaluate_conditional_oos_usefulness` | redundant-substitute fixture verifies one joint drop/permutation and no member-level comparison |
+| `D51-IMP-02` | Full-minus-drop retraining delta OOS R-squared under one fixed model/config and identical supplied train rows | **Implemented, tested** | `_fit_usefulness_model`, `evaluate_conditional_oos_usefulness` | known-signal cluster strongly positive; noise cluster near zero; family drop uses same contract |
+| `D51-IMP-03` | Deterministic grouped permutation of complete clusters in contiguous evaluation-time blocks | **Implemented, tested** | `_block_permuted_rows`, block-permutation comparison loop | fixed-seed repeated artifact equality, joint representation columns and per-repeat input identities |
+| `D51-IMP-04` | Exact ordered common rows plus rowwise and contiguous-block paired squared losses | **Implemented, tested** | `paired_common_row_loss_comparison`, `PairedLossComparison`, `PairedLossBlock` | mismatched rows fail; every valid comparison retains 240 row losses and eight loss blocks |
+| `D51-IMP-05` | Auditable artifact with model/config/split/data identities, membership, support, metrics, delta/direction and exact readback; evaluation is apply/score-only | **Implemented, tested** | `ConditionalUsefulnessArtifact`, JSON writer/reader | held-out-target mutation cannot change model/config/split identity; exact artifact JSON round trip |
