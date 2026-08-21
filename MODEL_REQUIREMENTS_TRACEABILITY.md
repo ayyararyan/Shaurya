@@ -43,6 +43,26 @@ live verified — see the "Evidence level" column.
 - Pre-existing artifacts were preserved. Nothing was pooled across reference prices: every cell
   carries an explicit `reference_price` and `predictor_basis` column.
 
+## D44 live-execution amendment — `D38/D39/D40-INTRADAY-2026-08-21`
+
+**Binding amendment:** `docs/D38-D39-D40-LIVE-AMENDMENT-2026-08-21.md`
+**Evidence boundary:** every intraday result is a non-independent growing-prefix exploration.
+The accepted post-close tape remains the authoritative final-session verification and is not
+replaced by a dashboard result.
+
+| ID | Requirement | Status | Code location | Test / acceptance evidence |
+|---|---|---|---|---|
+| `LIVE-DATA-01` | Consume one active DAT dataset; register the already-running pre-DAT writer without opening another market-data connection | **Implemented, tested** | `data/access.py:adopt_active_legacy_tape`; `cli/live_ofi_studies.py` | `test_data_access.py::test_active_legacy_tape_is_registered_and_torn_tail_is_not_consumed`; DAT dependency gate |
+| `LIVE-DATA-02` | Freeze each cycle at the last complete JSONL newline and identify the prefix by byte count, SHA-256, receive timestamp and DAT dataset ID | **Implemented, tested** | `analytics/live_ofi_studies.py:complete_prefix_offset`, `snapshot_growing_tape` | `test_live_ofi_studies.py::test_live_prefix_boundary_excludes_a_torn_final_jsonl_row` |
+| `LIVE-D38-01` | Publish D38 print-location and effective-touch measurements while the tape grows | **Implemented, tested** | `analytics/live_ofi_studies.py:build_live_d38` | canonical D38 functions are reused; live worker/state integration gate |
+| `LIVE-D39-01` | Run the frozen six-reference x four-depth x five-lookback x five-horizon C0–C12 panel and publish each of 600 cells immediately | **Implemented, tested** | `signals/fixed_target_panel.py:build_fixed_target_panel(cell_callback=...)`; `cli/live_ofi_studies.py` | `test_fixed_target_panel.py::test_val_d39_04_every_estimated_competitor_uses_identical_rows_and_metrics`; callback/result parity assertion |
+| `LIVE-D39-02` | A partial D39 sweep is explicit; complete means exactly 600/600 | **Implemented, tested** | `analytics/live_ofi_studies.py:LiveStudyStateWriter` | `test_live_ofi_studies.py::test_live_state_writer_publishes_each_partial_cell_atomically` |
+| `LIVE-D40-01` | Publish exact C8/M10/h1=10 results at 10/20/30/45/60/90/120 seconds plus curve shape | **Implemented, tested** | `cli/live_ofi_studies.py:_run_cycle`; `analytics/live_ofi_studies.py:d40_curve_summary` | `test_live_ofi_studies.py::test_d40_curve_reports_peak_and_first_decline_only_when_all_horizons_exist`; existing D40 gates |
+| `LIVE-OUT-01` | Atomically expose compact progress at `/api/live-studies` and embed it in `/api/state` | **Implemented, tested** | `analytics/ofi_dashboard_server.py:OfiDashboardState`, request handler | `test_ofi_dashboard.py::test_read_only_server_exposes_live_study_get_route_and_no_write_method` |
+| `LIVE-OUT-02` | Render D38, the seven-row D40 curve, D39 progress/results and complete-prefix freshness on the dashboard | **Implemented, tested** | `analytics/ofi_dashboard_server.py:render_html` | `test_ofi_dashboard.py::test_rendering_theme_and_frozen_field_parity` |
+| `LIVE-OUT-03` | Keep HTTP responsive during long ANL-06 refits by serving the last complete frame | **Implemented, tested** | `analytics/ofi_dashboard_server.py:OfiDashboardState.payload`, `.cells` | `test_ofi_dashboard.py::test_live_studies_remain_available_while_dashboard_refit_is_in_progress` |
+| `LIVE-CLAIM-01` | Label overlapping prefixes non-independent, non-confirmatory and incapable of order authority | **Implemented, tested** | live state and all full live artifacts | state-writer acceptance probe and source inspection |
+
 ## D39 additive matrix — `FIXED-TARGET-COMPETITOR-PANEL`
 
 **Specification:** `docs/D39-FIXED-TARGET-PANEL-SPEC-2026-08-21.md`

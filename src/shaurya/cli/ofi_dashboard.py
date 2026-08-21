@@ -48,6 +48,16 @@ def _parser() -> argparse.ArgumentParser:
         default=None,
     )
     parser.add_argument(
+        "--legacy-producer-pid",
+        type=int,
+        help="live producer PID when following a pre-DAT active tape",
+    )
+    parser.add_argument(
+        "--live-studies-state",
+        type=Path,
+        help="atomic D38/D39/D40 live-study state embedded in the dashboard",
+    )
+    parser.add_argument(
         "--trading-date",
         type=date.fromisoformat,
         default=datetime.now(IST).date(),
@@ -163,21 +173,29 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         allow_nonarchive=args.allow_nonarchive_catalog,
     )
     access = DataAccess(DataCatalog(catalog_path))
-    handle = (
-        access.handle(args.dataset_id)
-        if args.dataset_id is not None
-        else access.adopt_legacy_tape(
+    if args.dataset_id is not None:
+        handle = access.handle(args.dataset_id)
+    elif args.mode == "follow":
+        if args.legacy_producer_pid is None:
+            raise ValueError("follow of a pre-DAT tape requires --legacy-producer-pid")
+        handle = access.adopt_active_legacy_tape(
+            args.tape,
+            consumer="ANL-06",
+            purpose="dynamic OFI dashboard and D38/D39/D40 live studies",
+            producer_pid=args.legacy_producer_pid,
+        )
+    else:
+        handle = access.adopt_legacy_tape(
             args.tape,
             consumer="ANL-06",
             purpose="dynamic OFI dashboard",
         )
-    )
     if args.mode == "replay" and handle.status is DatasetStatus.ACTIVE:
         raise ValueError("replay requires a completed DAT dataset; use follow for active data")
     tail = access.follow(handle)
     tape = Path(handle.tape_path)
     engine, _ = _engine(args, tail, handle)
-    state = OfiDashboardState(engine, tail)
+    state = OfiDashboardState(engine, tail, live_studies_path=args.live_studies_state)
     server, _ = serve_in_background(state, host=args.host, port=args.port)
     print(f"ANL-06 read-only dashboard serving at http://{args.host}:{args.port}/", flush=True)
     started = time.monotonic()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -218,8 +219,7 @@ def test_legacy_tape_is_adopted_indexed_and_then_read_through_dat(tmp_path: Path
     tape = tmp_path / "legacy.jsonl"
     tape.write_text(
         "".join(
-            json.dumps(_row(index, channel=DataChannel.DEPTH20, seconds=index).to_dict())
-            + "\n"
+            json.dumps(_row(index, channel=DataChannel.DEPTH20, seconds=index).to_dict()) + "\n"
             for index in (1, 2)
         ),
         encoding="utf-8",
@@ -229,6 +229,33 @@ def test_legacy_tape_is_adopted_indexed_and_then_read_through_dat(tmp_path: Path
     assert handle.source == "legacy_tape"
     assert Path(handle.index_path or "").is_file()
     assert [row.receive_sequence for row in access.rows(handle)] == [1, 2]
+
+
+def test_active_legacy_tape_is_registered_and_torn_tail_is_not_consumed(tmp_path: Path) -> None:
+    tape = tmp_path / "active-legacy.jsonl"
+    with tape.open("wb") as target:
+        for index in (1, 2):
+            target.write(
+                (
+                    json.dumps(_row(index, channel=DataChannel.DEPTH20, seconds=index).to_dict())
+                    + "\n"
+                ).encode()
+            )
+        target.write(b'{"run_id":')
+    access = DataAccess(DataCatalog(tmp_path / "catalog.jsonl"))
+
+    handle = access.adopt_active_legacy_tape(
+        tape,
+        consumer="ANL-06-LIVE-D38-D39-D40",
+        purpose="live complete-prefix test",
+        producer_pid=os.getpid(),
+    )
+
+    assert handle.status is DatasetStatus.ACTIVE
+    assert handle.producer_pid == os.getpid()
+    assert handle.tape_sha256 is None
+    assert handle.index_path is None
+    assert [row["receive_sequence"] for row in access.follow(handle).poll().rows] == [1, 2]
 
 
 def test_only_dat_boundary_imports_dhan_adapters() -> None:
@@ -258,10 +285,9 @@ def test_surface_ofi_and_controller_select_data_through_dat() -> None:
     root = Path(__file__).parents[1]
     surface = (root / "src/shaurya/cli/surface_dashboard.py").read_text(encoding="utf-8")
     ofi = (root / "src/shaurya/cli/ofi_dashboard.py").read_text(encoding="utf-8")
-    controller = (root / "scripts/ofi_full_session_controller.py").read_text(
-        encoding="utf-8"
-    )
-    for source in (surface, ofi, controller):
+    live_ofi = (root / "src/shaurya/cli/live_ofi_studies.py").read_text(encoding="utf-8")
+    controller = (root / "scripts/ofi_full_session_controller.py").read_text(encoding="utf-8")
+    for source in (surface, ofi, live_ofi, controller):
         assert "DataAccess" in source
         assert "DataCatalog" in source
         assert "DhanCredentials" not in source

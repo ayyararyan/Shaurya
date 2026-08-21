@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import fcntl
+import hashlib
 import json
 import os
 from collections.abc import Iterator
@@ -99,9 +100,7 @@ class DataCatalog:
             try:
                 for line_number, line in enumerate(source, start=1):
                     if not line.strip():
-                        raise ValueError(
-                            f"blank data-catalogue record at line {line_number}"
-                        )
+                        raise ValueError(f"blank data-catalogue record at line {line_number}")
                     try:
                         loaded: Any = json.loads(line)
                         if not isinstance(loaded, dict):
@@ -315,9 +314,7 @@ class DataCaptureSession:
                 "tape_sha256": sha256_file(self.writer.path),
                 "index_path": str(index_path.resolve()) if index_path is not None else None,
                 "index_sha256": index_hash,
-                "archive_path": (
-                    str(archive_path.resolve()) if archive_path is not None else None
-                ),
+                "archive_path": (str(archive_path.resolve()) if archive_path is not None else None),
                 "archive_sha256": archive_hash,
                 "invalidation_reason": invalidation_reason,
             }
@@ -474,6 +471,109 @@ class DataAccess:
             bytes=resolved.stat().st_size,
             tape_sha256=tape_hash,
             index_sha256=sha256_file(index_path),
+        )
+        self.catalog.register(handle)
+        return handle
+
+    def adopt_active_legacy_tape(
+        self,
+        tape_path: Path,
+        *,
+        consumer: str,
+        purpose: str,
+        producer_pid: int,
+        requested_coverage_end: datetime | None = None,
+    ) -> DatasetHandle:
+        """Register an already-running pre-DAT writer without pretending its tape is immutable.
+
+        D43 moved every consumer behind DAT after the 2026-08-21 OFI collector had already
+        opened its append-only tape.  Hashing that growing file and registering it as completed
+        would freeze a false identity.  This migration bridge instead validates every complete
+        row currently present, ignores only the torn trailing row owned by the writer, and emits
+        an ACTIVE handle with no terminal tape hash or seek index.
+        """
+
+        if producer_pid < 1:
+            raise ValueError("active legacy adoption requires a positive producer_pid")
+        try:
+            os.kill(producer_pid, 0)
+        except OSError as exc:
+            raise ValueError(f"legacy producer PID {producer_pid} is not alive") from exc
+        resolved = tape_path.resolve()
+        if not resolved.is_file():
+            raise FileNotFoundError(resolved)
+        identity = hashlib.sha256(str(resolved).encode()).hexdigest()[:16]
+        dataset_id = f"legacy-active-{identity}"
+        with suppress(DatasetUnavailableError):
+            existing = self.catalog.get(dataset_id)
+            if Path(existing.tape_path) != resolved:
+                raise ValueError("active legacy dataset ID resolved to a different tape")
+            return existing
+
+        channels_seen: set[DataChannel] = set()
+        instruments_seen: set[str] = set()
+        first: datetime | None = None
+        last: datetime | None = None
+        prior_sequence: int | None = None
+        observed_run_id: str | None = None
+        rows = 0
+        complete_bytes = 0
+        with resolved.open("rb") as source:
+            for line_number, encoded in enumerate(source, start=1):
+                if not encoded.endswith(b"\n"):
+                    break
+                try:
+                    loaded: Any = json.loads(encoded)
+                    if not isinstance(loaded, dict):
+                        raise TypeError("row is not an object")
+                    row = TapeRow.from_dict(loaded)
+                except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+                    raise TapeIntegrityError(
+                        f"invalid active legacy tape row at line {line_number}: "
+                        f"{type(exc).__name__}"
+                    ) from exc
+                if observed_run_id is None:
+                    observed_run_id = row.run_id
+                if row.run_id != observed_run_id:
+                    raise TapeIntegrityError("active legacy tape mixes run IDs")
+                if prior_sequence is not None and row.receive_sequence <= prior_sequence:
+                    raise TapeIntegrityError("active legacy receive sequence is not increasing")
+                prior_sequence = row.receive_sequence
+                rows += 1
+                complete_bytes += len(encoded)
+                channels_seen.add(data_channel_for_row(row))
+                instruments_seen.add(row.instrument_id)
+                first = row.receive_ts if first is None else min(first, row.receive_ts)
+                last = row.receive_ts if last is None else max(last, row.receive_ts)
+        if rows == 0 or first is None or last is None or observed_run_id is None:
+            raise ValueError("cannot adopt an empty active legacy tape")
+        request = DatasetRequest(
+            consumer=consumer,
+            purpose=purpose,
+            trading_date=first.date(),
+            channels=tuple(sorted(channels_seen, key=str)),
+            instrument_ids=tuple(sorted(instruments_seen)),
+            coverage_start=first,
+            coverage_end=requested_coverage_end,
+            allow_active=True,
+        )
+        handle = DatasetHandle(
+            dataset_id=dataset_id,
+            acquisition_fingerprint=request.acquisition_fingerprint,
+            source="legacy_tape",
+            status=DatasetStatus.ACTIVE,
+            producer_pid=producer_pid,
+            trading_date=request.trading_date,
+            channels=request.channels,
+            instrument_ids=request.instrument_ids,
+            tape_path=str(resolved),
+            started_at=first,
+            requested_coverage_start=first,
+            requested_coverage_end=requested_coverage_end,
+            coverage_start=first,
+            coverage_end=last,
+            rows=rows,
+            bytes=complete_bytes,
         )
         self.catalog.register(handle)
         return handle

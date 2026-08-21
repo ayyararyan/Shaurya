@@ -5,6 +5,25 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### D44 — live D38/D39/D40 dashboard execution
+
+- Superseded the erroneous close-only schedule: D38, D39 and D40 now execute intraday on immutable
+  newline-complete prefixes of the one active DAT tape; post-close execution remains the final
+  session verification.
+- Added active legacy-writer adoption at the DAT boundary, with live producer validation and no
+  second broker connection. Every analysis cycle records dataset ID, prefix byte count, SHA-256,
+  last receive timestamp and channel coverage.
+- Added a durable worker that publishes D38 touch diagnostics, D40's exact seven C8/M10/h1=10
+  horizon cells, then D39's full 600-cell C0–C12 sweep one cell at a time before refreshing on a
+  newer prefix. Frozen 399-replicate inference remains unchanged.
+- Added atomic `/api/live-studies` state, embedded it in `/api/state`, and rendered live D38, D40
+  and D39 panels with prefix freshness and explicit overlapping-prefix/non-confirmatory warnings.
+  The HTTP layer serves the last complete ANL-06 frame while long refits run.
+- Acceptance: 47 focused and 710 full-suite tests passed; repository-wide Ruff, strict mypy on
+  72 source files and compileall are clean. Production growing-tape deployment is active: D38
+  completed, D40 completed 7/7 and D39 began publishing its 600 cells with no worker error. This
+  operational evidence cannot create signal or order authority.
+
 ### DAT-19 — canonical NSE server placement
 
 - Added one central fail-closed archive resolver for the verified IEX SMB share at

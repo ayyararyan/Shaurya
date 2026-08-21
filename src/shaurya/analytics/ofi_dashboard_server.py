@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -20,19 +21,58 @@ ALLOWED_METHODS = ("GET", "HEAD")
 
 
 class OfiDashboardState:
-    def __init__(self, engine: OfiDashboardEngine, tail: CompleteLineJsonlTail) -> None:
+    def __init__(
+        self,
+        engine: OfiDashboardEngine,
+        tail: CompleteLineJsonlTail,
+        *,
+        live_studies_path: Path | None = None,
+    ) -> None:
         self.engine = engine
         self.tail = tail
+        self.live_studies_path = live_studies_path
         self._lock = threading.RLock()
+        self._cached_payload = self._engine_payload()
+        self._cached_cells = self.engine.cells_payload()
+
+    def _engine_payload(self) -> dict[str, Any]:
+        return self.engine.payload(
+            rows_parsed=self.tail.rows_parsed,
+            torn_lines=self.tail.torn_lines,
+            trailing_partial_bytes=self.tail.trailing_partial_bytes,
+            malformed_lines=self.tail.malformed_lines,
+        )
+
+    def live_studies(self) -> dict[str, Any]:
+        if self.live_studies_path is None:
+            return {"status": "not_configured"}
+        try:
+            loaded: Any = json.loads(self.live_studies_path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return {"status": "waiting_for_worker", "path": str(self.live_studies_path)}
+        except (OSError, json.JSONDecodeError) as exc:
+            return {
+                "status": "unavailable",
+                "path": str(self.live_studies_path),
+                "error": type(exc).__name__,
+            }
+        if not isinstance(loaded, dict):
+            return {"status": "unavailable", "error": "state_is_not_an_object"}
+        return loaded
 
     def payload(self) -> dict[str, Any]:
         with self._lock:
-            return self.engine.payload(
-                rows_parsed=self.tail.rows_parsed,
-                torn_lines=self.tail.torn_lines,
-                trailing_partial_bytes=self.tail.trailing_partial_bytes,
-                malformed_lines=self.tail.malformed_lines,
-            )
+            # A full 225-cell refit holds the engine lock for minutes. Serving the last complete
+            # immutable frame keeps observability live while the estimator is busy; the sidecar
+            # state is still re-read on every request.
+            if not self.engine.fit_in_progress:
+                self._cached_payload = self._engine_payload()
+            value = dict(self._cached_payload)
+            status_rail = dict(value.get("status_rail") or {})
+            status_rail["refit_in_progress"] = self.engine.fit_in_progress
+            value["status_rail"] = status_rail
+            value["live_studies"] = self.live_studies()
+            return value
 
     def history(self, index: int) -> dict[str, Any]:
         with self._lock:
@@ -40,7 +80,11 @@ class OfiDashboardState:
 
     def cells(self) -> dict[str, Any]:
         with self._lock:
-            return self.engine.cells_payload()
+            if not self.engine.fit_in_progress:
+                self._cached_cells = self.engine.cells_payload()
+            value = dict(self._cached_cells)
+            value["refit_in_progress"] = self.engine.fit_in_progress
+            return value
 
     def html(self) -> str:
         return render_html(self.payload())
@@ -123,10 +167,26 @@ main { padding:17px 18px 36px; }
 .glyph { margin-right:3px; }
 .diagnostic { border-left:3px solid var(--brass); padding:9px 12px; color:var(--ink2);
   background:var(--panel); }
+.live-studies { display:grid; grid-template-columns:repeat(3,minmax(280px,1fr)); gap:12px;
+  margin-bottom:14px; }
+.study-card { border:1px solid var(--rule); background:var(--panel); padding:11px 12px;
+  min-width:0; overflow:auto; }
+.study-card h3 { margin:0 0 7px; font-size:13px; }
+.study-meta { color:var(--ink3); font-size:9px; margin-bottom:7px; }
+.study-stat { display:grid; grid-template-columns:1fr auto; gap:8px; border-top:1px solid var(--rule2);
+  padding:4px 0; }
+.study-stat b { font-weight:400; }
+.study-table { width:100%; border-collapse:collapse; font-size:9px; }
+.study-table th,.study-table td { border-top:1px solid var(--rule2); padding:3px 5px;
+  text-align:right; white-space:nowrap; }
+.study-table th:first-child,.study-table td:first-child { text-align:left; }
+.study-warning { border-left:3px solid var(--brass); padding:7px 9px; color:var(--ink2);
+  background:var(--panel); margin-bottom:10px; }
 .legend { color:var(--ink3); font-size:9px; margin:7px 0 0; }
 .brick-word { color:var(--brick); }.sage-word { color:var(--sage); }
 @media(max-width:1330px) { .models{grid-template-columns:1fr}.hero{grid-template-columns:1fr 1fr}
-  .honesty{grid-template-columns:1fr 1fr}.hero>div:first-child{grid-column:1/-1} }
+  .honesty{grid-template-columns:1fr 1fr}.hero>div:first-child{grid-column:1/-1}
+  .live-studies{grid-template-columns:1fr} }
 """
 
 
@@ -195,6 +255,40 @@ function honesty(payload){
     ['distinct leaders',h.distinct_cells_that_have_led,'derived \u00B7 current '+(h.current_leader||'\u2014')]
   ].map(([k,v,s])=>'<div><span class="label">'+k+'</span><b>'+v+'</b><small>'+s+'</small></div>').join('');
 }
+function liveStudies(payload){
+  const root=document.getElementById('liveStudies'); const s=payload.live_studies||{};
+  const d38=s.d38||{},d39=s.d39||{},d40=s.d40||{},source=s.source||{};
+  const overall=((d38.touch_01_print_locations||{}).overall)||{};
+  const spread=((d38.touch_01_print_locations||{}).displayed_spread_ticks)||{};
+  const coverage=(((d38.touch_02_effective_touch||{}).by_window)||[]);
+  const d38stats=[['classified prints',overall.n],['strictly inside',pct(overall.inside_share)+'%'],
+    ['at touch',pct(overall.at_touch_share)+'%'],['outside',pct(overall.outside_share)+'%'],
+    ['median spread',fmt(spread.p50,1)+' ticks']];
+  const d38html='<div class="study-card"><h3>D38 / LIVE TOUCH</h3><div class="study-meta">'+
+    (d38.status||'pending')+' · '+(d38.updated_at||'—')+'</div>'+d38stats.map(([k,v])=>
+    '<div class="study-stat"><span>'+k+'</span><b>'+(v??'—')+'</b></div>').join('')+
+    '<table class="study-table"><tr><th>window</th><th>coverage</th></tr>'+coverage.map(row=>
+    '<tr><td>'+row.window_seconds+' s</td><td>'+pct(row.coverage)+'%</td></tr>').join('')+'</table></div>';
+  const d40rows=d40.rows||[];
+  const d40html='<div class="study-card"><h3>D40 / LIVE 10–120s CURVE</h3><div class="study-meta">'+
+    (d40.status||'pending')+' · '+(d40.completed_cells||0)+' / '+(d40.total_cells||7)+' horizons</div>'+
+    '<table class="study-table"><tr><th>horizon</th><th>abs OOS R²</th><th>N test</th></tr>'+d40rows.map(row=>
+    '<tr><td>'+row.horizon_seconds+' s</td><td>'+pct(row.absolute_oos_r2)+'%</td><td>'+
+    (row.test_n??'—')+'</td></tr>').join('')+'</table><div class="study-meta">peak '+
+    ((d40.curve||{}).peak_horizon_seconds??'—')+' s · first decline '+
+    ((d40.curve||{}).first_decline_horizon_seconds??'—')+' s</div></div>';
+  const d39primary=(d39.cells||[]).filter(row=>row.reference_price==='displayed_mid'&&Number(row.levels)===10);
+  const d39html='<div class="study-card"><h3>D39 / LIVE FIXED-TARGET PANEL</h3><div class="study-meta">'+
+    (d39.status||'pending')+' · '+(d39.completed_cells||0)+' / '+(d39.total_cells||600)+' outer cells</div>'+
+    '<table class="study-table"><tr><th>h1→h2</th><th>C2 lag</th><th>C8 CCZ</th><th>C12 union</th><th>verdict</th></tr>'+
+    d39primary.slice(-25).map(row=>'<tr><td>'+row.h1_seconds+'→'+row.h2_seconds+'</td><td>'+pct(row.c2_lagged_return_absolute_oos_r2)+
+    '%</td><td>'+pct(row.c8_ccz_ofi_absolute_oos_r2)+'%</td><td>'+pct(row.c12_lagged_plus_ofi_absolute_oos_r2)+
+    '%</td><td>'+((row.verdict)||'—')+'</td></tr>').join('')+'</table></div>';
+  root.innerHTML='<div class="study-warning"><b>LIVE COMPLETE-PREFIX EXPLORATION.</b> D38, D39 and D40 run during the session. '+
+    'Successive prefixes overlap and are not independent replications. Source through '+(source.last_receive_ts||'—')+
+    ' · stage '+(s.current_stage||'—')+' · '+(s.status||'waiting')+'.</div><div class="live-studies">'+
+    d38html+d40html+d39html+'</div>';
+}
 function cellHtml(cell){
   const cls=cell.status==='ESTIMATED'?(cell.past_mirror_exceeds_or_equals_future?'brick':''):
     (cell.status==='WARMING'?'warming':cell.status==='INSUFFICIENT'?'insufficient':'blocked');
@@ -223,7 +317,7 @@ function grids(payload){
       '<div class="heatmap">'+grid+'</div></section>';
   }).join('');
 }
-function render(payload){lastPayload=payload;rail(payload);hero(payload);honesty(payload);grids(payload);
+function render(payload){lastPayload=payload;rail(payload);hero(payload);honesty(payload);liveStudies(payload);grids(payload);
   document.getElementById('source').textContent=payload.drive_mode.toUpperCase()+' \u00B7 '+payload.history_length+' REFITS';}
 async function refresh(){try{const response=await fetch('/api/state');render(await response.json());}
   catch(error){document.getElementById('source').textContent='SERVER UNREACHABLE';}}
@@ -241,6 +335,8 @@ _BODY = """<!doctype html>
 <button id="themeToggle" type="button" onclick="toggleTheme()">◐ DARK</button></header>
 <div id="rail" class="rail"></div><section id="hero" class="hero"></section>
 <section id="honesty" class="honesty"></section><main>
+<div class="section-head"><h2>LIVE D38 / D39 / D40 · COMPLETE-PREFIX RESULTS AND PROGRESS</h2></div>
+<section id="liveStudies"></section>
 <div class="section-head"><h2>ACCUMULATED WALK-FORWARD GRID · RAW OOS R² + INCREMENT OVER M0 + PLACEBO-BENCHMARKED INCREMENT ALWAYS VISIBLE</h2></div>
 <div id="models" class="models"></div>
 <p class="legend"><span class="brick-word">BRICK</span> is reserved for past-mirror increment ≥ future increment.
@@ -290,6 +386,9 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/cells":
             self._send(json.dumps(self.state.cells()).encode(), "application/json")
+            return
+        if parsed.path == "/api/live-studies":
+            self._send(json.dumps(self.state.live_studies()).encode(), "application/json")
             return
         if parsed.path == "/api/history":
             raw = parse_qs(parsed.query).get("index", ["0"])[0]

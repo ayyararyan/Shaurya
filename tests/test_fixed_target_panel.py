@@ -157,6 +157,7 @@ def test_val_d39_04_every_estimated_competitor_uses_identical_rows_and_metrics()
         _print(index, 101.0 if index % 2 == 0 else 99.0, "buy" if index % 2 == 0 else "sell")
         for index in range(1, 601)
     ]
+    published: list[tuple[dict[str, object], int, int]] = []
     artifact = build_fixed_target_panel(
         tape,
         prints=prints,
@@ -166,8 +167,10 @@ def test_val_d39_04_every_estimated_competitor_uses_identical_rows_and_metrics()
         horizons=(1.0,),
         replicates=0,
         seed=7,
+        cell_callback=lambda cell, completed, total: published.append((cell, completed, total)),
     )
     cell = artifact["cells"][0]
+    assert published == [(cell, 1, 1)]
     assert cell["status"] == "estimated"
     estimated = [row for row in cell["competitors"] if row["status"] == "estimated"]
     assert {row["competitor"] for row in estimated} == {f"C{index}" for index in range(13)}

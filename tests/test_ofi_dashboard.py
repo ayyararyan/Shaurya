@@ -483,6 +483,9 @@ def test_rendering_theme_and_frozen_field_parity(tmp_path: Path) -> None:
         "READ-ONLY",
         "NO SOCKET",
         "NO ORDER PATH",
+        "LIVE D38 / D39 / D40",
+        "LIVE COMPLETE-PREFIX EXPLORATION",
+        "Successive prefixes overlap",
     )
     assert all(field in html for field in required)
     assert payload["axes"]["cells"] == CELL_COUNT
@@ -508,17 +511,49 @@ def test_rendering_theme_and_frozen_field_parity(tmp_path: Path) -> None:
     }
 
 
-def test_read_only_server_exposes_four_get_routes_and_no_write_method(tmp_path: Path) -> None:
+def test_live_studies_remain_available_while_dashboard_refit_is_in_progress(
+    tmp_path: Path,
+) -> None:
     engine, tail = _empty_dashboard(tmp_path)
-    state = OfiDashboardState(engine, tail)
+    live_path = tmp_path / "live-studies.json"
+    live_payload = {
+        "status": "running",
+        "current_stage": "d39",
+        "d39": {"status": "running", "completed_cells": 17, "total_cells": 600},
+    }
+    live_path.write_text(json.dumps(live_payload), encoding="utf-8")
+    state = OfiDashboardState(engine, tail, live_studies_path=live_path)
+    initial = state.payload()
+    engine.fit_in_progress = True
+    engine.payload = lambda **_kwargs: pytest.fail("refit request recomputed dashboard payload")  # type: ignore[method-assign]
+    engine.cells_payload = lambda: pytest.fail("refit request recomputed cell payload")  # type: ignore[method-assign]
+
+    payload = state.payload()
+    cells = state.cells()
+
+    assert initial["live_studies"] == live_payload
+    assert payload["live_studies"] == live_payload
+    assert payload["status_rail"]["refit_in_progress"] is True
+    assert cells["refit_in_progress"] is True
+
+
+def test_read_only_server_exposes_live_study_get_route_and_no_write_method(
+    tmp_path: Path,
+) -> None:
+    engine, tail = _empty_dashboard(tmp_path)
+    live_path = tmp_path / "live-studies.json"
+    live_path.write_text('{"status":"running","current_stage":"d40"}\n', encoding="utf-8")
+    state = OfiDashboardState(engine, tail, live_studies_path=live_path)
     server = build_server(state, port=0)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     base = f"http://127.0.0.1:{server.server_address[1]}"
     try:
-        for route in ("/", "/api/state", "/api/cells"):
+        for route in ("/", "/api/state", "/api/cells", "/api/live-studies"):
             with urllib.request.urlopen(base + route, timeout=2) as response:
                 assert response.status == 200
+        with urllib.request.urlopen(base + "/api/live-studies", timeout=2) as response:
+            assert json.load(response)["current_stage"] == "d40"
         with pytest.raises(urllib.error.HTTPError) as missing_history:
             urllib.request.urlopen(base + "/api/history?index=0", timeout=2)
         assert missing_history.value.code == 404
@@ -560,6 +595,8 @@ def test_cli_module_has_no_socket_credential_or_order_path_import() -> None:
             "src/shaurya/analytics/ofi_dashboard.py",
             "src/shaurya/analytics/ofi_dashboard_server.py",
             "src/shaurya/cli/ofi_dashboard.py",
+            "src/shaurya/analytics/live_ofi_studies.py",
+            "src/shaurya/cli/live_ofi_studies.py",
         )
     ).lower()
     forbidden_imports = (

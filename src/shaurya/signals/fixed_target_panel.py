@@ -792,6 +792,7 @@ def build_fixed_target_panel(
     seed: int = 20260820,
     embargo_seconds: float = EMBARGO_SECONDS,
     progress: Callable[[dict[str, Any]], None] | None = None,
+    cell_callback: Callable[[dict[str, Any], int, int], None] | None = None,
 ) -> dict[str, Any]:
     observations = list(tape.observations)
     if not observations:
@@ -839,6 +840,8 @@ def build_fixed_target_panel(
                     )
                     cells.append(cell)
                     completed += 1
+                    if cell_callback is not None:
+                        cell_callback(cell, completed, total)
                     if progress is not None:
                         progress(
                             {
