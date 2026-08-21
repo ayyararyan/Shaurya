@@ -629,16 +629,14 @@ function renderMispricing(payload) {
     'fresh strike-held-out reference surface; no confirmed dislocation';
 
   const row = (episode, recent) => {
-    const market = episode.direction === 'cheap' ? episode.observed_ask : episode.observed_bid;
-    const executableIv = episode.direction === 'cheap'
-      ? episode.observed_ask_iv : episode.observed_bid_iv;
     const trace = episode.gap_close_trace || {};
     const words = (value) => String(value || '').replaceAll('_', ' ');
-    const signed = (value) => value === null || value === undefined
+    const signedRupees = (value) => value === null || value === undefined || Number.isNaN(value)
       ? '\u2014' : ((Number(value) > 0 ? '+' : '') + fmt(value, 2));
-    const clock = recent
-      ? ((episode.corrected_at || episode.last_observed_at || '').slice(11, 19))
-      : ((episode.first_seen_at || '').slice(11, 19));
+    const entryMarket = Number(trace.entry_executable_price);
+    const entryFair = Number(trace.entry_reference_boundary);
+    const exitMarket = Number(trace.close_executable_price);
+    const exitFair = Number(trace.close_reference_boundary);
     const outcome = recent
       ? (episode.status === 'corrected'
         ? (words(trace.attribution || episode.correction_driver || 'corrected') +
@@ -655,43 +653,22 @@ function renderMispricing(payload) {
         escapeHtml(episode.expiry + ' ' + episode.strike + ' ' + episode.option_type) + '</td>' +
       '<td class="' + escapeHtml(episode.direction) + '">' +
         escapeHtml(episode.direction) + '</td>' +
-      '<td class="num">' + fmt(market, 2) + '</td>' +
-      '<td class="num">' + fmt(episode.fair_price, 2) + '</td>' +
-      '<td class="num">[' + fmt(episode.fair_lower, 2) + ', ' +
-        fmt(episode.fair_upper, 2) + ']</td>' +
-      '<td class="num">' + fmt(Number(executableIv) * 100, 3) + '</td>' +
-      '<td class="num">' + fmt(Number(episode.fair_iv) * 100, 3) + '</td>' +
-      '<td class="num">[' + fmt(Number(episode.fair_iv_lower) * 100, 3) + ', ' +
-        fmt(Number(episode.fair_iv_upper) * 100, 3) + ']</td>' +
-      '<td class="num">' + fmt(episode.model_uncertainty_iv_points, 3) + '</td>' +
-      '<td class="num">' + fmt(episode.total_uncertainty_iv_points, 3) + '</td>' +
-      '<td class="num">' + escapeHtml(episode.residual_history_count) + ' / ' +
-        fmt(episode.residual_effective_sample_size, 1) + '</td>' +
-      '<td class="num">' + fmt(episode.raw_smoothed_iv_gap_points, 3) + '</td>' +
-      '<td class="num">' + escapeHtml(episode.reference_smoothing_components) + '</td>' +
-      '<td>' + escapeHtml((episode.reference_eligible ?? episode.reference_stable) ? 'yes' :
-        words(episode.reference_eligibility_reason ||
-          episode.reference_stability_reason || 'no')) + '</td>' +
-      '<td class="num">' + fmt(episode.gross_iv_edge_points, 3) + '</td>' +
-      '<td class="num">' + fmt(episode.net_edge_ticks, 2) + '</td>' +
-      '<td class="num">' + fmt(episode.net_edge_per_lot, 2) + '</td>' +
-      '<td class="num">' + fmt(trace.delta_hedged_net_per_lot, 2) + '</td>' +
-      '<td class="num">' + fmt(episode.quote_age_seconds, 2) + ' s</td>' +
-      '<td class="num">' + escapeHtml(clock) + '</td>' +
-      '<td class="num">' + fmt(episode.duration_seconds, 1) + ' s</td>' +
-      '<td class="num">' + fmt(trace.entry_iv_gap_points, 3) + '</td>' +
-      '<td class="num">' + fmt(trace.target_correction_required_iv_points, 3) + '</td>' +
-      '<td class="num">' + signed(trace.target_iv_contribution_points) + '</td>' +
-      '<td class="num">' + signed(trace.reference_iv_contribution_points) + '</td>' +
-      '<td class="num">' + signed(trace.iv_gap_closed_points) + '</td>' +
+      '<td class="num">' + fmt(entryMarket, 2) + '</td>' +
+      '<td class="num">' + fmt(entryFair, 2) + '</td>' +
+      '<td class="num">' + signedRupees(entryMarket - entryFair) + '</td>' +
+      '<td class="num">' + fmt(exitMarket, 2) + '</td>' +
+      '<td class="num">' + fmt(exitFair, 2) + '</td>' +
+      '<td class="num">' + signedRupees(exitMarket - exitFair) + '</td>' +
+      '<td class="num">' + signedRupees(exitMarket - entryMarket) + '</td>' +
+      '<td class="num">' + signedRupees(exitFair - entryFair) + '</td>' +
       '<td>' + escapeHtml(outcome) + '</td></tr>';
   };
   document.getElementById('mispricingActiveBody').innerHTML =
     (monitor.active || []).map((episode) => row(episode, false)).join('') ||
-    '<tr><td colspan="27" class="muted">no confirmed active stable dislocation</td></tr>';
+    '<tr><td colspan="11" class="muted">no confirmed active dislocation</td></tr>';
   document.getElementById('mispricingRecentBody').innerHTML =
     (monitor.recent || []).map((episode) => row(episode, true)).join('') ||
-    '<tr><td colspan="27" class="muted">' +
+    '<tr><td colspan="11" class="muted">' +
       'no corrected, invalidated, or censored episodes yet</td></tr>';
 }
 
@@ -932,7 +909,7 @@ tr:last-child td { border-bottom:none; }
   margin:0 0 5px; color:var(--ink-3); font-size:9px; font-weight:600;
   letter-spacing:.14em; text-transform:uppercase;
 }
-.mispricing-table table { min-width:2500px; }
+.mispricing-table table { min-width:1120px; }
 .mispricing-table th, .mispricing-table td { white-space:nowrap; }
 
 @media (max-width:1080px) {
@@ -1022,52 +999,24 @@ _BODY = """<!doctype html>
   <div class="mispricing-tables">
     <div class="mispricing-table">
       <h3>Active confirmed</h3>
-      <table><thead><tr><th>contract</th><th>side</th><th class="num">market</th>
-        <th class="num">fair</th><th class="num">fair band</th>
-        <th class="num">exec IV %</th><th class="num">fair IV %</th>
-        <th class="num">fair IV band %</th><th class="num">model u pp</th>
-        <th class="num">total u pp</th><th class="num">neigh / eff n</th>
-        <th class="num">raw-smooth pp</th><th class="num">smoother fits</th>
-        <th>reference eligible</th><th class="num">gross IV pp</th>
-        <th class="num">net ticks</th><th class="num">net / lot</th>
-        <th class="num" title="frozen-entry-delta executable-quote proxy"
-          >delta hedge net / lot</th>
-        <th class="num">quote age</th><th class="num">first seen</th>
-        <th class="num">duration</th>
-        <th class="num" title="executable-IV gap at confirmation">entry gap pp</th>
-        <th class="num" title="target executable-IV movement required after costs"
-          >target required pp</th>
-        <th class="num" title="positive means target executable IV closed the gap"
-          >target \u0394 pp</th>
-        <th class="num" title="positive means held-out reference IV closed the gap"
-          >reference \u0394 pp</th>
-        <th class="num" title="target plus reference IV contributions">gap closed pp</th>
-        <th>closure trace</th></tr></thead>
+      <table><thead><tr><th>contract</th><th>side</th>
+        <th class="num">entry market</th><th class="num">entry fair</th>
+        <th class="num">entry mkt-fair</th>
+        <th class="num">current market</th><th class="num">current fair</th>
+        <th class="num">current mkt-fair</th>
+        <th class="num">\u0394 market</th><th class="num">\u0394 fair</th>
+        <th>state</th></tr></thead>
         <tbody id="mispricingActiveBody"></tbody></table>
     </div>
     <div class="mispricing-table">
       <h3>Recently corrected / invalidated / censored</h3>
-      <table><thead><tr><th>contract</th><th>side</th><th class="num">market</th>
-        <th class="num">fair</th><th class="num">fair band</th>
-        <th class="num">exec IV %</th><th class="num">fair IV %</th>
-        <th class="num">fair IV band %</th><th class="num">model u pp</th>
-        <th class="num">total u pp</th><th class="num">neigh / eff n</th>
-        <th class="num">raw-smooth pp</th><th class="num">smoother fits</th>
-        <th>reference eligible</th><th class="num">gross IV pp</th>
-        <th class="num">net ticks</th><th class="num">net / lot</th>
-        <th class="num" title="frozen-entry-delta executable-quote proxy"
-          >delta hedge net / lot</th>
-        <th class="num">quote age</th><th class="num">closed</th>
-        <th class="num">duration</th>
-        <th class="num" title="executable-IV gap at confirmation">entry gap pp</th>
-        <th class="num" title="target executable-IV movement required after costs"
-          >target required pp</th>
-        <th class="num" title="positive means target executable IV closed the gap"
-          >target \u0394 pp</th>
-        <th class="num" title="positive means held-out reference IV closed the gap"
-          >reference \u0394 pp</th>
-        <th class="num" title="target plus reference IV contributions">gap closed pp</th>
-        <th>closure trace</th></tr></thead>
+      <table><thead><tr><th>contract</th><th>side</th>
+        <th class="num">entry market</th><th class="num">entry fair</th>
+        <th class="num">entry mkt-fair</th>
+        <th class="num">exit market</th><th class="num">exit fair</th>
+        <th class="num">exit mkt-fair</th>
+        <th class="num">\u0394 market</th><th class="num">\u0394 fair</th>
+        <th>outcome</th></tr></thead>
         <tbody id="mispricingRecentBody"></tbody></table>
     </div>
   </div>

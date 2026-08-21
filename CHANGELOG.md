@@ -246,6 +246,12 @@ to strategies that pin the package.
   Direct headless-Chrome rendering visibly showed `120 s`, `stability window off`, and the
   0.50-point raw/exact tolerance. Evidence:
   `docs/live-evidence/ANL-07-AMENDMENT-5-2026-08-21.md`.
+- Owner amendment 6 reduces the visible ANL-07 episode tables from 27 diagnostic columns to a
+  compact entry-versus-current/exit decomposition: executable market, applicable fair boundary,
+  market-minus-fair gap, market movement and fair-boundary movement, plus contract/side/outcome.
+  The full IV, uncertainty, execution, markout and lifecycle payload remains available unchanged
+  through `/api/state` and `/api/history`; classification semantics are unchanged. Verification:
+  44 focused and 718 full-suite tests, Ruff, strict mypy on 74 source files, and compileall pass.
 
 ### `X-OFI-DASHBOARD-2026-08-20` — dynamic read-only OFI horse-race dashboard (`ANL-06`)
 

@@ -339,23 +339,22 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert "exact confirmed" in html
     assert "reference warming" in html
     assert "reference rejected" in html
-    assert "raw-smooth pp" in html
-    assert "smoother fits" in html
+    assert "entry market" in html
+    assert "entry fair" in html
+    assert "entry mkt-fair" in html
+    assert "current market" in html
+    assert "current fair" in html
+    assert "exit market" in html
+    assert "exit fair" in html
+    assert "exit mkt-fair" in html
+    assert "\u0394 market" in html
+    assert "\u0394 fair" in html
     assert "smoothing half-life" in html
     assert "stability window" in html
     assert "raw/exact tolerance" in html
     assert "no rolling stability-window gate" in html
-    assert "target required pp" in html
-    assert "entry gap pp" in html
-    assert "target Δ pp" in html
-    assert "reference Δ pp" in html
-    assert "gap closed pp" in html
-    assert "target_iv_contribution_points" in html
-    assert "reference_iv_contribution_points" in html
-    assert "delta hedge net / lot" in html
-    assert "residual_effective_sample_size" in html
     assert "grid-template-columns:1fr; gap:14px" in html
-    assert "min-width:2500px" in html
+    assert "min-width:1120px" in html
 
 
 def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> None:

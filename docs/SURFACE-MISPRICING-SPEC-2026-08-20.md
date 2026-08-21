@@ -56,6 +56,34 @@ There is no per-contract rolling max-minus-min IV test and no stability-history 
 episode invalidates. All independent-reference, uncertainty, cost, liquidity, multiplicity,
 exact-refit, and two-frame lifecycle gates are unchanged.
 
+**Owner amendment 6, 2026-08-21 (presentation only):** the visible active/recent episode tables
+are reduced from the full diagnostic row to a compact entry-versus-exit decomposition. Each row
+shows contract, side, entry executable market value, entry applicable fair boundary, entry
+market-minus-fair gap, exit/current executable market value, exit/current applicable fair
+boundary, exit/current market-minus-fair gap, executable-market movement, fair-boundary movement,
+and state/outcome. Active rows label the second endpoint `current`; closed rows label it `exit`.
+All detailed IV, uncertainty, cost, markout, lifecycle and attribution fields remain unchanged in
+`/api/state` and `/api/history`; this amendment changes presentation only, not classification.
+
+## Approved specification change — owner amendment 6
+
+**Requirement affected:** `MIS-OUT-01`
+
+**Superseded requirement:** render the complete diagnostic and lifecycle payload as a 27-column
+visible episode table.
+
+**Approved requirement:** render the compact entry/current-or-exit market/fair decomposition above;
+retain the full diagnostic payload in the APIs and historical frames.
+
+**Reason:** the full row is information overload and obscures the economically relevant movement
+of the executable target quote relative to the applicable held-out fair boundary.
+
+**Effect on interpretation:** none. `market - fair` is a raw signed rupee gap; `delta market` is
+second-endpoint market minus entry market; `delta fair` is second-endpoint fair minus entry fair.
+Direction and outcome remain explicit rather than being inferred from a sign.
+
+**Approval:** explicitly requested by Aryan Ayyar on 2026-08-21.
+
 ## Approved specification change — owner amendment 5
 
 **Requirements affected:** `MIS-EST-06`, `MIS-EST-08`, `MIS-STATE-10`, `MIS-OUT-01`
@@ -307,20 +335,14 @@ The ANL-03 screen adds a full-width panel below the surface with:
   including an explicit `stability window: off` disclosure;
 - an **Active confirmed** table sorted by net edge;
 - a **Recently corrected / invalidated / censored** table preserving outcomes;
-- contract, side, executable market price, fair price/band, gross/net ticks, net/lot, IV
-  residual, quote age, first/close clock and duration;
-- entry gap, signed target-option contribution, signed held-out reference-market contribution,
-  all primarily in IV points, net IV gap closed, frozen target-correction
-  requirement/achievement, categorical attribution,
-  corrected/invalidated outcome, closing gate, or censor reason;
-- continuous uncertainty neighbour count/effective sample size and empirical, forward,
-  asynchrony, tick-equivalent and total IV widths;
-- current gross/net rupee execution overlay and frozen-delta gross/net markout per unit and lot;
-- smoothed fair IV, contemporaneous raw fair IV, raw-smoothed IV distance, smoothing component
-  count, and point-in-time reference-eligibility state. No rolling stability range is shown.
+- a compact visible row containing contract, side, entry market, entry applicable fair boundary,
+  entry market-minus-fair, current/exit market, current/exit applicable fair boundary,
+  current/exit market-minus-fair, market movement, fair-boundary movement, and state/outcome.
 
 `/api/state` and `/api/history` must carry the full policy, lifecycle, assumptions and rows.
-History playback must show the episode state frozen into that frame rather than today's state.
+That full API row continues to include every IV residual, uncertainty, cost, markout, timing,
+reference-eligibility and signed attribution field required by amendments 1--5. History playback
+must show the episode state frozen into that frame rather than today's state.
 
 ## 10. Acceptance tests
 
