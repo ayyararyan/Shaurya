@@ -32,7 +32,7 @@ def _write_atomic(path: Path, payload: dict[str, Any]) -> None:
     partial = path.with_name(f".{path.name}.partial-{os.getpid()}")
     descriptor = os.open(partial, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o600)
     with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, sort_keys=True)
+        json.dump(payload, handle, indent=2, sort_keys=True, allow_nan=False)
         handle.write("\n")
         handle.flush()
         os.fsync(handle.fileno())

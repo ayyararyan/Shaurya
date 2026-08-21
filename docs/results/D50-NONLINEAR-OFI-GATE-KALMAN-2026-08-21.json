@@ -1,0 +1,54 @@
+{
+  "accepted_artifact_sha256": "1b47c0343dad003a9e2b64f78470a7e76ac6ff7fbf0e75620f392bce2bc0f36b",
+  "confirmatory_eligible": false,
+  "constant_shrinkage_falsifier": {
+    "M1": {
+      "selected_weight": 0.75,
+      "test_oos_r2": 0.011369359898190434,
+      "test_rmse_ticks": 24.520709430099988
+    },
+    "M2": {
+      "selected_weight": 0.0,
+      "test_oos_r2": 0.0,
+      "test_rmse_ticks": 24.66130179153617
+    }
+  },
+  "correction": {
+    "affected_models": ["M3", "M4", "gate"],
+    "invalid_prior_artifacts_retained_for_audit_only": true,
+    "m0_m1_m2_unchanged": true,
+    "reason": "OFI tensor temporary reused during squaring; corrected by squaring an explicit copy and enforcing bounded geometry"
+  },
+  "gate_test": {
+    "auc": 0.4753914618985902,
+    "brier_score": 0.20608835847497572,
+    "eligible_rows": 1290,
+    "positive_rate": 0.23875968992248062,
+    "selected_penalty": 100.0,
+    "top_probability_quintile_positive_rate": 0.16666666666666666
+  },
+  "generated_at": "2026-08-21T10:52:59.692655+00:00",
+  "models": {
+    "M0": {"direction_accuracy": 0.4628658199889564, "mae_ticks": 14.772102274757861, "oos_r2": 0.0, "rmse_ticks": 24.66130179153617},
+    "M1": {"direction_accuracy": 0.4962727774710105, "mae_ticks": 15.208297760816556, "oos_r2": 0.0076191202897726296, "rmse_ticks": 24.56717344248408},
+    "M2": {"direction_accuracy": 0.46369409166206516, "mae_ticks": 14.77195304695918, "oos_r2": 0.0001245704521100066, "rmse_ticks": 24.65976570894016},
+    "M3": {"direction_accuracy": 0.4823302043070127, "mae_ticks": 14.81355859163923, "oos_r2": 0.008798634944425898, "rmse_ticks": 24.55256919263626},
+    "M4": {"direction_accuracy": 0.46300386526780785, "mae_ticks": 14.772073479709835, "oos_r2": 0.000042525467632503755, "rmse_ticks": 24.660777419265763}
+  },
+  "per_horizon_oos_r2": {
+    "M1": {"5": -0.0031264412699940625, "7.5": -0.0009438508911976395, "10": -0.002637849841735429, "12.5": -0.00006848398820324952, "15": 0.006862797045603775, "20": 0.0072528816801018525, "30": 0.02252273627113144},
+    "M2": {"5": 0.00018673541183389375, "7.5": 0.0002078449841006469, "10": 0.00017094706726739073, "12.5": 0.00009362952559166526, "15": 0.00012672649003242498, "20": 0.00009901857004623871, "30": 0.00009224134144902862},
+    "M3": {"5": 0.003672156871620147, "7.5": 0.0039019655668031117, "10": 0.0030157832281386687, "12.5": 0.004733121109243288, "15": 0.007387044154163358, "20": 0.008349634037287945, "30": 0.01758798951465934},
+    "M4": {"5": 0.00007404061002891371, "7.5": 0.00007210399136292622, "10": 0.00005858412824177872, "12.5": 0.000030517006341712616, "15": 0.000042386693049456525, "20": 0.00003112143116446031, "30": 0.00003155611469274344}
+  },
+  "sample_role": "same_day_exploratory_chronological_calibration",
+  "source": {
+    "opening_gate_missed_seconds": 4.44,
+    "rows": 439949,
+    "run_id": "sha-20260821T030335.366578Z-2038e775",
+    "tape_sha256": "d28d69c1d8fe627ac8553b02a4d75ee02915797594ff31ffbecd7ebe9beafc88"
+  },
+  "specification_id": "D50 / NONLINEAR-OFI-GATE-KALMAN-CALIBRATION",
+  "support": {"cadence_rows": 4472, "scored_test_model_horizon_outcomes": 9457, "test": 1351, "train": 1670, "validation": 996},
+  "test_surface": {"eligible_rows": 1290, "median_future_r2": -0.030414071263300667, "positive_rate": 0.23875968992248062}
+}

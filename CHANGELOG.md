@@ -5,6 +5,22 @@ to strategies that pin the package.
 
 ## Unreleased
 
+### D50 — nonlinear OFI state gate and Kalman-beta calibration
+
+- Added a frozen, chronological M0–M4 horse race over today's completed NIFTY-future tape:
+  rolling mean, rolling ridge, causal delayed-update Kalman betas, and nonlinear gated versions.
+- Added eight state features computed from the existing C8 predictor tensor, a five-minute future
+  surface-state target, and a validation-selected constant-shrinkage falsifier.
+- Rejected the first gate artifact after a bounded-geometry audit, fixed NumPy temporary-buffer
+  mutation by squaring an explicit copy, added construction and terminal invariants, and reran the
+  full analysis. The accepted one-day exploratory result finds no useful Kalman or nonlinear-gate
+  edge; 75% constant shrinkage of rolling ridge leads at +1.14% test OOS R2.
+- Added the binding specification, compact result, plain-English report, test-horizon diagnostics,
+  source/artifact hashes, and updated requirements traceability. No live dashboard or order path
+  changed.
+- Acceptance: all 726 tests passed; repository-wide Ruff, strict mypy on 78 source files,
+  compileall, JSON parsing, diff checks and full-artifact integrity gates are clean.
+
 ### D48 — five beta-estimation windows on the main OFI dashboard
 
 - Expanded the live C8 table into identical 2/5/10/15/30-minute beta-estimation grids.

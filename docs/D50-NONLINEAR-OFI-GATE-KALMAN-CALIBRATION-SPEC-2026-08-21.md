@@ -76,3 +76,26 @@ probability quintile; positive-surface label rates; and explicit leakage/causal 
 Acceptance requires complete declared axes, non-empty train/validation/test support, no test-based
 selection, finite predictions, delayed Kalman updates, and artifact read-back. No dashboard,
 socket, credential, order path or live process is changed.
+
+## Post-estimation reporting amendment
+
+After the first complete artifact was inspected, two omitted diagnostics were identified and added
+without changing any estimator, split, feature, target, hyperparameter grid or selection: M0–M4
+metrics separately by forecast horizon, and descriptive five-minute surface-height plus univariate
+geometry-quintile panels. These additions are explicitly post-estimation diagnostics and may not be
+used to claim a pre-registered nonlinear relation or to refit D50.
+
+## Execution and correction record
+
+The complete-tape execution finished on 2026-08-21. The first gate artifact was rejected after a
+bounded-feature audit found `depth_coherence > 1`. Under the production Python 3.14/NumPy build,
+the temporary expression used to square the OFI tensor could reuse its input buffer, corrupting
+later geometry features. The implementation now squares an explicit copy and enforces `[0,1]`
+invariants both when geometry is built and before the terminal artifact is returned. M0, M1 and
+M2 did not depend on these features and were unchanged; all reported M3, M4 and gate results come
+only from the corrected rerun. The rejected artifacts remain audit-only and are not evidence.
+
+The accepted artifact is summarized in
+`docs/results/D50-NONLINEAR-OFI-GATE-KALMAN-2026-08-21.json` and interpreted in
+`docs/D50-NONLINEAR-OFI-GATE-KALMAN-REPORT-2026-08-21.md`. Its SHA-256 is
+`1b47c0343dad003a9e2b64f78470a7e76ac6ff7fbf0e75620f392bce2bc0f36b`.
