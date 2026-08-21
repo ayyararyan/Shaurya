@@ -202,8 +202,9 @@ tape and is evidence level 3, not confirmatory.
 ## D51 ten-second feature-selection foundation — `D51-10S-FEATURE-SELECTION-2026-08-21`
 
 **Specification:** `docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md`
-**Evidence boundary:** construction machinery is evidence level 2. No empirical model has been
-fit; any later result using only the 2026-08-21 session remains exploratory/non-confirmatory.
+**Evidence boundary:** construction and hard quality-gate machinery are evidence level 2. No
+empirical model has been fit; any later result using only the 2026-08-21 session remains
+exploratory/non-confirmatory.
 
 | ID | Requirement | Status | Code location | Test / acceptance evidence |
 |---|---|---|---|---|
@@ -222,3 +223,8 @@ fit; any later result using only the 2026-08-21 session remains exploratory/non-
 | `D51-OOS-01` | Step 1 performs no preprocessing, fitting, clustering or selection | **Implemented** | module boundary and D51 exclusions | source audit; no estimator/model dependency |
 | `D51-EXP-01` | Today-only evidence is exploratory/non-confirmatory | **Implemented, tested** | `CONFIRMATORY_ELIGIBLE`, `EVIDENCE_LABEL`, row diagnostics | label/diagnostic tests |
 | `D51-OUT-01` | Deterministic rows carry target interval, values, availability and version | **Implemented, tested** | `FeatureSelectionRow`, `FeatureConstructionResult` | full row-contract tests |
+| `D51-GATE-01` | Hard schema/version/target/finite/range/as-of availability enforcement | **Implemented, tested** | `apply_feature_quality_gates`, `_feature_in_range` | deliberate future timestamp, schema and range fixtures fail closed |
+| `D51-GATE-02` | Separate missingness and validity; no silent zero fill | **Implemented, tested** | `GatedFeatureRow` | leaked value becomes gated `None`, source-missing flag remains false, validity is false |
+| `D51-GATE-03` | Training-only coverage, near-constant and deterministic exact/affine duplicates | **Implemented, tested** | `apply_feature_quality_gates`, `_affine_duplicate` | held-out variation cannot rescue training constant; missing coverage and duplicate fixtures |
+| `D51-GATE-04` | Surface freshness, fit, support, stale-state and arbitrage gates | **Implemented, tested** | `SurfaceQualityGate`, `_surface_quality_failures` | deliberate stale/low-R2/low-support/arbitrage-fail fixture invalidates surface only |
+| `D51-GATE-05` | Versioned auditable gate artifact and deterministic fingerprint | **Implemented, tested** | `FeatureQualityGateArtifact`, `_input_fingerprint` | repeated identical gate pass has identical SHA-256 and eligibility |

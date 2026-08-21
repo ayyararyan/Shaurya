@@ -16,6 +16,10 @@ from shaurya.signals.feature_selection import (
     REGISTRY_VERSION,
     SURFACE_EW_ALPHA,
     TARGET_HORIZON_SECONDS,
+    FeatureConstructionResult,
+    FeatureQualityGateConfig,
+    SurfaceQualityGate,
+    apply_feature_quality_gates,
     build_feature_selection_rows,
     build_registry,
     price_lag_feature,
@@ -31,15 +35,24 @@ from shaurya.signals.surface_futures_predictive import (
 NS = 1_000_000_000
 
 
-def _book(stamp: int, *, epoch: int = 1) -> BookState:
+def _book(stamp: int, *, epoch: int = 1, spread_ticks: int = 1) -> BookState:
     bids = tuple((100.00 - 0.05 * level, 100 - 5 * level, 10 - level) for level in range(5))
-    asks = tuple((100.05 + 0.05 * level, 80 - 3 * level, 8 - level) for level in range(5))
+    asks = tuple(
+        (100.00 + 0.05 * spread_ticks + 0.05 * level, 80 - 3 * level, 8 - level)
+        for level in range(5)
+    )
     return BookState("full", stamp, stamp, epoch, bids, asks, 1, ())
 
 
-def _observation(stamp: int, *, epoch: int = 1, target: float | None = 2.5) -> HorseRaceObservation:
+def _observation(
+    stamp: int,
+    *,
+    epoch: int = 1,
+    target: float | None = 2.5,
+    feature_shift: float = 0.0,
+) -> HorseRaceObservation:
     features = {
-        average_feature(window, depth): window + depth / 100.0
+        average_feature(window, depth): window + depth / 100.0 + feature_shift
         for window in OFI_WINDOWS_SECONDS
         for depth in OFI_DEPTHS
     }
@@ -58,12 +71,22 @@ def _observation(stamp: int, *, epoch: int = 1, target: float | None = 2.5) -> H
 
 
 def _surface(stamp: int, skew: float, *, epoch: int = 1, sequence: int = 1) -> FrameDraft:
+    quality = {
+        "quality__weighted_r_squared": 0.99,
+        "quality__used_quote_count": 20.0,
+        "quality__surface_age_seconds": 0.1,
+        "quality__surface_is_stale": 0.0,
+        "quality__arbitrage_passed": 1.0,
+    }
+    for expiry in EXPIRIES:
+        quality[f"quality__{expiry.isoformat()}__quote_count"] = 5.0
+        quality[f"quality__{expiry.isoformat()}__support_width"] = 0.2
     return FrameDraft(
         sequence=sequence,
         receive_ts_ns=stamp,
         connection_epoch=epoch,
         economic={surface_feature(EXPIRIES[0], "atm_skew"): skew},
-        quality_numeric={"quality__weighted_r_squared": 0.99},
+        quality_numeric=quality,
         quality_categorical={"quality__smoothing_status": "smoothed"},
         surface_age_seconds=0.1,
         smoothing_status="smoothed",
@@ -75,7 +98,7 @@ def _build(
     *,
     books: list[BookState] | None = None,
     frames: list[FrameDraft] | None = None,
-):
+) -> FeatureConstructionResult:
     return build_feature_selection_rows(
         observations=observations,
         books=books or [],
@@ -127,8 +150,7 @@ def test_target_geometry_and_canonical_sources_are_exact() -> None:
     assert row.registry_version == REGISTRY_VERSION
     assert row.evidence_label == EVIDENCE_LABEL
     assert all(
-        stamp is None or stamp <= row.anchor_ts_ns
-        for stamp in row.feature_available_ts_ns.values()
+        stamp is None or stamp <= row.anchor_ts_ns for stamp in row.feature_available_ts_ns.values()
     )
 
 
@@ -181,14 +203,131 @@ def test_intraday_cycle_and_predeclared_interactions_are_deterministic() -> None
     values = result.rows[0].feature_values
     ofi = values[average_feature(10.0, 10)]
     assert ofi is not None
-    assert values["interaction__ofi_w10_m10_x_spread"] == pytest.approx(
-        ofi * values["regime__spread_ticks"]  # type: ignore[operator]
-    )
-    assert values["interaction__ofi_w10_m10_x_inverse_l1_depth"] == pytest.approx(
-        ofi / values["lob__l1_total_quantity"]  # type: ignore[operator]
-    )
+    spread = values["regime__spread_ticks"]
+    depth = values["lob__l1_total_quantity"]
+    assert spread is not None and depth is not None
+    assert values["interaction__ofi_w10_m10_x_spread"] == pytest.approx(ofi * spread)
+    assert values["interaction__ofi_w10_m10_x_inverse_l1_depth"] == pytest.approx(ofi / depth)
     sine = values["regime__session_phase_sin"]
     cosine = values["regime__session_phase_cos"]
     assert sine is not None and cosine is not None
     assert sine**2 + cosine**2 == pytest.approx(1.0)
     assert math.isfinite(values["regime__abs_lag_return_10s_per_sqrt_second"] or math.nan)
+
+
+def test_quality_gate_catches_deliberate_future_leakage_without_zero_fill() -> None:
+    result = _build(
+        [_observation(20 * NS + index * NS, feature_shift=float(index)) for index in range(4)],
+        books=[_book(20 * NS + index * NS, spread_ticks=index + 1) for index in range(4)],
+        frames=[_surface(19 * NS, -0.2)],
+    )
+    leaked = average_feature(10.0, 10)
+    availability = result.rows[1].feature_available_ts_ns
+    assert isinstance(availability, dict)
+    availability[leaked] = result.rows[1].anchor_ts_ns + 1
+    artifact = apply_feature_quality_gates(result, training_row_indices=(0, 1, 2))
+    assert any(
+        finding.reason == "future_availability"
+        and finding.feature_name == leaked
+        and finding.row_index == 1
+        for finding in artifact.findings
+    )
+    assert artifact.rows[1].feature_values[leaked] is None
+    assert not artifact.rows[1].missing_indicators[leaked]
+    assert not artifact.rows[1].validity_indicators[leaked]
+    assert leaked not in artifact.eligible_features
+
+
+def test_surface_fit_support_and_freshness_gate_invalidates_surface_only() -> None:
+    frame = _surface(19 * NS, -0.2)
+    quality = frame.quality_numeric
+    assert isinstance(quality, dict)
+    quality["quality__surface_age_seconds"] = 600.0
+    quality["quality__surface_is_stale"] = 1.0
+    quality["quality__weighted_r_squared"] = 0.5
+    quality["quality__used_quote_count"] = 2.0
+    quality["quality__arbitrage_passed"] = 0.0
+    result = _build(
+        [_observation(20 * NS + index * NS, feature_shift=float(index**2)) for index in range(3)],
+        books=[_book(20 * NS + index * NS, spread_ticks=index + 1) for index in range(3)],
+        frames=[frame],
+    )
+    config = FeatureQualityGateConfig(
+        surface=SurfaceQualityGate(
+            maximum_age_seconds=480.0,
+            minimum_weighted_r_squared=0.9,
+            minimum_used_quote_count=10.0,
+        )
+    )
+    artifact = apply_feature_quality_gates(result, training_row_indices=(0, 1, 2), config=config)
+    reasons = {finding.reason for finding in artifact.findings}
+    assert {
+        "stale_availability",
+        "surface_marked_stale",
+        "surface_fit_below_minimum",
+        "surface_support_below_minimum",
+        "surface_arbitrage_failed",
+    } <= reasons
+    surface_name = surface_feature(EXPIRIES[0], "atm_skew")
+    assert all(row.feature_values[surface_name] is None for row in artifact.rows)
+    assert artifact.rows[0].feature_values[average_feature(0.5, 1)] is not None
+
+
+def test_training_only_missing_constant_and_duplicate_gates_are_auditable() -> None:
+    result = _build(
+        [_observation(20 * NS + index * NS, feature_shift=float(index)) for index in range(4)],
+        books=[_book(20 * NS + index * NS, spread_ticks=index + 1) for index in range(4)],
+        frames=[_surface(19 * NS, -0.2)],
+    )
+    constant = price_lag_feature(0.5)
+    duplicate = price_lag_feature(1.0)
+    missing = price_lag_feature(2.0)
+    for index, row in enumerate(result.rows):
+        values = row.feature_values
+        availability = row.feature_available_ts_ns
+        assert isinstance(values, dict) and isinstance(availability, dict)
+        values[constant] = 7.0 if index < 3 else 99.0
+        values[duplicate] = float(index)
+        values[price_lag_feature(5.0)] = float(index)
+        values[missing] = None if index < 2 else float(index)
+        availability[missing] = None if index < 2 else row.anchor_ts_ns
+    artifact = apply_feature_quality_gates(
+        result,
+        training_row_indices=(0, 1, 2),
+        config=FeatureQualityGateConfig(minimum_training_coverage=0.5),
+    )
+    by_feature = {(item.reason, item.feature_name) for item in artifact.findings}
+    assert ("near_constant_training_feature", constant) in by_feature
+    assert ("insufficient_training_coverage", missing) in by_feature
+    assert (
+        "exact_duplicate_training_feature",
+        price_lag_feature(5.0),
+    ) in by_feature
+    assert constant not in artifact.eligible_features
+    assert artifact.rows[3].feature_values[constant] is None
+
+
+def test_schema_range_and_reproducibility_artifact_are_explicit() -> None:
+    result = _build(
+        [_observation(20 * NS + index * NS, feature_shift=float(index)) for index in range(3)],
+        books=[_book(20 * NS + index * NS, spread_ticks=index + 1) for index in range(3)],
+        frames=[_surface(19 * NS, -0.2)],
+    )
+    first_values = result.rows[0].feature_values
+    first_availability = result.rows[0].feature_available_ts_ns
+    second_values = result.rows[1].feature_values
+    assert isinstance(first_values, dict)
+    assert isinstance(first_availability, dict)
+    assert isinstance(second_values, dict)
+    first_values["unexpected"] = 1.0
+    first_availability["unexpected"] = result.rows[0].anchor_ts_ns
+    second_values["regime__minutes_from_open"] = -1.0
+    first = apply_feature_quality_gates(result, training_row_indices=(0, 1, 2))
+    second = apply_feature_quality_gates(result, training_row_indices=(0, 1, 2))
+    assert first.input_fingerprint_sha256 == second.input_fingerprint_sha256
+    assert first.eligible_features == second.eligible_features
+    assert any(item.reason == "schema_extra_feature" for item in first.findings)
+    assert any(
+        item.reason == "range_violation" and item.feature_name == "regime__minutes_from_open"
+        for item in first.findings
+    )

@@ -7,11 +7,13 @@ available.  The frozen design is ``docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-2
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from bisect import bisect_right
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Final, Literal
+from typing import Final, Literal, cast
 
 from shaurya.data.depth_thinning_analysis import BookState
 from shaurya.signals.ccz_ofi import average_feature
@@ -28,12 +30,13 @@ from shaurya.signals.surface_futures_predictive import (
 )
 
 SPECIFICATION_ID: Final = "D51-10S-FEATURE-SELECTION-2026-08-21"
-SPECIFICATION_VERSION: Final = "1.0.0"
+SPECIFICATION_VERSION: Final = "1.1.0"
 DESIGN_DOCUMENT: Final = "docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md"
 REGISTRY_VERSION: Final = "d51-feature-registry-v1"
 TARGET_REGISTRY_VERSION: Final = "d51-target-registry-v1"
 CONFIRMATORY_ELIGIBLE: Final = False
 EVIDENCE_LABEL: Final = "exploratory_screening_today_only"
+GATE_ARTIFACT_VERSION: Final = "d51-quality-gates-v1"
 
 NANOSECONDS_PER_SECOND: Final = 1_000_000_000
 CAUSAL_GAP_SECONDS: Final = 0.5
@@ -198,6 +201,125 @@ class FeatureConstructionResult:
     registry: FeatureTargetRegistry
     rows: tuple[FeatureSelectionRow, ...]
     diagnostics: Mapping[str, int | str | bool]
+
+
+GateReason = Literal[
+    "schema_missing_feature",
+    "schema_extra_feature",
+    "registry_version_mismatch",
+    "invalid_target",
+    "invalid_target_geometry",
+    "missing_value",
+    "missing_availability",
+    "future_availability",
+    "stale_availability",
+    "range_violation",
+    "surface_quality_missing",
+    "surface_marked_stale",
+    "surface_fit_below_minimum",
+    "surface_support_below_minimum",
+    "surface_arbitrage_failed",
+    "insufficient_training_coverage",
+    "near_constant_training_feature",
+    "exact_duplicate_training_feature",
+    "affine_duplicate_training_feature",
+]
+
+
+@dataclass(frozen=True, slots=True)
+class SurfaceQualityGate:
+    """Predeclared causal surface acceptance policy; it is never fitted on outcomes."""
+
+    maximum_age_seconds: float = 480.0
+    minimum_weighted_r_squared: float = 0.0
+    minimum_used_quote_count: float = 1.0
+    minimum_expiry_quote_count: float = 1.0
+    minimum_expiry_support_width: float = 0.0
+    require_arbitrage_passed: bool = True
+    reject_stale_flag: bool = True
+
+    def __post_init__(self) -> None:
+        thresholds = (
+            self.maximum_age_seconds,
+            self.minimum_used_quote_count,
+            self.minimum_expiry_quote_count,
+            self.minimum_expiry_support_width,
+        )
+        if any(not math.isfinite(value) or value < 0.0 for value in thresholds):
+            raise ValueError("surface age/support thresholds must be finite and non-negative")
+        if not math.isfinite(self.minimum_weighted_r_squared):
+            raise ValueError("surface fit threshold must be finite")
+
+
+@dataclass(frozen=True, slots=True)
+class FeatureQualityGateConfig:
+    """Frozen engineering gates; train-derived checks use only ``training_row_indices``."""
+
+    minimum_training_coverage: float = 0.5
+    near_constant_absolute_tolerance: float = 1e-12
+    affine_duplicate_absolute_tolerance: float = 1e-12
+    maximum_age_seconds_by_family: Mapping[str, float] | None = None
+    surface: SurfaceQualityGate = SurfaceQualityGate()
+
+    def __post_init__(self) -> None:
+        if not 0.0 <= self.minimum_training_coverage <= 1.0:
+            raise ValueError("minimum training coverage must lie in [0, 1]")
+        if self.near_constant_absolute_tolerance < 0.0:
+            raise ValueError("near-constant tolerance must be non-negative")
+        if self.affine_duplicate_absolute_tolerance < 0.0:
+            raise ValueError("affine-duplicate tolerance must be non-negative")
+        if self.maximum_age_seconds_by_family is not None and any(
+            not math.isfinite(value) or value < 0.0
+            for value in self.maximum_age_seconds_by_family.values()
+        ):
+            raise ValueError("family age thresholds must be finite and non-negative")
+
+
+@dataclass(frozen=True, slots=True)
+class GateFinding:
+    reason: GateReason
+    feature_name: str | None
+    row_index: int | None
+    detail: str
+
+
+@dataclass(frozen=True, slots=True)
+class TrainingFeatureDiagnostic:
+    feature_name: str
+    finite_count: int
+    training_row_count: int
+    coverage: float
+    minimum: float | None
+    maximum: float | None
+    retained: bool
+
+
+@dataclass(frozen=True, slots=True)
+class GatedFeatureRow:
+    """Gate view of one source row; source values are preserved and never zero-filled."""
+
+    source_row_index: int
+    row_valid: bool
+    feature_values: Mapping[str, float | None]
+    missing_indicators: Mapping[str, bool]
+    validity_indicators: Mapping[str, bool]
+
+
+@dataclass(frozen=True, slots=True)
+class FeatureQualityGateArtifact:
+    version: str
+    specification_id: str
+    registry_version: str
+    config: FeatureQualityGateConfig
+    maximum_age_seconds_by_family: Mapping[str, float]
+    input_fingerprint_sha256: str
+    training_row_indices: tuple[int, ...]
+    eligible_features: tuple[str, ...]
+    excluded_features: tuple[str, ...]
+    findings: tuple[GateFinding, ...]
+    training_diagnostics: tuple[TrainingFeatureDiagnostic, ...]
+    rows: tuple[GatedFeatureRow, ...]
+    reason_counts: Mapping[str, int]
 
 
 def _surface_level_names() -> tuple[str, ...]:
@@ -498,15 +620,11 @@ def build_feature_selection_rows(
                     values,
                     availability,
                     gradient_name,
-                    None
-                    if near_value is None or far_value is None
-                    else near_value - far_value,
+                    None if near_value is None or far_value is None else near_value - far_value,
                     anchor,
                 )
 
-        surface = _same_epoch_as_of_surface(
-            enriched_surface, anchor, observation.connection_epoch
-        )
+        surface = _same_epoch_as_of_surface(enriched_surface, anchor, observation.connection_epoch)
         if surface is None:
             missing_surface += 1
         frame = surface[0] if surface is not None else None
@@ -551,8 +669,7 @@ def build_feature_selection_rows(
         for name, value in regime_values.items():
             source_time = (
                 book.receive_ts_ns
-                if name in {"regime__spread_ticks", "regime__log1p_l1_depth"}
-                and book is not None
+                if name in {"regime__spread_ticks", "regime__log1p_l1_depth"} and book is not None
                 else anchor
             )
             _put(values, availability, name, value, source_time)
@@ -621,3 +738,439 @@ def build_feature_selection_rows(
         "evidence_label": EVIDENCE_LABEL,
     }
     return FeatureConstructionResult(registry, tuple(rows), diagnostics)
+
+
+def _default_maximum_age_by_family() -> Mapping[str, float]:
+    return {"book_liquidity": MAX_BOOK_AGE_SECONDS, "surface": 480.0}
+
+
+def _feature_in_range(name: str, value: float) -> bool:
+    """Apply only deterministic domain/schema ranges, not empirically chosen winsorisation."""
+
+    zero_one = name.startswith("quality__") and name in {
+        "quality__surface_is_stale",
+        "quality__is_temporally_smoothed",
+        "quality__smoothing_reset",
+        "quality__raw_unsmoothed",
+        "quality__arbitrage_passed",
+    }
+    if zero_one and value not in {0.0, 1.0}:
+        return False
+    if name in {"regime__session_phase_sin", "regime__session_phase_cos"}:
+        return -1.0 - 1e-12 <= value <= 1.0 + 1e-12
+    explicitly_nonnegative = name in {
+        "lob__spread_ticks",
+        "lob__l1_total_quantity",
+        "lob__log1p_l1_total_quantity",
+        "lob__bid_total_quantity_5",
+        "lob__ask_total_quantity_5",
+        "lob__log1p_bid_total_quantity_5",
+        "lob__log1p_ask_total_quantity_5",
+        "lob__bid_average_order_size_proxy_5",
+        "lob__ask_average_order_size_proxy_5",
+        "regime__minutes_from_open",
+        "regime__minutes_to_close",
+        "regime__abs_lag_return_10s_per_sqrt_second",
+        "regime__spread_ticks",
+        "regime__log1p_l1_depth",
+    }
+    nonnegative_quality_tokens = (
+        "weighted_rmse",
+        "quote_count",
+        "used_quote_count",
+        "support_width",
+        "age_seconds",
+        "duration_seconds",
+        "packets_per_second",
+        "reconnect_count",
+        "stale_instrument_count",
+        "smoothing_component_count",
+    )
+    quality_nonnegative = name.startswith("quality__") and any(
+        token in name for token in nonnegative_quality_tokens
+    )
+    return not ((explicitly_nonnegative or quality_nonnegative) and value < 0.0)
+
+
+def _surface_quality_failures(
+    values: Mapping[str, float | None], policy: SurfaceQualityGate
+) -> tuple[tuple[GateReason, str], ...]:
+    required = (
+        "quality__surface_age_seconds",
+        "quality__weighted_r_squared",
+        "quality__used_quote_count",
+        "quality__surface_is_stale",
+        "quality__arbitrage_passed",
+        *tuple(
+            f"quality__{expiry.isoformat()}__{suffix}"
+            for expiry in EXPIRIES
+            for suffix in ("quote_count", "support_width")
+        ),
+    )
+    missing = tuple(name for name in required if values.get(name) is None)
+    if missing:
+        return (("surface_quality_missing", ",".join(missing)),)
+    failures: list[tuple[GateReason, str]] = []
+    age = cast(float, values["quality__surface_age_seconds"])
+    r_squared = cast(float, values["quality__weighted_r_squared"])
+    used_quotes = cast(float, values["quality__used_quote_count"])
+    stale = cast(float, values["quality__surface_is_stale"])
+    arbitrage = cast(float, values["quality__arbitrage_passed"])
+    if age > policy.maximum_age_seconds:
+        failures.append(("stale_availability", f"surface age {age} > {policy.maximum_age_seconds}"))
+    if policy.reject_stale_flag and stale != 0.0:
+        failures.append(("surface_marked_stale", f"surface stale flag={stale}"))
+    if r_squared < policy.minimum_weighted_r_squared:
+        failures.append(
+            (
+                "surface_fit_below_minimum",
+                f"weighted R2 {r_squared} < {policy.minimum_weighted_r_squared}",
+            )
+        )
+    if used_quotes < policy.minimum_used_quote_count:
+        failures.append(
+            (
+                "surface_support_below_minimum",
+                f"used quotes {used_quotes} < {policy.minimum_used_quote_count}",
+            )
+        )
+    for expiry in EXPIRIES:
+        prefix = f"quality__{expiry.isoformat()}"
+        quote_count = cast(float, values[f"{prefix}__quote_count"])
+        support_width = cast(float, values[f"{prefix}__support_width"])
+        if quote_count < policy.minimum_expiry_quote_count:
+            failures.append(
+                (
+                    "surface_support_below_minimum",
+                    f"{expiry} quote count {quote_count} < {policy.minimum_expiry_quote_count}",
+                )
+            )
+        if support_width < policy.minimum_expiry_support_width:
+            failures.append(
+                (
+                    "surface_support_below_minimum",
+                    f"{expiry} support {support_width} < {policy.minimum_expiry_support_width}",
+                )
+            )
+    if policy.require_arbitrage_passed and arbitrage != 1.0:
+        failures.append(("surface_arbitrage_failed", f"arbitrage flag={arbitrage}"))
+    return tuple(failures)
+
+
+def _input_fingerprint(
+    result: FeatureConstructionResult, training_row_indices: tuple[int, ...]
+) -> str:
+    def canonical(value: float | None) -> float | str | None:
+        if value is None or math.isfinite(value):
+            return value
+        if math.isnan(value):
+            return "nonfinite:nan"
+        return "nonfinite:+inf" if value > 0.0 else "nonfinite:-inf"
+
+    payload = {
+        "registry_version": result.registry.version,
+        "training_row_indices": training_row_indices,
+        "rows": [
+            {
+                "anchor": row.anchor_ts_ns,
+                "epoch": row.connection_epoch,
+                "target_start": row.target_start_ts_ns,
+                "target_end": row.target_end_ts_ns,
+                "target": canonical(row.target_ticks),
+                "values": sorted(
+                    (name, canonical(_finite(value)) if _finite(value) is not None else None)
+                    for name, value in row.feature_values.items()
+                ),
+                "availability": sorted(row.feature_available_ts_ns.items()),
+            }
+            for row in result.rows
+        ],
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _affine_duplicate(left: Sequence[float], right: Sequence[float], tolerance: float) -> bool:
+    if len(left) < 3 or len(left) != len(right):
+        return False
+    pivot = next(
+        (index for index in range(1, len(left)) if abs(left[index] - left[0]) > tolerance),
+        None,
+    )
+    if pivot is None:
+        return False
+    slope = (right[pivot] - right[0]) / (left[pivot] - left[0])
+    intercept = right[0] - slope * left[0]
+    if abs(slope) <= tolerance:
+        return False
+    scale = max(1.0, *(abs(value) for value in right))
+    return all(
+        abs(observed - (slope * source + intercept)) <= tolerance * scale
+        for source, observed in zip(left, right, strict=True)
+    )
+
+
+def apply_feature_quality_gates(
+    result: FeatureConstructionResult,
+    *,
+    training_row_indices: Sequence[int],
+    config: FeatureQualityGateConfig | None = None,
+) -> FeatureQualityGateArtifact:
+    """Audit D51 rows and learn coverage/constancy/redundancy on training rows only.
+
+    This function does not impute, scale, cluster, fit or inspect target association. Invalid
+    values become ``None`` in the gate view, with separate missingness and validity flags.
+    """
+
+    policy = config or FeatureQualityGateConfig()
+    training = tuple(sorted(set(training_row_indices)))
+    if not training:
+        raise ValueError("at least one training row index is required")
+    if training[0] < 0 or training[-1] >= len(result.rows):
+        raise IndexError("training row index is outside constructed rows")
+    registry_names = result.registry.feature_names
+    registry_set = set(registry_names)
+    definitions = {item.name: item for item in result.registry.features}
+    maximum_age = dict(_default_maximum_age_by_family())
+    if policy.maximum_age_seconds_by_family is not None:
+        maximum_age.update(policy.maximum_age_seconds_by_family)
+
+    findings: list[GateFinding] = []
+    hard_excluded: set[str] = set()
+    valid_source_rows: list[bool] = []
+    row_values: list[dict[str, float | None]] = []
+    row_validity: list[dict[str, bool]] = []
+    for row_index, row in enumerate(result.rows):
+        row_is_valid = True
+        value_names = set(row.feature_values)
+        availability_names = set(row.feature_available_ts_ns)
+        if value_names != registry_set or availability_names != registry_set:
+            row_is_valid = False
+        for name in sorted(registry_set - value_names):
+            hard_excluded.add(name)
+            findings.append(GateFinding("schema_missing_feature", name, row_index, "value absent"))
+        for name in sorted(value_names - registry_set):
+            findings.append(
+                GateFinding("schema_extra_feature", name, row_index, "unregistered value")
+            )
+        for name in sorted(registry_set - availability_names):
+            findings.append(
+                GateFinding("schema_missing_feature", name, row_index, "availability absent")
+            )
+        for name in sorted(availability_names - registry_set):
+            findings.append(
+                GateFinding("schema_extra_feature", name, row_index, "unregistered availability")
+            )
+        if row.registry_version != result.registry.version:
+            row_is_valid = False
+            findings.append(
+                GateFinding(
+                    "registry_version_mismatch",
+                    None,
+                    row_index,
+                    f"row={row.registry_version}; registry={result.registry.version}",
+                )
+            )
+        if not math.isfinite(row.target_ticks):
+            row_is_valid = False
+            findings.append(GateFinding("invalid_target", None, row_index, "target is non-finite"))
+        expected_start = row.anchor_ts_ns + int(CAUSAL_GAP_SECONDS * NANOSECONDS_PER_SECOND)
+        expected_end = expected_start + int(TARGET_HORIZON_SECONDS * NANOSECONDS_PER_SECOND)
+        if row.target_start_ts_ns != expected_start or row.target_end_ts_ns != expected_end:
+            row_is_valid = False
+            findings.append(
+                GateFinding("invalid_target_geometry", None, row_index, "target offsets differ")
+            )
+
+        gated: dict[str, float | None] = {}
+        valid: dict[str, bool] = {}
+        for name in registry_names:
+            raw = row.feature_values.get(name)
+            available = row.feature_available_ts_ns.get(name)
+            value = _finite(raw)
+            is_valid = value is not None
+            if value is None:
+                findings.append(GateFinding("missing_value", name, row_index, "missing/non-finite"))
+            elif available is None:
+                is_valid = False
+                hard_excluded.add(name)
+                findings.append(
+                    GateFinding(
+                        "missing_availability",
+                        name,
+                        row_index,
+                        "finite value has no timestamp",
+                    )
+                )
+            elif available > row.anchor_ts_ns:
+                is_valid = False
+                hard_excluded.add(name)
+                findings.append(
+                    GateFinding(
+                        "future_availability",
+                        name,
+                        row_index,
+                        f"available {available} > anchor {row.anchor_ts_ns}",
+                    )
+                )
+            elif not _feature_in_range(name, value):
+                is_valid = False
+                findings.append(GateFinding("range_violation", name, row_index, f"value={value}"))
+            else:
+                age_limit = maximum_age.get(definitions[name].family)
+                if age_limit is not None:
+                    age = (row.anchor_ts_ns - available) / NANOSECONDS_PER_SECOND
+                    if age > age_limit:
+                        is_valid = False
+                        findings.append(
+                            GateFinding(
+                                "stale_availability",
+                                name,
+                                row_index,
+                                f"age {age} > {age_limit}",
+                            )
+                        )
+            gated[name] = value if is_valid else None
+            valid[name] = is_valid
+
+        surface_failures = _surface_quality_failures(gated, policy.surface)
+        if surface_failures:
+            for reason, detail in surface_failures:
+                findings.append(GateFinding(reason, None, row_index, detail))
+            for name in registry_names:
+                if definitions[name].family == "surface":
+                    gated[name] = None
+                    valid[name] = False
+        row_values.append(gated)
+        row_validity.append(valid)
+        valid_source_rows.append(row_is_valid)
+
+    excluded: set[str] = set(hard_excluded)
+    diagnostics: list[TrainingFeatureDiagnostic] = []
+    training_vectors: dict[str, tuple[float | None, ...]] = {}
+    for name in registry_names:
+        vector = tuple(row_values[index][name] for index in training)
+        training_vectors[name] = vector
+        finite = tuple(value for value in vector if value is not None)
+        coverage = len(finite) / len(training)
+        retained = True
+        if not finite or coverage < policy.minimum_training_coverage:
+            retained = False
+            excluded.add(name)
+            findings.append(
+                GateFinding(
+                    "insufficient_training_coverage",
+                    name,
+                    None,
+                    f"coverage {coverage} < {policy.minimum_training_coverage}",
+                )
+            )
+        elif finite and max(finite) - min(finite) <= policy.near_constant_absolute_tolerance:
+            retained = False
+            excluded.add(name)
+            findings.append(
+                GateFinding(
+                    "near_constant_training_feature",
+                    name,
+                    None,
+                    f"range {max(finite) - min(finite)}",
+                )
+            )
+        diagnostics.append(
+            TrainingFeatureDiagnostic(
+                name,
+                len(finite),
+                len(training),
+                coverage,
+                min(finite) if finite else None,
+                max(finite) if finite else None,
+                retained,
+            )
+        )
+
+    candidates = [name for name in registry_names if name not in excluded]
+    for position, name in enumerate(candidates):
+        if name in excluded:
+            continue
+        left_vector = training_vectors[name]
+        for other in candidates[position + 1 :]:
+            if other in excluded:
+                continue
+            right_vector = training_vectors[other]
+            if tuple(value is None for value in left_vector) != tuple(
+                value is None for value in right_vector
+            ):
+                continue
+            left = tuple(value for value in left_vector if value is not None)
+            right = tuple(value for value in right_vector if value is not None)
+            if left == right:
+                excluded.add(other)
+                findings.append(
+                    GateFinding(
+                        "exact_duplicate_training_feature",
+                        other,
+                        None,
+                        f"duplicates canonical representative {name}",
+                    )
+                )
+            elif _affine_duplicate(left, right, policy.affine_duplicate_absolute_tolerance):
+                excluded.add(other)
+                findings.append(
+                    GateFinding(
+                        "affine_duplicate_training_feature",
+                        other,
+                        None,
+                        f"affine duplicate of canonical representative {name}",
+                    )
+                )
+
+    gated_rows: list[GatedFeatureRow] = []
+    for index, values in enumerate(row_values):
+        validity = {
+            name: row_validity[index][name] and name not in excluded for name in registry_names
+        }
+        gate_values = {name: values[name] if validity[name] else None for name in registry_names}
+        gated_rows.append(
+            GatedFeatureRow(
+                index,
+                valid_source_rows[index],
+                gate_values,
+                {
+                    name: _finite(result.rows[index].feature_values.get(name)) is None
+                    for name in registry_names
+                },
+                validity,
+            )
+        )
+    eligible = tuple(name for name in registry_names if name not in excluded)
+    reason_counts: dict[str, int] = {}
+    for finding in findings:
+        reason_counts[finding.reason] = reason_counts.get(finding.reason, 0) + 1
+    retained_lookup = set(eligible)
+    final_diagnostics = tuple(
+        TrainingFeatureDiagnostic(
+            item.feature_name,
+            item.finite_count,
+            item.training_row_count,
+            item.coverage,
+            item.minimum,
+            item.maximum,
+            item.feature_name in retained_lookup,
+        )
+        for item in diagnostics
+    )
+    return FeatureQualityGateArtifact(
+        GATE_ARTIFACT_VERSION,
+        SPECIFICATION_ID,
+        result.registry.version,
+        policy,
+        maximum_age,
+        _input_fingerprint(result, training),
+        training,
+        eligible,
+        tuple(name for name in registry_names if name in excluded),
+        tuple(findings),
+        final_diagnostics,
+        tuple(gated_rows),
+        reason_counts,
+    )

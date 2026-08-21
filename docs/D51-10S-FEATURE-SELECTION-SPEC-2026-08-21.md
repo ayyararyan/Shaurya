@@ -1,7 +1,7 @@
 # D51 — Ten-second futures-mid feature-selection experiment
 
 **Specification ID:** `D51-10S-FEATURE-SELECTION-2026-08-21`  
-**Version:** `1.0.0`  
+**Version:** `1.1.0`
 **Status:** Approved and frozen from Aryan's 2026-08-21 instruction  
 **Evidence boundary:** Any result using only the 2026-08-21 session is an **exploratory
 screening result**, never a stable or confirmatory feature finding.
@@ -43,6 +43,11 @@ would be a meaning-changing specification amendment.
 | `D51-OOS-01` | Clustering, imputation, scaling, fitting and feature selection occur only inside later training folds. Step 1 constructs no fitted selector or model. |
 | `D51-EXP-01` | All 2026-08-21-only empirical output is labelled exploratory/non-confirmatory and cannot establish cross-day stability or promotion. |
 | `D51-OUT-01` | Emit deterministic rows carrying anchor, connection epoch, target interval, target value, per-feature values, per-feature availability time and registry version. |
+| `D51-GATE-01` | Enforce the registered schema, registry version, exact target geometry, finite target/value domains, and per-value availability no later than the anchor. A feature with missing or future availability fails closed. |
+| `D51-GATE-02` | Emit separate missingness and validity indicators. Invalid values become missing in the gated view and are never silently zero-filled; source rows remain unchanged. |
+| `D51-GATE-03` | Compute coverage, near-constant and deterministic exact/affine duplicate checks from explicitly declared training-row indices only. Keep the first registered duplicate as the canonical representative. |
+| `D51-GATE-04` | Gate surface economic features on causal freshness, fit quality, quote/support coverage, stale-state and arbitrage diagnostics. Missing required quality diagnostics fail the surface block closed. |
+| `D51-GATE-05` | Emit a deterministic, versioned audit artifact with input fingerprint, resolved policy, eligible/excluded names, training diagnostics, row/feature validity and a stable reason taxonomy. |
 
 ## 3. Model-object and identification ledger
 
@@ -85,15 +90,39 @@ price-keyed flow.  Required source columns absent from an observation remain mis
 - Missing target: omit the unlabelled research row and count it in diagnostics.
 - Missing book or surface as-of join: keep the row; affected features remain `None`.
 - Non-finite values: convert to `None`, never zero.
-- Stale surface: retain its causal quality/freshness fields; later quality gates decide use.
+- Stale surface: retain its causal quality/freshness fields in construction; the Step 2 gate
+  invalidates economic surface fields while preserving the audit diagnostics.
 - Epoch mismatch: never carry the state across a reconnect.
 
-## 6. Explicit exclusions from Step 1
+Step 2 applies hard gates without fitting a predictor or inspecting target association.  Its
+default pre-empirical surface policy requires: age at most 480 seconds, non-negative weighted
+R-squared, at least one used quote, at least one quote per registered expiry, non-negative
+support width, a false stale flag and a passed arbitrage diagnostic.  Every required quality
+field must be present.  These conservative domain/support floors are serialized in the gate
+artifact; a later empirical run may use a different **predeclared** policy, but may not tune it
+against held-out outcomes.
 
-Quality gates, correlation clustering/PCA, imputation, scaling, elastic-net/group-lasso,
-boosted trees, stability selection, walk-forward folds, purging/embargo implementation,
-importance, ablation, economic selection and empirical fitting are owned by later steps.  No
-trade or deployment claim follows from this construction layer.
+Generic availability-age caps are one second for book/liquidity state and 480 seconds for
+surface economic state.  Coverage defaults to 50% of declared training rows.  A feature is
+near-constant when its finite training range is at most `1e-12`.  Exact duplicates require an
+identical missingness mask and identical values; affine duplicates require at least three
+finite training observations and equality to one non-zero affine transform within `1e-12`
+relative numerical tolerance.  Duplicate resolution follows registry order and therefore is
+deterministic.  These redundancy checks are quality gates, not correlation clustering.
+
+The stable reason taxonomy distinguishes schema/version/target failures, missing and future
+availability, staleness, finite/range failure, surface quality/fit/support/arbitrage failure,
+training coverage/constancy failure, and exact/affine duplication.  Missingness flags describe
+the source observation; validity flags separately describe whether a downstream transform may
+consume it.
+
+## 6. Explicit exclusions through Step 2
+
+Correlation clustering/PCA, imputation, scaling, elastic-net/group-lasso, boosted trees,
+stability selection, walk-forward split construction, purging/embargo implementation,
+importance, ablation, economic selection and empirical fitting are owned by later steps. Step
+2 consumes caller-declared training indices but does not create folds. No trade or deployment
+claim follows from the construction or quality-gate layers.
 
 ## 7. Acceptance tests
 
@@ -105,9 +134,16 @@ trade or deployment claim follows from this construction layer.
 6. EW innovations use only earlier surface frames.
 7. Missing inputs stay `None`; interactions propagate missingness.
 8. Every non-missing feature availability timestamp is at or before the anchor.
+9. Deliberate post-anchor availability fails closed and is distinguishable from source
+   missingness.
+10. Stale, failed, unsupported or quality-incomplete surfaces invalidate economic surface
+    fields without invalidating unrelated OFI/book fields.
+11. Coverage, constancy and exact/affine duplicate decisions use declared training rows only.
+12. Finite/range/schema failures are auditable and two identical inputs produce the same
+    fingerprint and eligibility result.
 
 ## 8. Completion criterion
 
-Step 1 is complete at evidence level 2 when this specification, registry/construction code,
-traceability rows and focused deterministic tests are committed and passing.  No empirical
-result is required or claimed at this stage.
+Steps 1--2 are complete at evidence level 2 when this specification, registry/construction and
+gate code, traceability rows and focused deterministic tests are committed and passing. No
+empirical result is required or claimed at this stage.
