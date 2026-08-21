@@ -1,8 +1,8 @@
 # D51 — Ten-second futures-mid feature-selection experiment
 
 **Specification ID:** `D51-10S-FEATURE-SELECTION-2026-08-21`  
-**Version:** `1.5.0`
-**Status:** Approved and frozen from Aryan's 2026-08-21 instruction  
+**Version:** `1.6.0`
+**Status:** Approved, frozen and executed at the one-session exploratory boundary
 **Evidence boundary:** Any result using only the 2026-08-21 session is an **exploratory
 screening result**, never a stable or confirmatory feature finding.
 
@@ -69,6 +69,12 @@ would be a meaning-changing specification amendment.
 | `D51-STAB-04` | Preserve fold/block paired-loss aggregates for later dependence-aware uncertainty, and publish training/evaluation support plus learning-curve diagnostics. Do not compute confidence intervals, p-values or an empirical promotion in this implementation step. |
 | `D51-STAB-05` | Provide deterministic training-only contiguous-block elastic-net stability resampling. Save seeds, sampled training indices and configuration; a cluster is selected when any coefficient belonging to any of its model columns or explicit missingness columns is nonzero. Never publish or promote an individual column. |
 | `D51-STAB-06` | Emit deterministic exact-readback final cluster-selection and elastic-net-resampling artifacts with stable fingerprints, complete cluster membership and stable reason codes. |
+| `D51-WF-01` | Execute the same-day experiment on a UTC-aligned one-second primary engineering grid; use a five-second sensitivity only when support/runtime permits. This sampling convention does not change the ten-second estimand. |
+| `D51-WF-02` | Construct deterministic expanding outer folds with strictly chronological tests, purge every training label overlapping the next evaluation boundary, and embargo by `max(120 seconds, Z+h)`. Each row enters at most one outer test. |
+| `D51-WF-03` | Put every quality gate, correlation map, representative/PCA state, preprocessing transform, model fit and configuration/early-stopping choice inside the applicable training fold. Inner validation may choose a frozen-grid configuration and stopping count; outer tests remain apply/score-only. |
+| `D51-EMP-01` | Compare zero-return, training-mean, declared simple-state, elastic-net and shallow boosted-tree models on identical outer-test rows and publish compact SHA-pinned model/support tables. |
+| `D51-EMP-02` | Resolve the completed option-chain/surface source through its explicit DAT handle and publish the exact futures/surface intersection. Never carry a surface frame before its availability or fabricate pre-capture surface values. |
+| `D51-EMP-03` | Label the 2026-08-21 result `exploratory_insufficient_sessions`; it cannot make a stability, signal, confirmation, deployment or order claim. |
 
 ## 3. Model-object and identification ledger
 
@@ -271,17 +277,68 @@ attached to any cluster model column or its explicit missingness column is nonze
 sampled row indices and cluster selection frequencies, not individual coefficients or individual
 feature promotion.
 
-## 10. Explicit exclusions through Step 6
+## 10. Step 7 same-day nested walk-forward execution
 
-Sparse group lasso, walk-forward split construction, purging/embargo implementation,
-hyperparameter/model selection, dependence-aware inference, real-data economic selection and
-empirical fitting remain owned by later steps. Step 5 accepts already-declared training, optional
-validation and evaluation rows but does not create folds or touch an evaluation target during
-fitting. Step 6 consumes supplied fold results and can apply the frozen promotion rule to those
-inputs, but this implementation performs no empirical run. PCA is available only as the Step-3
-cluster representation above. No trade or deployment claim follows from any Step 1--6 interface.
+Step 7 freezes a one-second UTC-aligned anchor grid as the primary **engineering sampling
+convention** for the 2026-08-21 experiment. It does not change the target, causal gap, horizon,
+reference price, unit or estimand. A five-second grid is a predeclared runtime/support
+sensitivity, not an outcome-selected replacement.
 
-## 11. Acceptance tests
+The controller constructs three deterministic expanding outer folds. Each outer test is strictly
+later than its training rows and is used exactly once. Before every validation/test boundary it
+removes any training row whose target interval overlaps the boundary and applies an embargo of
+`max(120 seconds, Z+h) = 120 seconds`. The final 20% of each purged outer-training prefix supplies
+the inner validation block, with the same purge and embargo between inner train and validation.
+
+Generic gates, surface gates, correlation estimation, cluster representatives, preprocessing,
+elastic-net fitting, tree split thresholds and configuration selection all live inside the
+relevant training fold. Inner validation chooses among the already-frozen Step-4 structural grids
+and may choose tree stopping only. The selected stopping count is serialized in the candidate and
+carried unchanged into outer-training and Step-5 refits; resetting to the predeclared estimator cap
+is invalid. The outer test is apply/score-only. The model table compares zero, training-mean,
+declared simple-state, elastic-net and shallow-tree forecasts on common rows.
+
+The exact constructed common rows may be cached as deterministic gzip JSON only after binding the
+cache to the trading date, grid, futures SHA, completed surface dataset ID and surface SHA. Cache
+publication requires exact in-memory readback and a row-content fingerprint; reuse revalidates all
+bindings against the current inputs. This cache changes no row, split or estimand and exists only
+to avoid repeating the expensive canonical eSSVI replay after a downstream failure.
+
+The empirical evidence pass applies Steps 5 and 6 to those frozen outer folds and selected model
+configurations. It publishes whole-cluster and whole-family retraining ablations, grouped block
+permutations, training-only elastic-net block resampling, frozen stability gates/reason codes,
+gate and cluster tables, and volatility/spread/time-phase slices. Regime labels are fixed at
+`zero`, `low_le_1`, `medium_le_5`, `high_gt_5` for lagged move scale; `tight_le_1`,
+`normal_le_2`, `wide_gt_2` for spread ticks; and `open_first_60m`,
+`mid_session_60_300m`, `close_after_300m` for minutes from open. Missing states remain explicit.
+
+Long compute stages publish identity-bound recovery checkpoints only after exact artifact
+readback. The controller checkpoints walk-forward selection before Step 5, including every
+per-fold selected configuration and tree stopping count, then checkpoints each complete
+fold/model conditional-usefulness artifact and each fold's elastic-net stability artifact. Every
+checkpoint binds the common-row fingerprint, both source identities, resolved walk-forward
+configuration, fold fingerprint, model identity and selected configuration. A mismatch fails
+closed; an exact match resumes without refitting. Checkpointing changes no model, grid, split,
+comparison or final artifact.
+
+The completed surface/option-chain source is resolved by the explicit DAT dataset ID, status and
+published tape SHA. Because its capture starts after the futures session, the combined experiment
+uses only the exact intersection beginning with the first usable canonical surface frame. No
+surface value is synthesized or carried backward.
+
+The only eligible-session ID is `2026-08-21`. Consequently every empirical table and report is
+hard-labelled `exploratory_insufficient_sessions`, regardless of point estimates. It supplies no
+stability, causal, signal, confirmation, deployment, trading-promotion or order evidence.
+
+## 11. Explicit exclusions through Step 7
+
+Sparse group lasso, dependence-aware inference, confirmatory multi-session selection, costed
+trading promotion and deployment remain later work. Step 7 constructs folds and performs the
+approved same-day empirical fit, but cannot clear the Step-6 20-session stability gate. PCA remains
+available only as the Step-3 cluster representation. No trade or deployment claim follows from
+any Step 1--7 interface.
+
+## 12. Acceptance tests
 
 1. Registry names are unique and contain every frozen family/axis.
 2. Target geometry is exactly anchor + 0.5 seconds to anchor + 10.5 seconds.
@@ -346,11 +403,43 @@ cluster representation above. No trade or deployment claim follows from any Step
     coefficient or feature promotion appears in the artifact.
 36. Both final Step-6 artifacts serialize and read back exactly, and repeated identical inputs
     produce identical fingerprints and results.
+37. Every outer test follows its expanding training prefix, no outer-test row is reused, and both
+    outer and inner boundaries satisfy target-overlap purge plus the frozen 120-second embargo.
+38. Mutating future/test targets cannot change grid sampling or fold boundaries; outer test rows
+    never enter a training index supplied to a gate, reduction, transform or predictor fit.
+39. The one-second grid is deterministic and epoch-safe; the five-second sensitivity uses the
+    identical implementation with only its declared grid width changed.
+40. The walk-forward artifact serializes and reads back exactly, including fold identity,
+    configuration, support, metrics, predictions and model fingerprints.
+41. The empirical source record contains both input SHA-256 values and exact common support, and
+    refuses a non-completed/unpinned DAT surface handle or changed futures tape hash.
+42. Every one-session output carries `exploratory_insufficient_sessions` and no promotion/order
+    field.
+43. The inner-validation-selected boosted-tree stopping count is serialized and used unchanged by
+    the corresponding outer-training and conditional-usefulness refits.
+44. A materialization cache refuses a changed date, grid, futures SHA, surface dataset ID, surface
+    SHA or row fingerprint, and a published cache reads back to rows exactly equal to its source.
+45. The empirical output includes exact-readback Step-5 and Step-6 JSON plus model, gate, cluster,
+    ablation, stability and regime-slice tables; every stability row retains the hard one-session
+    exploratory status and explicit unavailable mirror/economic guards where inputs do not exist.
+46. A matching walk-forward or fold/model checkpoint resumes without invoking its fit factory;
+    changing any bound data/config/fold/model identity fails closed. No partial checkpoint is
+    treated as complete.
 
-## 12. Completion criterion
+## 13. Completion criterion
 
 Steps 1--6 are complete at evidence level 2 when this specification, registry/construction,
 gate, correlation-reduction, two-class predictive-model, conditional-cluster-usefulness and
 cluster-stability code, traceability rows and focused deterministic tests are committed and
 passing. No fold construction, real multi-session result, inference, empirical result, trading
 promotion or order authority is required or claimed at this stage.
+
+Step 7 is complete at evidence level 3 when its controller and leakage/split/readback tests pass,
+the pinned 2026-08-21 inputs produce compact SHA-pinned artifacts, and the result is documented at
+the exact one-session exploratory evidence boundary. This does not make the finding stable or
+confirmatory.
+
+The criterion was met on 2026-08-21. The dated empirical record is
+`docs/results/D51-EXPLORATORY-RESULT-2026-08-21.md`. Its status is
+`exploratory_insufficient_sessions`: no cluster/model pair is stable or promoted, and no signal,
+deployment, economic-value or order claim follows.

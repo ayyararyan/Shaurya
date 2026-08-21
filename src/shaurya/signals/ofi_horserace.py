@@ -410,6 +410,9 @@ def build_horserace_observations(
     effective_touch_window_seconds: float = PRIMARY_EFFECTIVE_TOUCH_WINDOW,
     response_horizons: Sequence[float] | None = None,
     retain_unlabelled: bool = False,
+    anchor_grid_seconds: float | None = None,
+    anchor_start_ts_ns: int | None = None,
+    anchor_end_ts_ns: int | None = None,
 ) -> tuple[list[HorseRaceObservation], dict[str, Any]]:
     """Construct all predictors and responses at one common causal anchor clock.
 
@@ -423,15 +426,23 @@ def build_horserace_observations(
         raise ValueError("the primary CCZ level count must be declared")
     default_horizons = (*RETURN_HORIZONS_SECONDS, CONDITIONAL_HORIZON_SECONDS)
     requested_horizons = (
-        tuple(float(value) for value in response_horizons)
-        if response_horizons is not None
-        else ()
+        tuple(float(value) for value in response_horizons) if response_horizons is not None else ()
     )
     if response_horizons is not None and (
         not requested_horizons
         or any(not isfinite(value) or value <= 0.0 for value in requested_horizons)
     ):
         raise ValueError("response horizons must be finite and strictly positive")
+    if anchor_grid_seconds is not None and (
+        not isfinite(anchor_grid_seconds) or anchor_grid_seconds <= 0.0
+    ):
+        raise ValueError("anchor grid must be finite and strictly positive")
+    if (
+        anchor_start_ts_ns is not None
+        and anchor_end_ts_ns is not None
+        and anchor_end_ts_ns < anchor_start_ts_ns
+    ):
+        raise ValueError("anchor end must not precede anchor start")
     all_horizons = tuple(sorted({*default_horizons, *requested_horizons}))
     schema = ccz_feature_schema(counts)
     failures: dict[str, Any] = {
@@ -529,12 +540,27 @@ def build_horserace_observations(
     # common-sample rule then drops it from that cell alone.  Lengthening the global warm-up
     # instead would discard predictive observations to serve a diagnostic.
     longest_ns = int(max(OFI_WINDOWS_SECONDS) * NANOSECONDS_PER_SECOND)
+    grid_ns = (
+        None
+        if anchor_grid_seconds is None
+        else int(round(anchor_grid_seconds * NANOSECONDS_PER_SECOND))
+    )
+    last_anchor_bucket: tuple[int, int] | None = None
     for position, (state, transition) in enumerate(zip(depth200_states[1:], cks, strict=True)):
         if transition.invalid_reason is not None:
             continue
         if state.receive_ts_ns - depth200_states[0].receive_ts_ns < longest_ns:
             failures["incomplete_history"] += 1
             continue
+        if anchor_start_ts_ns is not None and state.receive_ts_ns < anchor_start_ts_ns:
+            continue
+        if anchor_end_ts_ns is not None and state.receive_ts_ns > anchor_end_ts_ns:
+            continue
+        if grid_ns is not None:
+            bucket = (state.connection_epoch, state.receive_ts_ns // grid_ns)
+            if bucket == last_anchor_bucket:
+                continue
+            last_anchor_bucket = bucket
         controls = _controls(state)
         if controls is None or not state.bids or not state.asks:
             failures["unusable_state"] += 1

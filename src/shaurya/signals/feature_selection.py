@@ -40,7 +40,7 @@ from shaurya.signals.surface_futures_predictive import (
 )
 
 SPECIFICATION_ID: Final = "D51-10S-FEATURE-SELECTION-2026-08-21"
-SPECIFICATION_VERSION: Final = "1.5.0"
+SPECIFICATION_VERSION: Final = "1.6.0"
 DESIGN_DOCUMENT: Final = "docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md"
 REGISTRY_VERSION: Final = "d51-feature-registry-v1"
 TARGET_REGISTRY_VERSION: Final = "d51-target-registry-v1"

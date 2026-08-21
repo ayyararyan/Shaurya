@@ -1,0 +1,53 @@
+{
+  "artifact_root": "/tmp/d51-step7-complete",
+  "cache": {
+    "bytes": 12490302,
+    "path": "/tmp/d51-step7-common-20260821.json.gz",
+    "sha256": "08caa48004091b6dfd16a97004381f3230edf1d8c58d7f8f725f3ddea0a68a1d"
+  },
+  "checkpoint_artifacts_excluded_from_git": {
+    "path": "/tmp/d51-step7-complete/checkpoints",
+    "sha256": {
+      "d51_elastic_stability_outer_01.json": "2a8e1795e0d4dd5a7b9db146171f71e7623889f897f81fb2b49aeac2ef9aef52",
+      "d51_elastic_stability_outer_02.json": "f899580ad932bed5adbdc317d4feacc4b4275f7507159022961391d22d168040",
+      "d51_elastic_stability_outer_03.json": "e44a56c63a3a4dbace024a3719bb7aa1d2f2fc29d1d6760e18ee757e0ec0e1de",
+      "d51_importance_outer_01_elastic_net.json": "03417ff412aca0a34476779c0b6db471324f80922ecd3f299725f4fd2ed74068",
+      "d51_importance_outer_01_shallow_gradient_boosting.json": "0690ae26f6ce6f1be75182cf9f0a137d76b08ee1e633546cc8e66c174e154cf2",
+      "d51_importance_outer_02_elastic_net.json": "58b3bc2545dd100f6a6cff54c7a2eff6aaad678c70e51b8a32aef9ebf558750d",
+      "d51_importance_outer_02_shallow_gradient_boosting.json": "7e584299ef6c9877b52478cf8bccb52189c5e5ed9bae07586258b7859be82fc8",
+      "d51_importance_outer_03_elastic_net.json": "9f6bcf0d9dc16257048ffe1c8480abbb722957636e9a581534280a09e2fd6191",
+      "d51_importance_outer_03_shallow_gradient_boosting.json": "6307778d5fedebbefd2142b071a809f87e50abceb2c0a07805e152ab9c4c8175",
+      "d51_selected_model_configs.csv": "507c79070f22f3d2d405ae73f10d421bf73560f42379824988eb4f36478ee30e",
+      "d51_walk_forward.json": "5f4baf9c0aca6c1141d256277f75bc9e35e569ac87655efb5d4269dc5961967b"
+    }
+  },
+  "committed_compact_artifacts": {
+    "D51-ABLATION-TABLE-2026-08-21.csv": "9b13db0d179ec8fe149458232a5457ac8e0738cab87468e9c13403b87792781c",
+    "D51-CLUSTER-TABLE-2026-08-21.csv": "a4dc6a7b3b158b0cc27c901d425a1741486cd563af7daf1f3f45ce269cdbe01d",
+    "D51-EXPLORATORY-SUMMARY-2026-08-21.json": "0cc53d071f1ebede66215d90d50964f29313246b5957a1a5c0e1a23040792a1a",
+    "D51-GATE-TABLE-2026-08-21.csv": "7460895290587815e198ed637fc57787ab5e0de1b79aa8db9c1adb9445e0ad68",
+    "D51-MODEL-TABLE-2026-08-21.csv": "653fd610ebd8f72e17953f7400eb84bc528eb4708462b0fc3883514a1afaf55e",
+    "D51-REGIME-SLICES-2026-08-21.csv": "48c4e4bc763699e2c762b2a5931623702b2613dd3ddcbfe84112fbf6d2aa3e03",
+    "D51-SELECTED-MODEL-CONFIGS-2026-08-21.csv": "291ff5fb1f98ea4885ff54471ee245155cae89825253b87a7433f0381a2852e2",
+    "D51-STABILITY-TABLE-2026-08-21.csv": "ed233073375142ce78a309d06a959b5fd6aabc2b5852fce79e8a08140cb8de6a"
+  },
+  "detailed_artifacts_excluded_from_git": {
+    "d51_elastic_stability_outer_01.json": "d0d4deb5a77e0692a323080c1c55840001866cd49e02a7674e938d0ae3709328",
+    "d51_elastic_stability_outer_02.json": "d3a378eba76984769c7c34847a7427fcc3d4e3938ba727f5c83fb7929bfe715a",
+    "d51_elastic_stability_outer_03.json": "30cb681877f8892af2cc6dcae5b5807f1fef23f0b4498bd76f70685be4e20576",
+    "d51_importance_outer_01_elastic_net.json": "92a4b8930320b0c6ea35cee77dba6dc5400287b40b546aa21355805eb7fd06fc",
+    "d51_importance_outer_01_shallow_gradient_boosting.json": "3ef5f8231e039af74d9b0c066fca1353ec4eca0bbdcb34844950f856ec7e9d18",
+    "d51_importance_outer_02_elastic_net.json": "abefe0038b65a242443c45722020ddb44fda944671b890dcf803b84e407a8124",
+    "d51_importance_outer_02_shallow_gradient_boosting.json": "b742f9c44f2578f5109baf61133a0787041fa239e65fccc56602809f0cbae04e",
+    "d51_importance_outer_03_elastic_net.json": "9820afa6956732bbeb189f06db816dafb6eca41070b506bab3108dd612605a4f",
+    "d51_importance_outer_03_shallow_gradient_boosting.json": "09bdd774e68284f3488fec4f277457d007829ccf4a3ab5fe743457020138e962",
+    "d51_stability_selection.json": "0f8aba34c6275febc0b6b7d1aa3dc3624fe4d7e79fe652cc3ae47d9277121812",
+    "d51_walk_forward.json": "c57e586c9578b0a1a12144d76913cb3592e42076a5dc2cb5c4e00c8fd44d3f97"
+  },
+  "evidence_status": "exploratory_insufficient_sessions",
+  "source_sha256": {
+    "futures": "d28d69c1d8fe627ac8553b02a4d75ee02915797594ff31ffbecd7ebe9beafc88",
+    "surface": "5ab4c881315ea83170bd4d959961d42bca6cbb945014bcfa79d360afeca49a22"
+  },
+  "version": "d51-step7-artifact-manifest-v1"
+}

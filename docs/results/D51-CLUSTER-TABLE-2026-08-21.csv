@@ -1,0 +1,267 @@
+cluster_id,family,fold_id,member_count,members,model_features,representation
+cluster__057ded5ba3568a7f,book_liquidity,outer_01,1,"[""lob__order_count_imbalance_l1""]","[""cluster__057ded5ba3568a7f""]",representative
+cluster__06ca194a0a433de6,ofi,outer_01,1,"[""ccz_ofi_w5__m5__average""]","[""cluster__06ca194a0a433de6""]",representative
+cluster__09e103f2030ca53e,surface_quality,outer_01,1,"[""quality__packets_per_second""]","[""cluster__09e103f2030ca53e""]",representative
+cluster__0ddaa772748cd2a8,ofi,outer_01,1,"[""ccz_ofi_w10__m5__average""]","[""cluster__0ddaa772748cd2a8""]",representative
+cluster__11a9adfe78800106,time_regime,outer_01,3,"[""regime__minutes_from_open"", ""regime__minutes_to_close"", ""regime__session_phase_cos""]","[""cluster__11a9adfe78800106""]",representative
+cluster__189d1a90a1a742dc,surface_quality,outer_01,1,"[""quality__surface_is_stale""]","[""cluster__189d1a90a1a742dc""]",representative
+cluster__1a13286f866c4155,ofi,outer_01,1,"[""ccz_ofi_w30__m5__average""]","[""cluster__1a13286f866c4155""]",representative
+cluster__1ce77120fa004169,book_liquidity,outer_01,1,"[""lob__order_count_imbalance_l3""]","[""cluster__1ce77120fa004169""]",representative
+cluster__1e0e01b9fe15ec55,ofi,outer_01,1,"[""ofi__w30__average_m20_minus_m200""]","[""cluster__1e0e01b9fe15ec55""]",representative
+cluster__1e968c8901c575db,ofi,outer_01,2,"[""ccz_ofi_w0p5__m100__average"", ""ccz_ofi_w0p5__m200__average""]","[""cluster__1e968c8901c575db""]",representative
+cluster__1f48220de6e92f9d,book_liquidity,outer_01,1,"[""lob__average_order_size_log_ratio_proxy_5""]","[""cluster__1f48220de6e92f9d""]",representative
+cluster__20fb49f3528f30d2,price_path,outer_01,1,"[""price__displayed_mid_return_lag_1s_ticks""]","[""cluster__20fb49f3528f30d2""]",representative
+cluster__23a7d3b95c5e30ff,time_regime,outer_01,1,"[""regime__abs_lag_return_10s_per_sqrt_second""]","[""cluster__23a7d3b95c5e30ff""]",representative
+cluster__26090851fa96f8cf,ofi,outer_01,1,"[""ccz_ofi_w30__m100__average""]","[""cluster__26090851fa96f8cf""]",representative
+cluster__26ad2c75d43d49ad,ofi,outer_01,2,"[""ccz_ofi_w10__m20__average"", ""ccz_ofi_w10__m50__average""]","[""cluster__26ad2c75d43d49ad""]",representative
+cluster__29963467135cd4cd,ofi,outer_01,1,"[""ccz_ofi_w2__m10__average""]","[""cluster__29963467135cd4cd""]",representative
+cluster__2d7a1c0d880f88ee,ofi,outer_01,1,"[""ofi__w30__average_m5_minus_m20""]","[""cluster__2d7a1c0d880f88ee""]",representative
+cluster__2e6f29d20733c126,ofi,outer_01,1,"[""ccz_ofi_w0p5__m5__average""]","[""cluster__2e6f29d20733c126""]",representative
+cluster__2f6f9b66bf9da773,ofi,outer_01,1,"[""ccz_ofi_w2__m1__average""]","[""cluster__2f6f9b66bf9da773""]",representative
+cluster__2f97bd40c280c05c,ofi,outer_01,1,"[""ccz_ofi_w1__m5__average""]","[""cluster__2f97bd40c280c05c""]",representative
+cluster__394bc857d8fc4a57,book_liquidity,outer_01,1,"[""lob__order_count_imbalance_l5""]","[""cluster__394bc857d8fc4a57""]",representative
+cluster__3a128293ed568dc0,book_liquidity,outer_01,1,"[""lob__bid_average_order_size_proxy_5""]","[""cluster__3a128293ed568dc0""]",representative
+cluster__3b5a3dfcf12b13e5,surface_quality,outer_01,1,"[""quality__weighted_rmse_total_variance""]","[""cluster__3b5a3dfcf12b13e5""]",representative
+cluster__3c67dd0616449c2d,price_path,outer_01,1,"[""price__displayed_mid_return_lag_30s_ticks""]","[""cluster__3c67dd0616449c2d""]",representative
+cluster__3cf051d5429a5851,ofi,outer_01,2,"[""ccz_ofi_w2__m100__average"", ""ccz_ofi_w2__m200__average""]","[""cluster__3cf051d5429a5851""]",representative
+cluster__3e5336b9c24613b3,ofi,outer_01,1,"[""ccz_ofi_w2__m5__average""]","[""cluster__3e5336b9c24613b3""]",representative
+cluster__421a4a1c5073e265,ofi,outer_01,1,"[""ofi__w2__average_m20_minus_m200""]","[""cluster__421a4a1c5073e265""]",representative
+cluster__453e45b37c54e768,ofi,outer_01,1,"[""ofi__w0p5__average_m20_minus_m200""]","[""cluster__453e45b37c54e768""]",representative
+cluster__477b0804b0e235c3,interaction,outer_01,1,"[""interaction__ofi_w10_m10_x_lagged_move_scale""]","[""cluster__477b0804b0e235c3""]",representative
+cluster__4a28d5e18578418a,ofi,outer_01,2,"[""ccz_ofi_w1__m20__average"", ""ccz_ofi_w1__m50__average""]","[""cluster__4a28d5e18578418a""]",representative
+cluster__4e66a854583b258d,price_path,outer_01,1,"[""price__displayed_mid_return_lag_5s_ticks""]","[""cluster__4e66a854583b258d""]",representative
+cluster__4f2f17103c6e4b0f,price_path,outer_01,1,"[""price__displayed_mid_return_lag_2s_ticks""]","[""cluster__4f2f17103c6e4b0f""]",representative
+cluster__586a389aaf56ab73,ofi,outer_01,1,"[""ccz_ofi_w10__m200__average""]","[""cluster__586a389aaf56ab73""]",representative
+cluster__5a65732a4a4ff188,book_liquidity,outer_01,2,"[""lob__ask_curvature"", ""lob__ask_slope""]","[""cluster__5a65732a4a4ff188""]",representative
+cluster__5c7bb033aa35772f,book_liquidity,outer_01,1,"[""lob__quantity_imbalance_l2""]","[""cluster__5c7bb033aa35772f""]",representative
+cluster__638294e28a507a16,surface_quality,outer_01,1,"[""quality__2026-09-01__support_width""]","[""cluster__638294e28a507a16""]",representative
+cluster__6567e1495fb81e67,surface_quality,outer_01,1,"[""quality__smoothing_fallback_alpha""]","[""cluster__6567e1495fb81e67""]",representative
+cluster__66ae01ac794f63eb,ofi,outer_01,2,"[""ccz_ofi_w0p5__m20__average"", ""ccz_ofi_w0p5__m50__average""]","[""cluster__66ae01ac794f63eb""]",representative
+cluster__6712d3b7bf51390b,ofi,outer_01,1,"[""ccz_ofi_w0p5__m10__average""]","[""cluster__6712d3b7bf51390b""]",representative
+cluster__69905f0e3a72c606,ofi,outer_01,1,"[""ofi__w1__average_m5_minus_m20""]","[""cluster__69905f0e3a72c606""]",representative
+cluster__6a9c460c39dcad34,ofi,outer_01,1,"[""ccz_ofi_w1__m10__average""]","[""cluster__6a9c460c39dcad34""]",representative
+cluster__724520f09acc991f,book_liquidity,outer_01,1,"[""lob__quantity_imbalance_l3""]","[""cluster__724520f09acc991f""]",representative
+cluster__7533afca12d5c845,mixed:interaction+ofi,outer_01,3,"[""ccz_ofi_w10__m10__average"", ""interaction__ofi_w10_m10_x_inverse_l1_depth"", ""interaction__ofi_w10_m10_x_spread""]","[""cluster__7533afca12d5c845""]",representative
+cluster__75ae125737df1102,ofi,outer_01,2,"[""ccz_ofi_w2__m20__average"", ""ccz_ofi_w2__m50__average""]","[""cluster__75ae125737df1102""]",representative
+cluster__773984b00b5c1f1c,ofi,outer_01,1,"[""ofi__w5__average_m5_minus_m20""]","[""cluster__773984b00b5c1f1c""]",representative
+cluster__7cc2e09b9a932b39,book_liquidity,outer_01,2,"[""lob__curvature_asymmetry_ask_minus_bid"", ""lob__slope_asymmetry_ask_minus_bid""]","[""cluster__7cc2e09b9a932b39""]",representative
+cluster__84da565ba8281d2a,ofi,outer_01,1,"[""ofi__w1__average_m20_minus_m200""]","[""cluster__84da565ba8281d2a""]",representative
+cluster__87f626d156f0ac67,ofi,outer_01,1,"[""ccz_ofi_w30__m10__average""]","[""cluster__87f626d156f0ac67""]",representative
+cluster__8b57524bef0d2ebf,ofi,outer_01,2,"[""ccz_ofi_w30__m20__average"", ""ccz_ofi_w30__m50__average""]","[""cluster__8b57524bef0d2ebf""]",representative
+cluster__8c29a8ea6225c377,ofi,outer_01,1,"[""ccz_ofi_w1__m1__average""]","[""cluster__8c29a8ea6225c377""]",representative
+cluster__959b637bd3bb66d4,ofi,outer_01,2,"[""ccz_ofi_w1__m100__average"", ""ccz_ofi_w1__m200__average""]","[""cluster__959b637bd3bb66d4""]",representative
+cluster__962c08b556b1c862,surface_quality,outer_01,2,"[""quality__2026-08-25__quote_count"", ""quality__smoothing_component_count""]","[""cluster__962c08b556b1c862""]",representative
+cluster__9ca9e2709e5c747a,surface_quality,outer_01,1,"[""quality__stale_instrument_count""]","[""cluster__9ca9e2709e5c747a""]",representative
+cluster__a1e835b95b16e9e9,book_liquidity,outer_01,1,"[""lob__quantity_imbalance_l5""]","[""cluster__a1e835b95b16e9e9""]",representative
+cluster__a391bd497d5a01b9,surface_quality,outer_01,2,"[""quality__surface_age_seconds"", ""quality__worst_instrument_age_seconds""]","[""cluster__a391bd497d5a01b9""]",representative
+cluster__a59fb5db9f4fd3e0,price_path,outer_01,1,"[""price__displayed_mid_return_lag_10s_ticks""]","[""cluster__a59fb5db9f4fd3e0""]",representative
+cluster__a7171c841cb9fb67,ofi,outer_01,1,"[""ofi__w10__average_m5_minus_m20""]","[""cluster__a7171c841cb9fb67""]",representative
+cluster__a867b4c1b44d375e,ofi,outer_01,1,"[""ccz_ofi_w30__m1__average""]","[""cluster__a867b4c1b44d375e""]",representative
+cluster__ad0a96a048bbc7d8,book_liquidity,outer_01,2,"[""lob__l1_total_quantity"", ""lob__log1p_l1_total_quantity""]","[""cluster__ad0a96a048bbc7d8""]",representative
+cluster__afbf9ac7f0d6750b,ofi,outer_01,1,"[""ccz_ofi_w10__m1__average""]","[""cluster__afbf9ac7f0d6750b""]",representative
+cluster__b14504afa42d221d,surface_quality,outer_01,3,"[""quality__2026-09-01__quote_count"", ""quality__2026-09-29__quote_count"", ""quality__used_quote_count""]","[""cluster__b14504afa42d221d""]",representative
+cluster__b3049e2f6d60b737,surface_quality,outer_01,1,"[""quality__2026-09-29__support_width""]","[""cluster__b3049e2f6d60b737""]",representative
+cluster__b31ca2d0bf76f633,ofi,outer_01,1,"[""ofi__w2__average_m5_minus_m20""]","[""cluster__b31ca2d0bf76f633""]",representative
+cluster__b3a7ffd8d4e710b8,ofi,outer_01,1,"[""ccz_ofi_w5__m1__average""]","[""cluster__b3a7ffd8d4e710b8""]",representative
+cluster__b7ff184a7303a6f4,surface_quality,outer_01,1,"[""quality__weighted_r_squared""]","[""cluster__b7ff184a7303a6f4""]",representative
+cluster__b89a1d7f25394d90,book_liquidity,outer_01,1,"[""lob__ask_average_order_size_proxy_5""]","[""cluster__b89a1d7f25394d90""]",representative
+cluster__b9449c25001f7b51,book_liquidity,outer_01,2,"[""lob__microprice_tilt_ticks"", ""lob__quantity_imbalance_l1""]","[""cluster__b9449c25001f7b51""]",representative
+cluster__bc09b5bb95952a78,time_regime,outer_01,1,"[""regime__session_phase_sin""]","[""cluster__bc09b5bb95952a78""]",representative
+cluster__c2362e322fead508,book_liquidity,outer_01,1,"[""lob__spread_ticks""]","[""cluster__c2362e322fead508""]",representative
+cluster__c31b8136d504bf03,book_liquidity,outer_01,1,"[""lob__order_count_imbalance_l4""]","[""cluster__c31b8136d504bf03""]",representative
+cluster__c5e49f1433602139,book_liquidity,outer_01,1,"[""lob__order_count_imbalance_l2""]","[""cluster__c5e49f1433602139""]",representative
+cluster__c9bce3cfeb10e97e,ofi,outer_01,1,"[""ofi__w10__average_m20_minus_m200""]","[""cluster__c9bce3cfeb10e97e""]",representative
+cluster__d0b21ec5092ce804,book_liquidity,outer_01,1,"[""lob__quantity_imbalance_l4""]","[""cluster__d0b21ec5092ce804""]",representative
+cluster__db99c4b3ba8fc30d,ofi,outer_01,1,"[""ofi__w5__average_m20_minus_m200""]","[""cluster__db99c4b3ba8fc30d""]",representative
+cluster__e11a6d709526da4b,book_liquidity,outer_01,1,"[""lob__order_count_imbalance_cum5""]","[""cluster__e11a6d709526da4b""]",representative
+cluster__e52784991ac5d943,ofi,outer_01,1,"[""ccz_ofi_w30__m200__average""]","[""cluster__e52784991ac5d943""]",representative
+cluster__e6215b6a0fbc0220,book_liquidity,outer_01,2,"[""lob__ask_total_quantity_5"", ""lob__log1p_ask_total_quantity_5""]","[""cluster__e6215b6a0fbc0220""]",representative
+cluster__ea16c5febde76055,interaction,outer_01,1,"[""interaction__front_atm_skew_ew_innovation_x_ofi_w10_m10""]","[""cluster__ea16c5febde76055""]",representative
+cluster__ea1ef3c2c858720d,ofi,outer_01,1,"[""ccz_ofi_w10__m100__average""]","[""cluster__ea1ef3c2c858720d""]",representative
+cluster__ed8f648abf1108c3,ofi,outer_01,3,"[""ccz_ofi_w5__m10__average"", ""ccz_ofi_w5__m20__average"", ""ccz_ofi_w5__m50__average""]","[""cluster__ed8f648abf1108c3""]",representative
+cluster__f03f4701c752ba34,book_liquidity,outer_01,1,"[""lob__quantity_imbalance_cum5""]","[""cluster__f03f4701c752ba34""]",representative
+cluster__f2308f5991ce73f6,book_liquidity,outer_01,2,"[""lob__bid_curvature"", ""lob__bid_slope""]","[""cluster__f2308f5991ce73f6""]",representative
+cluster__f3105bf2ea19861a,price_path,outer_01,1,"[""price__displayed_mid_return_lag_0p5s_ticks""]","[""cluster__f3105bf2ea19861a""]",representative
+cluster__f344d3ca8bc6155a,surface_quality,outer_01,1,"[""quality__2026-08-25__support_width""]","[""cluster__f344d3ca8bc6155a""]",representative
+cluster__fb3b9bf085ae4374,ofi,outer_01,2,"[""ccz_ofi_w5__m100__average"", ""ccz_ofi_w5__m200__average""]","[""cluster__fb3b9bf085ae4374""]",representative
+cluster__fc5bdd24bfb709b8,ofi,outer_01,1,"[""ofi__w0p5__average_m5_minus_m20""]","[""cluster__fc5bdd24bfb709b8""]",representative
+cluster__fd3291f0b03d2dd6,book_liquidity,outer_01,2,"[""lob__bid_total_quantity_5"", ""lob__log1p_bid_total_quantity_5""]","[""cluster__fd3291f0b03d2dd6""]",representative
+cluster__feb3f6ac5faeccec,ofi,outer_01,1,"[""ccz_ofi_w0p5__m1__average""]","[""cluster__feb3f6ac5faeccec""]",representative
+cluster__057ded5ba3568a7f,book_liquidity,outer_02,1,"[""lob__order_count_imbalance_l1""]","[""cluster__057ded5ba3568a7f""]",representative
+cluster__06ca194a0a433de6,ofi,outer_02,1,"[""ccz_ofi_w5__m5__average""]","[""cluster__06ca194a0a433de6""]",representative
+cluster__09e103f2030ca53e,surface_quality,outer_02,1,"[""quality__packets_per_second""]","[""cluster__09e103f2030ca53e""]",representative
+cluster__0ddaa772748cd2a8,ofi,outer_02,1,"[""ccz_ofi_w10__m5__average""]","[""cluster__0ddaa772748cd2a8""]",representative
+cluster__11a9adfe78800106,time_regime,outer_02,3,"[""regime__minutes_from_open"", ""regime__minutes_to_close"", ""regime__session_phase_cos""]","[""cluster__11a9adfe78800106""]",representative
+cluster__183ba54d92e73c9e,ofi,outer_02,2,"[""ccz_ofi_w10__m100__average"", ""ccz_ofi_w10__m200__average""]","[""cluster__183ba54d92e73c9e""]",representative
+cluster__18424cecdf110691,surface_quality,outer_02,2,"[""quality__weighted_r_squared"", ""quality__weighted_rmse_total_variance""]","[""cluster__18424cecdf110691""]",representative
+cluster__189d1a90a1a742dc,surface_quality,outer_02,1,"[""quality__surface_is_stale""]","[""cluster__189d1a90a1a742dc""]",representative
+cluster__1a13286f866c4155,ofi,outer_02,1,"[""ccz_ofi_w30__m5__average""]","[""cluster__1a13286f866c4155""]",representative
+cluster__1ce77120fa004169,book_liquidity,outer_02,1,"[""lob__order_count_imbalance_l3""]","[""cluster__1ce77120fa004169""]",representative
+cluster__1e0e01b9fe15ec55,ofi,outer_02,1,"[""ofi__w30__average_m20_minus_m200""]","[""cluster__1e0e01b9fe15ec55""]",representative
+cluster__1e968c8901c575db,ofi,outer_02,2,"[""ccz_ofi_w0p5__m100__average"", ""ccz_ofi_w0p5__m200__average""]","[""cluster__1e968c8901c575db""]",representative
+cluster__1f48220de6e92f9d,book_liquidity,outer_02,1,"[""lob__average_order_size_log_ratio_proxy_5""]","[""cluster__1f48220de6e92f9d""]",representative
+cluster__20fb49f3528f30d2,price_path,outer_02,1,"[""price__displayed_mid_return_lag_1s_ticks""]","[""cluster__20fb49f3528f30d2""]",representative
+cluster__23a7d3b95c5e30ff,time_regime,outer_02,1,"[""regime__abs_lag_return_10s_per_sqrt_second""]","[""cluster__23a7d3b95c5e30ff""]",representative
+cluster__26090851fa96f8cf,ofi,outer_02,1,"[""ccz_ofi_w30__m100__average""]","[""cluster__26090851fa96f8cf""]",representative
+cluster__26ad2c75d43d49ad,ofi,outer_02,2,"[""ccz_ofi_w10__m20__average"", ""ccz_ofi_w10__m50__average""]","[""cluster__26ad2c75d43d49ad""]",representative
+cluster__29963467135cd4cd,ofi,outer_02,1,"[""ccz_ofi_w2__m10__average""]","[""cluster__29963467135cd4cd""]",representative
+cluster__2d7a1c0d880f88ee,ofi,outer_02,1,"[""ofi__w30__average_m5_minus_m20""]","[""cluster__2d7a1c0d880f88ee""]",representative
+cluster__2e6f29d20733c126,ofi,outer_02,1,"[""ccz_ofi_w0p5__m5__average""]","[""cluster__2e6f29d20733c126""]",representative
+cluster__2f6f9b66bf9da773,ofi,outer_02,1,"[""ccz_ofi_w2__m1__average""]","[""cluster__2f6f9b66bf9da773""]",representative
+cluster__2f97bd40c280c05c,ofi,outer_02,1,"[""ccz_ofi_w1__m5__average""]","[""cluster__2f97bd40c280c05c""]",representative
+cluster__394bc857d8fc4a57,book_liquidity,outer_02,1,"[""lob__order_count_imbalance_l5""]","[""cluster__394bc857d8fc4a57""]",representative
+cluster__3a128293ed568dc0,book_liquidity,outer_02,1,"[""lob__bid_average_order_size_proxy_5""]","[""cluster__3a128293ed568dc0""]",representative
+cluster__3c67dd0616449c2d,price_path,outer_02,1,"[""price__displayed_mid_return_lag_30s_ticks""]","[""cluster__3c67dd0616449c2d""]",representative
+cluster__3cf051d5429a5851,ofi,outer_02,2,"[""ccz_ofi_w2__m100__average"", ""ccz_ofi_w2__m200__average""]","[""cluster__3cf051d5429a5851""]",representative
+cluster__3e5336b9c24613b3,ofi,outer_02,1,"[""ccz_ofi_w2__m5__average""]","[""cluster__3e5336b9c24613b3""]",representative
+cluster__421a4a1c5073e265,ofi,outer_02,1,"[""ofi__w2__average_m20_minus_m200""]","[""cluster__421a4a1c5073e265""]",representative
+cluster__453e45b37c54e768,ofi,outer_02,1,"[""ofi__w0p5__average_m20_minus_m200""]","[""cluster__453e45b37c54e768""]",representative
+cluster__477b0804b0e235c3,interaction,outer_02,1,"[""interaction__ofi_w10_m10_x_lagged_move_scale""]","[""cluster__477b0804b0e235c3""]",representative
+cluster__4a28d5e18578418a,ofi,outer_02,2,"[""ccz_ofi_w1__m20__average"", ""ccz_ofi_w1__m50__average""]","[""cluster__4a28d5e18578418a""]",representative
+cluster__4e66a854583b258d,price_path,outer_02,1,"[""price__displayed_mid_return_lag_5s_ticks""]","[""cluster__4e66a854583b258d""]",representative
+cluster__4e7b6658b598876b,surface_quality,outer_02,1,"[""quality__worst_instrument_age_seconds""]","[""cluster__4e7b6658b598876b""]",representative
+cluster__4f2f17103c6e4b0f,price_path,outer_02,1,"[""price__displayed_mid_return_lag_2s_ticks""]","[""cluster__4f2f17103c6e4b0f""]",representative
+cluster__5a65732a4a4ff188,book_liquidity,outer_02,2,"[""lob__ask_curvature"", ""lob__ask_slope""]","[""cluster__5a65732a4a4ff188""]",representative
+cluster__5c7bb033aa35772f,book_liquidity,outer_02,1,"[""lob__quantity_imbalance_l2""]","[""cluster__5c7bb033aa35772f""]",representative
+cluster__638294e28a507a16,surface_quality,outer_02,1,"[""quality__2026-09-01__support_width""]","[""cluster__638294e28a507a16""]",representative
+cluster__6567e1495fb81e67,surface_quality,outer_02,1,"[""quality__smoothing_fallback_alpha""]","[""cluster__6567e1495fb81e67""]",representative
+cluster__66ae01ac794f63eb,ofi,outer_02,2,"[""ccz_ofi_w0p5__m20__average"", ""ccz_ofi_w0p5__m50__average""]","[""cluster__66ae01ac794f63eb""]",representative
+cluster__6712d3b7bf51390b,ofi,outer_02,1,"[""ccz_ofi_w0p5__m10__average""]","[""cluster__6712d3b7bf51390b""]",representative
+cluster__69905f0e3a72c606,ofi,outer_02,1,"[""ofi__w1__average_m5_minus_m20""]","[""cluster__69905f0e3a72c606""]",representative
+cluster__6a9c460c39dcad34,ofi,outer_02,1,"[""ccz_ofi_w1__m10__average""]","[""cluster__6a9c460c39dcad34""]",representative
+cluster__724520f09acc991f,book_liquidity,outer_02,1,"[""lob__quantity_imbalance_l3""]","[""cluster__724520f09acc991f""]",representative
+cluster__7533afca12d5c845,mixed:interaction+ofi,outer_02,3,"[""ccz_ofi_w10__m10__average"", ""interaction__ofi_w10_m10_x_inverse_l1_depth"", ""interaction__ofi_w10_m10_x_spread""]","[""cluster__7533afca12d5c845""]",representative
+cluster__75ae125737df1102,ofi,outer_02,2,"[""ccz_ofi_w2__m20__average"", ""ccz_ofi_w2__m50__average""]","[""cluster__75ae125737df1102""]",representative
+cluster__773984b00b5c1f1c,ofi,outer_02,1,"[""ofi__w5__average_m5_minus_m20""]","[""cluster__773984b00b5c1f1c""]",representative
+cluster__7cc2e09b9a932b39,book_liquidity,outer_02,2,"[""lob__curvature_asymmetry_ask_minus_bid"", ""lob__slope_asymmetry_ask_minus_bid""]","[""cluster__7cc2e09b9a932b39""]",representative
+cluster__84da565ba8281d2a,ofi,outer_02,1,"[""ofi__w1__average_m20_minus_m200""]","[""cluster__84da565ba8281d2a""]",representative
+cluster__87f626d156f0ac67,ofi,outer_02,1,"[""ccz_ofi_w30__m10__average""]","[""cluster__87f626d156f0ac67""]",representative
+cluster__8b57524bef0d2ebf,ofi,outer_02,2,"[""ccz_ofi_w30__m20__average"", ""ccz_ofi_w30__m50__average""]","[""cluster__8b57524bef0d2ebf""]",representative
+cluster__8c29a8ea6225c377,ofi,outer_02,1,"[""ccz_ofi_w1__m1__average""]","[""cluster__8c29a8ea6225c377""]",representative
+cluster__8c9f8f99361a6fed,ofi,outer_02,1,"[""ccz_ofi_w5__m10__average""]","[""cluster__8c9f8f99361a6fed""]",representative
+cluster__959b637bd3bb66d4,ofi,outer_02,2,"[""ccz_ofi_w1__m100__average"", ""ccz_ofi_w1__m200__average""]","[""cluster__959b637bd3bb66d4""]",representative
+cluster__962c08b556b1c862,surface_quality,outer_02,2,"[""quality__2026-08-25__quote_count"", ""quality__smoothing_component_count""]","[""cluster__962c08b556b1c862""]",representative
+cluster__9ca9e2709e5c747a,surface_quality,outer_02,1,"[""quality__stale_instrument_count""]","[""cluster__9ca9e2709e5c747a""]",representative
+cluster__a1e835b95b16e9e9,book_liquidity,outer_02,1,"[""lob__quantity_imbalance_l5""]","[""cluster__a1e835b95b16e9e9""]",representative
+cluster__a59fb5db9f4fd3e0,price_path,outer_02,1,"[""price__displayed_mid_return_lag_10s_ticks""]","[""cluster__a59fb5db9f4fd3e0""]",representative
+cluster__a7171c841cb9fb67,ofi,outer_02,1,"[""ofi__w10__average_m5_minus_m20""]","[""cluster__a7171c841cb9fb67""]",representative
+cluster__a867b4c1b44d375e,ofi,outer_02,1,"[""ccz_ofi_w30__m1__average""]","[""cluster__a867b4c1b44d375e""]",representative
+cluster__ad0a96a048bbc7d8,book_liquidity,outer_02,2,"[""lob__l1_total_quantity"", ""lob__log1p_l1_total_quantity""]","[""cluster__ad0a96a048bbc7d8""]",representative
+cluster__afbf9ac7f0d6750b,ofi,outer_02,1,"[""ccz_ofi_w10__m1__average""]","[""cluster__afbf9ac7f0d6750b""]",representative
+cluster__b14504afa42d221d,surface_quality,outer_02,3,"[""quality__2026-09-01__quote_count"", ""quality__2026-09-29__quote_count"", ""quality__used_quote_count""]","[""cluster__b14504afa42d221d""]",representative
+cluster__b3049e2f6d60b737,surface_quality,outer_02,1,"[""quality__2026-09-29__support_width""]","[""cluster__b3049e2f6d60b737""]",representative
+cluster__b31ca2d0bf76f633,ofi,outer_02,1,"[""ofi__w2__average_m5_minus_m20""]","[""cluster__b31ca2d0bf76f633""]",representative
+cluster__b3a7ffd8d4e710b8,ofi,outer_02,1,"[""ccz_ofi_w5__m1__average""]","[""cluster__b3a7ffd8d4e710b8""]",representative
+cluster__b89a1d7f25394d90,book_liquidity,outer_02,1,"[""lob__ask_average_order_size_proxy_5""]","[""cluster__b89a1d7f25394d90""]",representative
+cluster__b8b7a0836024d4d3,surface_quality,outer_02,1,"[""quality__surface_age_seconds""]","[""cluster__b8b7a0836024d4d3""]",representative
+cluster__b9449c25001f7b51,book_liquidity,outer_02,2,"[""lob__microprice_tilt_ticks"", ""lob__quantity_imbalance_l1""]","[""cluster__b9449c25001f7b51""]",representative
+cluster__bc09b5bb95952a78,time_regime,outer_02,1,"[""regime__session_phase_sin""]","[""cluster__bc09b5bb95952a78""]",representative
+cluster__c2362e322fead508,book_liquidity,outer_02,1,"[""lob__spread_ticks""]","[""cluster__c2362e322fead508""]",representative
+cluster__c31b8136d504bf03,book_liquidity,outer_02,1,"[""lob__order_count_imbalance_l4""]","[""cluster__c31b8136d504bf03""]",representative
+cluster__c5e49f1433602139,book_liquidity,outer_02,1,"[""lob__order_count_imbalance_l2""]","[""cluster__c5e49f1433602139""]",representative
+cluster__c9bce3cfeb10e97e,ofi,outer_02,1,"[""ofi__w10__average_m20_minus_m200""]","[""cluster__c9bce3cfeb10e97e""]",representative
+cluster__d0b21ec5092ce804,book_liquidity,outer_02,1,"[""lob__quantity_imbalance_l4""]","[""cluster__d0b21ec5092ce804""]",representative
+cluster__db99c4b3ba8fc30d,ofi,outer_02,1,"[""ofi__w5__average_m20_minus_m200""]","[""cluster__db99c4b3ba8fc30d""]",representative
+cluster__e11a6d709526da4b,book_liquidity,outer_02,1,"[""lob__order_count_imbalance_cum5""]","[""cluster__e11a6d709526da4b""]",representative
+cluster__e52784991ac5d943,ofi,outer_02,1,"[""ccz_ofi_w30__m200__average""]","[""cluster__e52784991ac5d943""]",representative
+cluster__e6215b6a0fbc0220,book_liquidity,outer_02,2,"[""lob__ask_total_quantity_5"", ""lob__log1p_ask_total_quantity_5""]","[""cluster__e6215b6a0fbc0220""]",representative
+cluster__ea16c5febde76055,interaction,outer_02,1,"[""interaction__front_atm_skew_ew_innovation_x_ofi_w10_m10""]","[""cluster__ea16c5febde76055""]",representative
+cluster__efa5f4d4b9a2c999,ofi,outer_02,2,"[""ccz_ofi_w5__m20__average"", ""ccz_ofi_w5__m50__average""]","[""cluster__efa5f4d4b9a2c999""]",representative
+cluster__f03f4701c752ba34,book_liquidity,outer_02,1,"[""lob__quantity_imbalance_cum5""]","[""cluster__f03f4701c752ba34""]",representative
+cluster__f2308f5991ce73f6,book_liquidity,outer_02,2,"[""lob__bid_curvature"", ""lob__bid_slope""]","[""cluster__f2308f5991ce73f6""]",representative
+cluster__f3105bf2ea19861a,price_path,outer_02,1,"[""price__displayed_mid_return_lag_0p5s_ticks""]","[""cluster__f3105bf2ea19861a""]",representative
+cluster__f344d3ca8bc6155a,surface_quality,outer_02,1,"[""quality__2026-08-25__support_width""]","[""cluster__f344d3ca8bc6155a""]",representative
+cluster__fb3b9bf085ae4374,ofi,outer_02,2,"[""ccz_ofi_w5__m100__average"", ""ccz_ofi_w5__m200__average""]","[""cluster__fb3b9bf085ae4374""]",representative
+cluster__fc5bdd24bfb709b8,ofi,outer_02,1,"[""ofi__w0p5__average_m5_minus_m20""]","[""cluster__fc5bdd24bfb709b8""]",representative
+cluster__fd3291f0b03d2dd6,book_liquidity,outer_02,2,"[""lob__bid_total_quantity_5"", ""lob__log1p_bid_total_quantity_5""]","[""cluster__fd3291f0b03d2dd6""]",representative
+cluster__feb3f6ac5faeccec,ofi,outer_02,1,"[""ccz_ofi_w0p5__m1__average""]","[""cluster__feb3f6ac5faeccec""]",representative
+cluster__057ded5ba3568a7f,book_liquidity,outer_03,1,"[""lob__order_count_imbalance_l1""]","[""cluster__057ded5ba3568a7f""]",representative
+cluster__06ca194a0a433de6,ofi,outer_03,1,"[""ccz_ofi_w5__m5__average""]","[""cluster__06ca194a0a433de6""]",representative
+cluster__09e103f2030ca53e,surface_quality,outer_03,1,"[""quality__packets_per_second""]","[""cluster__09e103f2030ca53e""]",representative
+cluster__0ddaa772748cd2a8,ofi,outer_03,1,"[""ccz_ofi_w10__m5__average""]","[""cluster__0ddaa772748cd2a8""]",representative
+cluster__11a9adfe78800106,time_regime,outer_03,3,"[""regime__minutes_from_open"", ""regime__minutes_to_close"", ""regime__session_phase_cos""]","[""cluster__11a9adfe78800106""]",representative
+cluster__183ba54d92e73c9e,ofi,outer_03,2,"[""ccz_ofi_w10__m100__average"", ""ccz_ofi_w10__m200__average""]","[""cluster__183ba54d92e73c9e""]",representative
+cluster__18424cecdf110691,surface_quality,outer_03,2,"[""quality__weighted_r_squared"", ""quality__weighted_rmse_total_variance""]","[""cluster__18424cecdf110691""]",representative
+cluster__189d1a90a1a742dc,surface_quality,outer_03,1,"[""quality__surface_is_stale""]","[""cluster__189d1a90a1a742dc""]",representative
+cluster__1a13286f866c4155,ofi,outer_03,1,"[""ccz_ofi_w30__m5__average""]","[""cluster__1a13286f866c4155""]",representative
+cluster__1ce77120fa004169,book_liquidity,outer_03,1,"[""lob__order_count_imbalance_l3""]","[""cluster__1ce77120fa004169""]",representative
+cluster__1e0e01b9fe15ec55,ofi,outer_03,1,"[""ofi__w30__average_m20_minus_m200""]","[""cluster__1e0e01b9fe15ec55""]",representative
+cluster__1e968c8901c575db,ofi,outer_03,2,"[""ccz_ofi_w0p5__m100__average"", ""ccz_ofi_w0p5__m200__average""]","[""cluster__1e968c8901c575db""]",representative
+cluster__1f48220de6e92f9d,book_liquidity,outer_03,1,"[""lob__average_order_size_log_ratio_proxy_5""]","[""cluster__1f48220de6e92f9d""]",representative
+cluster__20fb49f3528f30d2,price_path,outer_03,1,"[""price__displayed_mid_return_lag_1s_ticks""]","[""cluster__20fb49f3528f30d2""]",representative
+cluster__23a7d3b95c5e30ff,time_regime,outer_03,1,"[""regime__abs_lag_return_10s_per_sqrt_second""]","[""cluster__23a7d3b95c5e30ff""]",representative
+cluster__26090851fa96f8cf,ofi,outer_03,1,"[""ccz_ofi_w30__m100__average""]","[""cluster__26090851fa96f8cf""]",representative
+cluster__26ad2c75d43d49ad,ofi,outer_03,2,"[""ccz_ofi_w10__m20__average"", ""ccz_ofi_w10__m50__average""]","[""cluster__26ad2c75d43d49ad""]",representative
+cluster__29963467135cd4cd,ofi,outer_03,1,"[""ccz_ofi_w2__m10__average""]","[""cluster__29963467135cd4cd""]",representative
+cluster__2d7a1c0d880f88ee,ofi,outer_03,1,"[""ofi__w30__average_m5_minus_m20""]","[""cluster__2d7a1c0d880f88ee""]",representative
+cluster__2e6f29d20733c126,ofi,outer_03,1,"[""ccz_ofi_w0p5__m5__average""]","[""cluster__2e6f29d20733c126""]",representative
+cluster__2f6f9b66bf9da773,ofi,outer_03,1,"[""ccz_ofi_w2__m1__average""]","[""cluster__2f6f9b66bf9da773""]",representative
+cluster__2f97bd40c280c05c,ofi,outer_03,1,"[""ccz_ofi_w1__m5__average""]","[""cluster__2f97bd40c280c05c""]",representative
+cluster__372b2f68b07503c0,ofi,outer_03,1,"[""ccz_ofi_w0p5__m50__average""]","[""cluster__372b2f68b07503c0""]",representative
+cluster__394bc857d8fc4a57,book_liquidity,outer_03,1,"[""lob__order_count_imbalance_l5""]","[""cluster__394bc857d8fc4a57""]",representative
+cluster__3a128293ed568dc0,book_liquidity,outer_03,1,"[""lob__bid_average_order_size_proxy_5""]","[""cluster__3a128293ed568dc0""]",representative
+cluster__3c67dd0616449c2d,price_path,outer_03,1,"[""price__displayed_mid_return_lag_30s_ticks""]","[""cluster__3c67dd0616449c2d""]",representative
+cluster__3cf051d5429a5851,ofi,outer_03,2,"[""ccz_ofi_w2__m100__average"", ""ccz_ofi_w2__m200__average""]","[""cluster__3cf051d5429a5851""]",representative
+cluster__3e5336b9c24613b3,ofi,outer_03,1,"[""ccz_ofi_w2__m5__average""]","[""cluster__3e5336b9c24613b3""]",representative
+cluster__421a4a1c5073e265,ofi,outer_03,1,"[""ofi__w2__average_m20_minus_m200""]","[""cluster__421a4a1c5073e265""]",representative
+cluster__453e45b37c54e768,ofi,outer_03,1,"[""ofi__w0p5__average_m20_minus_m200""]","[""cluster__453e45b37c54e768""]",representative
+cluster__477b0804b0e235c3,interaction,outer_03,1,"[""interaction__ofi_w10_m10_x_lagged_move_scale""]","[""cluster__477b0804b0e235c3""]",representative
+cluster__4a28d5e18578418a,ofi,outer_03,2,"[""ccz_ofi_w1__m20__average"", ""ccz_ofi_w1__m50__average""]","[""cluster__4a28d5e18578418a""]",representative
+cluster__4e66a854583b258d,price_path,outer_03,1,"[""price__displayed_mid_return_lag_5s_ticks""]","[""cluster__4e66a854583b258d""]",representative
+cluster__4e7b6658b598876b,surface_quality,outer_03,1,"[""quality__worst_instrument_age_seconds""]","[""cluster__4e7b6658b598876b""]",representative
+cluster__4f2f17103c6e4b0f,price_path,outer_03,1,"[""price__displayed_mid_return_lag_2s_ticks""]","[""cluster__4f2f17103c6e4b0f""]",representative
+cluster__5a65732a4a4ff188,book_liquidity,outer_03,2,"[""lob__ask_curvature"", ""lob__ask_slope""]","[""cluster__5a65732a4a4ff188""]",representative
+cluster__5c7bb033aa35772f,book_liquidity,outer_03,1,"[""lob__quantity_imbalance_l2""]","[""cluster__5c7bb033aa35772f""]",representative
+cluster__638294e28a507a16,surface_quality,outer_03,1,"[""quality__2026-09-01__support_width""]","[""cluster__638294e28a507a16""]",representative
+cluster__6567e1495fb81e67,surface_quality,outer_03,1,"[""quality__smoothing_fallback_alpha""]","[""cluster__6567e1495fb81e67""]",representative
+cluster__6712d3b7bf51390b,ofi,outer_03,1,"[""ccz_ofi_w0p5__m10__average""]","[""cluster__6712d3b7bf51390b""]",representative
+cluster__69905f0e3a72c606,ofi,outer_03,1,"[""ofi__w1__average_m5_minus_m20""]","[""cluster__69905f0e3a72c606""]",representative
+cluster__6a9c460c39dcad34,ofi,outer_03,1,"[""ccz_ofi_w1__m10__average""]","[""cluster__6a9c460c39dcad34""]",representative
+cluster__71c4d932236b3eeb,surface_quality,outer_03,1,"[""quality__used_quote_count""]","[""cluster__71c4d932236b3eeb""]",representative
+cluster__724520f09acc991f,book_liquidity,outer_03,1,"[""lob__quantity_imbalance_l3""]","[""cluster__724520f09acc991f""]",representative
+cluster__7533afca12d5c845,mixed:interaction+ofi,outer_03,3,"[""ccz_ofi_w10__m10__average"", ""interaction__ofi_w10_m10_x_inverse_l1_depth"", ""interaction__ofi_w10_m10_x_spread""]","[""cluster__7533afca12d5c845""]",representative
+cluster__75ae125737df1102,ofi,outer_03,2,"[""ccz_ofi_w2__m20__average"", ""ccz_ofi_w2__m50__average""]","[""cluster__75ae125737df1102""]",representative
+cluster__773984b00b5c1f1c,ofi,outer_03,1,"[""ofi__w5__average_m5_minus_m20""]","[""cluster__773984b00b5c1f1c""]",representative
+cluster__7cc2e09b9a932b39,book_liquidity,outer_03,2,"[""lob__curvature_asymmetry_ask_minus_bid"", ""lob__slope_asymmetry_ask_minus_bid""]","[""cluster__7cc2e09b9a932b39""]",representative
+cluster__84da565ba8281d2a,ofi,outer_03,1,"[""ofi__w1__average_m20_minus_m200""]","[""cluster__84da565ba8281d2a""]",representative
+cluster__87f626d156f0ac67,ofi,outer_03,1,"[""ccz_ofi_w30__m10__average""]","[""cluster__87f626d156f0ac67""]",representative
+cluster__8b57524bef0d2ebf,ofi,outer_03,2,"[""ccz_ofi_w30__m20__average"", ""ccz_ofi_w30__m50__average""]","[""cluster__8b57524bef0d2ebf""]",representative
+cluster__8c29a8ea6225c377,ofi,outer_03,1,"[""ccz_ofi_w1__m1__average""]","[""cluster__8c29a8ea6225c377""]",representative
+cluster__8c9f8f99361a6fed,ofi,outer_03,1,"[""ccz_ofi_w5__m10__average""]","[""cluster__8c9f8f99361a6fed""]",representative
+cluster__959b637bd3bb66d4,ofi,outer_03,2,"[""ccz_ofi_w1__m100__average"", ""ccz_ofi_w1__m200__average""]","[""cluster__959b637bd3bb66d4""]",representative
+cluster__962c08b556b1c862,surface_quality,outer_03,2,"[""quality__2026-08-25__quote_count"", ""quality__smoothing_component_count""]","[""cluster__962c08b556b1c862""]",representative
+cluster__9ca9e2709e5c747a,surface_quality,outer_03,1,"[""quality__stale_instrument_count""]","[""cluster__9ca9e2709e5c747a""]",representative
+cluster__a1e835b95b16e9e9,book_liquidity,outer_03,1,"[""lob__quantity_imbalance_l5""]","[""cluster__a1e835b95b16e9e9""]",representative
+cluster__a59fb5db9f4fd3e0,price_path,outer_03,1,"[""price__displayed_mid_return_lag_10s_ticks""]","[""cluster__a59fb5db9f4fd3e0""]",representative
+cluster__a7171c841cb9fb67,ofi,outer_03,1,"[""ofi__w10__average_m5_minus_m20""]","[""cluster__a7171c841cb9fb67""]",representative
+cluster__a827e2207d675df1,ofi,outer_03,1,"[""ccz_ofi_w0p5__m20__average""]","[""cluster__a827e2207d675df1""]",representative
+cluster__a867b4c1b44d375e,ofi,outer_03,1,"[""ccz_ofi_w30__m1__average""]","[""cluster__a867b4c1b44d375e""]",representative
+cluster__ad0a96a048bbc7d8,book_liquidity,outer_03,2,"[""lob__l1_total_quantity"", ""lob__log1p_l1_total_quantity""]","[""cluster__ad0a96a048bbc7d8""]",representative
+cluster__afbf9ac7f0d6750b,ofi,outer_03,1,"[""ccz_ofi_w10__m1__average""]","[""cluster__afbf9ac7f0d6750b""]",representative
+cluster__b3049e2f6d60b737,surface_quality,outer_03,1,"[""quality__2026-09-29__support_width""]","[""cluster__b3049e2f6d60b737""]",representative
+cluster__b31ca2d0bf76f633,ofi,outer_03,1,"[""ofi__w2__average_m5_minus_m20""]","[""cluster__b31ca2d0bf76f633""]",representative
+cluster__b3a7ffd8d4e710b8,ofi,outer_03,1,"[""ccz_ofi_w5__m1__average""]","[""cluster__b3a7ffd8d4e710b8""]",representative
+cluster__b89a1d7f25394d90,book_liquidity,outer_03,1,"[""lob__ask_average_order_size_proxy_5""]","[""cluster__b89a1d7f25394d90""]",representative
+cluster__b8b7a0836024d4d3,surface_quality,outer_03,1,"[""quality__surface_age_seconds""]","[""cluster__b8b7a0836024d4d3""]",representative
+cluster__b9449c25001f7b51,book_liquidity,outer_03,2,"[""lob__microprice_tilt_ticks"", ""lob__quantity_imbalance_l1""]","[""cluster__b9449c25001f7b51""]",representative
+cluster__bc09b5bb95952a78,time_regime,outer_03,1,"[""regime__session_phase_sin""]","[""cluster__bc09b5bb95952a78""]",representative
+cluster__c2362e322fead508,book_liquidity,outer_03,1,"[""lob__spread_ticks""]","[""cluster__c2362e322fead508""]",representative
+cluster__c31b8136d504bf03,book_liquidity,outer_03,1,"[""lob__order_count_imbalance_l4""]","[""cluster__c31b8136d504bf03""]",representative
+cluster__c5e49f1433602139,book_liquidity,outer_03,1,"[""lob__order_count_imbalance_l2""]","[""cluster__c5e49f1433602139""]",representative
+cluster__c9bce3cfeb10e97e,ofi,outer_03,1,"[""ofi__w10__average_m20_minus_m200""]","[""cluster__c9bce3cfeb10e97e""]",representative
+cluster__d0b21ec5092ce804,book_liquidity,outer_03,1,"[""lob__quantity_imbalance_l4""]","[""cluster__d0b21ec5092ce804""]",representative
+cluster__db99c4b3ba8fc30d,ofi,outer_03,1,"[""ofi__w5__average_m20_minus_m200""]","[""cluster__db99c4b3ba8fc30d""]",representative
+cluster__e11a6d709526da4b,book_liquidity,outer_03,1,"[""lob__order_count_imbalance_cum5""]","[""cluster__e11a6d709526da4b""]",representative
+cluster__e52784991ac5d943,ofi,outer_03,1,"[""ccz_ofi_w30__m200__average""]","[""cluster__e52784991ac5d943""]",representative
+cluster__e6215b6a0fbc0220,book_liquidity,outer_03,2,"[""lob__ask_total_quantity_5"", ""lob__log1p_ask_total_quantity_5""]","[""cluster__e6215b6a0fbc0220""]",representative
+cluster__e7f75a569587b0f8,surface_quality,outer_03,2,"[""quality__2026-09-01__quote_count"", ""quality__2026-09-29__quote_count""]","[""cluster__e7f75a569587b0f8""]",representative
+cluster__ea16c5febde76055,interaction,outer_03,1,"[""interaction__front_atm_skew_ew_innovation_x_ofi_w10_m10""]","[""cluster__ea16c5febde76055""]",representative
+cluster__efa5f4d4b9a2c999,ofi,outer_03,2,"[""ccz_ofi_w5__m20__average"", ""ccz_ofi_w5__m50__average""]","[""cluster__efa5f4d4b9a2c999""]",representative
+cluster__f03f4701c752ba34,book_liquidity,outer_03,1,"[""lob__quantity_imbalance_cum5""]","[""cluster__f03f4701c752ba34""]",representative
+cluster__f2308f5991ce73f6,book_liquidity,outer_03,2,"[""lob__bid_curvature"", ""lob__bid_slope""]","[""cluster__f2308f5991ce73f6""]",representative
+cluster__f3105bf2ea19861a,price_path,outer_03,1,"[""price__displayed_mid_return_lag_0p5s_ticks""]","[""cluster__f3105bf2ea19861a""]",representative
+cluster__f344d3ca8bc6155a,surface_quality,outer_03,1,"[""quality__2026-08-25__support_width""]","[""cluster__f344d3ca8bc6155a""]",representative
+cluster__fb3b9bf085ae4374,ofi,outer_03,2,"[""ccz_ofi_w5__m100__average"", ""ccz_ofi_w5__m200__average""]","[""cluster__fb3b9bf085ae4374""]",representative
+cluster__fc5bdd24bfb709b8,ofi,outer_03,1,"[""ofi__w0p5__average_m5_minus_m20""]","[""cluster__fc5bdd24bfb709b8""]",representative
+cluster__fd3291f0b03d2dd6,book_liquidity,outer_03,2,"[""lob__bid_total_quantity_5"", ""lob__log1p_bid_total_quantity_5""]","[""cluster__fd3291f0b03d2dd6""]",representative
+cluster__feb3f6ac5faeccec,ofi,outer_03,1,"[""ccz_ofi_w0p5__m1__average""]","[""cluster__feb3f6ac5faeccec""]",representative

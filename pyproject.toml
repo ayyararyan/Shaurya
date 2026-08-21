@@ -32,6 +32,7 @@ shaurya-ofi-dashboard = "shaurya.cli.ofi_dashboard:main"
 shaurya-live-ofi-studies = "shaurya.cli.live_ofi_studies:main"
 shaurya-rolling-c8 = "shaurya.cli.rolling_c8:main"
 shaurya-surface-dashboard = "shaurya.cli.surface_dashboard:main"
+shaurya-feature-selection-experiment = "shaurya.cli.feature_selection_experiment:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

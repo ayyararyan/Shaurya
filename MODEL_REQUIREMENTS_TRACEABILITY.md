@@ -203,9 +203,10 @@ tape and is evidence level 3, not confirmatory.
 
 **Specification:** `docs/D51-10S-FEATURE-SELECTION-SPEC-2026-08-21.md`
 **Evidence boundary:** construction, hard quality gates, training-only correlated-feature
-reduction, predictive model interfaces and conditional cluster/family usefulness interfaces are
-evidence level 2. No empirical model has been fit; any later result using only the 2026-08-21
-session remains exploratory/non-confirmatory.
+reduction, predictive models and cluster stability machinery are evidence level 2. The pinned
+2026-08-21 same-day replay is evidence level 3 for reproducible machinery only and remains
+`exploratory_insufficient_sessions`; it establishes no stable feature, signal, deployment or
+order claim.
 
 | ID | Requirement | Status | Code location | Test / acceptance evidence |
 |---|---|---|---|---|
@@ -250,3 +251,9 @@ session remains exploratory/non-confirmatory.
 | `D51-STAB-04` | Preserve uncertainty-ready fold/block losses, support and learning-curve diagnostics without inference | **Implemented, tested** | `FoldLossAggregate`, `LearningCurveSupportPoint` | weighted block-loss aggregation and five support points in stable fixture |
 | `D51-STAB-05` | Deterministic training-only contiguous-block elastic-net stability resampling, with any member/model or missingness coefficient selecting the whole cluster | **Implemented, tested** | `ElasticNetStabilityConfig`, `fit_cluster_elastic_net_stability` | correlated two-member signal is selected jointly in every deterministic resample; no coefficient output |
 | `D51-STAB-06` | Exact-readback reproducible final cluster selection and resampling artifacts with fingerprints, seeds/config and reason codes | **Implemented, tested** | Step-6 JSON writers/readers and artifact dataclasses | repeated aggregation/resampling equality and exact JSON round trips |
+| `D51-WF-01` | One-second primary engineering grid; five-second predeclared sensitivity; estimand unchanged | **Implemented, tested, replayed** | `signals/feature_selection_walkforward.py:sample_on_grid`, CLI `--grid-seconds` | deterministic bucket/epoch test; 7,082-row pinned primary replay records grid role |
+| `D51-WF-02` | Deterministic expanding chronological outer folds with label purge, 120-second embargo and no test reuse | **Implemented, tested** | `construct_nested_expanding_folds` | exact inner/outer boundary, overlap, embargo and test-disjointness test |
+| `D51-WF-03` | Gates, clustering, transforms, fitting and selection inside training folds; outer test apply-only | **Implemented, tested** | `run_nested_walk_forward` | future-target mutation cannot alter fold identity; explicit training-index APIs and common test prediction path |
+| `D51-EMP-01` | Common-row zero/mean/simple-state/elastic/tree outer-test table with SHA identities | **Implemented, tested, replayed** | `run_nested_walk_forward`, `cli/feature_selection_experiment.py` | three apply-only outer tests; dated result and artifact manifest in `docs/results/D51-EXPLORATORY-RESULT-2026-08-21.md` |
+| `D51-EMP-02` | Explicit completed DAT surface handle, input SHA pins and exact non-fabricated overlap | **Implemented, live verified** | CLI `_surface_frames`, `_futures_materialization`, exact common filter | exact 7,082-row intersection; futures and DAT surface SHA-256 pins recorded in dated result |
+| `D51-EMP-03` | One-session empirical output is always `exploratory_insufficient_sessions`; no signal/deployment/order claim | **Implemented, tested, replayed** | walk-forward artifact and report writer | all 532 stability rows retain the hard exploratory status; no promotion/order field |

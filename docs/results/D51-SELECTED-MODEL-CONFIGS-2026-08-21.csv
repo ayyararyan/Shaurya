@@ -1,0 +1,7 @@
+fold_id,model_id,model_kind,selected_config,selected_estimators
+outer_01,elastic_net__a1__l10.9,elastic_net,"{""alpha"": 1.0, ""l1_ratio"": 0.9}",
+outer_01,boosted_tree__d3__l8__lr0.05__n50__stop35,shallow_gradient_boosting,"{""early_stopping_patience"": 10, ""learning_rate"": 0.05, ""maximum_depth"": 3, ""maximum_estimators"": 35, ""maximum_leaves"": 8, ""minimum_leaf_size"": 50, ""threshold_candidates"": 15}",35
+outer_02,elastic_net__a1__l11,elastic_net,"{""alpha"": 1.0, ""l1_ratio"": 1.0}",
+outer_02,boosted_tree__d2__l4__lr0.05__n50__stop24,shallow_gradient_boosting,"{""early_stopping_patience"": 10, ""learning_rate"": 0.05, ""maximum_depth"": 2, ""maximum_estimators"": 24, ""maximum_leaves"": 4, ""minimum_leaf_size"": 50, ""threshold_candidates"": 15}",24
+outer_03,elastic_net__a1__l10.5,elastic_net,"{""alpha"": 1.0, ""l1_ratio"": 0.5}",
+outer_03,boosted_tree__d3__l8__lr0.05__n25__stop24,shallow_gradient_boosting,"{""early_stopping_patience"": 10, ""learning_rate"": 0.05, ""maximum_depth"": 3, ""maximum_estimators"": 24, ""maximum_leaves"": 8, ""minimum_leaf_size"": 25, ""threshold_candidates"": 15}",24

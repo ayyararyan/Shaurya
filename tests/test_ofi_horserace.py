@@ -233,6 +233,32 @@ def test_custom_response_horizons_are_materialised_without_changing_predictors()
     assert all(normalised_level_feature(10.0, 10, 10) in item.features for item in observations)
 
 
+def test_optional_anchor_grid_and_bounds_filter_before_materialised_output() -> None:
+    depth200 = [_state(index) for index in range(100)]
+    depth20 = [_state(index, channel=DEPTH20) for index in range(200)]
+    common = dict(
+        depth200_states=depth200,
+        depth20_states=depth20,
+        rows=[_trade_row(index, "buy") for index in range(MINIMUM_TRADE_PACKETS + 5)],
+        tape_index=0,
+        run_id="bounded-grid",
+    )
+    full, _ = build_horserace_observations(**common)
+    bounded, _ = build_horserace_observations(
+        **common,
+        anchor_grid_seconds=5.0,
+        anchor_start_ts_ns=BASE + 10 * SECOND,
+        anchor_end_ts_ns=BASE + 40 * SECOND,
+    )
+    assert bounded
+    assert all(
+        BASE + 10 * SECOND <= item.receive_ts_ns <= BASE + 40 * SECOND for item in bounded
+    )
+    assert all(item.receive_ts_ns % (5 * SECOND) == 0 for item in bounded)
+    full_by_timestamp = {item.receive_ts_ns: item for item in full}
+    assert all(item.features == full_by_timestamp[item.receive_ts_ns].features for item in bounded)
+
+
 def test_unsupported_level_count_is_missing_not_zero_filled() -> None:
     depth200 = [
         replace(_state(index), bids=_state(index).bids[:100], asks=_state(index).asks[:100])
