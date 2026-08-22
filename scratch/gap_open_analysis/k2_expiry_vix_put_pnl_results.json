@@ -1,0 +1,98 @@
+{
+  "data_audit": {
+    "atm_files": 39,
+    "combined_days": 108,
+    "dynamic_atm_exit_mismatches_corrected": 16,
+    "missing_trade_quotes": 0,
+    "put_signal_days": 57,
+    "relative_strike_files": 48,
+    "sequence_hit_rate": 0.5789473684210527,
+    "sequence_hits": 33,
+    "sequence_misses": 24
+  },
+  "definitions": {
+    "entry": "close of actual ATM weekly PUT 09:17 minute bar",
+    "hit_exit": "same entry strike PUT close at first target-window spot low minute",
+    "miss_exit": "same entry strike PUT close at first target-window spot high minute",
+    "premium_data": "observed 1-minute OHLC close; not bid/ask or Black-Scholes",
+    "target": "09:18 through 09:45 inclusive, first occurrence of extrema"
+  },
+  "downside_excursion_all_days_pct_spot": {
+    "mean": 0.0015054713151500753,
+    "median": 0.0014189922372777608
+  },
+  "downside_excursion_all_days_points": {
+    "mean": 33.006119298245416,
+    "median": 28.30080000000089
+  },
+  "entry_premium": {
+    "mean": 62.959649122807015,
+    "median": 56.85
+  },
+  "expectancy": {
+    "actual_expectancy_points": 2.5482456140350895,
+    "actual_expectancy_return": 0.035645332549927224,
+    "actual_hit_rate": 0.5789473684210527,
+    "average_loss_points": 5.404166666666666,
+    "average_loss_return": 0.0870959569997376,
+    "average_win_points": 8.331818181818184,
+    "average_win_return": 0.12491172494968344,
+    "breakeven_win_rate_points": 0.3934313211813693,
+    "breakeven_win_rate_return": 0.4108150997118878,
+    "coinflip_expectancy_points": 1.463825757575759,
+    "coinflip_expectancy_return": 0.018907883974972922,
+    "max_average_loss_actual_return": 0.17175362180581477,
+    "max_average_loss_coinflip_return": 0.12491172494968344,
+    "observed_return_t_stat": 1.194301225125874,
+    "observed_return_ttest_p": 0.2373944228058028,
+    "recommended_stop_return": 0.1
+  },
+  "hit_days": {
+    "n": 33,
+    "pnl_pct": {
+      "mean": 0.12491172494968344,
+      "median": 0.06043956043956045
+    },
+    "pnl_points": {
+      "mean": 8.331818181818184,
+      "median": 2.3000000000000114
+    },
+    "positive_premium_pnl_count": 24
+  },
+  "miss_days": {
+    "adverse_pct_spot": {
+      "mean": 0.0004140929718836825,
+      "median": 0.000448093157741154
+    },
+    "adverse_points": {
+      "mean": 8.887433333333624,
+      "median": 10.025000000001455
+    },
+    "exit_premium": {
+      "mean": 55.29583333333333,
+      "median": 52.05
+    },
+    "n": 24,
+    "negative_premium_pnl_count": 16,
+    "pnl_pct": {
+      "mean": -0.0870959569997376,
+      "median": -0.10099384431725389
+    },
+    "pnl_points": {
+      "mean": -5.404166666666666,
+      "median": -5.925000000000001
+    }
+  },
+  "target_low_exit_premium_all_days": {
+    "mean": 79.6,
+    "median": 72.0
+  },
+  "target_low_pnl_all_days_pct": {
+    "mean": 0.28141094589265,
+    "median": 0.16262566528681255
+  },
+  "target_low_pnl_all_days_points": {
+    "mean": 16.640350877192983,
+    "median": 10.549999999999997
+  }
+}

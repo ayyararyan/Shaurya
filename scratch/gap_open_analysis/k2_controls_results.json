@@ -1,0 +1,765 @@
+{
+  "audit": {
+    "controlled_first_date": "2021-01-05",
+    "controlled_last_date": "2026-05-14",
+    "controlled_sample_n": 1318,
+    "dates_with_both_iv_prints": 1320,
+    "duplicate_opening_stamps": 0,
+    "frozen_panel_n": 1318,
+    "missing_opening_iv_in_panel": 0,
+    "opening_iv_max": 75.5715125,
+    "opening_iv_min": 5.3341639999999995,
+    "source_files": 66,
+    "source_rows": 497023,
+    "weekend_dates_in_panel": 5,
+    "zero_or_negative_opening_iv_dates": 0
+  },
+  "coefficients": [
+    {
+      "coefficient": -0.18896405954736142,
+      "hac_p": 0.041444018613316244,
+      "hac_se": 0.09267213321727545,
+      "hac_z": -2.039060211383326,
+      "model": "baseline_common_sample",
+      "odds_ratio": 0.8278162582511114,
+      "term": "intercept"
+    },
+    {
+      "coefficient": 0.026959077398544785,
+      "hac_p": 0.632921423888102,
+      "hac_se": 0.05644473708607154,
+      "hac_z": 0.47761897371291473,
+      "model": "baseline_common_sample",
+      "odds_ratio": 1.0273257610605828,
+      "term": "gap"
+    },
+    {
+      "coefficient": -0.0031537184340881524,
+      "hac_p": 0.9552185555307164,
+      "hac_se": 0.05616123905204366,
+      "hac_z": -0.05615471608747192,
+      "model": "baseline_common_sample",
+      "odds_ratio": 0.9968512493122293,
+      "term": "P1"
+    },
+    {
+      "coefficient": 0.13471440771027837,
+      "hac_p": 0.10741110345018653,
+      "hac_se": 0.0836766987669419,
+      "hac_z": 1.6099393223612677,
+      "model": "baseline_common_sample",
+      "odds_ratio": 1.1442099601418596,
+      "term": "P3"
+    },
+    {
+      "coefficient": 0.06523886778700738,
+      "hac_p": 0.21661821130809733,
+      "hac_se": 0.05280059816117693,
+      "hac_z": 1.2355706196331697,
+      "model": "baseline_common_sample",
+      "odds_ratio": 1.0674139647460401,
+      "term": "initial_range_ratio"
+    },
+    {
+      "coefficient": 0.38423528454972605,
+      "hac_p": 0.01735640964456781,
+      "hac_se": 0.16150654977301296,
+      "hac_z": 2.3790693633771753,
+      "model": "baseline_common_sample",
+      "odds_ratio": 1.4684909142617544,
+      "term": "initial_high_first"
+    },
+    {
+      "coefficient": -0.18989764585281962,
+      "hac_p": 0.26457653760264344,
+      "hac_se": 0.1702141865045528,
+      "hac_z": -1.115639358578025,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 0.8270437809721835,
+      "term": "intercept"
+    },
+    {
+      "coefficient": 0.029047951875917535,
+      "hac_p": 0.6102486148508868,
+      "hac_se": 0.056988211613508394,
+      "hac_z": 0.5097186076467797,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 1.0294739584990908,
+      "term": "gap"
+    },
+    {
+      "coefficient": -0.004185805208668982,
+      "hac_p": 0.9407598874748173,
+      "hac_se": 0.05632531149185679,
+      "hac_z": -0.07431481687010544,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 0.9958229430635092,
+      "term": "P1"
+    },
+    {
+      "coefficient": 0.13386108685262155,
+      "hac_p": 0.10678210237925322,
+      "hac_se": 0.0829977972583223,
+      "hac_z": 1.6128269818534142,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 1.1432339983808164,
+      "term": "P3"
+    },
+    {
+      "coefficient": 0.07795089609299992,
+      "hac_p": 0.1612317567574204,
+      "hac_se": 0.05564181753500109,
+      "hac_z": 1.4009408668932402,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 1.0810695726269728,
+      "term": "initial_range_ratio"
+    },
+    {
+      "coefficient": 0.39676407307498235,
+      "hac_p": 0.013782945314663226,
+      "hac_se": 0.16109818797692455,
+      "hac_z": 2.462871110206492,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 1.487005064131309,
+      "term": "initial_high_first"
+    },
+    {
+      "coefficient": -0.02971143091513463,
+      "hac_p": 0.8672854233612801,
+      "hac_se": 0.17779825286176873,
+      "hac_z": -0.16710755272850808,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 0.9707256145374498,
+      "term": "weekday[Tuesday]"
+    },
+    {
+      "coefficient": 0.022020666903325894,
+      "hac_p": 0.9003941914465866,
+      "hac_se": 0.17593535171923771,
+      "hac_z": 0.12516340057947567,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 1.0222649113022197,
+      "term": "weekday[Wednesday]"
+    },
+    {
+      "coefficient": 0.20454988485819428,
+      "hac_p": 0.26844933472452115,
+      "hac_se": 0.1848385825055447,
+      "hac_z": 1.1066406271107294,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 1.22697266167636,
+      "term": "weekday[Thursday]"
+    },
+    {
+      "coefficient": 0.1432002576326051,
+      "hac_p": 0.42688179314385233,
+      "hac_se": 0.1802306521436164,
+      "hac_z": 0.7945388641133935,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 1.1539608680003843,
+      "term": "weekday[Friday]"
+    },
+    {
+      "coefficient": -1.2894234041994435,
+      "hac_p": 0.24108401140800828,
+      "hac_se": 1.0999263235266554,
+      "hac_z": -1.1722816125222006,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 0.2754295488347301,
+      "term": "weekday[Special weekend]"
+    },
+    {
+      "coefficient": -0.051715630421678045,
+      "hac_p": 0.7032443458472597,
+      "hac_se": 0.1357562972385989,
+      "hac_z": -0.38094461526734985,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 0.9495988654803225,
+      "term": "iv_bucket[low_<14]"
+    },
+    {
+      "coefficient": -0.12732646567023786,
+      "hac_p": 0.3707461558171772,
+      "hac_se": 0.14225203675981687,
+      "hac_z": -0.8950765737380629,
+      "model": "weekday_and_iv_controls",
+      "odds_ratio": 0.8804461902175487,
+      "term": "iv_bucket[high_>18]"
+    },
+    {
+      "coefficient": -0.05579723091702046,
+      "hac_p": 0.814312529694517,
+      "hac_se": 0.23757021743147927,
+      "hac_z": -0.23486627036115615,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.945730881433279,
+      "term": "intercept"
+    },
+    {
+      "coefficient": 0.027476937871746026,
+      "hac_p": 0.6353210744117023,
+      "hac_se": 0.057937568263506586,
+      "hac_z": 0.4742507960772157,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.0278579102429586,
+      "term": "gap"
+    },
+    {
+      "coefficient": -0.006197595401436121,
+      "hac_p": 0.9131653094007237,
+      "hac_se": 0.05683423095558641,
+      "hac_z": -0.10904687715893058,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.9938215700792055,
+      "term": "P1"
+    },
+    {
+      "coefficient": 0.16220011812922666,
+      "hac_p": 0.05819160332706601,
+      "hac_se": 0.08562754075694748,
+      "hac_z": 1.8942517406827006,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.1760955758192893,
+      "term": "P3"
+    },
+    {
+      "coefficient": 0.07203632982854478,
+      "hac_p": 0.19947308029133737,
+      "hac_se": 0.05614441587124488,
+      "hac_z": 1.2830542220573562,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.0746943868174121,
+      "term": "initial_range_ratio"
+    },
+    {
+      "coefficient": 0.10748952205159405,
+      "hac_p": 0.7547525247069162,
+      "hac_se": 0.3440997301832999,
+      "hac_z": 0.31237897801993336,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.11347919370787,
+      "term": "initial_high_first"
+    },
+    {
+      "coefficient": -0.04723344487471266,
+      "hac_p": 0.8623595060388562,
+      "hac_se": 0.27244081506725865,
+      "hac_z": -0.17337139761181503,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.9538646967725694,
+      "term": "weekday[Tuesday]"
+    },
+    {
+      "coefficient": 0.19209810766420823,
+      "hac_p": 0.4484437187478125,
+      "hac_se": 0.25342352590781636,
+      "hac_z": 0.7580121339408897,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.211789396960534,
+      "term": "weekday[Wednesday]"
+    },
+    {
+      "coefficient": 0.1949443767815221,
+      "hac_p": 0.47280479098719164,
+      "hac_se": 0.2715394102558351,
+      "hac_z": 0.7179229585784701,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.2152433888612268,
+      "term": "weekday[Thursday]"
+    },
+    {
+      "coefficient": 0.2599803776880072,
+      "hac_p": 0.31775531709362215,
+      "hac_se": 0.26021944558816973,
+      "hac_z": 0.9990812834927759,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.2969046381486586,
+      "term": "weekday[Friday]"
+    },
+    {
+      "coefficient": -1.2848321586662825,
+      "hac_p": 0.24431078625990277,
+      "hac_se": 1.1035427714229182,
+      "hac_z": -1.1642794388563735,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.27669702093184406,
+      "term": "weekday[Special weekend]"
+    },
+    {
+      "coefficient": -0.2554421271287343,
+      "hac_p": 0.18058430313795237,
+      "hac_se": 0.19077678454765457,
+      "hac_z": -1.33895813232415,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.7745739620826105,
+      "term": "iv_bucket[low_<14]"
+    },
+    {
+      "coefficient": -0.49841979965794614,
+      "hac_p": 0.01501301642673588,
+      "hac_se": 0.20493688179138847,
+      "hac_z": -2.4320649133585577,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.6074898573311843,
+      "term": "iv_bucket[high_>18]"
+    },
+    {
+      "coefficient": 0.028070089923673096,
+      "hac_p": 0.9382360510846317,
+      "hac_se": 0.36225499461852495,
+      "hac_z": 0.07748710256771613,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.028467767122558,
+      "term": "initial_high_first:weekday[Tuesday]"
+    },
+    {
+      "coefficient": -0.3601802071585408,
+      "hac_p": 0.3134599941477406,
+      "hac_se": 0.35732571889910786,
+      "hac_z": -1.0079884769230365,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.6975506111304349,
+      "term": "initial_high_first:weekday[Wednesday]"
+    },
+    {
+      "coefficient": 0.06726345674667436,
+      "hac_p": 0.8552125700168303,
+      "hac_se": 0.3686240698438635,
+      "hac_z": 0.18247168931525512,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.0695772283953824,
+      "term": "initial_high_first:weekday[Thursday]"
+    },
+    {
+      "coefficient": -0.18688338682900235,
+      "hac_p": 0.5826284447032595,
+      "hac_se": 0.34006655792514495,
+      "hac_z": -0.5495494410542389,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.8295404660895371,
+      "term": "initial_high_first:weekday[Friday]"
+    },
+    {
+      "coefficient": 0.38946367845712476,
+      "hac_p": 0.18160814361657074,
+      "hac_se": 0.29155403022698023,
+      "hac_z": 1.3358199101343928,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.476188869646467,
+      "term": "initial_high_first:iv_bucket[low_<14]"
+    },
+    {
+      "coefficient": 0.7229893543791313,
+      "hac_p": 0.01906838161996635,
+      "hac_se": 0.3084173694653453,
+      "hac_z": 2.3441914300496896,
+      "model": "persistence_interactions",
+      "odds_ratio": 2.0605838281661892,
+      "term": "initial_high_first:iv_bucket[high_>18]"
+    }
+  ],
+  "definitions": {
+    "categorical_references": {
+      "iv_bucket": "middle_14_18",
+      "weekday": "Monday"
+    },
+    "decision_window": "09:15 through 09:17 inclusive",
+    "iv_buckets": {
+      "high_>18": "IV > 18",
+      "low_<14": "IV < 14",
+      "middle_14_18": "14 <= IV <= 18"
+    },
+    "opening_iv": "arithmetic mean of ATM CALL IV at 09:15 and 09:16",
+    "target_window": "09:18 through 09:45 inclusive (strictly after decision)",
+    "thin_cell_threshold": 50
+  },
+  "interaction_tests": {
+    "all": {
+      "chi_squared": 9.202327376728734,
+      "df": 6,
+      "p_value": 0.16251498662001307
+    },
+    "iv_bucket": {
+      "chi_squared": 5.561465097656123,
+      "df": 2,
+      "p_value": 0.06199307778321387
+    },
+    "weekday": {
+      "chi_squared": 2.0282830976144037,
+      "df": 4,
+      "p_value": 0.7305566694479613
+    }
+  },
+  "joint_tests": {
+    "all_controls": {
+      "chi_squared": 4.8887581188094895,
+      "df": 7,
+      "p_value": 0.6735365270539916
+    },
+    "iv_bucket": {
+      "chi_squared": 0.8020549442935354,
+      "df": 2,
+      "p_value": 0.6696316645658712
+    },
+    "weekday": {
+      "chi_squared": 4.237649314970463,
+      "df": 5,
+      "p_value": 0.515732050715221
+    }
+  },
+  "models": [
+    {
+      "accuracy": 0.5295902883156297,
+      "accuracy_uplift": 0.028831562974203306,
+      "base_accuracy": 0.5007587253414264,
+      "base_high_first_rate": 0.5007587253414264,
+      "converged": true,
+      "gradient_max": 3.244591879045675e-14,
+      "iterations": 4,
+      "log_likelihood": -910.1976350442758,
+      "model": "baseline_common_sample",
+      "n": 1318,
+      "pseudo_r_squared": 0.0036875603537362966
+    },
+    {
+      "accuracy": 0.5364188163884673,
+      "accuracy_uplift": 0.03566009104704093,
+      "base_accuracy": 0.5007587253414264,
+      "base_high_first_rate": 0.5007587253414264,
+      "converged": true,
+      "gradient_max": 1.9095836023552692e-14,
+      "iterations": 6,
+      "log_likelihood": -907.7550033434294,
+      "model": "weekday_and_iv_controls",
+      "n": 1318,
+      "pseudo_r_squared": 0.006361292140469765
+    },
+    {
+      "accuracy": 0.5417298937784522,
+      "accuracy_uplift": 0.04097116843702575,
+      "base_accuracy": 0.5007587253414264,
+      "base_high_first_rate": 0.5007587253414264,
+      "converged": true,
+      "gradient_max": 1.9539925233402755e-14,
+      "iterations": 6,
+      "log_likelihood": -903.1369096793096,
+      "model": "persistence_interactions",
+      "n": 1318,
+      "pseudo_r_squared": 0.011416308752098647
+    }
+  ],
+  "slices": [
+    {
+      "base_high_first_rate": 0.49056603773584906,
+      "initial_high_first_n": 154,
+      "initial_low_first_n": 111,
+      "n": 265,
+      "persistence_effect": 0.053527553527553506,
+      "persistence_p": 0.38980523089354047,
+      "slice_type": "weekday",
+      "slice_value": "Monday",
+      "target_rate_after_initial_high_first": 0.512987012987013,
+      "target_rate_after_initial_low_first": 0.4594594594594595,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.4830188679245283,
+      "initial_high_first_n": 141,
+      "initial_low_first_n": 124,
+      "n": 265,
+      "persistence_effect": 0.07418210935712649,
+      "persistence_p": 0.2278925100961663,
+      "slice_type": "weekday",
+      "slice_value": "Tuesday",
+      "target_rate_after_initial_high_first": 0.5177304964539007,
+      "target_rate_after_initial_low_first": 0.4435483870967742,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.4866920152091255,
+      "initial_high_first_n": 111,
+      "initial_low_first_n": 152,
+      "n": 263,
+      "persistence_effect": -0.01594357515410144,
+      "persistence_p": 0.7983441685379828,
+      "slice_type": "weekday",
+      "slice_value": "Wednesday",
+      "target_rate_after_initial_high_first": 0.4774774774774775,
+      "target_rate_after_initial_low_first": 0.4934210526315789,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.524904214559387,
+      "initial_high_first_n": 123,
+      "initial_low_first_n": 138,
+      "n": 261,
+      "persistence_effect": 0.1297278190173206,
+      "persistence_p": 0.03617514536390519,
+      "slice_type": "weekday",
+      "slice_value": "Thursday",
+      "target_rate_after_initial_high_first": 0.5934959349593496,
+      "target_rate_after_initial_low_first": 0.463768115942029,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.525096525096525,
+      "initial_high_first_n": 127,
+      "initial_low_first_n": 132,
+      "n": 259,
+      "persistence_effect": 0.00483178239083748,
+      "persistence_p": 0.9379522995297473,
+      "slice_type": "weekday",
+      "slice_value": "Friday",
+      "target_rate_after_initial_high_first": 0.5275590551181102,
+      "target_rate_after_initial_low_first": 0.5227272727272727,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.2,
+      "initial_high_first_n": 3,
+      "initial_low_first_n": 2,
+      "n": 5,
+      "persistence_effect": 0.3333333333333333,
+      "persistence_p": 0.3613104285261789,
+      "slice_type": "weekday",
+      "slice_value": "Special weekend",
+      "target_rate_after_initial_high_first": 0.3333333333333333,
+      "target_rate_after_initial_low_first": 0.0,
+      "thin_cell_warning": true
+    },
+    {
+      "base_high_first_rate": 0.4968421052631579,
+      "initial_high_first_n": 224,
+      "initial_low_first_n": 251,
+      "n": 475,
+      "persistence_effect": 0.04821784291405806,
+      "persistence_p": 0.2940836123139664,
+      "slice_type": "iv_bucket",
+      "slice_value": "low_<14",
+      "target_rate_after_initial_high_first": 0.5223214285714286,
+      "target_rate_after_initial_low_first": 0.47410358565737054,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.5151515151515151,
+      "initial_high_first_n": 162,
+      "initial_low_first_n": 168,
+      "n": 330,
+      "persistence_effect": -0.05401234567901231,
+      "persistence_p": 0.32636026928552897,
+      "slice_type": "iv_bucket",
+      "slice_value": "middle_14_18",
+      "target_rate_after_initial_high_first": 0.4876543209876543,
+      "target_rate_after_initial_low_first": 0.5416666666666666,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.4951267056530214,
+      "initial_high_first_n": 273,
+      "initial_low_first_n": 240,
+      "n": 513,
+      "persistence_effect": 0.11611721611721615,
+      "persistence_p": 0.008673176031267464,
+      "slice_type": "iv_bucket",
+      "slice_value": "high_>18",
+      "target_rate_after_initial_high_first": 0.5494505494505495,
+      "target_rate_after_initial_low_first": 0.43333333333333335,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.5104166666666666,
+      "initial_high_first_n": 45,
+      "initial_low_first_n": 51,
+      "n": 96,
+      "persistence_effect": 0.08496732026143794,
+      "persistence_p": 0.40594023842365534,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Monday|low_<14",
+      "target_rate_after_initial_high_first": 0.5555555555555556,
+      "target_rate_after_initial_low_first": 0.47058823529411764,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.5194805194805194,
+      "initial_high_first_n": 44,
+      "initial_low_first_n": 33,
+      "n": 77,
+      "persistence_effect": 0.06060606060606055,
+      "persistence_p": 0.5983593538878933,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Monday|middle_14_18",
+      "target_rate_after_initial_high_first": 0.5454545454545454,
+      "target_rate_after_initial_low_first": 0.48484848484848486,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.44565217391304346,
+      "initial_high_first_n": 65,
+      "initial_low_first_n": 27,
+      "n": 92,
+      "persistence_effect": 0.05413105413105418,
+      "persistence_p": 0.6343124778373125,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Monday|high_>18",
+      "target_rate_after_initial_high_first": 0.46153846153846156,
+      "target_rate_after_initial_low_first": 0.4074074074074074,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.47,
+      "initial_high_first_n": 57,
+      "initial_low_first_n": 43,
+      "n": 100,
+      "persistence_effect": 0.1717666258669931,
+      "persistence_p": 0.08841481960758571,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Tuesday|low_<14",
+      "target_rate_after_initial_high_first": 0.543859649122807,
+      "target_rate_after_initial_low_first": 0.37209302325581395,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.4647887323943662,
+      "initial_high_first_n": 31,
+      "initial_low_first_n": 40,
+      "n": 71,
+      "persistence_effect": -0.13790322580645165,
+      "persistence_p": 0.24789038871422098,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Tuesday|middle_14_18",
+      "target_rate_after_initial_high_first": 0.3870967741935484,
+      "target_rate_after_initial_low_first": 0.525,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.5106382978723404,
+      "initial_high_first_n": 53,
+      "initial_low_first_n": 41,
+      "n": 94,
+      "persistence_effect": 0.12701334560515415,
+      "persistence_p": 0.22184340474851827,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Tuesday|high_>18",
+      "target_rate_after_initial_high_first": 0.5660377358490566,
+      "target_rate_after_initial_low_first": 0.43902439024390244,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.40476190476190477,
+      "initial_high_first_n": 30,
+      "initial_low_first_n": 54,
+      "n": 84,
+      "persistence_effect": -0.1111111111111111,
+      "persistence_p": 0.32017406683149174,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Wednesday|low_<14",
+      "target_rate_after_initial_high_first": 0.3333333333333333,
+      "target_rate_after_initial_low_first": 0.4444444444444444,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.5277777777777778,
+      "initial_high_first_n": 31,
+      "initial_low_first_n": 41,
+      "n": 72,
+      "persistence_effect": -0.020456333595594067,
+      "persistence_p": 0.8633107121130832,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Wednesday|middle_14_18",
+      "target_rate_after_initial_high_first": 0.5161290322580645,
+      "target_rate_after_initial_low_first": 0.5365853658536586,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.5233644859813084,
+      "initial_high_first_n": 50,
+      "initial_low_first_n": 57,
+      "n": 107,
+      "persistence_effect": 0.031228070175438605,
+      "persistence_p": 0.7469329205623465,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Wednesday|high_>18",
+      "target_rate_after_initial_high_first": 0.54,
+      "target_rate_after_initial_low_first": 0.5087719298245614,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.5588235294117647,
+      "initial_high_first_n": 17,
+      "initial_low_first_n": 17,
+      "n": 34,
+      "persistence_effect": -0.05882352941176472,
+      "persistence_p": 0.7297968484329553,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Thursday|low_<14",
+      "target_rate_after_initial_high_first": 0.5294117647058824,
+      "target_rate_after_initial_low_first": 0.5882352941176471,
+      "thin_cell_warning": true
+    },
+    {
+      "base_high_first_rate": 0.5476190476190477,
+      "initial_high_first_n": 18,
+      "initial_low_first_n": 24,
+      "n": 42,
+      "persistence_effect": -0.08333333333333337,
+      "persistence_p": 0.5912930073795031,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Thursday|middle_14_18",
+      "target_rate_after_initial_high_first": 0.5,
+      "target_rate_after_initial_low_first": 0.5833333333333334,
+      "thin_cell_warning": true
+    },
+    {
+      "base_high_first_rate": 0.5135135135135135,
+      "initial_high_first_n": 88,
+      "initial_low_first_n": 97,
+      "n": 185,
+      "persistence_effect": 0.21262886597938147,
+      "persistence_p": 0.0038561391260428478,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Thursday|high_>18",
+      "target_rate_after_initial_high_first": 0.625,
+      "target_rate_after_initial_low_first": 0.41237113402061853,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.5443037974683544,
+      "initial_high_first_n": 73,
+      "initial_low_first_n": 85,
+      "n": 158,
+      "persistence_effect": 0.03223207091055602,
+      "persistence_p": 0.6850542177511487,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Friday|low_<14",
+      "target_rate_after_initial_high_first": 0.5616438356164384,
+      "target_rate_after_initial_low_first": 0.5294117647058824,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.5294117647058824,
+      "initial_high_first_n": 38,
+      "initial_low_first_n": 30,
+      "n": 68,
+      "persistence_effect": -0.12631578947368421,
+      "persistence_p": 0.3001147502628546,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Friday|middle_14_18",
+      "target_rate_after_initial_high_first": 0.47368421052631576,
+      "target_rate_after_initial_low_first": 0.6,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.42424242424242425,
+      "initial_high_first_n": 16,
+      "initial_low_first_n": 17,
+      "n": 33,
+      "persistence_effect": 0.14705882352941174,
+      "persistence_p": 0.3929591802992475,
+      "slice_type": "weekday_x_iv",
+      "slice_value": "Friday|high_>18",
+      "target_rate_after_initial_high_first": 0.5,
+      "target_rate_after_initial_low_first": 0.35294117647058826,
+      "thin_cell_warning": true
+    }
+  ]
+}

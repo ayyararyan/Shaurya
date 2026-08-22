@@ -1,0 +1,358 @@
+{
+  "attrition": {
+    "all_days": 1318,
+    "expiry_days": 276,
+    "expiry_vix_current_open": 249,
+    "expiry_vix_first_after_decision": 6,
+    "expiry_vix_known": 243,
+    "expiry_vix_overnight_gap": 249,
+    "expiry_vix_rose": 108,
+    "expiry_vix_rose_exact_0915": 108
+  },
+  "coefficients": [
+    {
+      "coefficient": -0.18896405954736142,
+      "hac_p": 0.041444018613316244,
+      "hac_se": 0.09267213321727545,
+      "hac_z": -2.039060211383326,
+      "model": "full_sample",
+      "odds_ratio": 0.8278162582511114,
+      "term": "intercept"
+    },
+    {
+      "coefficient": 0.026959077398544785,
+      "hac_p": 0.632921423888102,
+      "hac_se": 0.05644473708607154,
+      "hac_z": 0.47761897371291473,
+      "model": "full_sample",
+      "odds_ratio": 1.0273257610605828,
+      "term": "gap"
+    },
+    {
+      "coefficient": -0.0031537184340881524,
+      "hac_p": 0.9552185555307164,
+      "hac_se": 0.05616123905204366,
+      "hac_z": -0.05615471608747192,
+      "model": "full_sample",
+      "odds_ratio": 0.9968512493122293,
+      "term": "P1"
+    },
+    {
+      "coefficient": 0.13471440771027837,
+      "hac_p": 0.10741110345018653,
+      "hac_se": 0.0836766987669419,
+      "hac_z": 1.6099393223612677,
+      "model": "full_sample",
+      "odds_ratio": 1.1442099601418596,
+      "term": "P3"
+    },
+    {
+      "coefficient": 0.06523886778700738,
+      "hac_p": 0.21661821130809733,
+      "hac_se": 0.05280059816117693,
+      "hac_z": 1.2355706196331697,
+      "model": "full_sample",
+      "odds_ratio": 1.0674139647460401,
+      "term": "initial_range_ratio"
+    },
+    {
+      "coefficient": 0.38423528454972605,
+      "hac_p": 0.01735640964456781,
+      "hac_se": 0.16150654977301296,
+      "hac_z": 2.3790693633771753,
+      "model": "full_sample",
+      "odds_ratio": 1.4684909142617544,
+      "term": "initial_high_first"
+    },
+    {
+      "coefficient": -0.31894831857948697,
+      "hac_p": 0.08361469393300153,
+      "hac_se": 0.18435389593555546,
+      "hac_z": -1.7300872160086145,
+      "model": "expiry_only",
+      "odds_ratio": 0.7269131162380105,
+      "term": "intercept"
+    },
+    {
+      "coefficient": 0.18190082346930866,
+      "hac_p": 0.17135040529089796,
+      "hac_se": 0.1329803404576341,
+      "hac_z": 1.3678775587678693,
+      "model": "expiry_only",
+      "odds_ratio": 1.1994952262054492,
+      "term": "gap"
+    },
+    {
+      "coefficient": -0.055162607530107974,
+      "hac_p": 0.6346314403522868,
+      "hac_se": 0.1160784771489094,
+      "hac_z": -0.4752182220597494,
+      "model": "expiry_only",
+      "odds_ratio": 0.9463312548537188,
+      "term": "P1"
+    },
+    {
+      "coefficient": 0.11523794533522946,
+      "hac_p": 0.523275718551975,
+      "hac_se": 0.18053767536071802,
+      "hac_z": 0.6383041384851204,
+      "model": "expiry_only",
+      "odds_ratio": 1.1221404138847508,
+      "term": "P3"
+    },
+    {
+      "coefficient": 0.0408470754173255,
+      "hac_p": 0.7576501982569679,
+      "hac_se": 0.13237627047782258,
+      "hac_z": 0.3085679576096589,
+      "model": "expiry_only",
+      "odds_ratio": 1.0416927929287487,
+      "term": "initial_range_ratio"
+    },
+    {
+      "coefficient": 0.8391648118768841,
+      "hac_p": 0.008927435150532625,
+      "hac_se": 0.32092635144857684,
+      "hac_z": 2.614820528414434,
+      "model": "expiry_only",
+      "odds_ratio": 2.314433182246828,
+      "term": "initial_high_first"
+    },
+    {
+      "coefficient": 0.035466672556729126,
+      "hac_p": 0.9282995367615394,
+      "hac_se": 0.3941420454315429,
+      "hac_z": 0.08998449408739673,
+      "model": "expiry_and_vix_rose",
+      "odds_ratio": 1.0361031168847983,
+      "term": "intercept"
+    },
+    {
+      "coefficient": 0.18558245634963955,
+      "hac_p": 0.3220377743963546,
+      "hac_se": 0.18740421516330566,
+      "hac_z": 0.990278986990348,
+      "model": "expiry_and_vix_rose",
+      "odds_ratio": 1.2039194664869592,
+      "term": "gap"
+    },
+    {
+      "coefficient": 0.1176111293196265,
+      "hac_p": 0.5382528242960261,
+      "hac_se": 0.19109554449371358,
+      "hac_z": 0.6154572029987624,
+      "model": "expiry_and_vix_rose",
+      "odds_ratio": 1.124806621993077,
+      "term": "P1"
+    },
+    {
+      "coefficient": -0.46750443597419133,
+      "hac_p": 0.17650450970700982,
+      "hac_se": 0.3458905978728803,
+      "hac_z": -1.3515962528302254,
+      "model": "expiry_and_vix_rose",
+      "odds_ratio": 0.6265639492864508,
+      "term": "P3"
+    },
+    {
+      "coefficient": 0.047521080953125176,
+      "hac_p": 0.7629256401616298,
+      "hac_se": 0.15754177440557987,
+      "hac_z": 0.301641143324853,
+      "model": "expiry_and_vix_rose",
+      "odds_ratio": 1.0486683078157102,
+      "term": "initial_range_ratio"
+    },
+    {
+      "coefficient": 0.6742521721353099,
+      "hac_p": 0.3631609103599932,
+      "hac_se": 0.7414591255149755,
+      "hac_z": 0.9093585188084542,
+      "model": "expiry_and_vix_rose",
+      "odds_ratio": 1.9625647664356713,
+      "term": "initial_high_first"
+    },
+    {
+      "coefficient": 0.035466672556729126,
+      "hac_p": 0.9282995367615394,
+      "hac_se": 0.3941420454315429,
+      "hac_z": 0.08998449408739673,
+      "model": "expiry_vix_rose_exact_0915",
+      "odds_ratio": 1.0361031168847983,
+      "term": "intercept"
+    },
+    {
+      "coefficient": 0.18558245634963955,
+      "hac_p": 0.3220377743963546,
+      "hac_se": 0.18740421516330566,
+      "hac_z": 0.990278986990348,
+      "model": "expiry_vix_rose_exact_0915",
+      "odds_ratio": 1.2039194664869592,
+      "term": "gap"
+    },
+    {
+      "coefficient": 0.1176111293196265,
+      "hac_p": 0.5382528242960261,
+      "hac_se": 0.19109554449371358,
+      "hac_z": 0.6154572029987624,
+      "model": "expiry_vix_rose_exact_0915",
+      "odds_ratio": 1.124806621993077,
+      "term": "P1"
+    },
+    {
+      "coefficient": -0.46750443597419133,
+      "hac_p": 0.17650450970700982,
+      "hac_se": 0.3458905978728803,
+      "hac_z": -1.3515962528302254,
+      "model": "expiry_vix_rose_exact_0915",
+      "odds_ratio": 0.6265639492864508,
+      "term": "P3"
+    },
+    {
+      "coefficient": 0.047521080953125176,
+      "hac_p": 0.7629256401616298,
+      "hac_se": 0.15754177440557987,
+      "hac_z": 0.301641143324853,
+      "model": "expiry_vix_rose_exact_0915",
+      "odds_ratio": 1.0486683078157102,
+      "term": "initial_range_ratio"
+    },
+    {
+      "coefficient": 0.6742521721353099,
+      "hac_p": 0.3631609103599932,
+      "hac_se": 0.7414591255149755,
+      "hac_z": 0.9093585188084542,
+      "model": "expiry_vix_rose_exact_0915",
+      "odds_ratio": 1.9625647664356713,
+      "term": "initial_high_first"
+    }
+  ],
+  "definitions": {
+    "expiry_source": "frozen k2_expiry_controls_panel.csv is_expiry_day",
+    "regression_predictors": [
+      "gap",
+      "P1",
+      "P3",
+      "initial_range_ratio",
+      "initial_high_first"
+    ],
+    "vix_open": "open field of first 09:15-15:30 IST print, required by 09:17",
+    "vix_prior_close": "close field of immediately preceding NIFTY trading session",
+    "vix_rose": "vix_open / vix_prior_close - 1 > 0"
+  },
+  "models": [
+    {
+      "accuracy": 0.5295902883156297,
+      "accuracy_uplift": 0.028831562974203306,
+      "base_accuracy": 0.5007587253414264,
+      "base_high_first_rate": 0.5007587253414264,
+      "converged": true,
+      "gradient_max": 3.244591879045675e-14,
+      "initial_flag_coefficient": 0.38423528454972605,
+      "initial_flag_hac_p": 0.01735640964456781,
+      "initial_flag_p3_correlation": -0.7172606795805223,
+      "iterations": 4,
+      "log_likelihood": -910.1976350442758,
+      "model": "full_sample",
+      "n": 1318,
+      "persistence_effect": 0.04855842185128978,
+      "persistence_p": 0.07792071844802637,
+      "pseudo_r_squared": 0.0036875603537362966,
+      "target_after_initial_high_first": 0.5250379362670713,
+      "target_after_initial_low_first": 0.4764795144157815
+    },
+    {
+      "accuracy": 0.5869565217391305,
+      "accuracy_uplift": 0.06884057971014501,
+      "base_accuracy": 0.5181159420289855,
+      "base_high_first_rate": 0.5181159420289855,
+      "converged": true,
+      "gradient_max": 1.2594567794817412e-14,
+      "initial_flag_coefficient": 0.8391648118768841,
+      "initial_flag_hac_p": 0.008927435150532625,
+      "initial_flag_p3_correlation": -0.7397073270750643,
+      "iterations": 5,
+      "log_likelihood": -185.93664002732822,
+      "model": "expiry_only",
+      "n": 276,
+      "persistence_effect": 0.16933614330874602,
+      "persistence_p": 0.004948958141148028,
+      "pseudo_r_squared": 0.02715875437998927,
+      "target_after_initial_high_first": 0.6076923076923076,
+      "target_after_initial_low_first": 0.4383561643835616
+    },
+    {
+      "accuracy": 0.6574074074074074,
+      "accuracy_uplift": 0.08333333333333337,
+      "base_accuracy": 0.5740740740740741,
+      "base_high_first_rate": 0.5740740740740741,
+      "converged": true,
+      "gradient_max": 3.1086244689504383e-15,
+      "initial_flag_coefficient": 0.6742521721353099,
+      "initial_flag_hac_p": 0.3631609103599932,
+      "initial_flag_p3_correlation": -0.7651634731493251,
+      "iterations": 6,
+      "log_likelihood": -66.40714456017362,
+      "model": "expiry_and_vix_rose",
+      "n": 108,
+      "persistence_effect": 0.32404540763673895,
+      "persistence_p": 0.0006741173578260396,
+      "pseudo_r_squared": 0.09859045324192994,
+      "target_after_initial_high_first": 0.7450980392156863,
+      "target_after_initial_low_first": 0.42105263157894735
+    },
+    {
+      "accuracy": 0.6574074074074074,
+      "accuracy_uplift": 0.08333333333333337,
+      "base_accuracy": 0.5740740740740741,
+      "base_high_first_rate": 0.5740740740740741,
+      "converged": true,
+      "gradient_max": 3.1086244689504383e-15,
+      "initial_flag_coefficient": 0.6742521721353099,
+      "initial_flag_hac_p": 0.3631609103599932,
+      "initial_flag_p3_correlation": -0.7651634731493251,
+      "iterations": 6,
+      "log_likelihood": -66.40714456017362,
+      "model": "expiry_vix_rose_exact_0915",
+      "n": 108,
+      "persistence_effect": 0.32404540763673895,
+      "persistence_p": 0.0006741173578260396,
+      "pseudo_r_squared": 0.09859045324192994,
+      "target_after_initial_high_first": 0.7450980392156863,
+      "target_after_initial_low_first": 0.42105263157894735
+    }
+  ],
+  "vix_audit": {
+    "duplicate_folder_audit": {
+      "comparisons": [
+        {
+          "filename": "2026-05-15_2026-05-27__INDIA-VIX__1m.csv",
+          "identical": true,
+          "lower_match_present": true,
+          "lower_sha256": "b5d4f6dd044b3193d70bcd1a5e9b7885647f8c759c39551ba63ca0797fbd41b2",
+          "upper_sha256": "b5d4f6dd044b3193d70bcd1a5e9b7885647f8c759c39551ba63ca0797fbd41b2"
+        }
+      ],
+      "conflict_count": 0,
+      "uppercase_file_count": 1
+    },
+    "first_clock_counts": {
+      "09:15": 1151,
+      "09:16": 4,
+      "09:27": 1,
+      "09:59": 2,
+      "10:00": 19,
+      "MISSING": 141
+    },
+    "lowercase_file_count": 60,
+    "panel_dates_known_by_decision": 1154,
+    "panel_dates_with_overnight_gap": 1175,
+    "panel_dates_with_vix_open": 1177,
+    "raw_duplicate_timestamps": 0,
+    "raw_first_timestamp": "2021-08-04 10:00:00+05:30",
+    "raw_last_timestamp": "2026-05-27 19:49:00+05:30",
+    "raw_rows": 511827,
+    "session_filter": "09:15 through 15:30 IST",
+    "session_filtered_dates": 1197
+  }
+}

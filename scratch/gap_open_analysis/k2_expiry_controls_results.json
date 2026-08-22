@@ -1,0 +1,534 @@
+{
+  "coefficients": [
+    {
+      "coefficient": -0.18896405954736142,
+      "hac_p": 0.041444018613316244,
+      "hac_se": 0.09267213321727545,
+      "hac_z": -2.039060211383326,
+      "model": "baseline",
+      "odds_ratio": 0.8278162582511114,
+      "term": "intercept"
+    },
+    {
+      "coefficient": 0.026959077398544785,
+      "hac_p": 0.632921423888102,
+      "hac_se": 0.05644473708607154,
+      "hac_z": 0.47761897371291473,
+      "model": "baseline",
+      "odds_ratio": 1.0273257610605828,
+      "term": "gap"
+    },
+    {
+      "coefficient": -0.0031537184340881524,
+      "hac_p": 0.9552185555307164,
+      "hac_se": 0.05616123905204366,
+      "hac_z": -0.05615471608747192,
+      "model": "baseline",
+      "odds_ratio": 0.9968512493122293,
+      "term": "P1"
+    },
+    {
+      "coefficient": 0.13471440771027837,
+      "hac_p": 0.10741110345018653,
+      "hac_se": 0.0836766987669419,
+      "hac_z": 1.6099393223612677,
+      "model": "baseline",
+      "odds_ratio": 1.1442099601418596,
+      "term": "P3"
+    },
+    {
+      "coefficient": 0.06523886778700738,
+      "hac_p": 0.21661821130809733,
+      "hac_se": 0.05280059816117693,
+      "hac_z": 1.2355706196331697,
+      "model": "baseline",
+      "odds_ratio": 1.0674139647460401,
+      "term": "initial_range_ratio"
+    },
+    {
+      "coefficient": 0.38423528454972605,
+      "hac_p": 0.01735640964456781,
+      "hac_se": 0.16150654977301296,
+      "hac_z": 2.3790693633771753,
+      "model": "baseline",
+      "odds_ratio": 1.4684909142617544,
+      "term": "initial_high_first"
+    },
+    {
+      "coefficient": -0.16177312588804751,
+      "hac_p": 0.23006342609935249,
+      "hac_se": 0.13478897988049343,
+      "hac_z": -1.2001954909925037,
+      "model": "expiry_and_iv_controls",
+      "odds_ratio": 0.8506341695218326,
+      "term": "intercept"
+    },
+    {
+      "coefficient": 0.024211736691356345,
+      "hac_p": 0.6658570768269055,
+      "hac_se": 0.0560663398874904,
+      "hac_z": 0.43184086458903126,
+      "model": "expiry_and_iv_controls",
+      "odds_ratio": 1.0245072206958508,
+      "term": "gap"
+    },
+    {
+      "coefficient": -0.008288937651937198,
+      "hac_p": 0.8825596020988347,
+      "hac_se": 0.05611049933516004,
+      "hac_z": -0.14772525196087807,
+      "model": "expiry_and_iv_controls",
+      "odds_ratio": 0.9917453208708286,
+      "term": "P1"
+    },
+    {
+      "coefficient": 0.13921661137535882,
+      "hac_p": 0.09695655270966752,
+      "hac_se": 0.08387600082760986,
+      "hac_z": 1.65979076257451,
+      "model": "expiry_and_iv_controls",
+      "odds_ratio": 1.1493730403160431,
+      "term": "P3"
+    },
+    {
+      "coefficient": 0.0838153196378416,
+      "hac_p": 0.1374524506528999,
+      "hac_se": 0.05642818218188251,
+      "hac_z": 1.485345024365366,
+      "model": "expiry_and_iv_controls",
+      "odds_ratio": 1.0874280486574721,
+      "term": "initial_range_ratio"
+    },
+    {
+      "coefficient": 0.39908470255118567,
+      "hac_p": 0.013750764558178053,
+      "hac_se": 0.16198531529096985,
+      "hac_z": 2.463709144463624,
+      "model": "expiry_and_iv_controls",
+      "odds_ratio": 1.490459859013383,
+      "term": "initial_high_first"
+    },
+    {
+      "coefficient": 0.16945296975358676,
+      "hac_p": 0.2765865329330679,
+      "hac_se": 0.155744434437118,
+      "hac_z": 1.0880194233971399,
+      "model": "expiry_and_iv_controls",
+      "odds_ratio": 1.1846566310296902,
+      "term": "is_expiry_day"
+    },
+    {
+      "coefficient": -0.03424872108301241,
+      "hac_p": 0.7996632727907861,
+      "hac_se": 0.1349528237447373,
+      "hac_z": -0.2537829156342347,
+      "model": "expiry_and_iv_controls",
+      "odds_ratio": 0.9663311278206945,
+      "term": "iv_bucket[low_<14]"
+    },
+    {
+      "coefficient": -0.1482753528990563,
+      "hac_p": 0.29510961630497323,
+      "hac_se": 0.14162219218261662,
+      "hac_z": -1.0469782356416335,
+      "model": "expiry_and_iv_controls",
+      "odds_ratio": 0.8621936747257359,
+      "term": "iv_bucket[high_>18]"
+    },
+    {
+      "coefficient": 0.06544327364425975,
+      "hac_p": 0.6891550177697382,
+      "hac_se": 0.16360735167453122,
+      "hac_z": 0.40000203520467664,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.0676321727132807,
+      "term": "intercept"
+    },
+    {
+      "coefficient": 0.019017371141939517,
+      "hac_p": 0.7376787063315241,
+      "hac_se": 0.05678031978580746,
+      "hac_z": 0.3349289192748261,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.0191993531202617,
+      "term": "gap"
+    },
+    {
+      "coefficient": -0.010827694944948422,
+      "hac_p": 0.8481134542296217,
+      "hac_se": 0.05653379039532593,
+      "hac_z": -0.19152607439255706,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.9892307135441168,
+      "term": "P1"
+    },
+    {
+      "coefficient": 0.15373584541174976,
+      "hac_p": 0.07576020454529175,
+      "hac_se": 0.08657104481293072,
+      "hac_z": 1.775834469180242,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.166182793552456,
+      "term": "P3"
+    },
+    {
+      "coefficient": 0.07644560804718466,
+      "hac_p": 0.17661124262830274,
+      "hac_se": 0.056573454315682795,
+      "hac_z": 1.351262866513581,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.079443475701781,
+      "term": "initial_range_ratio"
+    },
+    {
+      "coefficient": -0.06256747001058056,
+      "hac_p": 0.812182949467444,
+      "hac_se": 0.2633190997713852,
+      "hac_z": -0.2376108306040159,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.9393496827423393,
+      "term": "initial_high_first"
+    },
+    {
+      "coefficient": -0.02755927929527565,
+      "hac_p": 0.8982754247786569,
+      "hac_se": 0.21557597862701675,
+      "hac_z": -0.1278402142520615,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.9728170129372047,
+      "term": "is_expiry_day"
+    },
+    {
+      "coefficient": -0.23662520266104298,
+      "hac_p": 0.21424484881593742,
+      "hac_se": 0.19052293215381808,
+      "hac_z": -1.2419775403729583,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.7892870552757474,
+      "term": "iv_bucket[low_<14]"
+    },
+    {
+      "coefficient": -0.4708214527438878,
+      "hac_p": 0.022559251051658593,
+      "hac_se": 0.20642662642278276,
+      "hac_z": -2.2808174551067726,
+      "model": "persistence_interactions",
+      "odds_ratio": 0.6244890692677116,
+      "term": "iv_bucket[high_>18]"
+    },
+    {
+      "coefficient": 0.4286473175998015,
+      "hac_p": 0.14615346996545228,
+      "hac_se": 0.2949570809263868,
+      "hac_z": 1.453253186034819,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.5351795081159103,
+      "term": "initial_high_first:is_expiry_day"
+    },
+    {
+      "coefficient": 0.40251921442406224,
+      "hac_p": 0.1677419017421382,
+      "hac_se": 0.29178717174221613,
+      "hac_z": 1.3794959251316026,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.49558766180442,
+      "term": "initial_high_first:iv_bucket[low_<14]"
+    },
+    {
+      "coefficient": 0.6421182724593405,
+      "hac_p": 0.03595498253002114,
+      "hac_se": 0.30614436966475256,
+      "hac_z": 2.0974361643903516,
+      "model": "persistence_interactions",
+      "odds_ratio": 1.9005024003561528,
+      "term": "initial_high_first:iv_bucket[high_>18]"
+    }
+  ],
+  "definitions": {
+    "decision_window": "09:15 through 09:17 inclusive",
+    "expiry_rule_source": "NSE/FAOP/68747 plus observed regular trading calendar",
+    "iv_buckets": {
+      "high_>18": "IV > 18",
+      "low_<14": "IV < 14",
+      "middle_14_18": "14 <= IV <= 18"
+    },
+    "new_rule_first_expiry": "2025-09-09",
+    "old_rule_end": "2025-08-28",
+    "target_window": "09:18 through 09:45 inclusive"
+  },
+  "expiry_audit": {
+    "actual_weekday_counts": {
+      "Monday": 4,
+      "Thursday": 228,
+      "Tuesday": 32,
+      "Wednesday": 12
+    },
+    "all_scheduled_weekday_counts": {
+      "Thursday": 243,
+      "Tuesday": 36
+    },
+    "classified_expiry_count": 276,
+    "classified_scheduled_weekday_counts": {
+      "Thursday": 240,
+      "Tuesday": 36
+    },
+    "holiday_shift_count": 16,
+    "missing_expiry_events_excluded": 3,
+    "monthly_replacement_count": 63,
+    "new_rule": "Tuesday; prior observed regular trading day if holiday",
+    "new_rule_first_scheduled_expiry": "2025-09-09",
+    "old_rule": "Thursday; prior observed regular trading day if holiday",
+    "old_rule_last_scheduled_expiry": "2025-08-28",
+    "panel_expiry_days": 276,
+    "panel_non_expiry_days": 1042,
+    "panel_unknown_expiry_status": 0,
+    "scheduled_expiry_count": 279,
+    "transition_gap_has_no_expiry": "2025-08-29 through 2025-09-08",
+    "unknown_scheduled_expiries": [
+      {
+        "reason": "scheduled session absent from source but not an NSE holiday",
+        "scheduled_expiry": "2021-01-21"
+      },
+      {
+        "reason": "scheduled session absent from source but not an NSE holiday",
+        "scheduled_expiry": "2021-06-10"
+      },
+      {
+        "reason": "scheduled session absent from source but not an NSE holiday",
+        "scheduled_expiry": "2021-07-29"
+      }
+    ],
+    "verified_scheduled_holiday_count": 16
+  },
+  "interaction_tests": {
+    "all": {
+      "chi_squared": 8.680517681968471,
+      "df": 3,
+      "p_value": 0.033854437100878924
+    },
+    "expiry": {
+      "chi_squared": 2.1119448227203517,
+      "df": 1,
+      "p_value": 0.14615346996544828
+    },
+    "iv_bucket": {
+      "chi_squared": 4.578751304627766,
+      "df": 2,
+      "p_value": 0.10132970707647285
+    }
+  },
+  "joint_tests": {
+    "all_controls": {
+      "chi_squared": 1.8705826558948706,
+      "df": 3,
+      "p_value": 0.5996970959664631
+    },
+    "iv_bucket": {
+      "chi_squared": 1.1724966801583065,
+      "df": 2,
+      "p_value": 0.5564108381397533
+    }
+  },
+  "models": [
+    {
+      "accuracy": 0.5295902883156297,
+      "accuracy_uplift": 0.028831562974203306,
+      "base_accuracy": 0.5007587253414264,
+      "base_high_first_rate": 0.5007587253414264,
+      "converged": true,
+      "gradient_max": 3.244591879045675e-14,
+      "iterations": 4,
+      "log_likelihood": -910.1976350442758,
+      "model": "baseline",
+      "n": 1318,
+      "pseudo_r_squared": 0.0036875603537362966
+    },
+    {
+      "accuracy": 0.5295902883156297,
+      "accuracy_uplift": 0.028831562974203306,
+      "base_accuracy": 0.5007587253414264,
+      "base_high_first_rate": 0.5007587253414264,
+      "converged": true,
+      "gradient_max": 3.375077994860476e-14,
+      "iterations": 5,
+      "log_likelihood": -909.3094944348682,
+      "model": "expiry_and_iv_controls",
+      "n": 1318,
+      "pseudo_r_squared": 0.004659728928163243
+    },
+    {
+      "accuracy": 0.539453717754173,
+      "accuracy_uplift": 0.03869499241274654,
+      "base_accuracy": 0.5007587253414264,
+      "base_high_first_rate": 0.5007587253414264,
+      "converged": true,
+      "gradient_max": 3.086420008457935e-14,
+      "iterations": 5,
+      "log_likelihood": -904.7504539830579,
+      "model": "persistence_interactions",
+      "n": 1318,
+      "pseudo_r_squared": 0.009650105237774431
+    }
+  ],
+  "persistence_heterogeneity": {
+    "all": {
+      "difference": 0.1519396800859968,
+      "effect_a": 0.16933614330874602,
+      "effect_b": 0.017396463222749237,
+      "p_value": 0.023201422112746124,
+      "z_stat": 2.270101553375536
+    },
+    "high_iv": {
+      "difference": 0.19016747277666685,
+      "effect_a": 0.2324766355140187,
+      "effect_b": 0.04230916273735186,
+      "p_value": 0.03297330738641387,
+      "z_stat": 2.1324081572430105
+    }
+  },
+  "slices": [
+    {
+      "base_high_first_rate": 0.5181159420289855,
+      "initial_high_first_n": 130,
+      "initial_low_first_n": 146,
+      "n": 276,
+      "persistence_effect": 0.16933614330874602,
+      "persistence_p": 0.004948958141148028,
+      "slice_type": "expiry_status",
+      "slice_value": "expiry",
+      "target_rate_after_initial_high_first": 0.6076923076923076,
+      "target_rate_after_initial_low_first": 0.4383561643835616,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.4961612284069098,
+      "initial_high_first_n": 529,
+      "initial_low_first_n": 513,
+      "n": 1042,
+      "persistence_effect": 0.017396463222749237,
+      "persistence_p": 0.5744508641276871,
+      "slice_type": "expiry_status",
+      "slice_value": "non_expiry",
+      "target_rate_after_initial_high_first": 0.504725897920605,
+      "target_rate_after_initial_low_first": 0.4873294346978557,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.5416666666666666,
+      "initial_high_first_n": 12,
+      "initial_low_first_n": 12,
+      "n": 24,
+      "persistence_effect": 0.08333333333333337,
+      "persistence_p": 0.6820456589350075,
+      "slice_type": "expiry_x_iv",
+      "slice_value": "expiry|low_<14",
+      "target_rate_after_initial_high_first": 0.5833333333333334,
+      "target_rate_after_initial_low_first": 0.5,
+      "thin_cell_warning": true
+    },
+    {
+      "base_high_first_rate": 0.5714285714285714,
+      "initial_high_first_n": 22,
+      "initial_low_first_n": 27,
+      "n": 49,
+      "persistence_effect": -0.047138047138047146,
+      "persistence_p": 0.7401569137820874,
+      "slice_type": "expiry_x_iv",
+      "slice_value": "expiry|middle_14_18",
+      "target_rate_after_initial_high_first": 0.5454545454545454,
+      "target_rate_after_initial_low_first": 0.5925925925925926,
+      "thin_cell_warning": true
+    },
+    {
+      "base_high_first_rate": 0.5024630541871922,
+      "initial_high_first_n": 96,
+      "initial_low_first_n": 107,
+      "n": 203,
+      "persistence_effect": 0.2324766355140187,
+      "persistence_p": 0.0009414753147884749,
+      "slice_type": "expiry_x_iv",
+      "slice_value": "expiry|high_>18",
+      "target_rate_after_initial_high_first": 0.625,
+      "target_rate_after_initial_low_first": 0.3925233644859813,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.49445676274944567,
+      "initial_high_first_n": 212,
+      "initial_low_first_n": 239,
+      "n": 451,
+      "persistence_effect": 0.04606457724796714,
+      "persistence_p": 0.32878318207736346,
+      "slice_type": "expiry_x_iv",
+      "slice_value": "non_expiry|low_<14",
+      "target_rate_after_initial_high_first": 0.5188679245283019,
+      "target_rate_after_initial_low_first": 0.47280334728033474,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.505338078291815,
+      "initial_high_first_n": 140,
+      "initial_low_first_n": 141,
+      "n": 281,
+      "persistence_effect": -0.053343465045592675,
+      "persistence_p": 0.3711909698227246,
+      "slice_type": "expiry_x_iv",
+      "slice_value": "non_expiry|middle_14_18",
+      "target_rate_after_initial_high_first": 0.4785714285714286,
+      "target_rate_after_initial_low_first": 0.5319148936170213,
+      "thin_cell_warning": false
+    },
+    {
+      "base_high_first_rate": 0.49032258064516127,
+      "initial_high_first_n": 177,
+      "initial_low_first_n": 133,
+      "n": 310,
+      "persistence_effect": 0.04230916273735186,
+      "persistence_p": 0.4608024769151834,
+      "slice_type": "expiry_x_iv",
+      "slice_value": "non_expiry|high_>18",
+      "target_rate_after_initial_high_first": 0.5084745762711864,
+      "target_rate_after_initial_low_first": 0.46616541353383456,
+      "thin_cell_warning": false
+    }
+  ],
+  "source_audit": {
+    "controlled_first_date": "2021-01-05",
+    "controlled_last_date": "2026-05-14",
+    "controlled_sample_n": 1318,
+    "dates_with_both_iv_prints": 1320,
+    "duplicate_opening_stamps": 0,
+    "frozen_panel_n": 1318,
+    "missing_opening_iv_in_panel": 0,
+    "opening_iv_max": 75.5715125,
+    "opening_iv_min": 5.3341639999999995,
+    "source_files": 66,
+    "source_rows": 497023,
+    "weekend_dates_in_panel": 5,
+    "zero_or_negative_opening_iv_dates": 0
+  },
+  "storage_boundary_audit": {
+    "calendar_span_days": {
+      "29": 65,
+      "9": 1
+    },
+    "manifest_files": 66,
+    "reason": "65/66 files span 29 calendar days and to_date covers all weekdays/weekends",
+    "to_date_equals_last_observed_trading_date": 46,
+    "to_date_is_expiry_assumption_valid": false,
+    "to_date_weekday_counts": {
+      "Friday": 9,
+      "Monday": 10,
+      "Saturday": 10,
+      "Sunday": 9,
+      "Thursday": 10,
+      "Tuesday": 9,
+      "Wednesday": 9
+    }
+  },
+  "thursday_high_iv_overlap": {
+    "expiry_days": 181,
+    "expiry_share": 0.9783783783783784,
+    "n": 185
+  }
+}
