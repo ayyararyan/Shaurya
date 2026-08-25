@@ -1,12 +1,29 @@
 # Shaurya
 
-**Status:** design note, not a frozen specification.
+**Document role:** project overview and navigation. The frozen requirements live in
+[`MODULE_SPEC.md`](MODULE_SPEC.md); implementation status lives only in [`TASKS.md`](TASKS.md).
 **Created:** 2026-08-17
 **Owner:** Aryan Ayyar
 **Task ledger:** [`TASKS.md`](TASKS.md) — the single source of truth for status. This file
 explains *what* and *why*; `TASKS.md` tracks *what is done*.
-**GCP scaling plan:** [`GCP_SCALING.md`](GCP_SCALING.md) — design note for using the Shunya GCP
-credit grant to scale `DAT`/`SIG`/`BKT`/`ANL` to the index-F&O universe (2026-08-18).
+**GCP scaling decisions:** the surviving decisions and later live corrections are recorded under
+`DAT-09` and its work log in [`TASKS.md`](TASKS.md). The earlier `GCP_SCALING.md` planning note
+referenced by the historical ledger is not present in this repository.
+
+## Repository map
+
+| Path | Purpose |
+|---|---|
+| [`src/shaurya/`](src/shaurya/) | Installable Python package: contracts, data access, surfaces, signals, analytics, and CLIs |
+| [`tests/`](tests/) | Python regression and acceptance tests |
+| [`scripts/`](scripts/) | Reproducible research, capture, and operational entry points |
+| [`docs/module-spec/`](docs/module-spec/) | Frozen component specifications indexed by [`MODULE_SPEC.md`](MODULE_SPEC.md) |
+| [`docs/results/`](docs/results/) | Curated result tables and machine-readable summaries |
+| [`docs/live-evidence/`](docs/live-evidence/) and [`data/live-evidence/`](data/live-evidence/) | Committed, bounded evidence supporting live-verified claims |
+| [`docs/research/`](docs/research/) and [`docs/sig-claims/`](docs/sig-claims/) | Research priors, methods, and claim ledgers |
+| [`scratch/gap_open_analysis/`](scratch/gap_open_analysis/) | Preserved gap-open research workspace; see its [`README.md`](scratch/gap_open_analysis/README.md) before treating anything as disposable |
+| [`D51_ALO_SMM_CPP/`](D51_ALO_SMM_CPP/) | Self-contained C++ shadow-engine release with its own [`README.md`](D51_ALO_SMM_CPP/README.md) and [`VALIDATION.md`](D51_ALO_SMM_CPP/VALIDATION.md) |
+| [`CHANGELOG.md`](CHANGELOG.md) | Chronological implementation record |
 
 > **Naming (decided 2026-08-17).** "Shaurya" is the name of **this module**, and nothing else.
 > The options market-making strategy that previously carried the name is now called
@@ -145,36 +162,32 @@ Two non-obvious things learned the hard way in that repo, which the module must 
 - Kotak's WebSocket is receive-only. Orders are REST. The ~12–15 ms typical round-trip is
   Kotak's backend, not something further engineering can remove.
 
-## 5. Proposed shape
+## 5. Repository layout
 
 ```
-shaurya/
-├── README.md                     # this file
-├── TASKS.md                      # the single task ledger
-├── MODULE_SPEC.md                # frozen specification (to be written before implementation)
-├── python/
-│   ├── pyproject.toml
-│   ├── shaurya/
-│   │   ├── surfaces/             # essvi, sabr, svi, arbitrage checks
-│   │   ├── greeks/
-│   │   ├── vol/                  # realised vol, forecasting
-│   │   ├── data/                 # dhan, kite, storage, replay tapes
-│   │   ├── backtest/
-│   │   ├── risk/
-│   │   ├── analytics/            # pnl, markout, reporting
-│   │   └── registry.py           # the plug-in point for new features
-│   └── tests/
-├── native/
-│   ├── CMakeLists.txt
-│   ├── include/ src/             # quoting runtime, broker gateways, ledger
-│   └── tests/
-├── contracts/                    # shared schemas: tape, ledger, surface, config
-└── docs/
+.
+├── src/shaurya/                  # installable Python package
+│   ├── analytics/
+│   ├── cli/
+│   ├── contracts/
+│   ├── data/
+│   ├── signals/
+│   └── surfaces/
+├── tests/                        # Python test suite and contract fixtures
+├── scripts/                      # capture, analysis, and replay entry points
+├── docs/                         # specifications, research, results, and live evidence
+├── data/live-evidence/           # bounded raw evidence committed by design
+├── scratch/gap_open_analysis/    # preserved exploratory research and outputs
+└── D51_ALO_SMM_CPP/              # packaged C++ shadow engine
 ```
 
-`contracts/` matters more than it looks. It is the only thing that keeps the Python and C++
-sides in agreement — one definition of a snapshot row, a ledger row, a surface frame, a config
-file, consumed by both. Without it the two engines drift and parity testing becomes guesswork.
+`src/shaurya/contracts/` matters more than it looks. It is the boundary that keeps the Python and
+C++ sides in agreement — one definition of a snapshot row, a ledger row, a surface frame, and a
+config file. Without it the two engines drift and parity testing becomes guesswork.
+
+The evidence and `scratch/` trees are intentionally versioned. Their scripts, reports, result
+files, aliases, and documented pre-patch baselines are research provenance, not generated clutter.
+Large raw captures, local environments, runtime state, and build outputs remain ignored.
 
 ## 6. Working rules for this module
 

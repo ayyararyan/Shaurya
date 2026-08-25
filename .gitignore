@@ -1,4 +1,16 @@
 .DS_Store
+
+# Editor, IDE, and merge-tool leftovers
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.bak
+*.rej
+*.orig
+!scratch/gap_open_analysis/gate_b_structure_search.py.orig
+
 *.env
 .env.*
 !.env.example
@@ -12,9 +24,18 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.nox/
+.tox/
 .venv/
 .ml_venv/
 build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
 dist/
 *.egg-info/
 artifacts/
@@ -23,8 +44,11 @@ runs/
 state/
 logs/
 /data/
+# Raw captures and generated tables are ignored by default. Curated evidence already tracked in
+# docs/results remains versioned, and new result tables there stay visible for deliberate review.
 *.jsonl
 *.csv
+!docs/results/*.csv
 *.parquet
 
 # Large local research data / accidental venv under scratch (2026-08-25)

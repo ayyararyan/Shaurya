@@ -253,8 +253,9 @@ def test_a_dead_feed_is_visible_even_though_the_last_surface_still_renders() -> 
     """The guarded failure mode: a dead feed quietly showing the last good surface."""
 
     engine = _engine(wall_clock=True)
-    # Every packet and the fit itself are 45 seconds old; nothing has arrived since.
-    stale_valuation = datetime.now(tz=IST) - timedelta(seconds=45)
+    # Use the fixed historical fixture time so this test remains valid after its option expiries.
+    # The live wall clock still makes both the feed and the last fit unambiguously stale.
+    stale_valuation = VALUATION
     for row in _chain(valuation=stale_valuation):
         engine.ingest(row)
     snapshot = engine.fit(stale_valuation)
