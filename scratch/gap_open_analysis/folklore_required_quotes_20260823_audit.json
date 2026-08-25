@@ -1,0 +1,32 @@
+{
+  "cache": "folklore_required_quotes_20260823.pkl",
+  "required_clocks": [
+    "09:15",
+    "09:20",
+    "15:29"
+  ],
+  "source_snapshot_rows": 109909,
+  "manifest_option_files": 2772,
+  "files_read_for_0920": 2772,
+  "files_missing": 0,
+  "raw_rows_scanned_for_0920": 20860781,
+  "rows_before_positive_filter": 165341,
+  "non_positive_close_rows_dropped": 0,
+  "duplicate_contract_minutes": 0,
+  "deduplicated_rows": 165341,
+  "dates": 1325,
+  "rows_by_clock": {
+    "09:15": 54324,
+    "09:20": 55432,
+    "15:29": 55585
+  },
+  "dedup_key": [
+    "date",
+    "clock",
+    "side",
+    "strike"
+  ],
+  "dedup_keep": "highest volume",
+  "absolute_strike": true,
+  "elapsed_seconds": 17.659
+}

@@ -1,0 +1,3149 @@
+{
+  "title": "Indian Options Folklore Battery",
+  "spec_date": "2026-08-23",
+  "seed": 20260823,
+  "placebo_draws": 2000,
+  "registered_family_size": 15,
+  "bonferroni_threshold": 0.0033333333333333335,
+  "trading_time": {
+    "minutes_per_session": 375,
+    "sessions_per_year": 252
+  },
+  "quote_cache": "folklore_required_quotes_20260823.pkl",
+  "quote_cache_audit": {
+    "cache": "folklore_required_quotes_20260823.pkl",
+    "required_clocks": [
+      "09:15",
+      "09:20",
+      "15:29"
+    ],
+    "source_snapshot_rows": 109909,
+    "manifest_option_files": 2772,
+    "files_read_for_0920": 2772,
+    "files_missing": 0,
+    "raw_rows_scanned_for_0920": 20860781,
+    "rows_before_positive_filter": 165341,
+    "non_positive_close_rows_dropped": 0,
+    "duplicate_contract_minutes": 0,
+    "deduplicated_rows": 165341,
+    "dates": 1325,
+    "rows_by_clock": {
+      "09:15": 54324,
+      "09:20": 55432,
+      "15:29": 55585
+    },
+    "dedup_key": [
+      "date",
+      "clock",
+      "side",
+      "strike"
+    ],
+    "dedup_keep": "highest volume",
+    "absolute_strike": true,
+    "elapsed_seconds": 17.659
+  },
+  "measurement": {
+    "atm": "nearest absolute strike at entry minute",
+    "prices": "traded closes; no bid-ask; upper bound for buyer and seller",
+    "expiry_day": "nge_panel.is_expiry_day; no hardcoded weekday",
+    "H11_H14": "truncated-chain proxies, not full-chain quantities"
+  },
+  "hypotheses": {
+    "H1": {
+      "id": "H1",
+      "name": "SELL_STRADDLE_0920_ALL",
+      "status": "computed",
+      "units": "% of entry premium",
+      "conditional": false,
+      "truncated_chain_proxy": false,
+      "n": 1315,
+      "mean": 1.4483161369825153,
+      "t": 1.2595170884974094,
+      "nominal_p": 0.20806729542386504,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": false,
+      "direction_supported": true,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": 1.2595170884974094,
+        "p": 0.20806729542386504,
+        "n": 1315
+      },
+      "wilcoxon": {
+        "statistic": 313972.0,
+        "p": 6.976721440139036e-18
+      },
+      "placebo": null,
+      "lag1_autocorrelation": -0.04259421781999086,
+      "tail": {
+        "worst_session": {
+          "date": "2025-04-17",
+          "value": -429.12262156448213
+        },
+        "worst_five": [
+          {
+            "date": "2025-04-17",
+            "value": -429.12262156448213
+          },
+          {
+            "date": "2022-06-16",
+            "value": -336.5015618027666
+          },
+          {
+            "date": "2024-09-12",
+            "value": -270.6666666666667
+          },
+          {
+            "date": "2023-12-20",
+            "value": -250.6833712984055
+          },
+          {
+            "date": "2022-12-15",
+            "value": -244.9743213499633
+          }
+        ],
+        "max_drawdown": -784.9721919689744,
+        "p01": -156.75573223935353,
+        "p99": 91.07310807956969,
+        "tail_survivability": "not established; no capital or margin model is registered",
+        "catastrophic_option_tail": true,
+        "survivable_tail_pass": false,
+        "tail_assessment": "fails: a session lost at least 100% of entry premium; without a capital/margin model this cannot be called survivable and is not a strategy"
+      },
+      "by_year": {
+        "2021": {
+          "n": 246,
+          "mean": 3.9570871160425836,
+          "t": 1.8203155885941689,
+          "nominal_p": 0.06993101157276957,
+          "wilcoxon_p": 1.718307002945124e-05
+        },
+        "2022": {
+          "n": 247,
+          "mean": -2.08932936517119,
+          "t": -0.7478290503524854,
+          "nominal_p": 0.45527756061485564,
+          "wilcoxon_p": 0.004865534302171645
+        },
+        "2023": {
+          "n": 245,
+          "mean": 0.44359439144778817,
+          "t": 0.175993301178622,
+          "nominal_p": 0.860445180537728,
+          "wilcoxon_p": 0.0002999865102074412
+        },
+        "2024": {
+          "n": 244,
+          "mean": 1.0724116757071498,
+          "t": 0.3615273083976199,
+          "nominal_p": 0.7180194409051781,
+          "wilcoxon_p": 0.0005322120241380482
+        },
+        "2025": {
+          "n": 248,
+          "mean": 4.401283061088533,
+          "t": 1.56165112528777,
+          "nominal_p": 0.11965050494981695,
+          "wilcoxon_p": 3.3966098037046737e-06
+        },
+        "2026": {
+          "n": 85,
+          "mean": -0.1730662487575631,
+          "t": -0.04051516233784126,
+          "nominal_p": 0.9677785620594005,
+          "wilcoxon_p": 0.052509850458854444
+        }
+      },
+      "notes": [
+        "Every option mean uses traded closes and excludes bid-ask; it is an upper bound for the buyer and for the seller alike."
+      ],
+      "breakeven_round_trip_cost_pct_entry_premium": 2.5510481958528004,
+      "breakeven_positive_room": true
+    },
+    "H2": {
+      "id": "H2",
+      "name": "SELL_STRADDLE_0920_EXPIRY",
+      "status": "computed",
+      "units": "% of entry premium",
+      "conditional": true,
+      "truncated_chain_proxy": false,
+      "n": 275,
+      "mean": -1.5276267336781615,
+      "t": -0.31686037547280566,
+      "nominal_p": 0.7515908352995286,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": false,
+      "direction_supported": false,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": -0.31686037547280566,
+        "p": 0.7515908352995286,
+        "n": 275
+      },
+      "wilcoxon": {
+        "statistic": 17065.0,
+        "p": 0.14792140171463417
+      },
+      "placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 0.31686037547280566,
+        "median_abs_placebo_stat": 0.7675378601934366,
+        "empirical_p": 0.7721139430284858
+      },
+      "lag1_autocorrelation": -0.06250998782705819,
+      "tail": {
+        "worst_session": {
+          "date": "2025-04-17",
+          "value": -429.12262156448213
+        },
+        "worst_five": [
+          {
+            "date": "2025-04-17",
+            "value": -429.12262156448213
+          },
+          {
+            "date": "2022-06-16",
+            "value": -336.5015618027666
+          },
+          {
+            "date": "2024-09-12",
+            "value": -270.6666666666667
+          },
+          {
+            "date": "2022-12-15",
+            "value": -244.9743213499633
+          },
+          {
+            "date": "2022-11-24",
+            "value": -234.3920145190563
+          }
+        ],
+        "max_drawdown": -1584.2527745532927,
+        "p01": -251.65433113230617,
+        "p99": 97.10026051923327,
+        "tail_survivability": "not established; no capital or margin model is registered",
+        "catastrophic_option_tail": true,
+        "survivable_tail_pass": false,
+        "tail_assessment": "fails: a session lost at least 100% of entry premium; without a capital/margin model this cannot be called survivable and is not a strategy"
+      },
+      "by_year": {
+        "2021": {
+          "n": 49,
+          "mean": 5.575863471997717,
+          "t": 0.6016072796181393,
+          "nominal_p": 0.550266614883863,
+          "wilcoxon_p": 0.30377721953336945
+        },
+        "2022": {
+          "n": 52,
+          "mean": -14.695823038234462,
+          "t": -1.2206461830975412,
+          "nominal_p": 0.2278337282580254,
+          "wilcoxon_p": 0.7499220986895838
+        },
+        "2023": {
+          "n": 52,
+          "mean": -2.5631159774772145,
+          "t": -0.2662368972483775,
+          "nominal_p": 0.7911302117686624,
+          "wilcoxon_p": 0.9709413538615811
+        },
+        "2024": {
+          "n": 51,
+          "mean": -1.6029788031570127,
+          "t": -0.1292181971318495,
+          "nominal_p": 0.8977034075495914,
+          "wilcoxon_p": 0.49380905517129214
+        },
+        "2025": {
+          "n": 52,
+          "mean": 4.319063333723745,
+          "t": 0.3462764684184395,
+          "nominal_p": 0.730559514130998,
+          "wilcoxon_p": 0.13529737207114167
+        },
+        "2026": {
+          "n": 19,
+          "mean": 3.2268838176314363,
+          "t": 0.18833011389907017,
+          "nominal_p": 0.8527248423981286,
+          "wilcoxon_p": 0.3320655822753906
+        }
+      },
+      "notes": [
+        "Every option mean uses traded closes and excludes bid-ask; it is an upper bound for the buyer and for the seller alike."
+      ],
+      "breakeven_round_trip_cost_pct_entry_premium": 2.5380188227683287,
+      "breakeven_positive_room": true
+    },
+    "H3": {
+      "id": "H3",
+      "name": "SELL_STRADDLE_0920_NONEXPIRY",
+      "status": "computed",
+      "units": "% of entry premium",
+      "conditional": true,
+      "truncated_chain_proxy": false,
+      "n": 1040,
+      "mean": 2.235224107589906,
+      "t": 3.190720887343511,
+      "nominal_p": 0.0014617052291761867,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": true,
+      "direction_supported": true,
+      "supported_direction_survivor": true,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": 3.190720887343511,
+        "p": 0.0014617052291761867,
+        "n": 1040
+      },
+      "wilcoxon": {
+        "statistic": 180429.0,
+        "p": 1.2442952747199458e-20
+      },
+      "placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 3.190720887343511,
+        "median_abs_placebo_stat": 1.0939563257816614,
+        "empirical_p": 0.0004997501249375312
+      },
+      "lag1_autocorrelation": -0.031105176470120774,
+      "tail": {
+        "worst_session": {
+          "date": "2023-12-20",
+          "value": -250.6833712984055
+        },
+        "worst_five": [
+          {
+            "date": "2023-12-20",
+            "value": -250.6833712984055
+          },
+          {
+            "date": "2024-01-23",
+            "value": -167.81472684085512
+          },
+          {
+            "date": "2024-03-13",
+            "value": -148.2152514872904
+          },
+          {
+            "date": "2021-01-21",
+            "value": -127.27925340990667
+          },
+          {
+            "date": "2026-02-19",
+            "value": -114.06113537117905
+          }
+        ],
+        "max_drawdown": -772.9952421157568,
+        "p01": -78.20529069454938,
+        "p99": 36.52123424422086,
+        "tail_survivability": "not established; no capital or margin model is registered",
+        "catastrophic_option_tail": true,
+        "survivable_tail_pass": false,
+        "tail_assessment": "fails: a session lost at least 100% of entry premium; without a capital/margin model this cannot be called survivable and is not a strategy"
+      },
+      "by_year": {
+        "2021": {
+          "n": 197,
+          "mean": 3.5544473117694797,
+          "t": 2.430014545099163,
+          "nominal_p": 0.01599902215971606,
+          "wilcoxon_p": 5.971408059069662e-06
+        },
+        "2022": {
+          "n": 195,
+          "mean": 1.2724022809790156,
+          "t": 0.8781644847543034,
+          "nominal_p": 0.3809407585085947,
+          "wilcoxon_p": 0.00035364793696207716
+        },
+        "2023": {
+          "n": 193,
+          "mean": 1.2536925219353534,
+          "t": 0.6607798768044145,
+          "nominal_p": 0.5095455440098408,
+          "wilcoxon_p": 9.923490569269473e-06
+        },
+        "2024": {
+          "n": 193,
+          "mean": 1.7793801442152968,
+          "t": 0.9542717859841168,
+          "nominal_p": 0.34114596807989306,
+          "wilcoxon_p": 0.00016823958152262434
+        },
+        "2025": {
+          "n": 196,
+          "mean": 4.423096458144497,
+          "t": 3.1790884752094644,
+          "nominal_p": 0.0017184871850941363,
+          "wilcoxon_p": 8.916751437260152e-06
+        },
+        "2026": {
+          "n": 66,
+          "mean": -1.1518397527180335,
+          "t": -0.43853757598754994,
+          "nominal_p": 0.6624507854214643,
+          "wilcoxon_p": 0.14972250649831786
+        }
+      },
+      "notes": [
+        "Every option mean uses traded closes and excludes bid-ask; it is an upper bound for the buyer and for the seller alike."
+      ],
+      "breakeven_round_trip_cost_pct_entry_premium": 2.5526590577214767,
+      "breakeven_positive_room": true
+    },
+    "H4": {
+      "id": "H4",
+      "name": "SELL_STRADDLE_OVERNIGHT",
+      "status": "computed",
+      "units": "% of entry premium",
+      "conditional": false,
+      "truncated_chain_proxy": false,
+      "n": 1035,
+      "mean": -2.340816916241587,
+      "t": -1.1652208319923976,
+      "nominal_p": 0.24419834856438621,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": false,
+      "direction_supported": false,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": -1.1652208319923976,
+        "p": 0.24419834856438621,
+        "n": 1035
+      },
+      "wilcoxon": {
+        "statistic": 183258.0,
+        "p": 1.180716403959077e-18
+      },
+      "placebo": null,
+      "lag1_autocorrelation": -0.0015444408438820894,
+      "tail": {
+        "worst_session": {
+          "date": "2021-06-10",
+          "value": -1655.6016597510372
+        },
+        "worst_five": [
+          {
+            "date": "2021-06-10",
+            "value": -1655.6016597510372
+          },
+          {
+            "date": "2025-09-02",
+            "value": -804.8986486486488
+          },
+          {
+            "date": "2021-07-29",
+            "value": -771.4942528735633
+          },
+          {
+            "date": "2021-01-21",
+            "value": -407.46140651801034
+          },
+          {
+            "date": "2022-02-23",
+            "value": -128.125
+          }
+        ],
+        "max_drawdown": -2899.8345021808996,
+        "p01": -71.51389356599827,
+        "p99": 27.44246292598467,
+        "tail_survivability": "not established; no capital or margin model is registered",
+        "catastrophic_option_tail": true,
+        "survivable_tail_pass": false,
+        "tail_assessment": "fails: a session lost at least 100% of entry premium; without a capital/margin model this cannot be called survivable and is not a strategy"
+      },
+      "by_year": {
+        "2021": {
+          "n": 195,
+          "mean": -14.129305055502128,
+          "t": -1.471211967866791,
+          "nominal_p": 0.14285399534649604,
+          "wilcoxon_p": 0.0023247222819869954
+        },
+        "2022": {
+          "n": 195,
+          "mean": 2.0441402538165163,
+          "t": 1.6805020727077478,
+          "nominal_p": 0.09446907732892958,
+          "wilcoxon_p": 3.9702356211211095e-07
+        },
+        "2023": {
+          "n": 193,
+          "mean": -0.19195268151694753,
+          "t": -0.29053983390297633,
+          "nominal_p": 0.7717168594669469,
+          "wilcoxon_p": 0.3632187565081072
+        },
+        "2024": {
+          "n": 193,
+          "mean": 0.9287955782985055,
+          "t": 1.0223160030753824,
+          "nominal_p": 0.307917723984235,
+          "wilcoxon_p": 5.455573675854258e-07
+        },
+        "2025": {
+          "n": 195,
+          "mean": -2.005349661302311,
+          "t": -0.47598669819447215,
+          "nominal_p": 0.6346194352206032,
+          "wilcoxon_p": 3.283311989640363e-05
+        },
+        "2026": {
+          "n": 64,
+          "mean": 2.8545958264650406,
+          "t": 1.2819793310477383,
+          "nominal_p": 0.20454760051661608,
+          "wilcoxon_p": 0.005629305051710234
+        }
+      },
+      "notes": [
+        "Expiry-session entries are unavailable: the WEEK1 contract expires before the next session and cannot be bought back at 09:15.",
+        "Every option mean uses traded closes and excludes bid-ask; it is an upper bound for the buyer and for the seller alike."
+      ],
+      "breakeven_round_trip_cost_pct_entry_premium": 0.6989840670261529,
+      "breakeven_positive_room": true
+    },
+    "H5": {
+      "id": "H5",
+      "name": "SELL_STRADDLE_HIGH_IV",
+      "status": "computed",
+      "units": "% of entry premium",
+      "conditional": true,
+      "truncated_chain_proxy": false,
+      "n": 472,
+      "mean": 3.3655847360046747,
+      "t": 1.3218802617419183,
+      "nominal_p": 0.18684966790463636,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": false,
+      "direction_supported": true,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": 1.3218802617419183,
+        "p": 0.18684966790463636,
+        "n": 472
+      },
+      "wilcoxon": {
+        "statistic": 39565.0,
+        "p": 4.24288806060647e-08
+      },
+      "placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 1.3218802617419183,
+        "median_abs_placebo_stat": 0.7742450332086183,
+        "empirical_p": 0.25837081459270367
+      },
+      "lag1_autocorrelation": 0.0010899447484244125,
+      "tail": {
+        "worst_session": {
+          "date": "2025-04-17",
+          "value": -429.12262156448213
+        },
+        "worst_five": [
+          {
+            "date": "2025-04-17",
+            "value": -429.12262156448213
+          },
+          {
+            "date": "2022-06-16",
+            "value": -336.5015618027666
+          },
+          {
+            "date": "2024-09-12",
+            "value": -270.6666666666667
+          },
+          {
+            "date": "2025-05-15",
+            "value": -191.67717528373262
+          },
+          {
+            "date": "2024-04-18",
+            "value": -185.66629339305712
+          }
+        ],
+        "max_drawdown": -560.1793592249437,
+        "p01": -180.12198781503145,
+        "p99": 95.39858112862935,
+        "tail_survivability": "not established; no capital or margin model is registered",
+        "catastrophic_option_tail": true,
+        "survivable_tail_pass": false,
+        "tail_assessment": "fails: a session lost at least 100% of entry premium; without a capital/margin model this cannot be called survivable and is not a strategy"
+      },
+      "by_year": {
+        "2021": {
+          "n": 107,
+          "mean": 5.877909934450065,
+          "t": 1.383756808118267,
+          "nominal_p": 0.16933989906257674,
+          "wilcoxon_p": 0.0013104383078206998
+        },
+        "2022": {
+          "n": 128,
+          "mean": -0.185756590558545,
+          "t": -0.0435424347914581,
+          "nominal_p": 0.9653375245711895,
+          "wilcoxon_p": 0.05648483160350292
+        },
+        "2023": {
+          "n": 33,
+          "mean": 15.49526012855949,
+          "t": 1.5181078748279777,
+          "nominal_p": 0.13880596600511516,
+          "wilcoxon_p": 0.03534287237562239
+        },
+        "2024": {
+          "n": 101,
+          "mean": 1.465827006561204,
+          "t": 0.22759456734102324,
+          "nominal_p": 0.8204261259663762,
+          "wilcoxon_p": 0.06609292683591414
+        },
+        "2025": {
+          "n": 61,
+          "mean": 2.896399814600155,
+          "t": 0.29734634984914754,
+          "nominal_p": 0.7672291684670717,
+          "wilcoxon_p": 0.009220832772510188
+        },
+        "2026": {
+          "n": 42,
+          "mean": 3.5077137000902265,
+          "t": 0.6104967601384866,
+          "nominal_p": 0.5449022928181572,
+          "wilcoxon_p": 0.02581143920224349
+        }
+      },
+      "notes": [
+        "Every option mean uses traded closes and excludes bid-ask; it is an upper bound for the buyer and for the seller alike."
+      ],
+      "breakeven_round_trip_cost_pct_entry_premium": 4.9144879565332165,
+      "breakeven_positive_room": true
+    },
+    "H6": {
+      "id": "H6",
+      "name": "SELL_STRADDLE_BY_DTE",
+      "status": "computed",
+      "units": "% of entry premium",
+      "conditional": true,
+      "truncated_chain_proxy": false,
+      "n": 1315,
+      "mean": 1.4483161369825153,
+      "t": 1.2595170884974094,
+      "nominal_p": 0.8324822113692769,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": false,
+      "direction_supported": true,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "joint F(all cell means=0)",
+        "statistic": 0.5786409574700498,
+        "df1": 10,
+        "df2": 1305,
+        "p": 0.8324822113692769,
+        "n": 1315
+      },
+      "wilcoxon": {
+        "statistic": 313972.0,
+        "p": 6.976721440139036e-18
+      },
+      "placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 0.5786409574700498,
+        "median_abs_placebo_stat": 0.8992820659908483,
+        "empirical_p": 0.8325837081459271
+      },
+      "lag1_autocorrelation": -0.04259421781999086,
+      "tail": {
+        "worst_session": {
+          "date": "2025-04-17",
+          "value": -429.12262156448213
+        },
+        "worst_five": [
+          {
+            "date": "2025-04-17",
+            "value": -429.12262156448213
+          },
+          {
+            "date": "2022-06-16",
+            "value": -336.5015618027666
+          },
+          {
+            "date": "2024-09-12",
+            "value": -270.6666666666667
+          },
+          {
+            "date": "2023-12-20",
+            "value": -250.6833712984055
+          },
+          {
+            "date": "2022-12-15",
+            "value": -244.9743213499633
+          }
+        ],
+        "max_drawdown": -784.9721919689744,
+        "p01": -156.75573223935353,
+        "p99": 91.07310807956969,
+        "tail_survivability": "not established; no capital or margin model is registered",
+        "catastrophic_option_tail": true,
+        "survivable_tail_pass": false,
+        "tail_assessment": "fails: a session lost at least 100% of entry premium; without a capital/margin model this cannot be called survivable and is not a strategy"
+      },
+      "by_year": {
+        "2021": {
+          "n": 246,
+          "mean": 3.9570871160425836,
+          "t": 1.8203155885941689,
+          "nominal_p": 0.06993101157276957,
+          "wilcoxon_p": 1.718307002945124e-05
+        },
+        "2022": {
+          "n": 247,
+          "mean": -2.08932936517119,
+          "t": -0.7478290503524854,
+          "nominal_p": 0.45527756061485564,
+          "wilcoxon_p": 0.004865534302171645
+        },
+        "2023": {
+          "n": 245,
+          "mean": 0.44359439144778817,
+          "t": 0.175993301178622,
+          "nominal_p": 0.860445180537728,
+          "wilcoxon_p": 0.0002999865102074412
+        },
+        "2024": {
+          "n": 244,
+          "mean": 1.0724116757071498,
+          "t": 0.3615273083976199,
+          "nominal_p": 0.7180194409051781,
+          "wilcoxon_p": 0.0005322120241380482
+        },
+        "2025": {
+          "n": 248,
+          "mean": 4.401283061088533,
+          "t": 1.56165112528777,
+          "nominal_p": 0.11965050494981695,
+          "wilcoxon_p": 3.3966098037046737e-06
+        },
+        "2026": {
+          "n": 85,
+          "mean": -0.1730662487575631,
+          "t": -0.04051516233784126,
+          "nominal_p": 0.9677785620594005,
+          "wilcoxon_p": 0.052509850458854444
+        }
+      },
+      "notes": [
+        "Every option mean uses traded closes and excludes bid-ask; it is an upper bound for the buyer and for the seller alike."
+      ],
+      "breakeven_round_trip_cost_pct_entry_premium": 2.5510481958528004,
+      "breakeven_positive_room": true,
+      "dte_cells": {
+        "1": {
+          "n": 275,
+          "mean": -1.5276267336781615,
+          "sd": 79.9494838659855,
+          "t": -0.31686037547280566,
+          "t_p": 0.7515908352995286,
+          "wilcoxon_stat": 17065.0,
+          "wilcoxon_p": 0.14792140171463417
+        },
+        "2": {
+          "n": 274,
+          "mean": 2.856992846318176,
+          "sd": 30.62462563358891,
+          "t": 1.5442359046923566,
+          "t_p": 0.12368956235046533,
+          "wilcoxon_stat": 12538.0,
+          "wilcoxon_p": 1.600488445893872e-06
+        },
+        "3": {
+          "n": 274,
+          "mean": 2.7470463803819927,
+          "sd": 21.653532777777798,
+          "t": 2.0999672014236754,
+          "t_p": 0.03664940201806906,
+          "wilcoxon_stat": 11653.0,
+          "wilcoxon_p": 4.4409072571015926e-08
+        },
+        "4": {
+          "n": 272,
+          "mean": 1.7551658344546226,
+          "sd": 16.52225516716463,
+          "t": 1.7519966984443225,
+          "t_p": 0.08090544398317681,
+          "wilcoxon_stat": 12579.0,
+          "wilcoxon_p": 4.0463014143888855e-06
+        },
+        "5": {
+          "n": 200,
+          "mean": 0.674034219268444,
+          "sd": 17.275411827759598,
+          "t": 0.551783276657559,
+          "t_p": 0.5817159425392899,
+          "wilcoxon_stat": 7469.0,
+          "wilcoxon_p": 0.0016368491969918691
+        },
+        "6": {
+          "n": 7,
+          "mean": 23.981376815898436,
+          "sd": 28.708827456316396,
+          "t": 2.2100783895943312,
+          "t_p": 0.06913582895438228,
+          "wilcoxon_stat": 5.0,
+          "wilcoxon_p": 0.15625
+        },
+        "7": {
+          "n": 4,
+          "mean": -0.7669583545820156,
+          "sd": 13.522552665580957,
+          "t": -0.11343396081335438,
+          "t_p": 0.9168516225397533,
+          "wilcoxon_stat": 4.0,
+          "wilcoxon_p": 0.875
+        },
+        "8": {
+          "n": 4,
+          "mean": -2.5461169844336924,
+          "sd": 30.423660366418233,
+          "t": -0.16737742623790972,
+          "t_p": 0.8777196014929963,
+          "wilcoxon_stat": 4.0,
+          "wilcoxon_p": 0.875
+        },
+        "9": {
+          "n": 3,
+          "mean": 1.405395254264078,
+          "sd": 12.583752182081096,
+          "t": 0.19344118907298716,
+          "t_p": 0.8644783362895899,
+          "wilcoxon_stat": 2.0,
+          "wilcoxon_p": 0.75
+        },
+        "10": {
+          "n": 2,
+          "mean": 9.04042541714555,
+          "sd": 5.750264444632265,
+          "t": 2.2233920470360733,
+          "t_p": 0.26907181255916385,
+          "wilcoxon_stat": 0.0,
+          "wilcoxon_p": 0.5
+        }
+      },
+      "dte_cells_by_year": {
+        "2021": {
+          "1": {
+            "n": 49,
+            "mean": 5.575863471997717,
+            "sd": 64.87794550750509,
+            "t": 0.6016072796181393,
+            "t_p": 0.550266614883863,
+            "wilcoxon_stat": 508.0,
+            "wilcoxon_p": 0.30377721953336945
+          },
+          "2": {
+            "n": 49,
+            "mean": 6.458878795685453,
+            "sd": 21.99385420218244,
+            "t": 2.05567205975712,
+            "t_p": 0.045275466853204445,
+            "wilcoxon_stat": 336.0,
+            "wilcoxon_p": 0.0053215160402864115
+          },
+          "3": {
+            "n": 49,
+            "mean": 3.839501784630653,
+            "sd": 16.6571165074511,
+            "t": 1.613515309230869,
+            "t_p": 0.11318852363834886,
+            "wilcoxon_stat": 301.0,
+            "wilcoxon_p": 0.0015608985496591288
+          },
+          "4": {
+            "n": 48,
+            "mean": 1.8225790883049495,
+            "sd": 15.295453286785818,
+            "t": 0.8255524102666472,
+            "t_p": 0.41322890460325734,
+            "wilcoxon_stat": 458.0,
+            "wilcoxon_p": 0.1858312825595263
+          },
+          "5": {
+            "n": 37,
+            "mean": -0.9626309143688293,
+            "sd": 25.43213175737796,
+            "t": -0.2302384759677387,
+            "t_p": 0.819209801402961,
+            "wilcoxon_stat": 287.0,
+            "wilcoxon_p": 0.33837649862107355
+          },
+          "6": {
+            "n": 3,
+            "mean": 46.73791762655258,
+            "sd": 25.861713634897075,
+            "t": 3.130204328762,
+            "t_p": 0.0886919750869659,
+            "wilcoxon_stat": 0.0,
+            "wilcoxon_p": 0.25
+          },
+          "7": {
+            "n": 3,
+            "mean": 2.9114843548411087,
+            "sd": 13.89616858314072,
+            "t": 0.36289418898852654,
+            "t_p": 0.7514477112352637,
+            "wilcoxon_stat": 3.0,
+            "wilcoxon_p": 1.0
+          },
+          "8": {
+            "n": 3,
+            "mean": -9.168740988385697,
+            "sd": 33.54465341824869,
+            "t": -0.4734204594489567,
+            "t_p": 0.6825559157813769,
+            "wilcoxon_stat": 3.0,
+            "wilcoxon_p": 1.0
+          },
+          "9": {
+            "n": 3,
+            "mean": 1.405395254264078,
+            "sd": 12.583752182081096,
+            "t": 0.19344118907298716,
+            "t_p": 0.8644783362895899,
+            "wilcoxon_stat": 2.0,
+            "wilcoxon_p": 0.75
+          },
+          "10": {
+            "n": 2,
+            "mean": 9.04042541714555,
+            "sd": 5.750264444632265,
+            "t": 2.2233920470360733,
+            "t_p": 0.26907181255916385,
+            "wilcoxon_stat": 0.0,
+            "wilcoxon_p": 0.5
+          }
+        },
+        "2022": {
+          "1": {
+            "n": 52,
+            "mean": -14.695823038234462,
+            "sd": 86.81720261483048,
+            "t": -1.2206461830975412,
+            "t_p": 0.2278337282580254,
+            "wilcoxon_stat": 654.0,
+            "wilcoxon_p": 0.7499220986895838
+          },
+          "2": {
+            "n": 52,
+            "mean": 0.7999371252684154,
+            "sd": 28.369521234949943,
+            "t": 0.2033318996408944,
+            "t_p": 0.8396847360593557,
+            "wilcoxon_stat": 490.0,
+            "wilcoxon_p": 0.06994349526381302
+          },
+          "3": {
+            "n": 52,
+            "mean": -1.2228104629124537,
+            "sd": 22.618713953192866,
+            "t": -0.38984584475744216,
+            "t_p": 0.6982739070691905,
+            "wilcoxon_stat": 541.0,
+            "wilcoxon_p": 0.17771510186888428
+          },
+          "4": {
+            "n": 51,
+            "mean": 2.3336292952174253,
+            "sd": 12.095076400438359,
+            "t": 1.3778703034849895,
+            "t_p": 0.17437912537233888,
+            "wilcoxon_stat": 484.0,
+            "wilcoxon_p": 0.09337627437220898
+          },
+          "5": {
+            "n": 40,
+            "mean": 3.777319107307735,
+            "sd": 10.52968431181033,
+            "t": 2.2688110060372297,
+            "t_p": 0.028891455540559708,
+            "wilcoxon_stat": 199.0,
+            "wilcoxon_p": 0.003867510851705447
+          }
+        },
+        "2023": {
+          "1": {
+            "n": 52,
+            "mean": -2.5631159774772145,
+            "sd": 69.42272973631884,
+            "t": -0.2662368972483775,
+            "t_p": 0.7911302117686624,
+            "wilcoxon_stat": 685.0,
+            "wilcoxon_p": 0.9709413538615811
+          },
+          "2": {
+            "n": 52,
+            "mean": -5.002190313660369,
+            "sd": 43.6457206926655,
+            "t": -0.8264569070828786,
+            "t_p": 0.41239484280923006,
+            "wilcoxon_stat": 614.0,
+            "wilcoxon_p": 0.4945949924966033
+          },
+          "3": {
+            "n": 52,
+            "mean": 6.269925113919582,
+            "sd": 16.611707584662856,
+            "t": 2.72175950321067,
+            "t_p": 0.008862861027370295,
+            "wilcoxon_stat": 280.0,
+            "wilcoxon_p": 0.00019552520250141862
+          },
+          "4": {
+            "n": 52,
+            "mean": 1.545676606027097,
+            "sd": 16.795822549726104,
+            "t": 0.6636193305586848,
+            "t_p": 0.5099228505604975,
+            "wilcoxon_stat": 457.0,
+            "wilcoxon_p": 0.034617489201959964
+          },
+          "5": {
+            "n": 37,
+            "mean": 2.585547665044192,
+            "sd": 11.01095193313473,
+            "t": 1.4283299530082896,
+            "t_p": 0.16181591043093593,
+            "wilcoxon_stat": 180.0,
+            "wilcoxon_p": 0.008744932885747403
+          }
+        },
+        "2024": {
+          "1": {
+            "n": 51,
+            "mean": -1.6029788031570127,
+            "sd": 88.59091559323038,
+            "t": -0.1292181971318495,
+            "t_p": 0.8977034075495914,
+            "wilcoxon_stat": 590.0,
+            "wilcoxon_p": 0.49380905517129214
+          },
+          "2": {
+            "n": 51,
+            "mean": 4.460757985449017,
+            "sd": 31.76411985395479,
+            "t": 1.0028983657221937,
+            "t_p": 0.3207389284350062,
+            "wilcoxon_stat": 404.0,
+            "wilcoxon_p": 0.015193736827439193
+          },
+          "3": {
+            "n": 52,
+            "mean": 2.220243800894626,
+            "sd": 31.784868337053428,
+            "t": 0.5037115638339463,
+            "t_p": 0.6166330519292719,
+            "wilcoxon_stat": 382.0,
+            "wilcoxon_p": 0.005176767456273985
+          },
+          "4": {
+            "n": 52,
+            "mean": 2.79139728625237,
+            "sd": 12.160685933515376,
+            "t": 1.6552563072179478,
+            "t_p": 0.10401423226601827,
+            "wilcoxon_stat": 449.0,
+            "wilcoxon_p": 0.028840488609280294
+          },
+          "5": {
+            "n": 37,
+            "mean": -3.40097532271311,
+            "sd": 22.03391069925053,
+            "t": -0.9388857721099808,
+            "t_p": 0.35404643628734894,
+            "wilcoxon_stat": 345.0,
+            "wilcoxon_p": 0.928741315510706
+          },
+          "6": {
+            "n": 1,
+            "mean": -18.847539015606245,
+            "sd": null,
+            "t": null,
+            "t_p": null,
+            "wilcoxon_stat": 0.0,
+            "wilcoxon_p": 1.0
+          }
+        },
+        "2025": {
+          "1": {
+            "n": 52,
+            "mean": 4.319063333723745,
+            "sd": 89.94318547167062,
+            "t": 0.3462764684184395,
+            "t_p": 0.730559514130998,
+            "wilcoxon_stat": 525.0,
+            "wilcoxon_p": 0.13529737207114167
+          },
+          "2": {
+            "n": 52,
+            "mean": 7.5103223054328705,
+            "sd": 24.64300739387176,
+            "t": 2.197690544396227,
+            "t_p": 0.03253746239156572,
+            "wilcoxon_stat": 407.0,
+            "wilcoxon_p": 0.010224275178616607
+          },
+          "3": {
+            "n": 51,
+            "mean": 4.8103453323478895,
+            "sd": 18.500573939787746,
+            "t": 1.8568470913033601,
+            "t_p": 0.06922882645746725,
+            "wilcoxon_stat": 438.0,
+            "wilcoxon_p": 0.034941988305773386
+          },
+          "4": {
+            "n": 51,
+            "mean": 2.5067089367749302,
+            "sd": 18.61264047012849,
+            "t": 0.961791664750473,
+            "t_p": 0.34078270122784016,
+            "wilcoxon_stat": 355.0,
+            "wilcoxon_p": 0.003888998729613015
+          },
+          "5": {
+            "n": 38,
+            "mean": 1.7765573533606371,
+            "sd": 13.71599999389731,
+            "t": 0.7984423323860064,
+            "t_p": 0.4297092017070318,
+            "wilcoxon_stat": 303.0,
+            "wilcoxon_p": 0.3351875231091981
+          },
+          "6": {
+            "n": 2,
+            "mean": 15.0958651081365,
+            "sd": 1.7026515070947852,
+            "t": 12.538547719673184,
+            "t_p": 0.0506657653075472,
+            "wilcoxon_stat": 0.0,
+            "wilcoxon_p": 0.5
+          },
+          "7": {
+            "n": 1,
+            "mean": -11.802286482851388,
+            "sd": null,
+            "t": null,
+            "t_p": null,
+            "wilcoxon_stat": 0.0,
+            "wilcoxon_p": 1.0
+          },
+          "8": {
+            "n": 1,
+            "mean": 17.32175502742232,
+            "sd": null,
+            "t": null,
+            "t_p": null,
+            "wilcoxon_stat": 0.0,
+            "wilcoxon_p": 1.0
+          }
+        },
+        "2026": {
+          "1": {
+            "n": 19,
+            "mean": 3.2268838176314363,
+            "sd": 74.68619952696586,
+            "t": 0.18833011389907017,
+            "t_p": 0.8527248423981286,
+            "wilcoxon_stat": 70.0,
+            "wilcoxon_p": 0.3320655822753906
+          },
+          "2": {
+            "n": 18,
+            "mean": 3.7118181976980935,
+            "sd": 21.506619847978744,
+            "t": 0.732235517252784,
+            "t_p": 0.4739999312993124,
+            "wilcoxon_stat": 48.0,
+            "wilcoxon_p": 0.1083831787109375
+          },
+          "3": {
+            "n": 18,
+            "mean": -3.2597294817149836,
+            "sd": 14.30251729670789,
+            "t": -0.9669529245253606,
+            "t_p": 0.3471235071274505,
+            "wilcoxon_stat": 71.0,
+            "wilcoxon_p": 0.550872802734375
+          },
+          "4": {
+            "n": 18,
+            "mean": -4.581321194284595,
+            "sd": 30.28409748206861,
+            "t": -0.6418186875518558,
+            "t_p": 0.529550890050207,
+            "wilcoxon_stat": 61.0,
+            "wilcoxon_p": 0.30379486083984375
+          },
+          "5": {
+            "n": 11,
+            "mean": -1.6369938819025527,
+            "sd": 12.801600282589883,
+            "t": -0.42411060887145036,
+            "t_p": 0.6804639473261181,
+            "wilcoxon_stat": 28.0,
+            "wilcoxon_p": 0.7001953125
+          },
+          "6": {
+            "n": 1,
+            "mean": 16.31169363096457,
+            "sd": null,
+            "t": null,
+            "t_p": null,
+            "wilcoxon_stat": 0.0,
+            "wilcoxon_p": 1.0
+          }
+        }
+      }
+    },
+    "H7": {
+      "id": "H7",
+      "name": "BUY_OTM_EXPIRY_LOTTERY",
+      "status": "computed",
+      "units": "% of entry premium",
+      "conditional": true,
+      "truncated_chain_proxy": false,
+      "n": 262,
+      "mean": -92.00568958575167,
+      "t": -27.325781370748135,
+      "nominal_p": 1.5655690195681443e-78,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": true,
+      "direction_supported": false,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": -27.325781370748135,
+        "p": 1.5655690195681443e-78,
+        "n": 262
+      },
+      "wilcoxon": {
+        "statistic": 783.0,
+        "p": 6.602091190024238e-41
+      },
+      "placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 27.325781370748135,
+        "median_abs_placebo_stat": 8.964803938351697,
+        "empirical_p": 0.0004997501249375312
+      },
+      "lag1_autocorrelation": -0.01212481104688315,
+      "tail": {
+        "worst_session": {
+          "date": "2026-02-03",
+          "value": -99.92233009708738
+        },
+        "worst_five": [
+          {
+            "date": "2026-02-03",
+            "value": -99.92233009708738
+          },
+          {
+            "date": "2024-06-06",
+            "value": -99.88820570150922
+          },
+          {
+            "date": "2024-02-01",
+            "value": -99.87562189054727
+          },
+          {
+            "date": "2026-03-02",
+            "value": -99.85724482512491
+          },
+          {
+            "date": "2024-12-05",
+            "value": -99.83007646559048
+          }
+        ],
+        "max_drawdown": -24580.900507532486,
+        "p01": -99.86441188063962,
+        "p99": 55.80087976539285,
+        "tail_survivability": "not established; no capital or margin model is registered",
+        "catastrophic_option_tail": false,
+        "survivable_tail_pass": null
+      },
+      "by_year": {
+        "2021": {
+          "n": 48,
+          "mean": -85.05839214033674,
+          "t": -6.749579150611977,
+          "nominal_p": 1.9610407756064678e-08,
+          "wilcoxon_p": 3.048232266650979e-08
+        },
+        "2022": {
+          "n": 50,
+          "mean": -97.89154807251776,
+          "t": -488.69877703754423,
+          "nominal_p": 5.003443063736741e-92,
+          "wilcoxon_p": 7.543270531852816e-10
+        },
+        "2023": {
+          "n": 52,
+          "mean": -96.45629723082104,
+          "t": -420.84883644653917,
+          "nominal_p": 5.695144436284185e-92,
+          "wilcoxon_p": 3.492894283879003e-10
+        },
+        "2024": {
+          "n": 47,
+          "mean": -90.68823252542332,
+          "t": -14.333268404583345,
+          "nominal_p": 1.3912604157852289e-18,
+          "wilcoxon_p": 3.091003009103588e-10
+        },
+        "2025": {
+          "n": 48,
+          "mean": -98.66698163388257,
+          "t": -746.8486681957157,
+          "nominal_p": 2.065883336225359e-97,
+          "wilcoxon_p": 1.6306098573244595e-09
+        },
+        "2026": {
+          "n": 17,
+          "mean": -65.5306436459374,
+          "t": -1.9382554200608577,
+          "nominal_p": 0.07044325801656832,
+          "wilcoxon_p": 0.0031585693359375
+        }
+      },
+      "notes": [
+        "Every option mean uses traded closes and excludes bid-ask; it is an upper bound for the buyer and for the seller alike."
+      ],
+      "breakeven_round_trip_cost_pct_entry_premium": -94.1453868856666,
+      "breakeven_positive_room": false
+    },
+    "H8": {
+      "id": "H8",
+      "name": "BUY_STRADDLE_LOW_IV",
+      "status": "computed",
+      "units": "% of entry premium",
+      "conditional": true,
+      "truncated_chain_proxy": false,
+      "n": 842,
+      "mean": -0.3580536037090021,
+      "t": -0.32860460800492497,
+      "nominal_p": 0.7425363681531179,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": false,
+      "direction_supported": false,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": -0.32860460800492497,
+        "p": 0.7425363681531179,
+        "n": 842
+      },
+      "wilcoxon": {
+        "statistic": 132026.0,
+        "p": 1.236300064283058e-10
+      },
+      "placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 0.32860460800492497,
+        "median_abs_placebo_stat": 1.0243309243089742,
+        "empirical_p": 0.8835582208895553
+      },
+      "lag1_autocorrelation": -0.02622774538615261,
+      "tail": {
+        "worst_session": {
+          "date": "2023-10-12",
+          "value": -92.20953660174614
+        },
+        "worst_five": [
+          {
+            "date": "2023-10-12",
+            "value": -92.20953660174614
+          },
+          {
+            "date": "2025-10-07",
+            "value": -91.46968139773897
+          },
+          {
+            "date": "2025-10-28",
+            "value": -90.48772051193359
+          },
+          {
+            "date": "2023-11-09",
+            "value": -88.58381502890174
+          },
+          {
+            "date": "2023-10-05",
+            "value": -82.39942528735631
+          }
+        ],
+        "max_drawdown": -1292.1153975802063,
+        "p01": -73.09474219738134,
+        "p99": 120.48891247521992,
+        "tail_survivability": "not established; no capital or margin model is registered",
+        "catastrophic_option_tail": false,
+        "survivable_tail_pass": null
+      },
+      "by_year": {
+        "2021": {
+          "n": 138,
+          "mean": -2.3913657764166514,
+          "t": -1.1675207546715307,
+          "nominal_p": 0.24502809603543774,
+          "wilcoxon_p": 0.008753122926748248
+        },
+        "2022": {
+          "n": 119,
+          "mean": 4.136869828620085,
+          "t": 1.163651507238268,
+          "nominal_p": 0.24691283599774563,
+          "wilcoxon_p": 0.038851074608478295
+        },
+        "2023": {
+          "n": 212,
+          "mean": 1.8993535770648822,
+          "t": 0.7861203585631351,
+          "nominal_p": 0.43267891907924083,
+          "wilcoxon_p": 0.0030865071342587166
+        },
+        "2024": {
+          "n": 143,
+          "mean": -0.7945449035654764,
+          "t": -0.35322943159768,
+          "nominal_p": 0.724440278816592,
+          "wilcoxon_p": 0.0024063778658897834
+        },
+        "2025": {
+          "n": 187,
+          "mean": -4.892180804595436,
+          "t": -2.4462888226251724,
+          "nominal_p": 0.015363431726375585,
+          "wilcoxon_p": 0.0001940724728601605
+        },
+        "2026": {
+          "n": 43,
+          "mean": 3.768246663911219,
+          "t": 0.5955225403820098,
+          "nominal_p": 0.5546898732319944,
+          "wilcoxon_p": 0.5142726046974531
+        }
+      },
+      "notes": [
+        "Every option mean uses traded closes and excludes bid-ask; it is an upper bound for the buyer and for the seller alike."
+      ],
+      "breakeven_round_trip_cost_pct_entry_premium": -1.0668147090270752,
+      "breakeven_positive_room": false
+    },
+    "H9": {
+      "id": "H9",
+      "name": "GAP_FADE",
+      "status": "computed",
+      "units": "% spot return",
+      "conditional": true,
+      "truncated_chain_proxy": false,
+      "n": 1316,
+      "mean": 0.013570388042562642,
+      "t": 0.7087597793842529,
+      "nominal_p": 0.47859918618602204,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": false,
+      "direction_supported": true,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": 0.7087597793842529,
+        "p": 0.47859918618602204,
+        "n": 1316
+      },
+      "wilcoxon": {
+        "statistic": 424312.0,
+        "p": 0.5148499666069033
+      },
+      "placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 0.7087597793842529,
+        "median_abs_placebo_stat": 0.6700661636079397,
+        "empirical_p": 0.47926036981509246
+      },
+      "lag1_autocorrelation": 0.037026317369562675,
+      "tail": {
+        "worst_session": {
+          "date": "2021-02-01",
+          "value": -4.36441202379132
+        },
+        "worst_five": [
+          {
+            "date": "2021-02-01",
+            "value": -4.36441202379132
+          },
+          {
+            "date": "2024-06-04",
+            "value": -3.33737624088698
+          },
+          {
+            "date": "2022-02-24",
+            "value": -2.632942363769031
+          },
+          {
+            "date": "2022-02-15",
+            "value": -2.4902148521138256
+          },
+          {
+            "date": "2024-06-05",
+            "value": -2.421350901909536
+          }
+        ],
+        "max_drawdown": -20.240999449129625,
+        "p01": -1.7130755325305425,
+        "p99": 1.8193784597842164,
+        "tail_survivability": "not established; no capital or margin model is registered"
+      },
+      "by_year": {
+        "2021": {
+          "n": 243,
+          "mean": -0.035161276874598885,
+          "t": -0.6889920818081764,
+          "nominal_p": 0.49148828484783624,
+          "wilcoxon_p": 0.7092394780396107
+        },
+        "2022": {
+          "n": 247,
+          "mean": 0.06659278642115528,
+          "t": 1.242969864911693,
+          "nominal_p": 0.21506232989080698,
+          "wilcoxon_p": 0.1698269555166182
+        },
+        "2023": {
+          "n": 245,
+          "mean": 0.012924994530642026,
+          "t": 0.40241889866346897,
+          "nominal_p": 0.6877280799608759,
+          "wilcoxon_p": 0.9164427542497126
+        },
+        "2024": {
+          "n": 247,
+          "mean": 0.048553177625671656,
+          "t": 1.080542983396821,
+          "nominal_p": 0.2809586459144147,
+          "wilcoxon_p": 0.17149306157933641
+        },
+        "2025": {
+          "n": 248,
+          "mean": 0.002185435713786667,
+          "t": 0.06135057519033928,
+          "nominal_p": 0.9511296263360338,
+          "wilcoxon_p": 0.6841694725241968
+        },
+        "2026": {
+          "n": 86,
+          "mean": -0.06682376618665892,
+          "t": -0.8753013066440483,
+          "nominal_p": 0.3838766902790357,
+          "wilcoxon_p": 0.2423721380522239
+        }
+      },
+      "notes": [
+        "H9 and its exact H10 mirror are reported alongside; the frozen family size remains 15."
+      ],
+      "breakeven_round_trip_cost_pct_entry_premium": null,
+      "breakeven_positive_room": null
+    },
+    "H10": {
+      "id": "H10",
+      "name": "GAP_CONTINUATION",
+      "status": "computed",
+      "units": "% spot return",
+      "conditional": true,
+      "truncated_chain_proxy": false,
+      "n": 1316,
+      "mean": -0.013570388042562642,
+      "t": -0.7087597793842529,
+      "nominal_p": 0.47859918618602204,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": false,
+      "direction_supported": false,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": -0.7087597793842529,
+        "p": 0.47859918618602204,
+        "n": 1316
+      },
+      "wilcoxon": {
+        "statistic": 424312.0,
+        "p": 0.5148499666069033
+      },
+      "placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 0.7087597793842529,
+        "median_abs_placebo_stat": 0.6700661636079397,
+        "empirical_p": 0.47926036981509246
+      },
+      "lag1_autocorrelation": 0.037026317369562675,
+      "tail": {
+        "worst_session": {
+          "date": "2022-06-16",
+          "value": -3.0634885446765514
+        },
+        "worst_five": [
+          {
+            "date": "2022-06-16",
+            "value": -3.0634885446765514
+          },
+          {
+            "date": "2022-05-04",
+            "value": -2.3381995896153196
+          },
+          {
+            "date": "2022-04-19",
+            "value": -2.316832520231049
+          },
+          {
+            "date": "2024-01-23",
+            "value": -2.2703694928588036
+          },
+          {
+            "date": "2026-04-02",
+            "value": -2.144059178733082
+          }
+        ],
+        "max_drawdown": -50.24728170190295,
+        "p01": -1.819378459784217,
+        "p99": 1.7130755325305365,
+        "tail_survivability": "not established; no capital or margin model is registered"
+      },
+      "by_year": {
+        "2021": {
+          "n": 243,
+          "mean": 0.035161276874598885,
+          "t": 0.6889920818081764,
+          "nominal_p": 0.49148828484783624,
+          "wilcoxon_p": 0.7092394780396107
+        },
+        "2022": {
+          "n": 247,
+          "mean": -0.06659278642115528,
+          "t": -1.242969864911693,
+          "nominal_p": 0.21506232989080698,
+          "wilcoxon_p": 0.1698269555166182
+        },
+        "2023": {
+          "n": 245,
+          "mean": -0.012924994530642026,
+          "t": -0.40241889866346897,
+          "nominal_p": 0.6877280799608759,
+          "wilcoxon_p": 0.9164427542497126
+        },
+        "2024": {
+          "n": 247,
+          "mean": -0.048553177625671656,
+          "t": -1.080542983396821,
+          "nominal_p": 0.2809586459144147,
+          "wilcoxon_p": 0.17149306157933641
+        },
+        "2025": {
+          "n": 248,
+          "mean": -0.002185435713786667,
+          "t": -0.06135057519033928,
+          "nominal_p": 0.9511296263360338,
+          "wilcoxon_p": 0.6841694725241968
+        },
+        "2026": {
+          "n": 86,
+          "mean": 0.06682376618665892,
+          "t": 0.8753013066440483,
+          "nominal_p": 0.3838766902790357,
+          "wilcoxon_p": 0.2423721380522239
+        }
+      },
+      "notes": [
+        "H9 and its exact H10 mirror are reported alongside; the frozen family size remains 15."
+      ],
+      "breakeven_round_trip_cost_pct_entry_premium": null,
+      "breakeven_positive_room": null
+    },
+    "H11": {
+      "id": "H11",
+      "name": "PCR_CONTRARIAN_TRUNCATED_CHAIN_PROXY",
+      "status": "computed",
+      "units": "% spot return",
+      "conditional": true,
+      "truncated_chain_proxy": true,
+      "n": 1316,
+      "mean": 0.0276322996731094,
+      "t": 1.444059100914224,
+      "nominal_p": 0.14896055299397742,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": false,
+      "direction_supported": true,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": 1.444059100914224,
+        "p": 0.14896055299397742,
+        "n": 1316
+      },
+      "wilcoxon": {
+        "statistic": 413519.0,
+        "p": 0.15156779873609144
+      },
+      "placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 1.444059100914224,
+        "median_abs_placebo_stat": 0.6626737093594501,
+        "empirical_p": 0.14642678660669664
+      },
+      "lag1_autocorrelation": 0.014700912867489072,
+      "tail": {
+        "worst_session": {
+          "date": "2024-06-04",
+          "value": -3.33737624088698
+        },
+        "worst_five": [
+          {
+            "date": "2024-06-04",
+            "value": -3.33737624088698
+          },
+          {
+            "date": "2022-02-24",
+            "value": -2.632942363769031
+          },
+          {
+            "date": "2022-02-15",
+            "value": -2.4902148521138256
+          },
+          {
+            "date": "2024-06-05",
+            "value": -2.421350901909536
+          },
+          {
+            "date": "2022-01-24",
+            "value": -2.4114305470026576
+          }
+        ],
+        "max_drawdown": -12.234948306214346,
+        "p01": -1.7368735251583156,
+        "p99": 1.879807313567514,
+        "tail_survivability": "not established; no capital or margin model is registered"
+      },
+      "by_year": {
+        "2021": {
+          "n": 243,
+          "mean": 0.021942600582648332,
+          "t": 0.4297122904608108,
+          "nominal_p": 0.6677873033412527,
+          "wilcoxon_p": 0.6147898312172873
+        },
+        "2022": {
+          "n": 247,
+          "mean": -0.00651977213359851,
+          "t": -0.1213163450335337,
+          "nominal_p": 0.9035395093580086,
+          "wilcoxon_p": 0.8839957538563337
+        },
+        "2023": {
+          "n": 245,
+          "mean": 0.023552398508008193,
+          "t": 0.7338678021131246,
+          "nominal_p": 0.46373388424797735,
+          "wilcoxon_p": 0.5477560335986569
+        },
+        "2024": {
+          "n": 247,
+          "mean": 0.12449662294695171,
+          "t": 2.808050149687698,
+          "nominal_p": 0.005384082180369227,
+          "wilcoxon_p": 0.0023868265764693274
+        },
+        "2025": {
+          "n": 248,
+          "mean": 0.003579766042229308,
+          "t": 0.10049415810468862,
+          "nominal_p": 0.9200335420739427,
+          "wilcoxon_p": 0.9851838178853982
+        },
+        "2026": {
+          "n": 86,
+          "mean": -0.055422643437264,
+          "t": -0.7249429296428076,
+          "nominal_p": 0.4704780279836491,
+          "wilcoxon_p": 0.4446798716821183
+        }
+      },
+      "notes": [
+        "PCR uses only the archived ATM\u00b110 chain and is a truncated-chain proxy, not the true full-chain PCR."
+      ],
+      "breakeven_round_trip_cost_pct_entry_premium": null,
+      "breakeven_positive_room": null
+    },
+    "H12": {
+      "id": "H12",
+      "name": "WEEKDAY",
+      "status": "computed",
+      "units": "% spot return",
+      "conditional": true,
+      "truncated_chain_proxy": false,
+      "n": 1317,
+      "mean": -0.014104830100397949,
+      "t": -0.7372442285514056,
+      "nominal_p": 0.04991602834096224,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": false,
+      "direction_supported": true,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "joint F(all cell means=0)",
+        "statistic": 2.017252407617773,
+        "df1": 7,
+        "df2": 1310,
+        "p": 0.04991602834096224,
+        "n": 1317
+      },
+      "wilcoxon": {
+        "statistic": 433625.0,
+        "p": 0.9811310610713694
+      },
+      "placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 2.017252407617773,
+        "median_abs_placebo_stat": 0.8143150580767393,
+        "empirical_p": 0.0399800099950025
+      },
+      "lag1_autocorrelation": -0.08399901432314313,
+      "tail": {
+        "worst_session": {
+          "date": "2024-06-04",
+          "value": -3.33737624088698
+        },
+        "worst_five": [
+          {
+            "date": "2024-06-04",
+            "value": -3.33737624088698
+          },
+          {
+            "date": "2022-06-16",
+            "value": -3.0634885446765514
+          },
+          {
+            "date": "2022-02-24",
+            "value": -2.632942363769031
+          },
+          {
+            "date": "2022-01-24",
+            "value": -2.4114305470026576
+          },
+          {
+            "date": "2022-05-04",
+            "value": -2.3381995896153196
+          }
+        ],
+        "max_drawdown": -27.029306743666254,
+        "p01": -1.8401045573386106,
+        "p99": 1.715403695329847,
+        "tail_survivability": "not established; no capital or margin model is registered"
+      },
+      "by_year": {
+        "2021": {
+          "n": 244,
+          "mean": -0.03761995459485137,
+          "t": -0.7403186453983007,
+          "nominal_p": 0.4598213587152818,
+          "wilcoxon_p": 0.6414071321764345
+        },
+        "2022": {
+          "n": 247,
+          "mean": -0.030178733054573952,
+          "t": -0.5618927480430793,
+          "nominal_p": 0.5747006752991822,
+          "wilcoxon_p": 0.7480810416303101
+        },
+        "2023": {
+          "n": 245,
+          "mean": 0.013577646103298662,
+          "t": 0.4227536905274442,
+          "nominal_p": 0.6728473021694845,
+          "wilcoxon_p": 0.2705315479005618
+        },
+        "2024": {
+          "n": 247,
+          "mean": -0.013765081262592195,
+          "t": -0.305673252062416,
+          "nominal_p": 0.7601119453858983,
+          "wilcoxon_p": 0.8741722080684777
+        },
+        "2025": {
+          "n": 248,
+          "mean": -0.0018627788038222512,
+          "t": -0.05229269029245272,
+          "nominal_p": 0.9583377440187856,
+          "wilcoxon_p": 0.8277883592388692
+        },
+        "2026": {
+          "n": 86,
+          "mean": -0.01636307368256482,
+          "t": -0.21343191226728808,
+          "nominal_p": 0.8315011907241795,
+          "wilcoxon_p": 0.9742368148209887
+        }
+      },
+      "notes": [],
+      "breakeven_round_trip_cost_pct_entry_premium": null,
+      "breakeven_positive_room": null,
+      "weekday_cells": {
+        "Friday": {
+          "n": 260,
+          "mean": -0.05792200797158671,
+          "sd": 0.6896049754684028,
+          "t": -1.3543468338485969,
+          "t_p": 0.17680612830147388,
+          "wilcoxon_stat": 15381.0,
+          "wilcoxon_p": 0.1918677829045704
+        },
+        "Monday": {
+          "n": 266,
+          "mean": 0.06408215755923108,
+          "sd": 0.7126894546281075,
+          "t": 1.4664849521663788,
+          "t_p": 0.14370186604073193,
+          "wilcoxon_stat": 15080.0,
+          "wilcoxon_p": 0.03314290565823543
+        },
+        "Saturday": {
+          "n": 3,
+          "mean": -0.24290597084792123,
+          "sd": 0.32173907475502384,
+          "t": -1.307660511210178,
+          "t_p": 0.32109429482385954,
+          "wilcoxon_stat": 1.0,
+          "wilcoxon_p": 0.5
+        },
+        "Sunday": {
+          "n": 1,
+          "mean": -2.0214407215475294,
+          "sd": null,
+          "t": null,
+          "t_p": null,
+          "wilcoxon_stat": 0.0,
+          "wilcoxon_p": 1.0
+        },
+        "Thursday": {
+          "n": 260,
+          "mean": -0.04063900417404304,
+          "sd": 0.7132800260092075,
+          "t": -0.918691437690942,
+          "t_p": 0.3591117488940699,
+          "wilcoxon_stat": 16025.0,
+          "wilcoxon_p": 0.43864964953206853
+        },
+        "Tuesday": {
+          "n": 265,
+          "mean": -0.01833037906505259,
+          "sd": 0.7146580346924446,
+          "t": -0.4175380920287408,
+          "t_p": 0.6766242354703753,
+          "wilcoxon_stat": 17180.0,
+          "wilcoxon_p": 0.7230916145148136
+        },
+        "Wednesday": {
+          "n": 262,
+          "mean": -0.009115812628952663,
+          "sd": 0.6291143857058342,
+          "t": -0.23453972921914826,
+          "t_p": 0.8147498800502396,
+          "wilcoxon_stat": 16628.0,
+          "wilcoxon_p": 0.6259143942102409
+        }
+      },
+      "weekday_cells_by_year": {
+        "2021": {
+          "Friday": {
+            "n": 48,
+            "mean": -0.2262743055980306,
+            "sd": 0.7751531010375351,
+            "t": -2.022406119351527,
+            "t_p": 0.04884580736556627,
+            "wilcoxon_stat": 415.0,
+            "wilcoxon_p": 0.07673054056111539
+          },
+          "Monday": {
+            "n": 51,
+            "mean": 0.033464183622396206,
+            "sd": 1.0307131920341486,
+            "t": 0.23186088439143662,
+            "t_p": 0.8175924092032949,
+            "wilcoxon_stat": 646.0,
+            "wilcoxon_p": 0.8733939673227593
+          },
+          "Thursday": {
+            "n": 45,
+            "mean": 0.010144889387964836,
+            "sd": 0.7297842349735331,
+            "t": 0.09325220198759834,
+            "t_p": 0.9261265356600856,
+            "wilcoxon_stat": 488.0,
+            "wilcoxon_p": 0.7457874056939318
+          },
+          "Tuesday": {
+            "n": 51,
+            "mean": 0.1283070716415041,
+            "sd": 0.6961426832182921,
+            "t": 1.3162470727518873,
+            "t_p": 0.19409351792822888,
+            "wilcoxon_stat": 527.0,
+            "wilcoxon_p": 0.20238305217721309
+          },
+          "Wednesday": {
+            "n": 49,
+            "mean": -0.1433664549664408,
+            "sd": 0.6465102459424956,
+            "t": -1.5522804024583834,
+            "t_p": 0.12716433365330232,
+            "wilcoxon_stat": 475.0,
+            "wilcoxon_p": 0.17448524444612445
+          }
+        },
+        "2022": {
+          "Friday": {
+            "n": 50,
+            "mean": -0.13278280979507096,
+            "sd": 0.7484297637420794,
+            "t": -1.2545148493513778,
+            "t_p": 0.215606154779412,
+            "wilcoxon_stat": 497.0,
+            "wilcoxon_p": 0.1781010477908609
+          },
+          "Monday": {
+            "n": 50,
+            "mean": 0.11332086947144783,
+            "sd": 0.7901288174478925,
+            "t": 1.014137865671515,
+            "t_p": 0.3154985969349128,
+            "wilcoxon_stat": 467.0,
+            "wilcoxon_p": 0.10110987171644048
+          },
+          "Thursday": {
+            "n": 51,
+            "mean": -0.20280434818350607,
+            "sd": 0.917539428895749,
+            "t": -1.5784746594408754,
+            "t_p": 0.12076301840647648,
+            "wilcoxon_stat": 530.0,
+            "wilcoxon_p": 0.21251812213554644
+          },
+          "Tuesday": {
+            "n": 48,
+            "mean": 0.18959731825346562,
+            "sd": 0.9556458178570731,
+            "t": 1.374535134492361,
+            "t_p": 0.17579427406380663,
+            "wilcoxon_stat": 450.0,
+            "wilcoxon_p": 0.15980302578757488
+          },
+          "Wednesday": {
+            "n": 48,
+            "mean": -0.10913957431471151,
+            "sd": 0.751299990972359,
+            "t": -1.0064437114386942,
+            "t_p": 0.3193557830323316,
+            "wilcoxon_stat": 493.0,
+            "wilcoxon_p": 0.3355623208943683
+          }
+        },
+        "2023": {
+          "Friday": {
+            "n": 50,
+            "mean": 0.07060449528364199,
+            "sd": 0.4791433357845723,
+            "t": 1.041962053287612,
+            "t_p": 0.30254309003718777,
+            "wilcoxon_stat": 511.0,
+            "wilcoxon_p": 0.2260100302518655
+          },
+          "Monday": {
+            "n": 48,
+            "mean": 0.07105672228966177,
+            "sd": 0.49690862062100516,
+            "t": 0.9907161849693504,
+            "t_p": 0.3268974257040273,
+            "wilcoxon_stat": 449.0,
+            "wilcoxon_p": 0.1567499462907449
+          },
+          "Thursday": {
+            "n": 49,
+            "mean": -0.04961934531158959,
+            "sd": 0.5058695926133424,
+            "t": -0.6866105855202298,
+            "t_p": 0.4956319035017226,
+            "wilcoxon_stat": 540.0,
+            "wilcoxon_p": 0.47723747237424874
+          },
+          "Tuesday": {
+            "n": 46,
+            "mean": -0.01673357254734884,
+            "sd": 0.370570791317437,
+            "t": -0.3062643183754498,
+            "t_p": 0.76081595213717,
+            "wilcoxon_stat": 516.0,
+            "wilcoxon_p": 0.7950824064250241
+          },
+          "Wednesday": {
+            "n": 52,
+            "mean": -0.007948690025610725,
+            "sd": 0.6225046472607536,
+            "t": -0.0920777365638006,
+            "t_p": 0.9269970152878907,
+            "wilcoxon_stat": 607.0,
+            "wilcoxon_p": 0.45520411573444075
+          }
+        },
+        "2024": {
+          "Friday": {
+            "n": 47,
+            "mean": 0.14728332649038242,
+            "sd": 0.7773633309166227,
+            "t": 1.2989082127472498,
+            "t_p": 0.20044885578871463,
+            "wilcoxon_stat": 458.0,
+            "wilcoxon_p": 0.266950450719591
+          },
+          "Monday": {
+            "n": 49,
+            "mean": -0.040308992038887555,
+            "sd": 0.5848361461564304,
+            "t": -0.4824649538620356,
+            "t_p": 0.6316686831071512,
+            "wilcoxon_stat": 587.0,
+            "wilcoxon_p": 0.8053281892871524
+          },
+          "Saturday": {
+            "n": 2,
+            "mean": -0.2777896296431548,
+            "sd": 0.44691257147543295,
+            "t": -0.8790396305724509,
+            "t_p": 0.5409249789052136,
+            "wilcoxon_stat": 1.0,
+            "wilcoxon_p": 1.0
+          },
+          "Thursday": {
+            "n": 50,
+            "mean": 0.0034429964831961257,
+            "sd": 0.6691045850830221,
+            "t": 0.03638543532872871,
+            "t_p": 0.9711228566165304,
+            "wilcoxon_stat": 616.0,
+            "wilcoxon_p": 0.8407540567937097
+          },
+          "Tuesday": {
+            "n": 53,
+            "mean": -0.20826270912888406,
+            "sd": 0.7723651265588254,
+            "t": -1.9630293447513192,
+            "t_p": 0.05500190734345013,
+            "wilcoxon_stat": 558.0,
+            "wilcoxon_p": 0.16322388329831405
+          },
+          "Wednesday": {
+            "n": 46,
+            "mean": 0.06683048286857829,
+            "sd": 0.701331530553464,
+            "t": 0.6462940392664188,
+            "t_p": 0.5213716032142586,
+            "wilcoxon_stat": 477.0,
+            "wilcoxon_p": 0.49483951698749706
+          }
+        },
+        "2025": {
+          "Friday": {
+            "n": 49,
+            "mean": -0.0950475365130295,
+            "sd": 0.5967084449790276,
+            "t": -1.1150047585041147,
+            "t_p": 0.2703999441157273,
+            "wilcoxon_stat": 499.0,
+            "wilcoxon_p": 0.2635604032882348
+          },
+          "Monday": {
+            "n": 50,
+            "mean": 0.07175146487752904,
+            "sd": 0.5606417756345907,
+            "t": 0.9049619486086482,
+            "t_p": 0.3699137524733972,
+            "wilcoxon_stat": 548.0,
+            "wilcoxon_p": 0.39349457563481494
+          },
+          "Saturday": {
+            "n": 1,
+            "mean": -0.17313865325745414,
+            "sd": null,
+            "t": null,
+            "t_p": null,
+            "wilcoxon_stat": 0.0,
+            "wilcoxon_p": 1.0
+          },
+          "Thursday": {
+            "n": 48,
+            "mean": 0.07314597316286017,
+            "sd": 0.6341220773366859,
+            "t": 0.7991681502038366,
+            "t_p": 0.4282132691682418,
+            "wilcoxon_stat": 555.0,
+            "wilcoxon_p": 0.7411409011974683
+          },
+          "Tuesday": {
+            "n": 51,
+            "mean": -0.181559231154105,
+            "sd": 0.5608552752633297,
+            "t": -2.3118125334909965,
+            "t_p": 0.02494640915660182,
+            "wilcoxon_stat": 425.0,
+            "wilcoxon_p": 0.025688739993664184
+          },
+          "Wednesday": {
+            "n": 49,
+            "mean": 0.13325387004517544,
+            "sd": 0.3838716272001837,
+            "t": 2.4299193381901025,
+            "t_p": 0.01889196769545548,
+            "wilcoxon_stat": 371.0,
+            "wilcoxon_p": 0.015576013058733906
+          }
+        },
+        "2026": {
+          "Friday": {
+            "n": 16,
+            "mean": -0.2096641708903224,
+            "sd": 0.6563309049855623,
+            "t": -1.277795510147032,
+            "t_p": 0.22074340419844135,
+            "wilcoxon_stat": 44.0,
+            "wilcoxon_p": 0.231201171875
+          },
+          "Monday": {
+            "n": 18,
+            "mean": 0.258332320475897,
+            "sd": 0.5979977795230753,
+            "t": 1.832801477161148,
+            "t_p": 0.08440581091038156,
+            "wilcoxon_stat": 48.0,
+            "wilcoxon_p": 0.1083831787109375
+          },
+          "Sunday": {
+            "n": 1,
+            "mean": -2.0214407215475294,
+            "sd": null,
+            "t": null,
+            "t_p": null,
+            "wilcoxon_stat": 0.0,
+            "wilcoxon_p": 1.0
+          },
+          "Thursday": {
+            "n": 17,
+            "mean": -0.11361458623882394,
+            "sd": 0.8235995498074906,
+            "t": -0.5687775567422454,
+            "t_p": 0.5774043376103553,
+            "wilcoxon_stat": 52.0,
+            "wilcoxon_p": 0.2633209228515625
+          },
+          "Tuesday": {
+            "n": 16,
+            "mean": 0.03533164548414139,
+            "sd": 0.742234162937439,
+            "t": 0.19040700225553697,
+            "t_p": 0.8515431880553517,
+            "wilcoxon_stat": 61.0,
+            "wilcoxon_p": 0.743560791015625
+          },
+          "Wednesday": {
+            "n": 18,
+            "mean": 0.03805572160220619,
+            "sd": 0.5464093655307681,
+            "t": 0.2954867962235042,
+            "t_p": 0.7712006913186004,
+            "wilcoxon_stat": 64.0,
+            "wilcoxon_p": 0.3692169189453125
+          }
+        }
+      }
+    },
+    "H13": {
+      "id": "H13",
+      "name": "OVERNIGHT_VS_INTRADAY",
+      "status": "computed",
+      "units": "percentage-point return difference",
+      "conditional": false,
+      "truncated_chain_proxy": false,
+      "n": 1316,
+      "mean": 0.07040761993193174,
+      "t": 2.904648372576396,
+      "nominal_p": 0.0037381261317155816,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": false,
+      "direction_supported": true,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": 2.904648372576396,
+        "p": 0.0037381261317155816,
+        "n": 1316
+      },
+      "wilcoxon": {
+        "statistic": 380990.0,
+        "p": 0.00014882183721150503
+      },
+      "placebo": null,
+      "lag1_autocorrelation": -0.17971851482705248,
+      "tail": {
+        "worst_session": {
+          "date": "2025-04-07",
+          "value": -4.824309018950979
+        },
+        "worst_five": [
+          {
+            "date": "2025-04-07",
+            "value": -4.824309018950979
+          },
+          {
+            "date": "2026-04-02",
+            "value": -4.253678328498644
+          },
+          {
+            "date": "2021-02-01",
+            "value": -3.8021569992859883
+          },
+          {
+            "date": "2022-02-28",
+            "value": -3.40910067073813
+          },
+          {
+            "date": "2022-01-25",
+            "value": -3.268091098021675
+          }
+        ],
+        "max_drawdown": -15.667375862130001,
+        "p01": -2.516030438365484,
+        "p99": 2.39755633311521,
+        "tail_survivability": "not established; no capital or margin model is registered"
+      },
+      "by_year": {
+        "2021": {
+          "n": 243,
+          "mean": 0.1638546772545827,
+          "t": 2.7290044989026794,
+          "nominal_p": 0.006818891590707029,
+          "wilcoxon_p": 0.0005332409806824081
+        },
+        "2022": {
+          "n": 247,
+          "mean": 0.08370273409915557,
+          "t": 1.180549848246377,
+          "nominal_p": 0.238921809636957,
+          "wilcoxon_p": 0.15459960309301723
+        },
+        "2023": {
+          "n": 245,
+          "mean": 0.04889226639522888,
+          "t": 1.2674279847001193,
+          "nominal_p": 0.20621054660039576,
+          "wilcoxon_p": 0.285692916208074
+        },
+        "2024": {
+          "n": 247,
+          "mean": 0.06558336721169417,
+          "t": 1.2829823176424546,
+          "nominal_p": 0.20070569776183586,
+          "wilcoxon_p": 0.11328210568175216
+        },
+        "2025": {
+          "n": 248,
+          "mean": 0.04643040076462532,
+          "t": 1.0107830632848642,
+          "nominal_p": 0.3131094054532227,
+          "wilcoxon_p": 0.10946744151345936
+        },
+        "2026": {
+          "n": 86,
+          "mean": -0.08752640026371486,
+          "t": -0.6895158433230647,
+          "nominal_p": 0.49237681720094334,
+          "wilcoxon_p": 0.568308384485334
+        }
+      },
+      "notes": [],
+      "breakeven_round_trip_cost_pct_entry_premium": null,
+      "breakeven_positive_room": null,
+      "component_tests": {
+        "overnight_vs_zero": {
+          "n": 1316,
+          "mean": 0.05628664932391966,
+          "sd": 0.5578626148723868,
+          "t": 3.6602106713709928,
+          "t_p": 0.0002619894540446248,
+          "wilcoxon_stat": 345570.0,
+          "wilcoxon_p": 1.995395450046605e-10
+        },
+        "intraday_vs_zero": {
+          "n": 1316,
+          "mean": -0.014120970608012082,
+          "sd": 0.6945672135894108,
+          "t": -0.7375274937895019,
+          "t_p": 0.460933207856759,
+          "wilcoxon_stat": 432951.0,
+          "wilcoxon_p": 0.9802129521710169
+        },
+        "overnight_minus_intraday": {
+          "n": 1316,
+          "mean": 0.07040761993193174,
+          "sd": 0.8793343581744041,
+          "t": 2.904648372576396,
+          "t_p": 0.0037381261317155816,
+          "wilcoxon_stat": 380990.0,
+          "wilcoxon_p": 0.00014882183721150503
+        }
+      },
+      "components_by_year": {
+        "2021": {
+          "overnight": {
+            "n": 243,
+            "mean": 0.12605054145596736,
+            "sd": 0.5550456628333889,
+            "t": 3.5401294176035165,
+            "t_p": 0.00047951778033624326,
+            "wilcoxon_stat": 9814.0,
+            "wilcoxon_p": 4.956700443340222e-06
+          },
+          "intraday": {
+            "n": 243,
+            "mean": -0.03780413579861537,
+            "sd": 0.7954027604410312,
+            "t": -0.7408927712649129,
+            "t_p": 0.45947674368682817,
+            "wilcoxon_stat": 14307.0,
+            "wilcoxon_p": 0.6380495507025835
+          },
+          "difference": {
+            "n": 243,
+            "mean": 0.1638546772545827,
+            "sd": 0.9359609467817617,
+            "t": 2.7290044989026794,
+            "t_p": 0.006818891590707029,
+            "wilcoxon_stat": 11024.0,
+            "wilcoxon_p": 0.0005332409806824081
+          }
+        },
+        "2022": {
+          "overnight": {
+            "n": 247,
+            "mean": 0.05352400104458164,
+            "sd": 0.7203165504602591,
+            "t": 1.167813936138529,
+            "t_p": 0.24401242795553635,
+            "wilcoxon_stat": 12808.0,
+            "wilcoxon_p": 0.025779872519315558
+          },
+          "intraday": {
+            "n": 247,
+            "mean": -0.030178733054573952,
+            "sd": 0.844104184406641,
+            "t": -0.5618927480430793,
+            "t_p": 0.5747006752991822,
+            "wilcoxon_stat": 14953.0,
+            "wilcoxon_p": 0.7480810416303101
+          },
+          "difference": {
+            "n": 247,
+            "mean": 0.08370273409915557,
+            "sd": 1.1143042606999625,
+            "t": 1.180549848246377,
+            "t_p": 0.238921809636957,
+            "wilcoxon_stat": 13714.0,
+            "wilcoxon_p": 0.15459960309301723
+          }
+        },
+        "2023": {
+          "overnight": {
+            "n": 245,
+            "mean": 0.06246991249852754,
+            "sd": 0.3408369814203339,
+            "t": 2.868845957359087,
+            "t_p": 0.0044806089331287,
+            "wilcoxon_stat": 11619.0,
+            "wilcoxon_p": 0.0018989803137256867
+          },
+          "intraday": {
+            "n": 245,
+            "mean": 0.013577646103298662,
+            "sd": 0.5027130037935884,
+            "t": 0.4227536905274442,
+            "t_p": 0.6728473021694845,
+            "wilcoxon_stat": 13844.0,
+            "wilcoxon_p": 0.2705315479005618
+          },
+          "difference": {
+            "n": 245,
+            "mean": 0.04889226639522888,
+            "sd": 0.6038094691568558,
+            "t": 1.2674279847001193,
+            "t_p": 0.20621054660039576,
+            "wilcoxon_stat": 13882.0,
+            "wilcoxon_p": 0.285692916208074
+          }
+        },
+        "2024": {
+          "overnight": {
+            "n": 247,
+            "mean": 0.051818285949101976,
+            "sd": 0.4270627678573513,
+            "t": 1.9069522102604113,
+            "t_p": 0.0576917016545549,
+            "wilcoxon_stat": 12028.0,
+            "wilcoxon_p": 0.00346171379402574
+          },
+          "intraday": {
+            "n": 247,
+            "mean": -0.013765081262592195,
+            "sd": 0.7077336070872262,
+            "t": -0.305673252062416,
+            "t_p": 0.7601119453858983,
+            "wilcoxon_stat": 15136.0,
+            "wilcoxon_p": 0.8741722080684777
+          },
+          "difference": {
+            "n": 247,
+            "mean": 0.06558336721169417,
+            "sd": 0.803380925975448,
+            "t": 1.2829823176424546,
+            "t_p": 0.20070569776183586,
+            "wilcoxon_stat": 13534.0,
+            "wilcoxon_p": 0.11328210568175216
+          }
+        },
+        "2025": {
+          "overnight": {
+            "n": 248,
+            "mean": 0.044567621960803085,
+            "sd": 0.459327750889321,
+            "t": 1.527997407367202,
+            "t_p": 0.12779273602436178,
+            "wilcoxon_stat": 12962.0,
+            "wilcoxon_p": 0.028557735590621913
+          },
+          "intraday": {
+            "n": 248,
+            "mean": -0.0018627788038222512,
+            "sd": 0.5609784039340443,
+            "t": -0.05229269029245272,
+            "t_p": 0.9583377440187856,
+            "wilcoxon_stat": 15192.0,
+            "wilcoxon_p": 0.8277883592388692
+          },
+          "difference": {
+            "n": 248,
+            "mean": 0.04643040076462532,
+            "sd": 0.7233863615127677,
+            "t": 1.0107830632848642,
+            "t_p": 0.3131094054532227,
+            "wilcoxon_stat": 13628.0,
+            "wilcoxon_p": 0.10946744151345936
+          }
+        },
+        "2026": {
+          "overnight": {
+            "n": 86,
+            "mean": -0.10388947394627966,
+            "sd": 0.9596917567416391,
+            "t": -1.0038966577629007,
+            "t_p": 0.31827776993945545,
+            "wilcoxon_stat": 1612.0,
+            "wilcoxon_p": 0.265665393400479
+          },
+          "intraday": {
+            "n": 86,
+            "mean": -0.01636307368256482,
+            "sd": 0.710975697747377,
+            "t": -0.21343191226728808,
+            "t_p": 0.8315011907241795,
+            "wilcoxon_stat": 1863.0,
+            "wilcoxon_p": 0.9742368148209887
+          },
+          "difference": {
+            "n": 86,
+            "mean": -0.08752640026371486,
+            "sd": 1.177183167275592,
+            "t": -0.6895158433230647,
+            "t_p": 0.49237681720094334,
+            "wilcoxon_stat": 1738.0,
+            "wilcoxon_p": 0.568308384485334
+          }
+        }
+      }
+    },
+    "H14": {
+      "id": "H14",
+      "name": "MAX_PAIN_PIN_TRUNCATED_CHAIN_PROXY",
+      "status": "computed",
+      "units": "spot points closer to max-pain proxy",
+      "conditional": true,
+      "truncated_chain_proxy": true,
+      "n": 276,
+      "mean": -57.384420253623155,
+      "t": -9.238947385647064,
+      "nominal_p": 7.030448951995185e-18,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": true,
+      "direction_supported": false,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": -9.238947385647064,
+        "p": 7.030448951995185e-18,
+        "n": 276
+      },
+      "wilcoxon": {
+        "statistic": 8039.5,
+        "p": 7.229595992975327e-17
+      },
+      "placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 9.238947385647064,
+        "median_abs_placebo_stat": 2.3945013019326034,
+        "empirical_p": 0.0004997501249375312,
+        "placebo_type": "random available strike per expiry session"
+      },
+      "lag1_autocorrelation": -0.09037589938009291,
+      "tail": {
+        "worst_session": {
+          "date": "2025-04-17",
+          "value": -460.2999999999993
+        },
+        "worst_five": [
+          {
+            "date": "2025-04-17",
+            "value": -460.2999999999993
+          },
+          {
+            "date": "2022-02-24",
+            "value": -438.5508000000009
+          },
+          {
+            "date": "2022-06-16",
+            "value": -418.5498000000007
+          },
+          {
+            "date": "2025-05-15",
+            "value": -394.7000000000007
+          },
+          {
+            "date": "2025-01-02",
+            "value": -380.3500000000022
+          }
+        ],
+        "max_drawdown": -15922.400089999992,
+        "p01": -400.6624500000007,
+        "p99": 123.83749999999964,
+        "tail_survivability": "not established; no capital or margin model is registered"
+      },
+      "by_year": {
+        "2021": {
+          "n": 49,
+          "mean": -45.46234693877541,
+          "t": -3.8277844916290413,
+          "nominal_p": 0.00037409253942745065,
+          "wilcoxon_p": 0.0003546445036981538
+        },
+        "2022": {
+          "n": 52,
+          "mean": -56.36634230769246,
+          "t": -3.555511791562739,
+          "nominal_p": 0.0008244140097253359,
+          "wilcoxon_p": 0.0010104639629207376
+        },
+        "2023": {
+          "n": 52,
+          "mean": -30.066253653846267,
+          "t": -3.0646298393133242,
+          "nominal_p": 0.0034787687440883367,
+          "wilcoxon_p": 0.009699434173374561
+        },
+        "2024": {
+          "n": 52,
+          "mean": -74.82403846153836,
+          "t": -4.889163077975404,
+          "nominal_p": 1.0499542347429598e-05,
+          "wilcoxon_p": 3.556660156153242e-05
+        },
+        "2025": {
+          "n": 52,
+          "mean": -69.8355769230768,
+          "t": -4.408841108204828,
+          "nominal_p": 5.372641350008755e-05,
+          "wilcoxon_p": 2.3829506886951224e-05
+        },
+        "2026": {
+          "n": 19,
+          "mean": -83.87631578947338,
+          "t": -2.8087717191492647,
+          "nominal_p": 0.011616233888888296,
+          "wilcoxon_p": 0.00823211669921875
+        }
+      },
+      "notes": [
+        "Max pain uses only the archived ATM\u00b110 chain and is a truncated-chain proxy, not true full-chain max pain."
+      ],
+      "breakeven_round_trip_cost_pct_entry_premium": null,
+      "breakeven_positive_room": null,
+      "controls": {
+        "expiry": {
+          "n": 276,
+          "mean": -57.384420253623155,
+          "sd": 103.18725169470828,
+          "t": -9.238947385647064,
+          "t_p": 7.030448951995185e-18,
+          "wilcoxon_stat": 8039.5,
+          "wilcoxon_p": 7.229595992975327e-17
+        },
+        "nonexpiry": {
+          "n": 1041,
+          "mean": -47.591269814601354,
+          "sd": 104.60291184419869,
+          "t": -14.679419551636943,
+          "t_p": 1.7754332815636083e-44,
+          "wilcoxon_stat": 137990.0,
+          "wilcoxon_p": 6.99897202406478e-43
+        },
+        "expiry_pin_success_rate_pct": 30.07246376811594,
+        "nonexpiry_pin_success_rate_pct": 31.21998078770413
+      },
+      "controls_by_year": {
+        "2021": {
+          "nonexpiry": {
+            "n": 195,
+            "mean": -42.23251384615391,
+            "sd": 99.35212772182891,
+            "t": -5.935906703988125,
+            "t_p": 1.3249599095652692e-08,
+            "wilcoxon_stat": 5332.5,
+            "wilcoxon_p": 8.742913310216424e-08
+          },
+          "expiry": {
+            "n": 49,
+            "mean": -45.46234693877541,
+            "sd": 83.13854378880974,
+            "t": -3.8277844916290413,
+            "t_p": 0.00037409253942745065,
+            "wilcoxon_stat": 264.0,
+            "wilcoxon_p": 0.0003546445036981538
+          }
+        },
+        "2022": {
+          "nonexpiry": {
+            "n": 195,
+            "mean": -39.20879076923095,
+            "sd": 104.71571142663605,
+            "t": -5.228641993336852,
+            "t_p": 4.3985362608079814e-07,
+            "wilcoxon_stat": 5656.5,
+            "wilcoxon_p": 7.792835763380967e-07
+          },
+          "expiry": {
+            "n": 52,
+            "mean": -56.36634230769246,
+            "sd": 114.31925940057975,
+            "t": -3.555511791562739,
+            "t_p": 0.0008244140097253359,
+            "wilcoxon_stat": 328.0,
+            "wilcoxon_p": 0.0010104639629207376
+          }
+        },
+        "2023": {
+          "nonexpiry": {
+            "n": 193,
+            "mean": -39.72154133160606,
+            "sd": 70.69057335234578,
+            "t": -7.806264144632813,
+            "t_p": 3.71195675109851e-13,
+            "wilcoxon_stat": 3846.5,
+            "wilcoxon_p": 1.2805649245724114e-12
+          },
+          "expiry": {
+            "n": 52,
+            "mean": -30.066253653846267,
+            "sd": 70.74617483613557,
+            "t": -3.0646298393133242,
+            "t_p": 0.0034787687440883367,
+            "wilcoxon_stat": 405.0,
+            "wilcoxon_p": 0.009699434173374561
+          }
+        },
+        "2024": {
+          "nonexpiry": {
+            "n": 195,
+            "mean": -58.1202564102566,
+            "sd": 129.20560509942746,
+            "t": -6.281501574902032,
+            "t_p": 2.157155735857835e-09,
+            "wilcoxon_stat": 5071.5,
+            "wilcoxon_p": 1.332498623653544e-08
+          },
+          "expiry": {
+            "n": 52,
+            "mean": -74.82403846153836,
+            "sd": 110.35913632158189,
+            "t": -4.889163077975404,
+            "t_p": 1.0499542347429598e-05,
+            "wilcoxon_stat": 235.0,
+            "wilcoxon_p": 3.556660156153242e-05
+          }
+        },
+        "2025": {
+          "nonexpiry": {
+            "n": 196,
+            "mean": -52.48877551020391,
+            "sd": 100.22317494692366,
+            "t": -7.332065238723618,
+            "t_p": 5.905793270358902e-12,
+            "wilcoxon_stat": 4273.5,
+            "wilcoxon_p": 1.3298776905964363e-11
+          },
+          "expiry": {
+            "n": 52,
+            "mean": -69.8355769230768,
+            "sd": 114.22310183924417,
+            "t": -4.408841108204828,
+            "t_p": 5.372641350008755e-05,
+            "wilcoxon_stat": 225.0,
+            "wilcoxon_p": 2.3829506886951224e-05
+          }
+        },
+        "2026": {
+          "nonexpiry": {
+            "n": 67,
+            "mean": -65.28283582089549,
+            "sd": 129.207818435521,
+            "t": -4.135686583153061,
+            "t_p": 0.00010216497523103846,
+            "wilcoxon_stat": 572.0,
+            "wilcoxon_p": 0.00039733413484728254
+          },
+          "expiry": {
+            "n": 19,
+            "mean": -83.87631578947338,
+            "sd": 130.16664251858703,
+            "t": -2.8087717191492647,
+            "t_p": 0.011616233888888296,
+            "wilcoxon_stat": 31.0,
+            "wilcoxon_p": 0.00823211669921875
+          }
+        }
+      },
+      "shuffled_expiry_label_placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 9.238947385647064,
+        "median_abs_placebo_stat": 7.926684517147673,
+        "empirical_p": 0.06596701649175413
+      }
+    },
+    "H15": {
+      "id": "H15",
+      "name": "ROUND_NUMBER_PIN",
+      "status": "computed",
+      "units": "spot-point closeness surplus vs uniform",
+      "conditional": true,
+      "truncated_chain_proxy": false,
+      "n": 276,
+      "mean": -0.8666790181159278,
+      "t": -0.959778164897786,
+      "nominal_p": 0.33800995717235877,
+      "bonferroni_threshold": 0.0033333333333333335,
+      "bonferroni_pass": false,
+      "direction_supported": false,
+      "supported_direction_survivor": false,
+      "primary_test": {
+        "stat_name": "one-sample t",
+        "statistic": -0.959778164897786,
+        "p": 0.33800995717235877,
+        "n": 276
+      },
+      "wilcoxon": {
+        "statistic": 17853.5,
+        "p": 0.34264127719402515
+      },
+      "placebo": {
+        "seed": 20260823,
+        "draws": 2000,
+        "observed_abs_stat": 0.959778164897786,
+        "median_abs_placebo_stat": 0.7678786984333325,
+        "empirical_p": 0.40229885057471265
+      },
+      "lag1_autocorrelation": 0.05018443954677232,
+      "tail": {
+        "worst_session": {
+          "date": "2024-10-17",
+          "value": -24.799999999999272
+        },
+        "worst_five": [
+          {
+            "date": "2024-10-17",
+            "value": -24.799999999999272
+          },
+          {
+            "date": "2026-03-02",
+            "value": -24.75
+          },
+          {
+            "date": "2022-01-27",
+            "value": -24.30080000000089
+          },
+          {
+            "date": "2023-08-10",
+            "value": -24.200000000000728
+          },
+          {
+            "date": "2025-01-16",
+            "value": -24.200000000000728
+          }
+        ],
+        "max_drawdown": -503.99999999998545,
+        "p01": -24.22520000000077,
+        "p99": 24.800199999999677,
+        "tail_survivability": "not established; no capital or margin model is registered"
+      },
+      "by_year": {
+        "2021": {
+          "n": 49,
+          "mean": 1.9051387755101001,
+          "t": 0.9123989747461809,
+          "nominal_p": 0.36611868360727273,
+          "wilcoxon_p": 0.3277633323525144
+        },
+        "2022": {
+          "n": 52,
+          "mean": -0.4471923076923933,
+          "t": -0.21735736154544416,
+          "nominal_p": 0.8287971091297367,
+          "wilcoxon_p": 0.8340890253600262
+        },
+        "2023": {
+          "n": 52,
+          "mean": 3.167284442307741,
+          "t": 1.5055046671927241,
+          "nominal_p": 0.13836323229578446,
+          "wilcoxon_p": 0.14012639559297696
+        },
+        "2024": {
+          "n": 52,
+          "mean": -4.683653846153832,
+          "t": -2.1701912635639076,
+          "nominal_p": 0.03467379093391904,
+          "wilcoxon_p": 0.035401012762322076
+        },
+        "2025": {
+          "n": 52,
+          "mean": -3.8663461538460697,
+          "t": -1.9119615347651995,
+          "nominal_p": 0.06150671509430788,
+          "wilcoxon_p": 0.06255037428351914
+        },
+        "2026": {
+          "n": 19,
+          "mean": -1.5473684210523253,
+          "t": -0.5217289754235402,
+          "nominal_p": 0.6082198434387339,
+          "wilcoxon_p": 0.7171903998703537
+        }
+      },
+      "notes": [],
+      "breakeven_round_trip_cost_pct_entry_premium": null,
+      "breakeven_positive_room": null,
+      "controls": {
+        "expiry": {
+          "n": 276,
+          "mean": -0.8666790181159278,
+          "sd": 15.001751189325851,
+          "t": -0.959778164897786,
+          "t_p": 0.33800995717235877,
+          "wilcoxon_stat": 17853.5,
+          "wilcoxon_p": 0.34264127719402515
+        },
+        "nonexpiry": {
+          "n": 1041,
+          "mean": -0.46234426609032314,
+          "sd": 14.422502797155236,
+          "t": -1.0343087741210166,
+          "t_p": 0.30123228065438024,
+          "wilcoxon_stat": 260090.5,
+          "wilcoxon_p": 0.2989347520428379
+        }
+      },
+      "controls_by_year": {
+        "2021": {
+          "nonexpiry": {
+            "n": 195,
+            "mean": -0.45898051282062785,
+            "sd": 14.70474135759766,
+            "t": -0.43586717376214473,
+            "t_p": 0.6634177094234214,
+            "wilcoxon_stat": 9183.5,
+            "wilcoxon_p": 0.6377873636151625
+          },
+          "expiry": {
+            "n": 49,
+            "mean": 1.9051387755101001,
+            "sd": 14.616381427084153,
+            "t": 0.9123989747461809,
+            "t_p": 0.36611868360727273,
+            "wilcoxon_stat": 513.0,
+            "wilcoxon_p": 0.3277633323525144
+          }
+        },
+        "2022": {
+          "nonexpiry": {
+            "n": 195,
+            "mean": 1.667928205128117,
+            "sd": 14.610090023875568,
+            "t": 1.5941961886695681,
+            "t_p": 0.11251997128400819,
+            "wilcoxon_stat": 8294.0,
+            "wilcoxon_p": 0.11003347217427169
+          },
+          "expiry": {
+            "n": 52,
+            "mean": -0.4471923076923933,
+            "sd": 14.836164590090362,
+            "t": -0.21735736154544416,
+            "t_p": 0.8287971091297367,
+            "wilcoxon_stat": 666.0,
+            "wilcoxon_p": 0.8340890253600262
+          }
+        },
+        "2023": {
+          "nonexpiry": {
+            "n": 193,
+            "mean": -0.2846900569948519,
+            "sd": 14.37826473177417,
+            "t": -0.2750707922642505,
+            "t_p": 0.7835576304877243,
+            "wilcoxon_stat": 9153.0,
+            "wilcoxon_p": 0.7894320669784618
+          },
+          "expiry": {
+            "n": 52,
+            "mean": 3.167284442307741,
+            "sd": 15.170735381397584,
+            "t": 1.5055046671927241,
+            "t_p": 0.13836323229578446,
+            "wilcoxon_stat": 527.0,
+            "wilcoxon_p": 0.14012639559297696
+          }
+        },
+        "2024": {
+          "nonexpiry": {
+            "n": 195,
+            "mean": -2.442564102564043,
+            "sd": 14.24078499623579,
+            "t": -2.3951314102075925,
+            "t_p": 0.017565662096530064,
+            "wilcoxon_stat": 7596.5,
+            "wilcoxon_p": 0.017471760286234057
+          },
+          "expiry": {
+            "n": 52,
+            "mean": -4.683653846153832,
+            "sd": 15.562825620355262,
+            "t": -2.1701912635639076,
+            "t_p": 0.03467379093391904,
+            "wilcoxon_stat": 458.0,
+            "wilcoxon_p": 0.035401012762322076
+          }
+        },
+        "2025": {
+          "nonexpiry": {
+            "n": 196,
+            "mean": -0.5298469387754471,
+            "sd": 14.003460725268784,
+            "t": -0.5297159958088775,
+            "t_p": 0.5969114357123997,
+            "wilcoxon_stat": 9125.0,
+            "wilcoxon_p": 0.5858002059836792
+          },
+          "expiry": {
+            "n": 52,
+            "mean": -3.8663461538460697,
+            "sd": 14.582206862333075,
+            "t": -1.9119615347651995,
+            "t_p": 0.06150671509430788,
+            "wilcoxon_stat": 484.5,
+            "wilcoxon_p": 0.06255037428351914
+          }
+        },
+        "2026": {
+          "nonexpiry": {
+            "n": 67,
+            "mean": -1.223134328358274,
+            "sd": 14.564255040187422,
+            "t": -0.6874217690760039,
+            "t_p": 0.4942256359919173,
+            "wilcoxon_stat": 1037.0,
+            "wilcoxon_p": 0.5240169574986056
+          },
+          "expiry": {
+            "n": 19,
+            "mean": -1.5473684210523253,
+            "sd": 12.927828227898834,
+            "t": -0.5217289754235402,
+            "t_p": 0.6082198434387339,
+            "wilcoxon_stat": 86.0,
+            "wilcoxon_p": 0.7171903998703537
+          }
+        }
+      },
+      "uniform_null_expected_abs_mod_minus_50": 25.0
+    }
+  },
+  "completion_order": [
+    "H1",
+    "H2",
+    "H3",
+    "H4",
+    "H5",
+    "H6",
+    "H7",
+    "H8",
+    "H9",
+    "H10",
+    "H11",
+    "H12",
+    "H13",
+    "H14",
+    "H15"
+  ],
+  "complete": true,
+  "bonferroni_threshold_clear": [
+    "H3",
+    "H7",
+    "H14"
+  ],
+  "survivors": [
+    "H3"
+  ]
+}

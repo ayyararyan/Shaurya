@@ -1,0 +1,12 @@
+{
+  "dates_seen": 1323,
+  "no_expiry": 2,
+  "no_spot": 1,
+  "expiry_past_archive": 0,
+  "iv_failed": 0,
+  "kept": 1320,
+  "date_min": "2021-01-01",
+  "date_max": "2026-05-12",
+  "n_rows": 1320,
+  "vix_rows": 1151
+}

@@ -1,0 +1,130 @@
+{
+  "n_contract_days": 13240,
+  "dates": 1324,
+  "note": "the archive has NO bid/ask column; every number here is an estimator, not a quote",
+  "roll_undefined_share_pct": 40.86102719033233,
+  "by_leg": {
+    "ATM": {
+      "n": 2648,
+      "median_price_rs": 92.4125,
+      "roll_half_rs_median": 0.624998675685883,
+      "roll_undefined_pct": 44.259818731117825,
+      "corwin_schultz_half_rs_median": 0.6933262079391529,
+      "corwin_schultz_prop_pct": 1.505496870716994,
+      "bar_range_half_rs_median": 1.2250000000000014
+    },
+    "wing 150 (w=3)": {
+      "n": 5296,
+      "median_price_rs": 110.225,
+      "roll_half_rs_median": 0.5959922835170067,
+      "roll_undefined_pct": 41.12537764350453,
+      "corwin_schultz_half_rs_median": 0.714277573333375,
+      "corwin_schultz_prop_pct": 1.389190071054011,
+      "bar_range_half_rs_median": 1.2999999999999972
+    },
+    "wing 200 (w=4)": {
+      "n": 5296,
+      "median_price_rs": 124.55000000000001,
+      "roll_half_rs_median": 0.5879603478656392,
+      "roll_undefined_pct": 38.897280966767376,
+      "corwin_schultz_half_rs_median": 0.6805646784191374,
+      "corwin_schultz_prop_pct": 1.32930420408063,
+      "bar_range_half_rs_median": 1.1750000000000114
+    }
+  },
+  "cost_model": {
+    "Roll | w=3": {
+      "atm_half_rs": 0.624998675685883,
+      "wing_half_rs": 0.5959922835170067,
+      "spread_rs": 366.2972877608669,
+      "brokerage_rs": 160.0,
+      "total_rs": 526.2972877608669
+    },
+    "Roll | w=4": {
+      "atm_half_rs": 0.624998675685883,
+      "wing_half_rs": 0.5879603478656392,
+      "spread_rs": 363.88770706545665,
+      "brokerage_rs": 160.0,
+      "total_rs": 523.8877070654567
+    },
+    "Corwin-Schultz | w=3": {
+      "atm_half_rs": 0.6933262079391529,
+      "wing_half_rs": 0.714277573333375,
+      "spread_rs": 422.28113438175836,
+      "brokerage_rs": 160.0,
+      "total_rs": 582.2811343817584
+    },
+    "Corwin-Schultz | w=4": {
+      "atm_half_rs": 0.6933262079391529,
+      "wing_half_rs": 0.6805646784191374,
+      "spread_rs": 412.16726590748704,
+      "brokerage_rs": 160.0,
+      "total_rs": 572.167265907487
+    },
+    "bar-range floor | w=3": {
+      "atm_half_rs": 1.2250000000000014,
+      "wing_half_rs": 1.2999999999999972,
+      "spread_rs": 757.4999999999995,
+      "brokerage_rs": 160.0,
+      "total_rs": 917.4999999999995
+    },
+    "bar-range floor | w=4": {
+      "atm_half_rs": 1.2250000000000014,
+      "wing_half_rs": 1.1750000000000114,
+      "spread_rs": 720.0000000000039,
+      "brokerage_rs": 160.0,
+      "total_rs": 880.0000000000039
+    }
+  },
+  "edges_to_compare_rs": {
+    "IF(w=3) unconditional mean": 89.1,
+    "IF(w=4) unconditional mean": 157.6,
+    "IF(w=3) selected third, untouched year": 189.4,
+    "IF(w=4) selected third, untouched year": 222.6,
+    "IF(w=4) selected third, full walk-forward": 309.7
+  },
+  "survives_cost": {
+    "Roll | w=3": {
+      "IF(w=3) unconditional mean": false,
+      "IF(w=4) unconditional mean": false,
+      "IF(w=3) selected third, untouched year": false,
+      "IF(w=4) selected third, untouched year": false,
+      "IF(w=4) selected third, full walk-forward": false
+    },
+    "Roll | w=4": {
+      "IF(w=3) unconditional mean": false,
+      "IF(w=4) unconditional mean": false,
+      "IF(w=3) selected third, untouched year": false,
+      "IF(w=4) selected third, untouched year": false,
+      "IF(w=4) selected third, full walk-forward": false
+    },
+    "Corwin-Schultz | w=3": {
+      "IF(w=3) unconditional mean": false,
+      "IF(w=4) unconditional mean": false,
+      "IF(w=3) selected third, untouched year": false,
+      "IF(w=4) selected third, untouched year": false,
+      "IF(w=4) selected third, full walk-forward": false
+    },
+    "Corwin-Schultz | w=4": {
+      "IF(w=3) unconditional mean": false,
+      "IF(w=4) unconditional mean": false,
+      "IF(w=3) selected third, untouched year": false,
+      "IF(w=4) selected third, untouched year": false,
+      "IF(w=4) selected third, full walk-forward": false
+    },
+    "bar-range floor | w=3": {
+      "IF(w=3) unconditional mean": false,
+      "IF(w=4) unconditional mean": false,
+      "IF(w=3) selected third, untouched year": false,
+      "IF(w=4) selected third, untouched year": false,
+      "IF(w=4) selected third, full walk-forward": false
+    },
+    "bar-range floor | w=4": {
+      "IF(w=3) unconditional mean": false,
+      "IF(w=4) unconditional mean": false,
+      "IF(w=3) selected third, untouched year": false,
+      "IF(w=4) selected third, untouched year": false,
+      "IF(w=4) selected third, full walk-forward": false
+    }
+  }
+}

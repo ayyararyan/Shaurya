@@ -1,0 +1,20 @@
+{
+  "files_read": 2772,
+  "files_missing": 0,
+  "raw_rows": 4159602,
+  "non_positive_close_dropped": 0,
+  "deduplicated_rows": 4159521,
+  "dates": 264,
+  "duplicate_audit": {
+    "duplicate_contract_minutes": 81,
+    "duplicate_share_pct": 0.002,
+    "volume_disagreement_share_pct": 0.001,
+    "oi_disagreement_share_pct": 0.001,
+    "close_disagreement_share_pct": 0.002,
+    "median_volume_spread_where_disagreeing": 5550.0
+  },
+  "ohlc_consistent_share_pct": 100.0,
+  "zero_range_bar_share_pct": 5.443,
+  "zero_volume_bar_share_pct": 4.947,
+  "zero_oi_bar_share_pct": 0.0
+}

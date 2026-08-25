@@ -1,0 +1,13 @@
+{
+  "files_read": 2772,
+  "files_missing": 0,
+  "raw_rows_scanned": 20860781,
+  "snapshot_rows_before_dedup": 109932,
+  "non_positive_close_dropped": 0,
+  "duplicate_contract_minutes": 23,
+  "snapshot_rows": 109909,
+  "dates": 1325,
+  "dates_with_0915": 1323,
+  "zero_iv_share_pct_0915": 7.525,
+  "zero_oi_share_pct_0915": 0.017
+}

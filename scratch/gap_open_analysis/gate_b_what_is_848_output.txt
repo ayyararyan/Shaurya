@@ -1,0 +1,23 @@
+decision 09:17 | initial 09:15-09:17 | target 09:18-09:45 (28 min)
+
+FIRES    N= 33  initial_high_first= 54.5%  target_high_first= 54.5%  reversed= 84.8%
+CONTROLS N=231  initial_high_first= 36.8%  target_high_first= 43.3%  reversed= 48.1%
+
+fires cross-tab (rows initial, cols target):
+target_high_first    0   1
+initial_high_first        
+0                    1  14
+1                   14   4
+
+controls cross-tab:
+target_high_first    0   1
+initial_high_first        
+0                   83  63
+1                   48  37
+
+Does the label separate money? (fires, real premiums, hold to close)
+         close_ret_pct               close_move_pts              
+                 count   mean median          count   mean median
+reversed                                                         
+False                5 -28.32 -34.03              5 -29.17 -19.45
+True                28  -2.11 -12.16             28  11.39  -2.75

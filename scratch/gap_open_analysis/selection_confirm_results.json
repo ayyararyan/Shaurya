@@ -1,0 +1,149 @@
+{
+  "preregistered": {
+    "direction": "LOWEST tercile of signal = credit_pts - forecast_range",
+    "threshold": "expanding 33.3rd percentile of prior sessions only, min 120 obs",
+    "headline_cell": "IF(w=4)",
+    "secondary_cell": "IF(w=3)",
+    "decision_rule": "confirmed iff holdout difference > 0 AND placebo two-sided p < 0.05 on w=4",
+    "seed": 20260823,
+    "n_permutations": 5000
+  },
+  "cells": {
+    "IF(w=4)": {
+      "label": "IF(w=4)",
+      "n": 633,
+      "n_selected": 269,
+      "selected_share": 0.42496050552922593,
+      "full walk-forward": {
+        "n": 633,
+        "n_selected": 269,
+        "selected_mean_rs": 309.70260223048325,
+        "rest_mean_rs": 82.0467032967032,
+        "difference_rs": 227.65589893378007,
+        "selected_median_rs": 352.49999999999915,
+        "selected_win": 0.6914498141263941,
+        "selected_mean_ror_pct": 8.701678565861833,
+        "welch_p": 0.005913624089007006,
+        "placebo_one_sided_p": 0.0014,
+        "placebo_two_sided_p": 0.0046,
+        "clears_cost_bar_160": true,
+        "breakeven_half_spread_rs_per_unit_per_leg": 0.516171003717472
+      },
+      "untouched year": {
+        "n": 189,
+        "n_selected": 86,
+        "selected_mean_rs": 222.60174418604652,
+        "rest_mean_rs": 61.27427184466008,
+        "difference_rs": 161.32747234138645,
+        "selected_median_rs": 271.8749999999979,
+        "selected_win": 0.6511627906976745,
+        "selected_mean_ror_pct": 6.276824617497201,
+        "welch_p": 0.2407198733592765,
+        "placebo_one_sided_p": 0.1154,
+        "placebo_two_sided_p": 0.2434,
+        "clears_cost_bar_160": true,
+        "breakeven_half_spread_rs_per_unit_per_leg": 0.3710029069767442
+      }
+    },
+    "IF(w=3)": {
+      "label": "IF(w=3)",
+      "n": 641,
+      "n_selected": 279,
+      "selected_share": 0.43525741029641185,
+      "full walk-forward": {
+        "n": 641,
+        "n_selected": 279,
+        "selected_mean_rs": 182.62096774193537,
+        "rest_mean_rs": 60.97375690607723,
+        "difference_rs": 121.64721083585815,
+        "selected_median_rs": 213.74999999999957,
+        "selected_win": 0.6881720430107527,
+        "selected_mean_ror_pct": 10.016801221170901,
+        "welch_p": 0.02694695418710563,
+        "placebo_one_sided_p": 0.0074,
+        "placebo_two_sided_p": 0.0258,
+        "clears_cost_bar_160": true,
+        "breakeven_half_spread_rs_per_unit_per_leg": 0.30436827956989226
+      },
+      "untouched year": {
+        "n": 189,
+        "n_selected": 78,
+        "selected_mean_rs": 189.42307692307702,
+        "rest_mean_rs": 46.081081081080825,
+        "difference_rs": 143.3419958419962,
+        "selected_median_rs": 168.75000000000108,
+        "selected_win": 0.6666666666666666,
+        "selected_mean_ror_pct": 10.114587485636479,
+        "welch_p": 0.10849360192949804,
+        "placebo_one_sided_p": 0.0588,
+        "placebo_two_sided_p": 0.1332,
+        "clears_cost_bar_160": true,
+        "breakeven_half_spread_rs_per_unit_per_leg": 0.31570512820512836
+      }
+    }
+  },
+  "mechanism": {
+    "corr_signal_smile_ratio_200": 0.24471708944010176,
+    "corr_signal_atm_iv": -0.8833943988129562,
+    "corr_signal_n_sess": 0.23114924519497745,
+    "corr_signal_credit": -0.5348516144136296,
+    "mean_smile_ratio_selected": 1.0187424875508369,
+    "mean_smile_ratio_rest": 1.0374459967695395,
+    "mean_n_sess_selected": 3.159851301115242,
+    "mean_n_sess_rest": 3.5741758241758244,
+    "mean_atm_iv_selected": 0.14117799999567107,
+    "mean_atm_iv_rest": 0.09508232207107026,
+    "sort_by_smile_ratio_200": {
+      "low_third_mean_rs": 170.13625592417048,
+      "rest_mean_rs": 183.11907582938386,
+      "difference_rs": -12.982819905213375,
+      "welch_p": 0.8651694721299489
+    },
+    "sort_by_n_sess": {
+      "low_third_mean_rs": 228.8938053097346,
+      "rest_mean_rs": 121.02040816326506,
+      "difference_rs": 107.87339714646954,
+      "welch_p": 0.15970124838654812
+    },
+    "sort_by_atm_iv_0920": {
+      "low_third_mean_rs": 118.93364928909952,
+      "rest_mean_rs": 208.72037914691933,
+      "difference_rs": -89.78672985781981,
+      "welch_p": 0.29104889388784994
+    },
+    "within_n_sess": {
+      "n_sess=2": {
+        "n": 173,
+        "n_sel": 103,
+        "selected_rs": 405.0364077669903,
+        "rest_rs": -72.4285714285714,
+        "difference_rs": 477.4649791955617,
+        "welch_p": 0.04370414907495075
+      },
+      "n_sess=3": {
+        "n": 166,
+        "n_sel": 63,
+        "selected_rs": 297.0238095238098,
+        "rest_rs": 215.86165048543697,
+        "difference_rs": 81.16215903837283,
+        "welch_p": 0.5552420657412545
+      },
+      "n_sess=4": {
+        "n": 171,
+        "n_sel": 62,
+        "selected_rs": 220.70564516129014,
+        "rest_rs": 72.2477064220183,
+        "difference_rs": 148.45793873927184,
+        "welch_p": 0.11495641530422054
+      },
+      "n_sess=5": {
+        "n": 118,
+        "n_sel": 39,
+        "selected_rs": 222.980769230769,
+        "rest_rs": 60.85443037974627,
+        "difference_rs": 162.12633885102272,
+        "welch_p": 0.132414199020907
+      }
+    }
+  }
+}

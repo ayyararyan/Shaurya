@@ -1,0 +1,361 @@
+====================================================================================================
+GATE B ENTRY-TIMING TEST -- real strike-tracked traded premiums, ATM re-picked at the entry minute
+====================================================================================================
+pool 120  fires(mid-IV) 33  controls 87
+
+E1  mid-IV Gate B (N=33)   hold to 15:29 in every cell
+  fill (baseline)  drop  0 unpx 0  N= 33  mean   -6.08%  med  -13.46%  win 39.4%  p=0.4660  held 314.1m  -0.0093%/min
+  fill+15          drop  0 unpx 0  N= 33  mean   +1.97%  med   -5.78%  win 39.4%  p=0.8376  held 299.1m  +0.0127%/min
+  fill+30          drop  0 unpx 0  N= 33  mean   +4.92%  med   -2.56%  win 48.5%  p=0.5569  held 284.1m  +0.0318%/min
+  fill+45          drop  0 unpx 0  N= 33  mean   +3.75%  med   -2.97%  win 42.4%  p=0.6750  held 269.1m  +0.0167%/min
+  fill+60          drop  0 unpx 0  N= 33  mean   +1.53%  med   -3.51%  win 42.4%  p=0.8497  held 254.1m  +0.0062%/min
+  fill+90          drop  2 unpx 0  N= 31  mean   +6.77%  med   -6.32%  win 38.7%  p=0.4195  held 238.8m  +0.0164%/min
+  10:00            drop 12 unpx 0  N= 21  mean   +7.30%  med   +3.91%  win 52.4%  p=0.5618  held 329.0m  +0.0222%/min
+  10:30            drop  8 unpx 0  N= 25  mean   +9.57%  med   +1.99%  win 52.0%  p=0.3841  held 299.0m  +0.0320%/min
+  11:00            drop  5 unpx 0  N= 28  mean   +5.27%  med  -10.65%  win 46.4%  p=0.6021  held 269.0m  +0.0196%/min
+  11:30            drop  5 unpx 0  N= 28  mean   +4.80%  med   -7.02%  win 42.9%  p=0.6164  held 239.0m  +0.0201%/min
+  12:00            drop  5 unpx 0  N= 28  mean  +10.14%  med   -6.13%  win 46.4%  p=0.3273  held 209.0m  +0.0485%/min
+  12:30            drop  5 unpx 0  N= 28  mean  +11.82%  med   +2.61%  win 50.0%  p=0.1857  held 179.0m  +0.0660%/min
+  13:00            drop  3 unpx 0  N= 30  mean  +11.12%  med   -3.29%  win 43.3%  p=0.1960  held 149.0m  +0.0747%/min
+  13:30            drop  2 unpx 0  N= 31  mean  +13.13%  med   -0.07%  win 48.4%  p=0.1630  held 119.0m  +0.1103%/min
+  14:00            drop  2 unpx 0  N= 31  mean   +7.80%  med   +5.77%  win 54.8%  p=0.2759  held  89.0m  +0.0876%/min
+  14:30            drop  0 unpx 0  N= 33  mean   +6.42%  med   +4.99%  win 57.6%  p=0.2318  held  59.0m  +0.1089%/min
+  common sample across all cells: N=21
+    fill (baseline)  N= 21  mean   -7.06%  med  -16.88%  win 38.1%  p=0.5474  held 361.0m  -0.0189%/min
+    fill+15          N= 21  mean   +4.45%  med   -8.06%  win 33.3%  p=0.7548  held 346.0m  +0.0140%/min
+    fill+30          N= 21  mean   +7.27%  med   -2.56%  win 47.6%  p=0.5470  held 331.0m  +0.0232%/min
+    fill+45          N= 21  mean   +6.94%  med   -2.97%  win 47.6%  p=0.5896  held 316.0m  +0.0235%/min
+    fill+60          N= 21  mean   +4.76%  med   +0.88%  win 52.4%  p=0.6733  held 301.0m  +0.0175%/min
+    fill+90          N= 21  mean  +11.84%  med   -1.65%  win 47.6%  p=0.3081  held 271.0m  +0.0454%/min
+    10:00            N= 21  mean   +7.30%  med   +3.91%  win 52.4%  p=0.5618  held 329.0m  +0.0222%/min
+    10:30            N= 21  mean   +8.78%  med   +2.33%  win 57.1%  p=0.4760  held 299.0m  +0.0294%/min
+    11:00            N= 21  mean  +11.04%  med   +0.81%  win 52.4%  p=0.3614  held 269.0m  +0.0411%/min
+    11:30            N= 21  mean   +9.77%  med   -3.55%  win 47.6%  p=0.3875  held 239.0m  +0.0409%/min
+    12:00            N= 21  mean  +13.69%  med   +3.22%  win 52.4%  p=0.2745  held 209.0m  +0.0655%/min
+    12:30            N= 21  mean  +15.22%  med  +12.38%  win 57.1%  p=0.1424  held 179.0m  +0.0850%/min
+    13:00            N= 21  mean  +15.91%  med   -1.44%  win 47.6%  p=0.1469  held 149.0m  +0.1068%/min
+    13:30            N= 21  mean  +17.20%  med   -0.07%  win 47.6%  p=0.1679  held 119.0m  +0.1446%/min
+    14:00            N= 21  mean  +11.76%  med   +6.68%  win 61.9%  p=0.1561  held  89.0m  +0.1322%/min
+    14:30            N= 21  mean   +5.63%  med   +4.99%  win 57.1%  p=0.3865  held  59.0m  +0.0955%/min
+
+E1  pooled VIX-rose gap-down fills (N=120)   hold to 15:29 in every cell
+  fill (baseline)  drop  0 unpx 0  N=120  mean   -7.61%  med  -13.22%  win 38.3%  p=0.0672  held 298.4m  -0.0197%/min
+  fill+15          drop  2 unpx 3  N=115  mean   -5.07%  med   -8.17%  win 38.3%  p=0.2463  held 287.1m  -0.0240%/min
+  fill+30          drop  5 unpx 3  N=112  mean   -3.26%  med   -8.19%  win 41.1%  p=0.4413  held 279.1m  -0.0232%/min
+  fill+45          drop  7 unpx 4  N=109  mean   -1.71%  med   -7.43%  win 42.2%  p=0.6952  held 268.3m  -0.0154%/min
+  fill+60          drop  7 unpx 2  N=111  mean   -3.45%  med   -7.82%  win 39.6%  p=0.3977  held 254.2m  -0.0012%/min
+  fill+90          drop 12 unpx 3  N=105  mean   -1.03%  med   -7.36%  win 41.0%  p=0.8026  held 234.9m  +0.0140%/min
+  10:00            drop 44 unpx 4  N= 72  mean   -5.60%  med  -11.99%  win 38.9%  p=0.3336  held 329.0m  -0.0170%/min
+  10:30            drop 33 unpx 4  N= 83  mean   -2.29%  med   -9.09%  win 38.6%  p=0.6610  held 299.0m  -0.0077%/min
+  11:00            drop 28 unpx 3  N= 89  mean   -3.11%  med  -11.90%  win 36.0%  p=0.5211  held 269.0m  -0.0116%/min
+  11:30            drop 28 unpx 1  N= 91  mean   -3.72%  med   -9.06%  win 36.3%  p=0.4081  held 239.0m  -0.0156%/min
+  12:00            drop 24 unpx 0  N= 96  mean   -1.57%  med   -8.67%  win 38.5%  p=0.7261  held 209.0m  -0.0075%/min
+  12:30            drop 24 unpx 0  N= 96  mean   -0.97%  med   -7.46%  win 38.5%  p=0.8161  held 179.0m  -0.0054%/min
+  13:00            drop 18 unpx 0  N=102  mean   -2.28%  med   -4.94%  win 36.3%  p=0.5300  held 149.0m  -0.0153%/min
+  13:30            drop 12 unpx 1  N=107  mean   -1.82%  med   -7.49%  win 37.4%  p=0.6009  held 119.0m  -0.0153%/min
+  14:00            drop 12 unpx 0  N=108  mean   -1.83%  med   -3.03%  win 46.3%  p=0.5239  held  89.0m  -0.0205%/min
+  14:30            drop  7 unpx 0  N=113  mean   -2.78%  med   -3.27%  win 45.1%  p=0.2463  held  59.0m  -0.0471%/min
+  common sample across all cells: N=70
+    fill (baseline)  N= 70  mean  -12.12%  med  -23.06%  win 32.9%  p=0.0434  held 363.2m  -0.0336%/min
+    fill+15          N= 70  mean   -6.84%  med  -16.71%  win 34.3%  p=0.2808  held 348.2m  -0.0199%/min
+    fill+30          N= 70  mean   -4.74%  med  -12.68%  win 40.0%  p=0.4180  held 333.1m  -0.0146%/min
+    fill+45          N= 70  mean   -4.69%  med  -12.91%  win 38.6%  p=0.4295  held 318.1m  -0.0150%/min
+    fill+60          N= 70  mean   -5.51%  med  -17.94%  win 37.1%  p=0.3138  held 303.2m  -0.0185%/min
+    fill+90          N= 70  mean   -1.21%  med  -11.92%  win 40.0%  p=0.8259  held 273.2m  -0.0047%/min
+    10:00            N= 70  mean   -5.37%  med  -11.99%  win 38.6%  p=0.3521  held 329.0m  -0.0163%/min
+    10:30            N= 70  mean   -3.81%  med  -10.57%  win 38.6%  p=0.4941  held 299.0m  -0.0128%/min
+    11:00            N= 70  mean   -1.53%  med  -11.18%  win 34.3%  p=0.7822  held 269.0m  -0.0057%/min
+    11:30            N= 70  mean   -3.14%  med   -7.93%  win 35.7%  p=0.5450  held 239.0m  -0.0131%/min
+    12:00            N= 70  mean   -2.10%  med   -8.43%  win 40.0%  p=0.6929  held 209.0m  -0.0100%/min
+    12:30            N= 70  mean   -1.83%  med   -7.31%  win 37.1%  p=0.7076  held 179.0m  -0.0102%/min
+    13:00            N= 70  mean   -3.49%  med   -5.85%  win 34.3%  p=0.4276  held 149.0m  -0.0234%/min
+    13:30            N= 70  mean   -2.49%  med   -7.15%  win 34.3%  p=0.5760  held 119.0m  -0.0209%/min
+    14:00            N= 70  mean   -1.52%  med   -2.10%  win 48.6%  p=0.6466  held  89.0m  -0.0171%/min
+    14:30            N= 70  mean   -3.25%  med   -3.43%  win 44.3%  p=0.2470  held  59.0m  -0.0551%/min
+
+E1 paired vs the fill-minute entry, SAME DAYS -- mid-IV Gate B (N=33)
+  fill+15          n= 33  fill   -6.08% -> late   +1.97%  diff   +8.04pp (med  +4.87)  better on 69.7% of days  p=0.0129 (Bonf 0.1939)  wilcoxon p=0.0058 (Bonf 0.0874)
+  fill+30          n= 33  fill   -6.08% -> late   +4.92%  diff  +11.00pp (med  +7.83)  better on 66.7% of days  p=0.0006 (Bonf 0.0090)  wilcoxon p=0.0014 (Bonf 0.0208)
+  fill+45          n= 33  fill   -6.08% -> late   +3.75%  diff   +9.83pp (med +11.00)  better on 72.7% of days  p=0.0172 (Bonf 0.2577)  wilcoxon p=0.0152 (Bonf 0.2285)
+  fill+60          n= 33  fill   -6.08% -> late   +1.53%  diff   +7.61pp (med +11.01)  better on 78.8% of days  p=0.0603 (Bonf 0.9043)  wilcoxon p=0.0307 (Bonf 0.4607)
+  fill+90          n= 31  fill   -7.12% -> late   +6.77%  diff  +13.89pp (med +12.01)  better on 77.4% of days  p=0.0109 (Bonf 0.1633)  wilcoxon p=0.0044 (Bonf 0.0665)
+  10:00            n= 21  fill   -7.06% -> late   +7.30%  diff  +14.35pp (med +14.79)  better on 85.7% of days  p=0.0043 (Bonf 0.0646)  wilcoxon p=0.0029 (Bonf 0.0429)
+  10:30            n= 25  fill   -6.63% -> late   +9.57%  diff  +16.20pp (med +16.29)  better on 76.0% of days  p=0.0058 (Bonf 0.0870)  wilcoxon p=0.0007 (Bonf 0.0107)
+  11:00            n= 28  fill   -8.88% -> late   +5.27%  diff  +14.15pp (med  +9.07)  better on 75.0% of days  p=0.0177 (Bonf 0.2656)  wilcoxon p=0.0089 (Bonf 0.1329)
+  11:30            n= 28  fill   -8.88% -> late   +4.80%  diff  +13.68pp (med  +8.23)  better on 67.9% of days  p=0.0404 (Bonf 0.6057)  wilcoxon p=0.0317 (Bonf 0.4756)
+  12:00            n= 28  fill   -8.88% -> late  +10.14%  diff  +19.02pp (med +14.39)  better on 75.0% of days  p=0.0264 (Bonf 0.3966)  wilcoxon p=0.0052 (Bonf 0.0776)
+  12:30            n= 28  fill   -8.88% -> late  +11.82%  diff  +20.70pp (med +16.97)  better on 82.1% of days  p=0.0141 (Bonf 0.2116)  wilcoxon p=0.0071 (Bonf 0.1061)
+  13:00            n= 30  fill   -8.10% -> late  +11.12%  diff  +19.22pp (med +13.20)  better on 73.3% of days  p=0.0200 (Bonf 0.2994)  wilcoxon p=0.0076 (Bonf 0.1142)
+  13:30            n= 31  fill   -7.12% -> late  +13.13%  diff  +20.25pp (med +16.35)  better on 74.2% of days  p=0.0302 (Bonf 0.4527)  wilcoxon p=0.0110 (Bonf 0.1652)
+  14:00            n= 31  fill   -7.12% -> late   +7.80%  diff  +14.92pp (med +12.68)  better on 64.5% of days  p=0.1071 (Bonf 1.0000)  wilcoxon p=0.0793 (Bonf 1.0000)
+  14:30            n= 33  fill   -6.08% -> late   +6.42%  diff  +12.50pp (med +21.64)  better on 60.6% of days  p=0.1345 (Bonf 1.0000)  wilcoxon p=0.0767 (Bonf 1.0000)
+
+E1 paired vs the fill-minute entry, SAME DAYS -- pooled (N=120)
+  fill+15          n=115  fill   -7.93% -> late   -5.07%  diff   +2.86pp (med  +2.07)  better on 59.1% of days  p=0.0462 (Bonf 0.6927)  wilcoxon p=0.0451 (Bonf 0.6764)
+  fill+30          n=112  fill   -8.01% -> late   -3.26%  diff   +4.75pp (med  +5.11)  better on 58.9% of days  p=0.0092 (Bonf 0.1380)  wilcoxon p=0.0093 (Bonf 0.1394)
+  fill+45          n=109  fill   -7.80% -> late   -1.71%  diff   +6.09pp (med  +8.14)  better on 63.3% of days  p=0.0040 (Bonf 0.0594)  wilcoxon p=0.0014 (Bonf 0.0210)
+  fill+60          n=111  fill   -8.91% -> late   -3.45%  diff   +5.46pp (med  +8.50)  better on 67.6% of days  p=0.0176 (Bonf 0.2638)  wilcoxon p=0.0064 (Bonf 0.0966)
+  fill+90          n=105  fill   -9.38% -> late   -1.03%  diff   +8.35pp (med +11.09)  better on 66.7% of days  p=0.0067 (Bonf 0.1008)  wilcoxon p=0.0027 (Bonf 0.0400)
+  10:00            n= 72  fill  -12.20% -> late   -5.60%  diff   +6.60pp (med  +5.59)  better on 70.8% of days  p=0.0050 (Bonf 0.0757)  wilcoxon p=0.0021 (Bonf 0.0310)
+  10:30            n= 83  fill  -10.01% -> late   -2.29%  diff   +7.73pp (med  +7.88)  better on 62.7% of days  p=0.0095 (Bonf 0.1422)  wilcoxon p=0.0040 (Bonf 0.0599)
+  11:00            n= 89  fill  -11.04% -> late   -3.11%  diff   +7.92pp (med  +8.92)  better on 66.3% of days  p=0.0276 (Bonf 0.4137)  wilcoxon p=0.0034 (Bonf 0.0513)
+  11:30            n= 91  fill  -10.30% -> late   -3.72%  diff   +6.58pp (med  +7.92)  better on 61.5% of days  p=0.0821 (Bonf 1.0000)  wilcoxon p=0.0346 (Bonf 0.5183)
+  12:00            n= 96  fill   -9.90% -> late   -1.57%  diff   +8.33pp (med +12.10)  better on 64.6% of days  p=0.0411 (Bonf 0.6163)  wilcoxon p=0.0079 (Bonf 0.1184)
+  12:30            n= 96  fill   -9.90% -> late   -0.97%  diff   +8.93pp (med +13.42)  better on 68.8% of days  p=0.0352 (Bonf 0.5285)  wilcoxon p=0.0039 (Bonf 0.0584)
+  13:00            n=102  fill   -9.39% -> late   -2.28%  diff   +7.11pp (med +12.55)  better on 62.7% of days  p=0.0888 (Bonf 1.0000)  wilcoxon p=0.0162 (Bonf 0.2425)
+  13:30            n=107  fill   -8.73% -> late   -1.82%  diff   +6.90pp (med  +9.31)  better on 64.5% of days  p=0.1017 (Bonf 1.0000)  wilcoxon p=0.0229 (Bonf 0.3435)
+  14:00            n=108  fill   -8.12% -> late   -1.83%  diff   +6.29pp (med +10.72)  better on 62.0% of days  p=0.1456 (Bonf 1.0000)  wilcoxon p=0.0460 (Bonf 0.6900)
+  14:30            n=113  fill   -8.36% -> late   -2.78%  diff   +5.58pp (med  +7.73)  better on 59.3% of days  p=0.1832 (Bonf 1.0000)  wilcoxon p=0.0940 (Bonf 1.0000)
+
+E1 paired vs the fill-minute entry, SAME DAYS -- controls (N=87)
+  fill+15          n= 82  fill   -8.68% -> late   -7.90%  diff   +0.77pp (med  +1.08)  better on 54.9% of days  p=0.6113 (Bonf 1.0000)  wilcoxon p=0.5310 (Bonf 1.0000)
+  fill+30          n= 79  fill   -8.81% -> late   -6.68%  diff   +2.13pp (med  +3.76)  better on 55.7% of days  p=0.3301 (Bonf 1.0000)  wilcoxon p=0.3048 (Bonf 1.0000)
+  fill+45          n= 76  fill   -8.55% -> late   -4.07%  diff   +4.47pp (med  +5.00)  better on 59.2% of days  p=0.0694 (Bonf 1.0000)  wilcoxon p=0.0333 (Bonf 0.5002)
+  fill+60          n= 78  fill  -10.11% -> late   -5.56%  diff   +4.55pp (med  +6.50)  better on 62.8% of days  p=0.1053 (Bonf 1.0000)  wilcoxon p=0.0587 (Bonf 0.8810)
+  fill+90          n= 74  fill  -10.33% -> late   -4.30%  diff   +6.03pp (med  +9.05)  better on 62.2% of days  p=0.1073 (Bonf 1.0000)  wilcoxon p=0.0635 (Bonf 0.9520)
+  10:00            n= 51  fill  -14.32% -> late  -10.91%  diff   +3.41pp (med  +3.45)  better on 64.7% of days  p=0.1857 (Bonf 1.0000)  wilcoxon p=0.0829 (Bonf 1.0000)
+  10:30            n= 58  fill  -11.47% -> late   -7.40%  diff   +4.07pp (med  +3.52)  better on 56.9% of days  p=0.2334 (Bonf 1.0000)  wilcoxon p=0.1868 (Bonf 1.0000)
+  11:00            n= 61  fill  -12.03% -> late   -6.96%  diff   +5.07pp (med  +7.70)  better on 62.3% of days  p=0.2600 (Bonf 1.0000)  wilcoxon p=0.0644 (Bonf 0.9656)
+  11:30            n= 63  fill  -10.93% -> late   -7.51%  diff   +3.42pp (med  +6.03)  better on 58.7% of days  p=0.4581 (Bonf 1.0000)  wilcoxon p=0.2529 (Bonf 1.0000)
+  12:00            n= 68  fill  -10.32% -> late   -6.39%  diff   +3.93pp (med  +9.14)  better on 60.3% of days  p=0.3889 (Bonf 1.0000)  wilcoxon p=0.1426 (Bonf 1.0000)
+  12:30            n= 68  fill  -10.32% -> late   -6.24%  diff   +4.08pp (med  +9.93)  better on 63.2% of days  p=0.4023 (Bonf 1.0000)  wilcoxon p=0.0827 (Bonf 1.0000)
+  13:00            n= 72  fill   -9.93% -> late   -7.86%  diff   +2.07pp (med +11.28)  better on 58.3% of days  p=0.6671 (Bonf 1.0000)  wilcoxon p=0.2233 (Bonf 1.0000)
+  13:30            n= 76  fill   -9.38% -> late   -7.92%  diff   +1.46pp (med  +7.13)  better on 60.5% of days  p=0.7483 (Bonf 1.0000)  wilcoxon p=0.2701 (Bonf 1.0000)
+  14:00            n= 77  fill   -8.52% -> late   -5.70%  diff   +2.82pp (med +10.46)  better on 61.0% of days  p=0.5585 (Bonf 1.0000)  wilcoxon p=0.2318 (Bonf 1.0000)
+  14:30            n= 80  fill   -9.30% -> late   -6.57%  diff   +2.73pp (med  +6.61)  better on 58.8% of days  p=0.5740 (Bonf 1.0000)  wilcoxon p=0.4013 (Bonf 1.0000)
+
+E1 micro-shift diagnostic (NOT in the pre-declared grid) -- mid-IV Gate B (N=33)
+  fill+1  n= 33  fill   -6.08% ->   -5.44%  diff  +0.64pp (med  +0.84) p=0.5674  spot  -2.67pt p=0.1069
+  fill+2  n= 33  fill   -6.08% ->   -3.26%  diff  +2.81pp (med  +2.04) p=0.0220  spot  -5.83pt p=0.0071
+  fill+3  n= 33  fill   -6.08% ->   -4.10%  diff  +1.98pp (med  +1.42) p=0.1620  spot  -5.64pt p=0.0569
+  fill+5  n= 33  fill   -6.08% ->   -2.12%  diff  +3.96pp (med  +4.25) p=0.0606  spot  -7.10pt p=0.0386
+  fill+10 n= 33  fill   -6.08% ->   -0.13%  diff  +5.94pp (med  +2.65) p=0.0266  spot -13.53pt p=0.0154
+
+E1 micro-shift diagnostic (NOT in the pre-declared grid) -- controls (N=87)
+  fill+1  n= 86  fill   -7.62% ->   -7.65%  diff  -0.03pp (med  +0.33) p=0.9538  spot  +1.13pt p=0.2445
+  fill+2  n= 86  fill   -7.62% ->   -6.62%  diff  +1.00pp (med  +0.85) p=0.2420  spot  -1.95pt p=0.2944
+  fill+3  n= 86  fill   -7.62% ->   -6.12%  diff  +1.49pp (med  +0.45) p=0.1174  spot  -2.38pt p=0.2445
+  fill+5  n= 86  fill   -7.62% ->   -6.60%  diff  +1.02pp (med  +0.89) p=0.3276  spot  -2.80pt p=0.2269
+  fill+10 n= 87  fill   -8.19% ->   -6.58%  diff  +1.61pp (med  +1.21) p=0.2381  spot  -2.50pt p=0.4137
+
+E1 PLACEBO -- is the wait-after-the-fill gain a Gate-B property? (difference in differences vs controls)
+  fill+15          fires   +8.04pp  controls   +0.77pp  DiD   +7.27pp  welch p=0.0382  perm p=0.0166
+  fill+30          fires  +11.00pp  controls   +2.13pp  DiD   +8.87pp  welch p=0.0168  perm p=0.0248
+  fill+45          fires   +9.83pp  controls   +4.47pp  DiD   +5.35pp  welch p=0.2494  perm p=0.2422
+  fill+60          fires   +7.61pp  controls   +4.55pp  DiD   +3.06pp  welch p=0.5261  perm p=0.5262
+  fill+90          fires  +13.89pp  controls   +6.03pp  DiD   +7.87pp  welch p=0.2174  perm p=0.2366
+  10:00            fires  +14.35pp  controls   +3.41pp  DiD  +10.94pp  welch p=0.0404  perm p=0.0318
+  10:30            fires  +16.20pp  controls   +4.07pp  DiD  +12.13pp  welch p=0.0618  perm p=0.0522
+  11:00            fires  +14.15pp  controls   +5.07pp  DiD   +9.08pp  welch p=0.2093  perm p=0.2388
+  11:30            fires  +13.68pp  controls   +3.42pp  DiD  +10.25pp  welch p=0.1958  perm p=0.2102
+  12:00            fires  +19.02pp  controls   +3.93pp  DiD  +15.10pp  welch p=0.1109  perm p=0.0876
+  12:30            fires  +20.70pp  controls   +4.08pp  DiD  +16.62pp  welch p=0.0788  perm p=0.0746
+  13:00            fires  +19.22pp  controls   +2.07pp  DiD  +17.15pp  welch p=0.0667  perm p=0.0548
+  13:30            fires  +20.25pp  controls   +1.46pp  DiD  +18.79pp  welch p=0.0661  perm p=0.0364
+  14:00            fires  +14.92pp  controls   +2.82pp  DiD  +12.10pp  welch p=0.2405  perm p=0.2020
+  14:30            fires  +12.50pp  controls   +2.73pp  DiD   +9.77pp  welch p=0.3065  perm p=0.2902
+
+E1_entry_price_decomposition_mid_iv
+  fill+0   n= 33  spot   +0.00pt (med  +0.00, p=nan)  ATM premium   +0.00%
+  fill+15  n= 33  spot  -15.14pt (med -11.50, p=0.0152)  ATM premium   -2.72%
+  fill+30  n= 33  spot  -20.97pt (med -14.70, p=0.0030)  ATM premium   -0.79%
+  fill+45  n= 33  spot  -16.63pt (med -13.65, p=0.0362)  ATM premium   -3.75%
+  fill+60  n= 33  spot  -11.17pt (med -11.30, p=0.2158)  ATM premium   -5.70%
+  fill+90  n= 31  spot  -21.19pt (med -13.95, p=0.0620)  ATM premium   -2.65%
+
+E1_entry_price_decomposition_controls
+  fill+0   n= 87  spot   +0.00pt (med  +0.00, p=nan)  ATM premium   +0.00%
+  fill+15  n= 82  spot   -2.89pt (med  +0.20, p=0.3949)  ATM premium   -0.35%
+  fill+30  n= 79  spot   -5.16pt (med  +1.80, p=0.3363)  ATM premium   -1.96%
+  fill+45  n= 76  spot   -8.21pt (med  -1.05, p=0.1811)  ATM premium   -3.43%
+  fill+60  n= 78  spot  -10.36pt (med  -1.95, p=0.1255)  ATM premium   -2.81%
+  fill+90  n= 74  spot  -12.90pt (med  -6.87, p=0.1726)  ATM premium   -5.55%
+
+E1b implied vs realised volatility by entry clock -- mid-IV Gate B (N=33)
+  fill (baseline)  N= 33 implied 11.67%  realised  8.16%  gap  +3.51pp  p=0.0000  held 314.1m
+  fill+15          N= 33 implied 11.61%  realised  7.93%  gap  +3.68pp  p=0.0000  held 299.1m
+  fill+30          N= 33 implied 11.58%  realised  7.84%  gap  +3.74pp  p=0.0000  held 284.1m
+  fill+45          N= 33 implied 11.54%  realised  7.73%  gap  +3.81pp  p=0.0000  held 269.1m
+  fill+60          N= 33 implied 11.59%  realised  7.54%  gap  +4.05pp  p=0.0000  held 254.1m
+  fill+90          N= 31 implied 11.50%  realised  7.51%  gap  +3.98pp  p=0.0000  held 238.8m
+  10:00            N= 21 implied 11.44%  realised  7.73%  gap  +3.71pp  p=0.0000  held 329.0m
+  10:30            N= 25 implied 11.55%  realised  7.37%  gap  +4.18pp  p=0.0000  held 299.0m
+  11:00            N= 28 implied 11.41%  realised  7.26%  gap  +4.16pp  p=0.0000  held 269.0m
+  11:30            N= 28 implied 11.49%  realised  7.31%  gap  +4.18pp  p=0.0000  held 239.0m
+  12:00            N= 28 implied 11.62%  realised  7.39%  gap  +4.23pp  p=0.0000  held 209.0m
+  12:30            N= 28 implied 11.79%  realised  7.49%  gap  +4.30pp  p=0.0000  held 179.0m
+  13:00            N= 30 implied 11.90%  realised  7.79%  gap  +4.11pp  p=0.0000  held 149.0m
+  13:30            N= 31 implied 12.07%  realised  8.00%  gap  +4.07pp  p=0.0000  held 119.0m
+  14:00            N= 31 implied 12.12%  realised  8.28%  gap  +3.83pp  p=0.0000  held  89.0m
+  14:30            N= 33 implied 12.38%  realised  8.49%  gap  +3.89pp  p=0.0000  held  59.0m
+
+E1b implied vs realised volatility by entry clock -- pooled (N=120)
+  fill (baseline)  N=120 implied 12.38%  realised  8.57%  gap  +3.81pp  p=0.0000  held 298.4m
+  fill+15          N=112 implied 12.13%  realised  8.27%  gap  +3.86pp  p=0.0000  held 294.4m
+  fill+30          N=111 implied 12.17%  realised  8.24%  gap  +3.93pp  p=0.0000  held 281.5m
+  fill+45          N=109 implied 12.37%  realised  8.26%  gap  +4.11pp  p=0.0000  held 268.3m
+  fill+60          N=109 implied 12.33%  realised  8.06%  gap  +4.28pp  p=0.0000  held 258.5m
+  fill+90          N=105 implied 12.20%  realised  7.94%  gap  +4.27pp  p=0.0000  held 234.9m
+  10:00            N= 72 implied 11.66%  realised  7.92%  gap  +3.74pp  p=0.0000  held 329.0m
+  10:30            N= 83 implied 12.14%  realised  7.91%  gap  +4.23pp  p=0.0000  held 299.0m
+  11:00            N= 89 implied 12.18%  realised  7.77%  gap  +4.41pp  p=0.0000  held 269.0m
+  11:30            N= 91 implied 12.16%  realised  7.72%  gap  +4.43pp  p=0.0000  held 239.0m
+  12:00            N= 96 implied 12.57%  realised  8.00%  gap  +4.57pp  p=0.0000  held 209.0m
+  12:30            N= 96 implied 12.69%  realised  8.08%  gap  +4.61pp  p=0.0000  held 179.0m
+  13:00            N=102 implied 12.75%  realised  8.16%  gap  +4.59pp  p=0.0000  held 149.0m
+  13:30            N=107 implied 12.78%  realised  8.25%  gap  +4.52pp  p=0.0000  held 119.0m
+  14:00            N=108 implied 12.81%  realised  8.40%  gap  +4.42pp  p=0.0000  held  89.0m
+  14:30            N=113 implied 12.95%  realised  8.38%  gap  +4.57pp  p=0.0000  held  59.0m
+
+E2/E4 grid -- mid-IV Gate B (N=33): 144 cells, 106 with a positive conditional mean
+       23/144 beat the SAME-CLOCK unconditional benchmark; smallest p vs it 0.0773 (Bonferroni 1.000), 0 significant at a raw 5%
+       best vs same-clock: fill (baseline) / move>=10 D=+6.08pp p=0.4660
+  12:30          higher_high_30       N= 28 sel=  4 skip= 85.7%  cond   +9.97%  uncond@t  +11.82%  D  -1.85pp p=0.727 | timing  +1.77 selection +17.09
+  12:30          higher_high_15       N= 28 sel=  6 skip= 78.6%  cond   +9.87%  uncond@t  +11.82%  D  -1.95pp p=0.710 | timing  +2.02 selection +16.73
+  10:30          above_vwap           N= 25 sel= 12 skip= 52.0%  cond   +9.26%  uncond@t   +9.57%  D  -0.30pp p=0.973 | timing  +0.19 selection +15.71
+  fill+30        above_vwap           N= 33 sel= 19 skip= 42.4%  cond   +9.21%  uncond@t   +4.92%  D  +4.29pp p=0.387 | timing  +1.63 selection +13.65
+  10:00          move>=10             N= 21 sel=  3 skip= 85.7%  cond   +7.42%  uncond@t   +7.30%  D  +0.12pp p=0.992 | timing  -2.42 selection +16.89
+  13:30          r2_30_above_median   N= 31 sel= 11 skip= 64.5%  cond   +7.05%  uncond@t  +13.13%  D  -6.08pp p=0.476 | timing  +6.88 selection  +7.29
+  10:00          move>=0              N= 21 sel=  4 skip= 81.0%  cond   +6.41%  uncond@t   +7.30%  D  -0.89pp p=0.940 | timing  -2.28 selection +15.74
+  10:30          move>=0              N= 25 sel=  6 skip= 76.0%  cond   +6.26%  uncond@t   +9.57%  D  -3.31pp p=0.752 | timing  -3.23 selection +16.13
+
+E2/E4 grid -- pooled (N=120): 144 cells, 45 with a positive conditional mean
+       112/144 beat the SAME-CLOCK unconditional benchmark; smallest p vs it 0.0588 (Bonferroni 1.000), 0 significant at a raw 5%
+       best vs same-clock: 10:00 / move>=50 D=+7.88pp p=0.1505
+  12:30          r2_30_above_median   N= 96 sel= 49 skip= 49.0%  cond   +2.65%  uncond@t   -0.97%  D  +3.62pp p=0.142 | timing  +3.35 selection  +9.19
+  10:00          move>=50             N= 72 sel=  6 skip= 91.7%  cond   +2.28%  uncond@t   -5.60%  D  +7.88pp p=0.150 | timing  -2.10 selection +16.58
+  10:00          move>=0              N= 72 sel= 28 skip= 61.1%  cond   +2.22%  uncond@t   -5.60%  D  +7.82pp p=0.096 | timing  -3.75 selection +18.17
+  10:00          move>=10             N= 72 sel= 21 skip= 70.8%  cond   +2.01%  uncond@t   -5.60%  D  +7.61pp p=0.121 | timing  -4.18 selection +18.39
+  11:00          move>=20             N= 89 sel= 22 skip= 75.3%  cond   +1.97%  uncond@t   -3.11%  D  +5.08pp p=0.244 | timing  -7.68 selection +20.68
+  11:00          move>=30             N= 89 sel= 20 skip= 77.5%  cond   +1.87%  uncond@t   -3.11%  D  +4.99pp p=0.255 | timing  -7.44 selection +20.35
+  10:00          higher_high_15       N= 72 sel=  9 skip= 87.5%  cond   +1.87%  uncond@t   -5.60%  D  +7.47pp p=0.177 | timing  -0.00 selection +14.07
+  12:30          higher_high_30       N= 96 sel= 11 skip= 88.5%  cond   +1.63%  uncond@t   -0.97%  D  +2.60pp p=0.460 | timing  -0.53 selection +12.05
+
+E2/E4 grid -- controls (N=87): 144 cells, 28 with a positive conditional mean
+       140/144 beat the SAME-CLOCK unconditional benchmark; smallest p vs it 0.0015 (Bonferroni 0.215), 19 significant at a raw 5%
+       best vs same-clock: 10:00 / move>=50 D=+13.03pp p=0.0272
+  10:00          move>=50             N= 51 sel=  5 skip= 90.2%  cond   +2.12%  uncond@t  -10.91%  D +13.03pp p=0.027 | timing  -2.78 selection +19.22
+  12:30          r2_30_above_median   N= 68 sel= 34 skip= 50.0%  cond   +1.39%  uncond@t   -6.24%  D  +7.63pp p=0.004 | timing  -0.17 selection +11.88
+  fill+60        above_vwap           N= 78 sel= 50 skip= 35.9%  cond   +1.37%  uncond@t   -5.56%  D  +6.92pp p=0.019 | timing  -3.99 selection +15.47
+  fill+45        move>=50             N= 76 sel=  9 skip= 88.2%  cond   +1.23%  uncond@t   -4.07%  D  +5.30pp p=0.245 | timing  -3.62 selection +13.40
+  fill+30        move>=50             N= 79 sel=  7 skip= 91.1%  cond   +1.16%  uncond@t   -6.68%  D  +7.84pp p=0.077 | timing  -2.39 selection +12.37
+  14:30          higher_high_15       N= 80 sel=  9 skip= 88.8%  cond   +1.12%  uncond@t   -6.57%  D  +7.70pp p=0.001 | timing  +0.80 selection  +9.63
+  fill+90        move>=50             N= 74 sel= 14 skip= 81.1%  cond   +1.02%  uncond@t   -4.30%  D  +5.32pp p=0.227 | timing  -6.87 selection +18.21
+  11:00          higher_high_15       N= 61 sel= 10 skip= 83.6%  cond   +0.99%  uncond@t   -6.96%  D  +7.95pp p=0.066 | timing  -1.02 selection +14.03
+
+E3 intraday drift profile, buckets entirely after the fill
+  09:15-09:30    nF=  0 fire    +nanpt (+nan/min)  nC=  0 ctrl    +nanpt  diff    +nanpt  perm p=nan (Bonf nan)
+  09:30-10:00    nF= 15 fire   -8.76pt (-0.292/min)  nC= 41 ctrl   +1.68pt  diff  -10.44pt  perm p=0.4722 (Bonf 1.000)
+  10:00-10:30    nF= 21 fire   -0.27pt (-0.009/min)  nC= 55 ctrl   -3.91pt  diff   +3.64pt  perm p=0.7186 (Bonf 1.000)
+  10:30-11:00    nF= 25 fire   +4.31pt (+0.144/min)  nC= 62 ctrl   -4.10pt  diff   +8.42pt  perm p=0.4068 (Bonf 1.000)
+  11:00-11:30    nF= 28 fire   +1.51pt (+0.050/min)  nC= 64 ctrl   +3.77pt  diff   -2.26pt  perm p=0.7382 (Bonf 1.000)
+  11:30-12:00    nF= 28 fire   -5.32pt (-0.177/min)  nC= 64 ctrl   +1.21pt  diff   -6.53pt  perm p=0.3712 (Bonf 1.000)
+  12:00-12:30    nF= 28 fire   -3.56pt (-0.119/min)  nC= 68 ctrl   +2.16pt  diff   -5.72pt  perm p=0.4160 (Bonf 1.000)
+  12:30-13:00    nF= 28 fire   +2.01pt (+0.067/min)  nC= 68 ctrl   +4.04pt  diff   -2.03pt  perm p=0.8004 (Bonf 1.000)
+  13:00-13:30    nF= 30 fire   +2.96pt (+0.099/min)  nC= 72 ctrl   +0.18pt  diff   +2.78pt  perm p=0.6504 (Bonf 1.000)
+  13:30-14:00    nF= 31 fire   +8.56pt (+0.285/min)  nC= 77 ctrl   -1.16pt  diff   +9.72pt  perm p=0.2242 (Bonf 1.000)
+  14:00-14:30    nF= 31 fire   -1.32pt (-0.044/min)  nC= 77 ctrl   +1.46pt  diff   -2.79pt  perm p=0.6788 (Bonf 1.000)
+  14:30-15:00    nF= 33 fire  +12.40pt (+0.413/min)  nC= 80 ctrl   -1.66pt  diff  +14.06pt  perm p=0.0346 (Bonf 0.415)
+  15:00-15:29    nF= 33 fire   +7.77pt (+0.268/min)  nC= 83 ctrl   -3.41pt  diff  +11.18pt  perm p=0.0886 (Bonf 1.000)
+
+  fill-to-close SPOT move: fires +5.25pt (med -4.50, up on 45.5% of days, p=0.7376); controls -4.96pt (med -18.85, p=0.7105); difference +10.21pt welch p=0.6192
+
+  cumulative mean signed spot move FROM THE FILL, common sample (fires N=21, controls N=55):
+    10:00  fires   -29.26pt   controls    -9.33pt
+    10:30  fires   -29.53pt   controls   -13.24pt
+    11:00  fires   -30.35pt   controls   -16.45pt
+    11:30  fires   -29.17pt   controls   -12.21pt
+    12:00  fires   -30.61pt   controls   -10.35pt
+    12:30  fires   -33.34pt   controls    -6.07pt
+    13:00  fires   -32.26pt   controls    -0.57pt
+    13:30  fires   -27.43pt   controls    -2.26pt
+    14:00  fires   -24.32pt   controls    -7.55pt
+    14:30  fires   -17.27pt   controls    -7.07pt
+    15:00  fires    -5.97pt   controls   -10.52pt
+
+  post-fill SPOT drift by elapsed horizon (option-free)
+    +5   m  fires n= 33   -7.10pt (med  -8.70, p=0.0386)  controls n= 87   -2.64pt  diff   -4.46pt perm p=0.2986
+    +10  m  fires n= 33  -13.53pt (med  -8.85, p=0.0154)  controls n= 87   -2.50pt  diff  -11.03pt perm p=0.0690
+    +15  m  fires n= 33  -15.14pt (med -11.50, p=0.0152)  controls n= 87   -3.75pt  diff  -11.39pt perm p=0.0984
+    +20  m  fires n= 33  -23.43pt (med -19.60, p=0.0006)  controls n= 87   -8.51pt  diff  -14.91pt perm p=0.0624
+    +30  m  fires n= 33  -20.97pt (med -14.70, p=0.0030)  controls n= 82   -5.95pt  diff  -15.01pt perm p=0.1130
+    +45  m  fires n= 33  -16.63pt (med -13.65, p=0.0362)  controls n= 81   -6.18pt  diff  -10.45pt perm p=0.3230
+    +60  m  fires n= 33  -11.17pt (med -11.30, p=0.2158)  controls n= 80  -10.68pt  diff   -0.48pt perm p=0.9652
+    +90  m  fires n= 31  -21.19pt (med -13.95, p=0.0620)  controls n= 77  -14.07pt  diff   -7.12pt perm p=0.6702
+    +120 m  fires n= 31  -25.17pt (med -20.30, p=0.0344)  controls n= 77   -7.22pt  diff  -17.95pt perm p=0.3040
+    +180 m  fires n= 28  -27.93pt (med -18.55, p=0.0512)  controls n= 68   -8.88pt  diff  -19.05pt perm p=0.3742
+
+  median share of the whole fill-to-close move achieved by (common sample, N=21):
+    10:00    21.0%
+    10:30    41.4%
+    11:00    29.0%
+    11:30    46.2%
+    12:00    37.5%
+    12:30    43.1%
+    13:00    35.6%
+    13:30    55.7%
+    14:00    81.9%
+    14:30    78.5%
+    15:00    96.2%
+
+E4 placebo: fires best-of-grid conditional mean +9.97% (12:30 / higher_high_30)
+   controls best-of-grid            +2.12% (10:00 / move>=50)
+   shuffled-label placebo: observed +9.97%, median draw +7.67%, empirical p=0.2580
+   same statistic but benchmark-disciplined (cond - uncond at the SAME clock): observed +4.29pp, median draw +12.50pp, empirical p=0.9595
+   mid-IV Gate B (N=33): 7 of 144 cells never trade at all; best cell that DOES trade vs its same-clock benchmark: fill+30 / above_vwap D=+4.29pp p=0.3873 (trades on 19/33 days)
+   pooled (N=120): 4 of 144 cells never trade at all; best cell that DOES trade vs its same-clock benchmark: 10:00 / move>=50 D=+7.88pp p=0.1505 (trades on 6/72 days)
+   controls (N=87): 4 of 144 cells never trade at all; best cell that DOES trade vs its same-clock benchmark: 10:00 / move>=50 D=+13.03pp p=0.0272 (trades on 5/51 days)
+
+E1 stability of the late-minus-fill gain -- mid-IV Gate B (N=33)
+  fill+15          n= 33  H1   +4.56pp (n= 16)  H2  +11.32pp (n= 17)  both+=True  years+ 6/6  [2021:+9 2022:+6 2023:+1 2024:+10 2025:+17 2026:+1]
+  fill+30          n= 33  H1   +5.95pp (n= 16)  H2  +15.75pp (n= 17)  both+=True  years+ 5/6  [2021:+4 2022:+1 2023:+6 2024:+18 2025:+20 2026:-12]
+  fill+45          n= 33  H1   +1.29pp (n= 16)  H2  +17.86pp (n= 17)  both+=True  years+ 4/6  [2021:+4 2022:-10 2023:+9 2024:+20 2025:+14 2026:-24]
+  fill+60          n= 33  H1   +1.55pp (n= 16)  H2  +13.31pp (n= 17)  both+=True  years+ 4/6  [2021:+10 2022:-12 2023:+10 2024:+16 2025:+10 2026:-26]
+  fill+90          n= 31  H1   +5.37pp (n= 15)  H2  +21.89pp (n= 16)  both+=True  years+ 4/6  [2021:+1 2022:-3 2023:+16 2024:+27 2025:+10 2026:-29]
+  10:00            n= 21  H1   +3.27pp (n= 10)  H2  +24.43pp (n= 11)  both+=True  years+ 4/5  [2021:+3 2022:-17 2023:+11 2024:+25 2025:+18]
+  10:30            n= 25  H1   +2.91pp (n= 12)  H2  +28.47pp (n= 13)  both+=True  years+ 4/5  [2021:+14 2022:-8 2023:+10 2024:+30 2025:+19]
+  11:00            n= 28  H1   +4.23pp (n= 14)  H2  +24.07pp (n= 14)  both+=True  years+ 4/5  [2021:+9 2022:-6 2023:+15 2024:+25 2025:+12]
+  11:30            n= 28  H1   +3.79pp (n= 14)  H2  +23.56pp (n= 14)  both+=True  years+ 4/5  [2021:+16 2022:-12 2023:+18 2024:+25 2025:+10]
+  12:00            n= 28  H1  +13.38pp (n= 14)  H2  +24.67pp (n= 14)  both+=True  years+ 4/5  [2021:+15 2022:-12 2023:+39 2024:+25 2025:+18]
+  12:30            n= 28  H1  +14.51pp (n= 14)  H2  +26.88pp (n= 14)  both+=True  years+ 4/5  [2021:+58 2022:-19 2023:+41 2024:+27 2025:+22]
+  13:00            n= 30  H1  +15.00pp (n= 15)  H2  +23.44pp (n= 15)  both+=True  years+ 4/5  [2021:+42 2022:-19 2023:+42 2024:+21 2025:+25]
+  13:30            n= 31  H1  +18.06pp (n= 15)  H2  +22.31pp (n= 16)  both+=True  years+ 4/6  [2021:+54 2022:-19 2023:+46 2024:+23 2025:+19 2026:-4]
+  14:00            n= 31  H1  +11.79pp (n= 15)  H2  +17.86pp (n= 16)  both+=True  years+ 4/6  [2021:+50 2022:-27 2023:+41 2024:+16 2025:+33 2026:-25]
+  14:30            n= 33  H1  +14.53pp (n= 16)  H2  +10.59pp (n= 17)  both+=True  years+ 4/6  [2021:+49 2022:-19 2023:+43 2024:+5 2025:+40 2026:-25]
+
+E1 stability of the late-minus-fill gain -- pooled (N=120)
+  fill+15          n=115  H1   +2.23pp (n= 57)  H2   +3.48pp (n= 58)  both+=True  years+ 5/6  [2021:+3 2022:+0 2023:-2 2024:+8 2025:+1 2026:+10]
+  fill+30          n=112  H1   +0.55pp (n= 56)  H2   +8.94pp (n= 56)  both+=True  years+ 3/6  [2021:-5 2022:-3 2023:-1 2024:+13 2025:+4 2026:+17]
+  fill+45          n=109  H1   +1.90pp (n= 54)  H2  +10.21pp (n= 55)  both+=True  years+ 5/6  [2021:+4 2022:-5 2023:+1 2024:+15 2025:+6 2026:+15]
+  fill+60          n=111  H1   +3.76pp (n= 55)  H2   +7.13pp (n= 56)  both+=True  years+ 4/6  [2021:+23 2022:-1 2023:+0 2024:+12 2025:-0 2026:+18]
+  fill+90          n=105  H1   +7.02pp (n= 52)  H2   +9.65pp (n= 53)  both+=True  years+ 5/6  [2021:+8 2022:+1 2023:+8 2024:+18 2025:-0 2026:+19]
+  10:00            n= 72  H1   +6.36pp (n= 36)  H2   +6.84pp (n= 36)  both+=True  years+ 4/6  [2021:-2 2022:-11 2023:+2 2024:+16 2025:+3 2026:+13]
+  10:30            n= 83  H1   +6.55pp (n= 41)  H2   +8.88pp (n= 42)  both+=True  years+ 5/6  [2021:+7 2022:-2 2023:+4 2024:+17 2025:+2 2026:+15]
+  11:00            n= 89  H1   +7.96pp (n= 44)  H2   +7.89pp (n= 45)  both+=True  years+ 5/6  [2021:+15 2022:+1 2023:+10 2024:+16 2025:-2 2026:+18]
+  11:30            n= 91  H1   +4.01pp (n= 45)  H2   +9.09pp (n= 46)  both+=True  years+ 5/6  [2021:+14 2022:-5 2023:+9 2024:+15 2025:+0 2026:+13]
+  12:00            n= 96  H1   +6.24pp (n= 48)  H2  +10.43pp (n= 48)  both+=True  years+ 5/6  [2021:+14 2022:-4 2023:+18 2024:+13 2025:+1 2026:+14]
+  12:30            n= 96  H1   +6.56pp (n= 48)  H2  +11.29pp (n= 48)  both+=True  years+ 4/6  [2021:+39 2022:-8 2023:+19 2024:+15 2025:-1 2026:+18]
+  13:00            n=102  H1   +4.36pp (n= 51)  H2   +9.87pp (n= 51)  both+=True  years+ 5/6  [2021:+27 2022:-15 2023:+18 2024:+12 2025:+2 2026:+14]
+  13:30            n=107  H1   +5.69pp (n= 53)  H2   +8.09pp (n= 54)  both+=True  years+ 5/6  [2021:+29 2022:-16 2023:+14 2024:+13 2025:+2 2026:+18]
+  14:00            n=108  H1   +2.07pp (n= 54)  H2  +10.52pp (n= 54)  both+=True  years+ 5/6  [2021:+28 2022:-22 2023:+18 2024:+9 2025:+5 2026:+20]
+  14:30            n=113  H1   -0.14pp (n= 56)  H2  +11.20pp (n= 57)  both+=False years+ 5/6  [2021:+17 2022:-17 2023:+15 2024:+4 2025:+9 2026:+20]
+
+POWER (alpha 5%, 80% power)
+  mid-IV N=33    fill (baseline)          n= 33 sd= 47.32 min detectable  23.71pp
+  mid-IV N=33    12:30                    n= 28 sd= 46.05 min detectable  25.18pp
+  mid-IV N=33    PAIRED 12:30 minus fill  n= 28 sd= 41.73 min detectable  22.82pp  observed +20.70pp
+  pooled N=120   fill (baseline)          n=120 sd= 45.12 min detectable  11.62pp
+  pooled N=120   12:30                    n= 96 sd= 40.77 min detectable  11.76pp
+  pooled N=120   PAIRED 12:30 minus fill  n= 96 sd= 40.94 min detectable  11.81pp  observed +8.93pp
+  controls N=87  fill (baseline)          n= 87 sd= 44.53 min detectable  13.51pp
+  controls N=87  12:30                    n= 68 sd= 37.49 min detectable  12.90pp
+  controls N=87  PAIRED 12:30 minus fill  n= 68 sd= 39.92 min detectable  13.74pp  observed +4.08pp
+
+VERIFICATION
+  ATM re-pick: 17/28 fires have a 12:00 strike different from the fill strike (60.7%)
+    worked example 2023-01-04: fill 09:31 spot 18235.3 -> K 18250; 12:00 spot 18071.1 -> K 18050 (-200)
+  baseline reproduction: published -6.08% vs this pipeline -6.08%, max per-day diff 0.00e+00pp over 33 days
+  hand_check_fill_entry 2023-01-04 09:31 K=18250: raw CSV 57.7 -> 8.7 (15:29) = -84.9220%, panel -84.9220%, match=True
+  hand_check_1200_entry 2023-01-04 12:00 K=18050: raw CSV 87.0 -> 57.0 (15:29) = -34.4828%, panel -34.4828%, match=True
+
+wrote gate_b_entry_timing_results.json and gate_b_entry_timing_panel.csv

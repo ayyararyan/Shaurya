@@ -1,0 +1,83 @@
+{
+  "2021-09-08": {
+    "panel_spot_open": 17335.7,
+    "raw_spot_open": 17335.7,
+    "panel_atm": 17350.0,
+    "raw_atm": 17350.0,
+    "panel_expiry": "2021-09-09",
+    "panel_n_sess": 2.0,
+    "raw_iv_sides": {
+      "CALL": {
+        "price": 66.0,
+        "iv": 11.139437658719595
+      },
+      "PUT": {
+        "price": 68.05,
+        "iv": 10.603322588102788
+      }
+    },
+    "raw_iv_mean": 10.871380123411193,
+    "panel_iv": 10.871380123411193,
+    "iv_abs_diff": 0.0,
+    "raw_rv_intra": 7.456913000720499,
+    "panel_rv_intra": 7.456913000720576,
+    "raw_rv_incl": 7.6908700333914535,
+    "panel_rv_incl": 7.690870033391524,
+    "rv_intra_abs_diff": 7.638334409421077e-14,
+    "rv_incl_abs_diff": 7.016609515630989e-14
+  },
+  "2024-02-20": {
+    "panel_spot_open": 22084.55,
+    "raw_spot_open": 22084.55,
+    "panel_atm": 22100.0,
+    "raw_atm": 22100.0,
+    "panel_expiry": "2024-02-22",
+    "panel_n_sess": 3.0,
+    "raw_iv_sides": {
+      "CALL": {
+        "price": 113.6,
+        "iv": 11.732109012229099
+      },
+      "PUT": {
+        "price": 145.35,
+        "iv": 15.206275148387698
+      }
+    },
+    "raw_iv_mean": 13.4691920803084,
+    "panel_iv": 13.469192080308398,
+    "iv_abs_diff": 1.7763568394002505e-15,
+    "raw_rv_intra": 9.788344429245203,
+    "panel_rv_intra": 9.788344429245049,
+    "raw_rv_incl": 9.831769827694858,
+    "panel_rv_incl": 9.831769827694748,
+    "rv_intra_abs_diff": 1.545430450278218e-13,
+    "rv_incl_abs_diff": 1.1013412404281553e-13
+  },
+  "2026-01-29": {
+    "panel_spot_open": 25263.95,
+    "raw_spot_open": 25263.95,
+    "panel_atm": 25250.0,
+    "raw_atm": 25250.0,
+    "panel_expiry": "2026-02-03",
+    "panel_n_sess": 5.0,
+    "raw_iv_sides": {
+      "CALL": {
+        "price": 227.8,
+        "iv": 14.362246065689321
+      },
+      "PUT": {
+        "price": 187.45,
+        "iv": 14.797146240231445
+      }
+    },
+    "raw_iv_mean": 14.579696152960384,
+    "panel_iv": 14.579696152960384,
+    "iv_abs_diff": 0.0,
+    "raw_rv_intra": 16.026670608870432,
+    "panel_rv_intra": 16.026670608870397,
+    "raw_rv_incl": 25.797503010729223,
+    "panel_rv_incl": 25.797503010729162,
+    "rv_intra_abs_diff": 3.552713678800501e-14,
+    "rv_incl_abs_diff": 6.039613253960852e-14
+  }
+}

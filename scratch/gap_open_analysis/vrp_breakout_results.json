@@ -1,0 +1,1016 @@
+{
+  "status": "exploratory_offline_analysis",
+  "frozen_specification": "VRP_BREAKOUT_SPEC.md (2026-08-23)",
+  "seed": 20260823,
+  "placebo_draws_per_session": 200,
+  "trading_time": {
+    "minutes_per_session": 375.0,
+    "sessions_per_year": 252.0,
+    "risk_free_rate": 0.065
+  },
+  "data": {
+    "panel_path": "nge_panel.csv",
+    "panel_n": 1320,
+    "date_start": "2021-01-01",
+    "date_end": "2026-05-12"
+  },
+  "multiple_testing": {
+    "registered_tests": [
+      {
+        "id": "OR15-T01",
+        "spec": "OR15",
+        "test": "VRP one-sample t-test"
+      },
+      {
+        "id": "OR15-T02",
+        "spec": "OR15",
+        "test": "VRP Wilcoxon signed-rank"
+      },
+      {
+        "id": "OR15-T03",
+        "spec": "OR15",
+        "test": "break-minus-placebo paired t-test"
+      },
+      {
+        "id": "OR15-T04",
+        "spec": "OR15",
+        "test": "break-minus-placebo Wilcoxon signed-rank"
+      },
+      {
+        "id": "OR15-T05",
+        "spec": "OR15",
+        "test": "VRP by breakout direction (Welch)"
+      },
+      {
+        "id": "OR15-T06",
+        "spec": "OR15",
+        "test": "VRP by year (Kruskal-Wallis)"
+      },
+      {
+        "id": "OR15-T07",
+        "spec": "OR15",
+        "test": "VRP by expiry-day status (Welch)"
+      },
+      {
+        "id": "OR15-T08",
+        "spec": "OR15",
+        "test": "VRP by opening-IV quartile (Kruskal-Wallis)"
+      },
+      {
+        "id": "OR15-T09",
+        "spec": "OR15",
+        "test": "VRP by dealer net-gamma sign (Welch)"
+      },
+      {
+        "id": "OR15-T10",
+        "spec": "OR15",
+        "test": "VRP by failed label (Welch)"
+      },
+      {
+        "id": "OR15-T11",
+        "spec": "OR15",
+        "test": "directional-option return one-sample t-test"
+      },
+      {
+        "id": "OR15-T12",
+        "spec": "OR15",
+        "test": "directional-option return Wilcoxon signed-rank"
+      },
+      {
+        "id": "OR15-T13",
+        "spec": "OR15",
+        "test": "straddle return one-sample t-test"
+      },
+      {
+        "id": "OR15-T14",
+        "spec": "OR15",
+        "test": "straddle return Wilcoxon signed-rank"
+      },
+      {
+        "id": "OR15-T15",
+        "spec": "OR15",
+        "test": "directional-option minus spot points paired t-test"
+      },
+      {
+        "id": "OR15-T16",
+        "spec": "OR15",
+        "test": "straddle minus spot points paired t-test"
+      },
+      {
+        "id": "OR30-T01",
+        "spec": "OR30",
+        "test": "VRP one-sample t-test"
+      },
+      {
+        "id": "OR30-T02",
+        "spec": "OR30",
+        "test": "VRP Wilcoxon signed-rank"
+      },
+      {
+        "id": "OR30-T03",
+        "spec": "OR30",
+        "test": "break-minus-placebo paired t-test"
+      },
+      {
+        "id": "OR30-T04",
+        "spec": "OR30",
+        "test": "break-minus-placebo Wilcoxon signed-rank"
+      },
+      {
+        "id": "OR30-T05",
+        "spec": "OR30",
+        "test": "VRP by breakout direction (Welch)"
+      },
+      {
+        "id": "OR30-T06",
+        "spec": "OR30",
+        "test": "VRP by year (Kruskal-Wallis)"
+      },
+      {
+        "id": "OR30-T07",
+        "spec": "OR30",
+        "test": "VRP by expiry-day status (Welch)"
+      },
+      {
+        "id": "OR30-T08",
+        "spec": "OR30",
+        "test": "VRP by opening-IV quartile (Kruskal-Wallis)"
+      },
+      {
+        "id": "OR30-T09",
+        "spec": "OR30",
+        "test": "VRP by dealer net-gamma sign (Welch)"
+      },
+      {
+        "id": "OR30-T10",
+        "spec": "OR30",
+        "test": "VRP by failed label (Welch)"
+      },
+      {
+        "id": "OR30-T11",
+        "spec": "OR30",
+        "test": "directional-option return one-sample t-test"
+      },
+      {
+        "id": "OR30-T12",
+        "spec": "OR30",
+        "test": "directional-option return Wilcoxon signed-rank"
+      },
+      {
+        "id": "OR30-T13",
+        "spec": "OR30",
+        "test": "straddle return one-sample t-test"
+      },
+      {
+        "id": "OR30-T14",
+        "spec": "OR30",
+        "test": "straddle return Wilcoxon signed-rank"
+      },
+      {
+        "id": "OR30-T15",
+        "spec": "OR30",
+        "test": "directional-option minus spot points paired t-test"
+      },
+      {
+        "id": "OR30-T16",
+        "spec": "OR30",
+        "test": "straddle minus spot points paired t-test"
+      }
+    ],
+    "n_registered": 32,
+    "family_alpha": 0.05,
+    "bonferroni_alpha": 0.0015625
+  },
+  "specs": {
+    "OR15": {
+      "coverage": {
+        "sessions_in_panel": 1320,
+        "date_start": "2021-01-01",
+        "date_end": "2026-05-12",
+        "sessions_with_spot": 1320,
+        "sessions_with_resolvable_breakout": 1320,
+        "sessions_without_breakout": 0,
+        "sessions_with_atm_call_put_quote_at_break": 1320,
+        "sessions_with_valid_own_iv": 1320,
+        "sessions_with_valid_postbreak_rv": 1320,
+        "final_vrp_n": 1320,
+        "final_vrp_coverage_panel_pct": 100.0,
+        "exclusive_loss_reasons_after_breakout": {},
+        "directional_option_pnl_n": 1316,
+        "straddle_pnl_n": 1316,
+        "option_pnl_missing_same_strike_exit_n": 4,
+        "option_pnl_missing_same_strike_exit_dates": [
+          "2021-02-01",
+          "2024-03-21",
+          "2025-04-30",
+          "2026-02-01"
+        ],
+        "placebo_sessions_with_at_least_one_valid_draw": 1320,
+        "placebo_min_valid_draws_per_session": 87,
+        "placebo_median_valid_draws_per_session": 200.0,
+        "placebo_draws_requested_per_session": 200
+      },
+      "headline": {
+        "n": 1320,
+        "mean": 3.400555967348853,
+        "median": 3.2696708033903588,
+        "sd": 3.1280944072567474,
+        "share_positive": 0.9037878787878788,
+        "iv_at_break": {
+          "n": 1320,
+          "mean": 12.446647592004807,
+          "median": 11.397639232774448,
+          "sd": 4.571157127047214,
+          "share_positive": 1.0
+        },
+        "vendor_iv_at_break": {
+          "n": 1320,
+          "mean": 18.122289435227273,
+          "median": 16.45623075,
+          "sd": 7.409595222985936,
+          "share_positive": 1.0
+        },
+        "rv_after_break": {
+          "n": 1320,
+          "mean": 9.046091624655956,
+          "median": 8.093324108374247,
+          "sd": 3.8219542215494444,
+          "share_positive": 1.0
+        },
+        "rv_before_break": {
+          "n": 1320,
+          "mean": 14.939815400172792,
+          "median": 13.389696340223153,
+          "sd": 7.229144482579805,
+          "share_positive": 1.0
+        },
+        "tests_zero": {
+          "t": {
+            "statistic": 39.49635709761509,
+            "p_nominal": 8.125341081100195e-226,
+            "n": 1320,
+            "bonferroni_alpha": 0.0015625
+          },
+          "wilcoxon": {
+            "statistic": 38872.0,
+            "p_nominal": 1.0723371803412113e-180,
+            "n": 1320,
+            "bonferroni_alpha": 0.0015625
+          }
+        }
+      },
+      "placebo": {
+        "session_mean_placebo_vrp": {
+          "n": 1320,
+          "mean": 3.407051477642896,
+          "median": 3.2342326733546627,
+          "sd": 3.1128892010801246,
+          "share_positive": 0.9007575757575758
+        },
+        "break_minus_placebo": {
+          "n": 1320,
+          "mean": -0.006495510294043468,
+          "median": -0.01555917997730294,
+          "sd": 0.3608181472506577,
+          "share_positive": 0.4643939393939394
+        },
+        "paired_tests": {
+          "t": {
+            "statistic": -0.6540513837784115,
+            "p_nominal": 0.5131927154944941,
+            "n": 1320,
+            "bonferroni_alpha": 0.0015625
+          },
+          "wilcoxon": {
+            "statistic": 408429.0,
+            "p_nominal": 0.04710836474054383,
+            "n": 1320,
+            "bonferroni_alpha": 0.0015625
+          }
+        }
+      },
+      "splits": {
+        "breakout_direction": {
+          "groups": {
+            "down": {
+              "n": 672,
+              "mean": 3.1542492046609723,
+              "median": 3.050958437442355,
+              "sd": 3.072206495456221,
+              "share_positive": 0.8839285714285714
+            },
+            "up": {
+              "n": 648,
+              "mean": 3.6559852027288753,
+              "median": 3.3996545379894876,
+              "sd": 3.1671940193193917,
+              "share_positive": 0.9243827160493827
+            }
+          },
+          "test": {
+            "name": "Welch two-sample t",
+            "statistic": -2.919961297386354,
+            "p_nominal": 0.0035605406595109255,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "year": {
+          "groups": {
+            "2021": {
+              "n": 247,
+              "mean": 3.2342847065351155,
+              "median": 3.3909604405054328,
+              "sd": 3.023045879042574,
+              "share_positive": 0.8825910931174089
+            },
+            "2022": {
+              "n": 247,
+              "mean": 4.999683710351419,
+              "median": 4.701134422890173,
+              "sd": 3.2586484285654747,
+              "share_positive": 0.9433198380566802
+            },
+            "2023": {
+              "n": 245,
+              "mean": 2.452341288196938,
+              "median": 2.5798707965194705,
+              "sd": 1.5572907539874086,
+              "share_positive": 0.9469387755102041
+            },
+            "2024": {
+              "n": 247,
+              "mean": 3.04248536269642,
+              "median": 3.3479290441734104,
+              "sd": 3.3298460305743967,
+              "share_positive": 0.8421052631578947
+            },
+            "2025": {
+              "n": 248,
+              "mean": 2.7884965036418823,
+              "median": 2.6608248037591276,
+              "sd": 2.850203685231677,
+              "share_positive": 0.8870967741935484
+            },
+            "2026": {
+              "n": 86,
+              "mean": 4.779988893396031,
+              "median": 3.846929911592081,
+              "sd": 4.30205756877602,
+              "share_positive": 0.9534883720930233
+            }
+          },
+          "test": {
+            "name": "Kruskal-Wallis",
+            "statistic": 123.29616713236965,
+            "p_nominal": 6.2855639793872995e-25,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "expiry_day": {
+          "groups": {
+            "0": {
+              "n": 1044,
+              "mean": 3.8615755983991273,
+              "median": 3.5856570830557866,
+              "sd": 3.152430173232873,
+              "share_positive": 0.9252873563218391
+            },
+            "1": {
+              "n": 276,
+              "mean": 1.656699102071727,
+              "median": 1.617106750807697,
+              "sd": 2.3198922165679057,
+              "share_positive": 0.822463768115942
+            }
+          },
+          "test": {
+            "name": "Welch two-sample t",
+            "statistic": 12.943326427978905,
+            "p_nominal": 8.51347855313343e-34,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "opening_iv_quartile": {
+          "groups": {
+            "Q1": {
+              "n": 329,
+              "mean": 1.695765568554487,
+              "median": 1.8228997141070682,
+              "sd": 1.8406937756076256,
+              "share_positive": 0.8571428571428571
+            },
+            "Q2": {
+              "n": 329,
+              "mean": 2.6868051692978856,
+              "median": 3.0196742603794737,
+              "sd": 2.0435507227784013,
+              "share_positive": 0.9057750759878419
+            },
+            "Q3": {
+              "n": 329,
+              "mean": 3.4680303994383515,
+              "median": 3.7218683958669496,
+              "sd": 2.369246101921146,
+              "share_positive": 0.9240121580547113
+            },
+            "Q4": {
+              "n": 329,
+              "mean": 5.838462074773766,
+              "median": 6.004438240331433,
+              "sd": 3.994545143773224,
+              "share_positive": 0.9361702127659575
+            }
+          },
+          "test": {
+            "name": "Kruskal-Wallis",
+            "statistic": 330.67278497053303,
+            "p_nominal": 2.2817278001608906e-71,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "dealer_net_gamma_sign": {
+          "groups": {
+            "0": {
+              "n": 1094,
+              "mean": 3.283751473028684,
+              "median": 3.232799974255978,
+              "sd": 3.040059385349188,
+              "share_positive": 0.8976234003656307
+            },
+            "1": {
+              "n": 226,
+              "mean": 3.9659724133057734,
+              "median": 3.4226405546133503,
+              "sd": 3.4754638883220066,
+              "share_positive": 0.9336283185840708
+            }
+          },
+          "test": {
+            "name": "Welch two-sample t",
+            "statistic": -2.742208217223396,
+            "p_nominal": 0.006469177929306095,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "failed_breakout": {
+          "groups": {
+            "0": {
+              "n": 107,
+              "mean": 3.3438650927596805,
+              "median": 3.223423517994222,
+              "sd": 2.662949498961436,
+              "share_positive": 0.897196261682243
+            },
+            "1": {
+              "n": 1213,
+              "mean": 3.4055567287511943,
+              "median": 3.2787980530649747,
+              "sd": 3.16675301745592,
+              "share_positive": 0.9043693322341303
+            }
+          },
+          "test": {
+            "name": "Welch two-sample t",
+            "statistic": -0.22595818604404344,
+            "p_nominal": 0.8215784497518124,
+            "bonferroni_alpha": 0.0015625
+          }
+        }
+      },
+      "instruments": {
+        "directional_option_return_pct_of_premium": {
+          "n": 1316,
+          "mean": -1.907898688048136,
+          "median": -17.690761996169645,
+          "sd": 88.40479763894494,
+          "share_positive": 0.39209726443769,
+          "tests_zero": {
+            "t": {
+              "statistic": -0.7829020308571786,
+              "p_nominal": 0.43382561044979495,
+              "n": 1316,
+              "bonferroni_alpha": 0.0015625
+            },
+            "wilcoxon": {
+              "statistic": 339991.0,
+              "p_nominal": 1.3213076284704602e-11,
+              "n": 1316,
+              "bonferroni_alpha": 0.0015625
+            }
+          }
+        },
+        "atm_straddle_return_pct_of_premium": {
+          "n": 1316,
+          "mean": -1.7990121116952804,
+          "median": -6.533991182650238,
+          "sd": 41.04832566057664,
+          "share_positive": 0.34498480243161095,
+          "tests_zero": {
+            "t": {
+              "statistic": -1.5898881949008463,
+              "p_nominal": 0.11210037824472792,
+              "n": 1316,
+              "bonferroni_alpha": 0.0015625
+            },
+            "wilcoxon": {
+              "statistic": 314700.0,
+              "p_nominal": 7.944197412198983e-18,
+              "n": 1316,
+              "bonferroni_alpha": 0.0015625
+            }
+          }
+        },
+        "directional_spot_leg_points": {
+          "n": 1320,
+          "mean": -0.9308161431818048,
+          "median": -0.3247000000001208,
+          "sd": 127.41957059492991,
+          "share_positive": 0.49924242424242427
+        },
+        "directional_option_minus_spot_points": {
+          "summary": {
+            "n": 1316,
+            "mean": -1.918634263677823,
+            "median": -15.099999999999994,
+            "sd": 69.48628533756214,
+            "share_positive": 0.39969604863221886
+          },
+          "paired_t": {
+            "statistic": -1.0016616470549446,
+            "p_nominal": 0.31669131465117656,
+            "n": 1316,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "straddle_minus_spot_points": {
+          "summary": {
+            "n": 1316,
+            "mean": -5.115784719604875,
+            "median": -35.04999999999963,
+            "sd": 137.4413366458891,
+            "share_positive": 0.38753799392097266
+          },
+          "paired_t": {
+            "statistic": -1.3502768904458893,
+            "p_nominal": 0.1771595249638051,
+            "n": 1316,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "comparison_note": "Raw option-price points and NIFTY spot points share point units but require different capital and risk; the paired differences are not leverage- or risk-adjusted."
+      }
+    },
+    "OR30": {
+      "coverage": {
+        "sessions_in_panel": 1320,
+        "date_start": "2021-01-01",
+        "date_end": "2026-05-12",
+        "sessions_with_spot": 1320,
+        "sessions_with_resolvable_breakout": 1318,
+        "sessions_without_breakout": 2,
+        "sessions_with_atm_call_put_quote_at_break": 1318,
+        "sessions_with_valid_own_iv": 1318,
+        "sessions_with_valid_postbreak_rv": 1318,
+        "final_vrp_n": 1318,
+        "final_vrp_coverage_panel_pct": 99.84848484848484,
+        "exclusive_loss_reasons_after_breakout": {},
+        "directional_option_pnl_n": 1313,
+        "straddle_pnl_n": 1313,
+        "option_pnl_missing_same_strike_exit_n": 5,
+        "option_pnl_missing_same_strike_exit_dates": [
+          "2021-02-01",
+          "2024-03-21",
+          "2025-04-30",
+          "2025-05-15",
+          "2026-02-01"
+        ],
+        "placebo_sessions_with_at_least_one_valid_draw": 1318,
+        "placebo_min_valid_draws_per_session": 138,
+        "placebo_median_valid_draws_per_session": 200.0,
+        "placebo_draws_requested_per_session": 200
+      },
+      "headline": {
+        "n": 1318,
+        "mean": 3.536487499773708,
+        "median": 3.437061896172365,
+        "sd": 3.3001049946544043,
+        "share_positive": 0.9066767830045523,
+        "iv_at_break": {
+          "n": 1318,
+          "mean": 12.429476816348108,
+          "median": 11.299023994957132,
+          "sd": 4.59077453358104,
+          "share_positive": 1.0
+        },
+        "vendor_iv_at_break": {
+          "n": 1318,
+          "mean": 17.92781821054628,
+          "median": 16.36544775,
+          "sd": 7.330970573136872,
+          "share_positive": 1.0
+        },
+        "rv_after_break": {
+          "n": 1318,
+          "mean": 8.892989316574402,
+          "median": 7.936052752769955,
+          "sd": 3.992485021742354,
+          "share_positive": 1.0
+        },
+        "rv_before_break": {
+          "n": 1318,
+          "mean": 13.272983349395831,
+          "median": 12.107078748319427,
+          "sd": 5.605602483040495,
+          "share_positive": 1.0
+        },
+        "tests_zero": {
+          "t": {
+            "statistic": 38.90470038556663,
+            "p_nominal": 4.62814467433037e-221,
+            "n": 1318,
+            "bonferroni_alpha": 0.0015625
+          },
+          "wilcoxon": {
+            "statistic": 36702.0,
+            "p_nominal": 2.7967977230460337e-182,
+            "n": 1318,
+            "bonferroni_alpha": 0.0015625
+          }
+        }
+      },
+      "placebo": {
+        "session_mean_placebo_vrp": {
+          "n": 1318,
+          "mean": 3.562365775269866,
+          "median": 3.4283572244867586,
+          "sd": 3.1577190653784935,
+          "share_positive": 0.9074355083459787
+        },
+        "break_minus_placebo": {
+          "n": 1318,
+          "mean": -0.02587827549615812,
+          "median": -0.017354396754855506,
+          "sd": 0.8662883389558453,
+          "share_positive": 0.4673748103186646
+        },
+        "paired_tests": {
+          "t": {
+            "statistic": -1.0845025279552143,
+            "p_nominal": 0.27834053262044467,
+            "n": 1318,
+            "bonferroni_alpha": 0.0015625
+          },
+          "wilcoxon": {
+            "statistic": 408755.0,
+            "p_nominal": 0.061375177433895596,
+            "n": 1318,
+            "bonferroni_alpha": 0.0015625
+          }
+        }
+      },
+      "splits": {
+        "breakout_direction": {
+          "groups": {
+            "down": {
+              "n": 668,
+              "mean": 3.4153784469498167,
+              "median": 3.336223228392053,
+              "sd": 3.4547755803517193,
+              "share_positive": 0.8952095808383234
+            },
+            "up": {
+              "n": 650,
+              "mean": 3.6609503417527223,
+              "median": 3.4867468334040566,
+              "sd": 3.1309908515799556,
+              "share_positive": 0.9184615384615384
+            }
+          },
+          "test": {
+            "name": "Welch two-sample t",
+            "statistic": -1.35287101376757,
+            "p_nominal": 0.17633038206131016,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "year": {
+          "groups": {
+            "2021": {
+              "n": 247,
+              "mean": 3.3559738521328333,
+              "median": 3.580508709408864,
+              "sd": 3.0612651936319564,
+              "share_positive": 0.8825910931174089
+            },
+            "2022": {
+              "n": 247,
+              "mean": 5.077074653821059,
+              "median": 5.121662260289528,
+              "sd": 3.8495741955127185,
+              "share_positive": 0.9433198380566802
+            },
+            "2023": {
+              "n": 245,
+              "mean": 2.590154184864865,
+              "median": 2.774690533117032,
+              "sd": 1.6388879292434793,
+              "share_positive": 0.9469387755102041
+            },
+            "2024": {
+              "n": 245,
+              "mean": 3.174744186715375,
+              "median": 3.4953752413906605,
+              "sd": 3.4760075147124967,
+              "share_positive": 0.8571428571428571
+            },
+            "2025": {
+              "n": 248,
+              "mean": 2.969145603245556,
+              "median": 2.8018195881590606,
+              "sd": 2.8938690336084467,
+              "share_positive": 0.8870967741935484
+            },
+            "2026": {
+              "n": 86,
+              "mean": 4.99278294289627,
+              "median": 4.403601108800038,
+              "sd": 4.355077744255457,
+              "share_positive": 0.9534883720930233
+            }
+          },
+          "test": {
+            "name": "Kruskal-Wallis",
+            "statistic": 130.62496075152512,
+            "p_nominal": 1.7536532953099706e-26,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "expiry_day": {
+          "groups": {
+            "0": {
+              "n": 1044,
+              "mean": 4.034945259147903,
+              "median": 3.857744487242942,
+              "sd": 3.3649527842834743,
+              "share_positive": 0.9300766283524904
+            },
+            "1": {
+              "n": 274,
+              "mean": 1.6372542852238565,
+              "median": 1.594283110743361,
+              "sd": 2.1699886304957743,
+              "share_positive": 0.8175182481751825
+            }
+          },
+          "test": {
+            "name": "Welch two-sample t",
+            "statistic": 14.320946454837362,
+            "p_nominal": 1.0927266613977437e-40,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "opening_iv_quartile": {
+          "groups": {
+            "Q1": {
+              "n": 329,
+              "mean": 1.8330468595383722,
+              "median": 1.9990700861532735,
+              "sd": 1.8134181558933866,
+              "share_positive": 0.8693009118541033
+            },
+            "Q2": {
+              "n": 328,
+              "mean": 2.8682621604854965,
+              "median": 3.198205896242861,
+              "sd": 2.084067516786213,
+              "share_positive": 0.899390243902439
+            },
+            "Q3": {
+              "n": 328,
+              "mean": 3.6192693339823907,
+              "median": 3.9894829125902813,
+              "sd": 2.962713153951796,
+              "share_positive": 0.926829268292683
+            },
+            "Q4": {
+              "n": 329,
+              "mean": 5.91490768770085,
+              "median": 6.0588012015404615,
+              "sd": 4.176430865855815,
+              "share_positive": 0.939209726443769
+            }
+          },
+          "test": {
+            "name": "Kruskal-Wallis",
+            "statistic": 330.8029171133994,
+            "p_nominal": 2.1384097443717145e-71,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "dealer_net_gamma_sign": {
+          "groups": {
+            "0": {
+              "n": 1092,
+              "mean": 3.4338572785339543,
+              "median": 3.4173014588405946,
+              "sd": 3.1980394770877965,
+              "share_positive": 0.902014652014652
+            },
+            "1": {
+              "n": 226,
+              "mean": 4.032382197091458,
+              "median": 3.501483053457934,
+              "sd": 3.722489970425642,
+              "share_positive": 0.9292035398230089
+            }
+          },
+          "test": {
+            "name": "Welch two-sample t",
+            "statistic": -2.2513085091403497,
+            "p_nominal": 0.025095529611722633,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "failed_breakout": {
+          "groups": {
+            "0": {
+              "n": 110,
+              "mean": 3.0729166649484663,
+              "median": 3.3697509140762203,
+              "sd": 4.6546321711488154,
+              "share_positive": 0.8636363636363636
+            },
+            "1": {
+              "n": 1208,
+              "mean": 3.5787000757925624,
+              "median": 3.4406539631983635,
+              "sd": 3.1472691533428554,
+              "share_positive": 0.9105960264900662
+            }
+          },
+          "test": {
+            "name": "Welch two-sample t",
+            "statistic": -1.1166536491928167,
+            "p_nominal": 0.26640634837602456,
+            "bonferroni_alpha": 0.0015625
+          }
+        }
+      },
+      "instruments": {
+        "directional_option_return_pct_of_premium": {
+          "n": 1313,
+          "mean": 0.9468992188266208,
+          "median": -12.36434108527132,
+          "sd": 88.31774508088806,
+          "share_positive": 0.39756283320639757,
+          "tests_zero": {
+            "t": {
+              "statistic": 0.3884974290670569,
+              "p_nominal": 0.6977109884675212,
+              "n": 1313,
+              "bonferroni_alpha": 0.0015625
+            },
+            "wilcoxon": {
+              "statistic": 352085.0,
+              "p_nominal": 1.320868804447785e-08,
+              "n": 1313,
+              "bonferroni_alpha": 0.0015625
+            }
+          }
+        },
+        "atm_straddle_return_pct_of_premium": {
+          "n": 1313,
+          "mean": -3.0752791434769655,
+          "median": -7.0007024116132,
+          "sd": 37.245349425494744,
+          "share_positive": 0.32901751713632904,
+          "tests_zero": {
+            "t": {
+              "statistic": -2.9918846999673803,
+              "p_nominal": 0.0028243870415479637,
+              "n": 1313,
+              "bonferroni_alpha": 0.0015625
+            },
+            "wilcoxon": {
+              "statistic": 298114.0,
+              "p_nominal": 3.2200354359088496e-22,
+              "n": 1313,
+              "bonferroni_alpha": 0.0015625
+            }
+          }
+        },
+        "directional_spot_leg_points": {
+          "n": 1318,
+          "mean": 3.362385881638877,
+          "median": 6.924999999999272,
+          "sd": 119.3529314298121,
+          "share_positive": 0.5220030349013657
+        },
+        "directional_option_minus_spot_points": {
+          "summary": {
+            "n": 1313,
+            "mean": -5.348609742574286,
+            "median": -16.600000000001458,
+            "sd": 61.96544681022551,
+            "share_positive": 0.37928408225437926
+          },
+          "paired_t": {
+            "statistic": -3.1276899061631216,
+            "p_nominal": 0.0018006137074237797,
+            "n": 1313,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "straddle_minus_spot_points": {
+          "summary": {
+            "n": 1313,
+            "mean": -11.0113287067784,
+            "median": -34.70000000000218,
+            "sd": 122.40458536887145,
+            "share_positive": 0.3709063214013709
+          },
+          "paired_t": {
+            "statistic": -3.259675761855216,
+            "p_nominal": 0.0011440048143436085,
+            "n": 1313,
+            "bonferroni_alpha": 0.0015625
+          }
+        },
+        "comparison_note": "Raw option-price points and NIFTY spot points share point units but require different capital and risk; the paired differences are not leverage- or risk-adjusted."
+      }
+    }
+  },
+  "validation": {
+    "reproduction_guard": {
+      "sample_rule": "all panel dates with valid own 09:15 CALL and PUT inversions",
+      "n_panel_dates": 1320,
+      "n_comparable": 1316,
+      "pearson_correlation_no_pvalue": 0.7141809749409785,
+      "own_trading_time_mean_iv": 12.76295917657274,
+      "panel_vendor_mean_iv": 18.741493526975685,
+      "mean_level_difference_own_minus_panel_vol_points": -5.978534350402944,
+      "large_divergence_rule_registered": "correlation < 0.90 or absolute mean difference > 2 vol points",
+      "large_divergence": true,
+      "interpretation": "The panel field is the vendor's convention; the own inversion uses trading time. A level gap is therefore expected when overnight/calendar variance is embedded by the vendor."
+    },
+    "quote_archive": {
+      "loaded_from_cache": false,
+      "files_read": 2772,
+      "files_missing": 0,
+      "raw_rows_scanned": 20860781,
+      "target_rows_before_strike_filter": 4142400,
+      "rows_with_non_positive_close_dropped": 4,
+      "duplicate_contract_minutes": 4,
+      "deduplicated_quote_rows": 595732,
+      "target_minutes": 98682,
+      "target_minutes_with_any_quote": 98682,
+      "max_retained_strike_distance": 523.0,
+      "target_hash": "aaf0c78f3d719c24b174e4ec602c677b61966ee79739142ebd74b83fd0c23639"
+    },
+    "lookahead_audit": {
+      "breakout_function_sha256": "616371b49bf560e8f4b8ca4ac1bf58aeb95ba8621d77b285ff031cfc6654b2d7",
+      "breakout_function_imported_from": "nge_breakout_test.breakout_row",
+      "breakout_function_modified": false,
+      "range_reproduction_violations": 0,
+      "first_passage_violations": 0,
+      "iv_key_check": "exact (date, breakout clock) merge; no forward fill, interpolation, or later quote",
+      "target_minute_duplicates": 0,
+      "atm_distance_over_25_points": 0,
+      "notes": "Range endpoints and the first crossing were checked using only rows through the break. The failed label and realised outcomes are post-event labels and do not define the event."
+    },
+    "breakout_coverage_audit": {
+      "OR15": {
+        "panel_sessions": 1320,
+        "sessions_with_spot": 1320,
+        "sessions_without_spot": 0,
+        "sessions_with_breakout": 1320,
+        "sessions_without_breakout": 0,
+        "no_spot_dates": [],
+        "no_breakout_dates": [],
+        "range_reproduction_violations": 0,
+        "first_passage_violations": 0
+      },
+      "OR30": {
+        "panel_sessions": 1320,
+        "sessions_with_spot": 1320,
+        "sessions_without_spot": 0,
+        "sessions_with_breakout": 1318,
+        "sessions_without_breakout": 2,
+        "no_spot_dates": [],
+        "no_breakout_dates": [
+          "2024-10-24",
+          "2024-11-21"
+        ],
+        "range_reproduction_violations": 0,
+        "first_passage_violations": 0
+      }
+    }
+  },
+  "limitations": [
+    "Exploratory descriptive analysis; no causal or out-of-sample claim.",
+    "Traded closes exclude bid-ask spread, brokerage, STT, and costs; option results are an upper bound.",
+    "Black-Scholes IV is model-dependent even though traded-close P&L is model-free.",
+    "Raw option-versus-spot point comparisons are not leverage- or risk-adjusted.",
+    "Dealer gamma sign is a proxy, not observed dealer inventory."
+  ]
+}

@@ -26,3 +26,7 @@ logs/
 *.jsonl
 *.csv
 *.parquet
+
+# Large local research data / accidental venv under scratch (2026-08-25)
+scratch/gap_open_analysis/.ml_venv/
+scratch/gap_open_analysis/*.pkl

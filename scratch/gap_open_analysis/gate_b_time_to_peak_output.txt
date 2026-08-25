@@ -1,0 +1,8 @@
+premium peak  N=33/231 median   64.0 vs   63.0 (diff +1.0, p=1.000) | mean  134.1 vs  114.0 (diff +20.1, p=0.372)
+spot peak     N=33/231 median  102.0 vs  102.0 (diff +0.0, p=1.000) | mean  159.8 vs  139.4 (diff +20.4, p=0.409)
+fires     within +/-30min of 64:  18.2% | +/-60min:  48.5% | thirds 51.5/6.1/42.4
+fires     deciles: [  1   5  12  40  64 103 293 301 332]
+controls  within +/-30min of 64:  17.3% | +/-60min:  48.5% | thirds 51.1/22.1/26.8
+controls  deciles: [  2   7  19  34  63 112 171 238 305]
+fires     rho(elapsed, peak size)=+0.824 p=0.000 | rho(classification clock, elapsed)=-0.068 p=0.719
+controls  rho(elapsed, peak size)=+0.723 p=0.000 | rho(classification clock, elapsed)=-0.255 p=0.000

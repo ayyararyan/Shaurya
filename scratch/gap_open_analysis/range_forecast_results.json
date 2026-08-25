@@ -1,0 +1,240 @@
+{
+  "spec": "inline (answers Aryan 14:09)",
+  "seed": 20260823,
+  "panel_n": 1025,
+  "date_min": "2021-02-03",
+  "date_max": "2026-05-11",
+  "note": "non-expiry sessions only, the H3 population; 09:20 origin",
+  "zero_displacement_days_floored": 2,
+  "Q1_accuracy": {
+    "n_train": 831,
+    "n_test": 194,
+    "test_start": "2025-05-13",
+    "targets": {
+      "rng": {
+        "mean_train": 180.70627337184112,
+        "mean_test": 196.21443298969072,
+        "mean_implied_test": 295.26535835730647,
+        "raw_implied_r2_vs_const": -1.1467331830420253,
+        "implied only": {
+          "oos_r2_vs_const": 0.27136369226767165,
+          "corr": 0.5263098685335577,
+          "rmse": 84.24524383238112,
+          "rmse_const": 98.69382649839706,
+          "mean_abs_pct_err": 35.25664458225131
+        },
+        "past only (HAR)": {
+          "oos_r2_vs_const": 0.16489776098655406,
+          "corr": 0.4246205240879818,
+          "rmse": 90.19029585223241,
+          "rmse_const": 98.69382649839706,
+          "mean_abs_pct_err": 34.879761246101104
+        },
+        "HAR + implied": {
+          "oos_r2_vs_const": 0.2715146391405504,
+          "corr": 0.5247872224020498,
+          "rmse": 84.2365171091542,
+          "rmse_const": 98.69382649839706,
+          "mean_abs_pct_err": 35.061330465130716
+        },
+        "incremental_r2_of_HAR_over_implied": 0.00020716353450533909
+      },
+      "disp": {
+        "mean_train": 98.25559866546328,
+        "mean_test": 104.90567010309283,
+        "mean_implied_test": 147.63267917865323,
+        "raw_implied_r2_vs_const": -0.24073675862396682,
+        "implied only": {
+          "oos_r2_vs_const": -0.037683177022719505,
+          "corr": 0.3348891110529782,
+          "rmse": 87.79649846648896,
+          "rmse_const": 86.1876039980458,
+          "mean_abs_pct_err": 261.510440533338
+        },
+        "past only (HAR)": {
+          "oos_r2_vs_const": -0.19673499949027673,
+          "corr": 0.11896366321733313,
+          "rmse": 94.28526017441234,
+          "rmse_const": 86.1876039980458,
+          "mean_abs_pct_err": 268.9020370676556
+        },
+        "HAR + implied": {
+          "oos_r2_vs_const": -0.02966992933265944,
+          "corr": 0.32568739329730106,
+          "rmse": 87.45684827648371,
+          "rmse_const": 86.1876039980458,
+          "mean_abs_pct_err": 252.336747166397
+        },
+        "incremental_r2_of_HAR_over_implied": 0.007722248820734801
+      }
+    }
+  },
+  "walk_forward_r2": {
+    "disp": {
+      "n": 775,
+      "r2_vs_expanding_mean": -0.022799018075895683,
+      "r2_vs_implied": -0.013754017535769103,
+      "corr": 0.3662574998509835
+    },
+    "rng": {
+      "n": 775,
+      "r2_vs_expanding_mean": 0.2513756479437588,
+      "r2_vs_implied": 0.4313920510044823,
+      "corr": 0.5265759775723553
+    }
+  },
+  "fly_n": {
+    "3": 1030,
+    "4": 1018
+  },
+  "Q2_day_selection": {
+    "IF(w=3) by forecast displacement": {
+      "n": 761,
+      "date_min": "2022-05-17",
+      "date_max": "2026-05-11",
+      "mean_all_rs": 97.49999999999989,
+      "cost_bar_rs": 160.0,
+      "bottom third": {
+        "n": 254,
+        "mean_rs": 119.57185039370097,
+        "median_rs": 198.75000000000043,
+        "win": 0.6496062992125984,
+        "mean_ror_pct": 7.209964974784279,
+        "clears_cost_bar": false
+      },
+      "middle third": {
+        "n": 253,
+        "mean_rs": 79.59486166007882,
+        "median_rs": 191.25000000000298,
+        "win": 0.6403162055335968,
+        "mean_ror_pct": 3.578665970224029,
+        "clears_cost_bar": false
+      },
+      "top third": {
+        "n": 254,
+        "mean_rs": 93.26279527559032,
+        "median_rs": 159.3749999999984,
+        "win": 0.6692913385826772,
+        "mean_ror_pct": 3.931728575066283,
+        "clears_cost_bar": false
+      },
+      "top_minus_rest_rs": -6.35998578949841,
+      "welch_p": 0.8920786763015833,
+      "placebo_median": 0.04432045846344579,
+      "placebo_p": 0.5405
+    },
+    "IF(w=4) by forecast displacement": {
+      "n": 753,
+      "date_min": "2022-05-18",
+      "date_max": "2026-05-11",
+      "mean_all_rs": 154.59661354581667,
+      "cost_bar_rs": 160.0,
+      "bottom third": {
+        "n": 251,
+        "mean_rs": 126.14043824701194,
+        "median_rs": 359.9999999999998,
+        "win": 0.6414342629482072,
+        "mean_ror_pct": 3.7966905503801387,
+        "clears_cost_bar": false
+      },
+      "middle third": {
+        "n": 251,
+        "mean_rs": 200.9312749003985,
+        "median_rs": 318.74999999999574,
+        "win": 0.6772908366533864,
+        "mean_ror_pct": 5.085750119383938,
+        "clears_cost_bar": true
+      },
+      "top third": {
+        "n": 251,
+        "mean_rs": 136.7181274900396,
+        "median_rs": 243.75000000000213,
+        "win": 0.6653386454183267,
+        "mean_ror_pct": 3.994331128696127,
+        "clears_cost_bar": false
+      },
+      "top_minus_rest_rs": -26.817729083665654,
+      "welch_p": 0.6850151316113132,
+      "placebo_median": -5.07968127490048,
+      "placebo_p": 0.622
+    },
+    "IF(w=3) by forecast RANGE": {
+      "n": 761,
+      "date_min": "2022-05-17",
+      "date_max": "2026-05-11",
+      "mean_all_rs": 97.49999999999989,
+      "cost_bar_rs": 160.0,
+      "bottom third": {
+        "n": 254,
+        "mean_rs": 214.23720472440945,
+        "median_rs": 213.7500000000012,
+        "win": 0.7047244094488189,
+        "mean_ror_pct": 11.355162558126827,
+        "clears_cost_bar": true
+      },
+      "middle third": {
+        "n": 253,
+        "mean_rs": 30.77075098814204,
+        "median_rs": 116.25000000000085,
+        "win": 0.5968379446640316,
+        "mean_ror_pct": 1.585937099041669,
+        "clears_cost_bar": false
+      },
+      "top third": {
+        "n": 254,
+        "mean_rs": 47.22933070866144,
+        "median_rs": 200.6250000000003,
+        "win": 0.65748031496063,
+        "mean_ror_pct": 1.7714144736494735,
+        "clears_cost_bar": false
+      },
+      "top_minus_rest_rs": -75.45558053394194,
+      "welch_p": 0.15580099878539094,
+      "placebo_median": -0.07756080231098395,
+      "placebo_p": 0.913
+    }
+  },
+  "Q2_conditional_width": {
+    "n": 753,
+    "always w=3": {
+      "mean_rs": 106.2499999999999,
+      "median_rs": 194.99999999999852,
+      "win": 0.6600265604249668,
+      "mean_ror_pct": 5.331206961082982,
+      "worst_rs": -3352.499999999998,
+      "t_vs_zero": 4.237376513854531,
+      "clears_cost_bar": false
+    },
+    "always w=4": {
+      "mean_rs": 154.59661354581667,
+      "median_rs": 296.25000000000125,
+      "win": 0.6613545816733067,
+      "mean_ror_pct": 4.292257266153401,
+      "worst_rs": -4679.999999999999,
+      "t_vs_zero": 4.241111236416585,
+      "clears_cost_bar": false
+    },
+    "wide when forecast is high": {
+      "mean_rs": 133.74003984063734,
+      "median_rs": 232.49999999999744,
+      "win": 0.6600265604249668,
+      "mean_ror_pct": 4.479995454088245,
+      "worst_rs": -4215.000000000001,
+      "t_vs_zero": 4.367374973400149,
+      "clears_cost_bar": false
+    },
+    "wide when forecast is low (inverted control)": {
+      "mean_rs": 127.10657370517926,
+      "median_rs": 224.99999999999892,
+      "win": 0.6613545816733067,
+      "mean_ror_pct": 5.143468773148138,
+      "worst_rs": -4679.999999999999,
+      "t_vs_zero": 3.9774106952158244,
+      "clears_cost_bar": false
+    },
+    "conditional_minus_always4": {
+      "mean_rs": -20.85657370517934,
+      "paired_p": 0.022150084010805062
+    }
+  }
+}

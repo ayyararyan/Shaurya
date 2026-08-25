@@ -1,0 +1,82 @@
+{
+  "pooled": {
+    "label": "POOLED, all buckets",
+    "n": 120,
+    "baseline": {
+      "N": 120,
+      "mean": -7.60795533762132,
+      "median": -13.22408184207994,
+      "win": 38.333333333333336,
+      "sd": 45.12178845083261,
+      "p0": 0.06722793126366214
+    },
+    "best_mean_variant": "stop -40% / target +75%",
+    "best_mean": -2.8660391851715756,
+    "best_mean_p0": 0.4663521336892774,
+    "n_positive_mean": 0,
+    "n_raw_sig_vs_zero": 9,
+    "n_bonferroni_vs_zero": 0,
+    "n_bh_vs_zero": 0,
+    "n_raw_sig_vs_baseline": 3
+  },
+  "low_<14": {
+    "label": "bucket = low_<14",
+    "n": 55,
+    "baseline": {
+      "N": 55,
+      "mean": -12.125672771647196,
+      "median": -12.324766355140184,
+      "win": 38.18181818181819,
+      "sd": 41.87182268485498,
+      "p0": 0.03624614903256669
+    },
+    "best_mean_variant": "clock exit 10:00",
+    "best_mean": -0.5922620159786266,
+    "best_mean_p0": 0.8594426346750037,
+    "n_positive_mean": 0,
+    "n_raw_sig_vs_zero": 1,
+    "n_bonferroni_vs_zero": 0,
+    "n_bh_vs_zero": 0,
+    "n_raw_sig_vs_baseline": 17
+  },
+  "middle_14_18": {
+    "label": "bucket = middle_14_18",
+    "n": 33,
+    "baseline": {
+      "N": 33,
+      "mean": -6.077870729829721,
+      "median": -13.462889253102317,
+      "win": 39.39393939393939,
+      "sd": 47.32285038186647,
+      "p0": 0.466013464375693
+    },
+    "best_mean_variant": "target +75%",
+    "best_mean": -2.169270107805253,
+    "best_mean_p0": 0.8054192593878934,
+    "n_positive_mean": 0,
+    "n_raw_sig_vs_zero": 6,
+    "n_bonferroni_vs_zero": 0,
+    "n_bh_vs_zero": 0,
+    "n_raw_sig_vs_baseline": 0
+  },
+  "high_>18": {
+    "label": "bucket = high_>18",
+    "n": 32,
+    "baseline": {
+      "N": 32,
+      "mean": -1.421028249674431,
+      "median": -13.22783206057327,
+      "win": 37.5,
+      "sd": 48.698705460477726,
+      "p0": 0.86996295461424
+    },
+    "best_mean_variant": "clock exit 14:00",
+    "best_mean": 4.40671621415289,
+    "best_mean_p0": 0.5627666364142945,
+    "n_positive_mean": 11,
+    "n_raw_sig_vs_zero": 3,
+    "n_bonferroni_vs_zero": 0,
+    "n_bh_vs_zero": 0,
+    "n_raw_sig_vs_baseline": 0
+  }
+}
