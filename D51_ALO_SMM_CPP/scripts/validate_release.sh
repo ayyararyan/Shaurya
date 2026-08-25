@@ -5,6 +5,7 @@ cd "$ROOT"
 ./scripts/build_release.sh
 bash -n scripts/*.sh
 python3 -m py_compile scripts/prepare_instruments.py
+python3 -m unittest discover -s tests -p 'test_prepare_instruments.py' -v
 python3 - <<'PY'
 import json
 from pathlib import Path

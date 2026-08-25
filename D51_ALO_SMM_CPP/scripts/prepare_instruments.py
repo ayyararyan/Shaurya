@@ -15,31 +15,68 @@ ALIASES={
  'symbol':['pTrdSymbol','tradingSymbol','trading_symbol','symbol'],
  'name':['pSymbolName','pAssetCode','underlying','symbolName','name'],
  'cp':['pOptionType','optionType','option_type'],
- 'strike':['dStrikePrice','strikePrice','strike_price','strike'],
+ 'strike':['dStrikePrice','dStrikePrice;','strikePrice','strike_price','strike'],
  'expiry':['pExpiryDate','lExpiryDate','expiryDate','expiry_date','expiry'],
+ 'ref_key':['pScripRefKey','scripRefKey','scrip_ref_key'],
  'lot':['lLotSize','lotSize','lot_size'],
  'tick':['dTickSize','tickSize','tick_size'],
  'inst':['pInstType','pInstName','instrumentType','instrument_type'],
 }
+IST=ZoneInfo('Asia/Kolkata')
+KOTAK_NSE_FO_EPOCH_OFFSET_SECONDS=315511200
+
 def field(row,key):
     for k in ALIASES[key]:
         if k in row and str(row[k]).strip()!='': return str(row[k]).strip()
     return ''
 def parse_num(s):
     s=s.replace(',','').strip(); return float(s) if s else 0.0
-def parse_expiry(s):
+
+def parse_ref_expiry(ref_key):
+    match=re.search(r'(\d{1,2})([A-Z]{3})(\d{2})',ref_key.strip().upper())
+    if not match:raise ValueError(f'cannot parse expiry from pScripRefKey {ref_key!r}')
+    day,month,year=match.groups()
+    try:return dt.datetime.strptime(f'{int(day):02d}{month}20{year}','%d%b%Y').date()
+    except ValueError as exc:raise ValueError(f'invalid expiry in pScripRefKey {ref_key!r}') from exc
+
+def parse_expiry(s,ref_key,*,today=None):
     s=s.strip()
+    parsed=None
     if re.fullmatch(r'\d+(?:\.0+)?',s):
         x=int(float(s))
-        if x>10**15: return dt.datetime.fromtimestamp(x/1e9,dt.timezone.utc)
-        if x>10**12: return dt.datetime.fromtimestamp(x/1e3,dt.timezone.utc)
-        if x>10**9: return dt.datetime.fromtimestamp(x,dt.timezone.utc)
-    for fmt in ('%d-%b-%Y','%d%b%Y','%Y-%m-%d','%d/%m/%Y','%d-%m-%Y'):
-        try:
-            d=dt.datetime.strptime(s,fmt).date()
-            return dt.datetime.combine(d,dt.time(15,30),ZoneInfo('Asia/Kolkata')).astimezone(dt.timezone.utc)
-        except ValueError: pass
-    raise ValueError(f'cannot parse expiry {s!r}')
+        seconds=None
+        if x>10**15:seconds=x/1e9
+        elif x>10**12:seconds=x/1e3
+        elif x>10**9:seconds=x
+        if seconds is not None:
+            parsed=dt.datetime.fromtimestamp(
+                seconds+KOTAK_NSE_FO_EPOCH_OFFSET_SECONDS,dt.timezone.utc
+            )
+    if parsed is None:
+        for fmt in ('%d-%b-%Y','%d%b%Y','%Y-%m-%d','%d/%m/%Y','%d-%m-%Y'):
+            try:
+                d=dt.datetime.strptime(s,fmt).date()
+                parsed=dt.datetime.combine(d,dt.time(15,30),IST).astimezone(dt.timezone.utc)
+                break
+            except ValueError:pass
+    if parsed is None:raise ValueError(f'cannot parse expiry {s!r}')
+
+    parsed_date=parsed.astimezone(IST).date()
+    ref_date=parse_ref_expiry(ref_key)
+    if parsed_date!=ref_date:
+        raise ValueError(
+            f'expiry mismatch: pExpiryDate {s!r} implies {parsed_date}, '
+            f'pScripRefKey {ref_key!r} implies {ref_date}'
+        )
+    today=today or dt.datetime.now(IST).date()
+    if parsed_date<today:
+        raise ValueError(f'expired contract: expiry {parsed_date} is before today {today}')
+    return dt.datetime.combine(ref_date,dt.time(15,30),IST).astimezone(dt.timezone.utc)
+
+def normalize_strike(s):
+    strike=parse_num(s)
+    while strike>=100000:strike/=100
+    return strike
 def cp_norm(s):
     u=s.upper()
     if 'CE' in u or u in {'C','CALL'}: return 'CE'
@@ -66,14 +103,18 @@ def main():
     text=Path(args.master).read_text(errors='replace');sample=text[:8192]
     try:dialect=csv.Sniffer().sniff(sample,delimiters=',;|\t')
     except csv.Error:dialect=csv.excel
-    rows=list(csv.DictReader(text.splitlines(),dialect=dialect));now=dt.datetime.now(dt.timezone.utc)
+    rows=list(csv.DictReader(text.splitlines(),dialect=dialect));today=dt.datetime.now(IST).date()
     opts=[];futs=[]
     for r in rows:
         name=' '.join([field(r,'name'),field(r,'symbol')]).upper()
         if not is_target(name,args.underlying):continue
-        try:ex=parse_expiry(field(r,'expiry'))
-        except Exception:continue
-        if ex<=now:continue
+        try:ex=parse_expiry(field(r,'expiry'),field(r,'ref_key'),today=today)
+        except Exception as exc:
+            print(
+                f"WARNING: skipping {field(r,'symbol') or field(r,'ref_key') or '<unknown>'}: {exc}",
+                file=sys.stderr,
+            )
+            continue
         try:token=int(float(field(r,'token')))
         except Exception:continue
         if token<=0:continue
@@ -81,7 +122,7 @@ def main():
         cp=cp_norm(field(r,'cp'))
         inst=field(r,'inst').upper()
         if cp:
-            try:strike=parse_num(field(r,'strike'))
+            try:strike=normalize_strike(field(r,'strike'))
             except Exception:continue
             if strike>0:opts.append((ex,strike,cp,token,sym,lot,tick))
         elif 'FUT' in inst or 'FUT' in sym.upper():
