@@ -22,7 +22,7 @@ referenced by the historical ledger is not present in this repository.
 | [`docs/live-evidence/`](docs/live-evidence/) and [`data/live-evidence/`](data/live-evidence/) | Committed, bounded evidence supporting live-verified claims |
 | [`docs/research/`](docs/research/) and [`docs/sig-claims/`](docs/sig-claims/) | Research priors, methods, and claim ledgers |
 | [`scratch/gap_open_analysis/`](scratch/gap_open_analysis/) | Preserved gap-open research workspace; see its [`README.md`](scratch/gap_open_analysis/README.md) before treating anything as disposable |
-| [`D51_ALO_SMM_CPP/`](D51_ALO_SMM_CPP/) | Self-contained C++ shadow-engine release with its own [`README.md`](D51_ALO_SMM_CPP/README.md) and [`VALIDATION.md`](D51_ALO_SMM_CPP/VALIDATION.md) |
+| [`D51_ALO_SMM_CPP/`](D51_ALO_SMM_CPP/) | Pointer to the extracted private [`ayyararyan/D51_ALO_SMM_CPP`](https://github.com/ayyararyan/D51_ALO_SMM_CPP) shadow-engine repository |
 | [`CHANGELOG.md`](CHANGELOG.md) | Chronological implementation record |
 
 > **Naming (decided 2026-08-17).** "Shaurya" is the name of **this module**, and nothing else.
@@ -178,7 +178,7 @@ Two non-obvious things learned the hard way in that repo, which the module must 
 ├── docs/                         # specifications, research, results, and live evidence
 ├── data/live-evidence/           # bounded raw evidence committed by design
 ├── scratch/gap_open_analysis/    # preserved exploratory research and outputs
-└── D51_ALO_SMM_CPP/              # packaged C++ shadow engine
+└── D51_ALO_SMM_CPP/              # pointer to the standalone C++ shadow-engine repository
 ```
 
 `src/shaurya/contracts/` matters more than it looks. It is the boundary that keeps the Python and
