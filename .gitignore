@@ -30,3 +30,18 @@ logs/
 # Large local research data / accidental venv under scratch (2026-08-25)
 scratch/gap_open_analysis/.ml_venv/
 scratch/gap_open_analysis/*.pkl
+
+# D51 ALO-SMM v0.1.1-shadow runtime outputs and local credentials
+D51_ALO_SMM_CPP/.env
+D51_ALO_SMM_CPP/build/
+!D51_ALO_SMM_CPP/state/
+D51_ALO_SMM_CPP/state/*
+!D51_ALO_SMM_CPP/state/.gitkeep
+D51_ALO_SMM_CPP/stats/*
+!D51_ALO_SMM_CPP/stats/.gitkeep
+
+# Preserve the delivered package examples/placeholders despite broad repo ignores.
+!D51_ALO_SMM_CPP/config/instruments.csv
+!D51_ALO_SMM_CPP/config/instruments.example.csv
+!D51_ALO_SMM_CPP/logs/
+!D51_ALO_SMM_CPP/logs/.gitkeep
