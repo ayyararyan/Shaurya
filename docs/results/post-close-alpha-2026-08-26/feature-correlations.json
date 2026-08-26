@@ -1,0 +1,1568 @@
+{
+  "augmented_training_standardized_coefficients_with_hac_uncertainty": {
+    "adverse_proxy_30s": [
+      {
+        "ci95": [
+          -0.3363129398784431,
+          0.8535759305113089
+        ],
+        "feature": "futures_log_mid",
+        "hac_se": 0.30354307918105916,
+        "standardized_coefficient": 0.25863149531643287
+      },
+      {
+        "ci95": [
+          -0.7868620428405537,
+          -0.1112966699020686
+        ],
+        "feature": "futures_relative_spread",
+        "hac_se": 0.17233810534145028,
+        "standardized_coefficient": -0.44907935637131113
+      },
+      {
+        "ci95": [
+          -0.3634680005679102,
+          0.11957609384743494
+        ],
+        "feature": "futures_microprice_dislocation",
+        "hac_se": 0.12322553428962886,
+        "standardized_coefficient": -0.12194595336023763
+      },
+      {
+        "ci95": [
+          -0.40840238287500824,
+          0.23133211571684703
+        ],
+        "feature": "futures_depth_imbalance",
+        "hac_se": 0.16319757617139166,
+        "standardized_coefficient": -0.08853513357908062
+      },
+      {
+        "ci95": [
+          -0.5872855451061645,
+          -0.05399399761354107
+        ],
+        "feature": "futures_log_trade_intensity_10s",
+        "hac_se": 0.13604376211546515,
+        "standardized_coefficient": -0.3206397713598528
+      },
+      {
+        "ci95": [
+          -0.5780398581598304,
+          -0.03946591132933985
+        ],
+        "feature": "futures_realized_volatility_30s",
+        "hac_se": 0.1373913129669619,
+        "standardized_coefficient": -0.3087528847445851
+      }
+    ],
+    "adverse_proxy_5s": [
+      {
+        "ci95": [
+          -0.015849436689242796,
+          0.32618666319787015
+        ],
+        "feature": "futures_log_mid",
+        "hac_se": 0.08725410711405943,
+        "standardized_coefficient": 0.15516861325431366
+      },
+      {
+        "ci95": [
+          -0.23129787282044312,
+          -0.05520159799909162
+        ],
+        "feature": "futures_relative_spread",
+        "hac_se": 0.04492251908707947,
+        "standardized_coefficient": -0.14324973540976738
+      },
+      {
+        "ci95": [
+          -0.0976017210788089,
+          0.1281297720175797
+        ],
+        "feature": "futures_microprice_dislocation",
+        "hac_se": 0.057584564565405255,
+        "standardized_coefficient": 0.015264025469385385
+      },
+      {
+        "ci95": [
+          -0.15879224422744642,
+          0.04237433356601673
+        ],
+        "feature": "futures_depth_imbalance",
+        "hac_se": 0.05131800453914876,
+        "standardized_coefficient": -0.058208955330714844
+      },
+      {
+        "ci95": [
+          -0.10689152965620946,
+          0.04335475907466638
+        ],
+        "feature": "futures_log_trade_intensity_10s",
+        "hac_se": 0.03832813488032547,
+        "standardized_coefficient": -0.03176838529077154
+      },
+      {
+        "ci95": [
+          -0.0479919318426975,
+          0.09155194632914003
+        ],
+        "feature": "futures_realized_volatility_30s",
+        "hac_se": 0.03559792810506059,
+        "standardized_coefficient": 0.021780007243221263
+      }
+    ],
+    "markout_30s": [
+      {
+        "ci95": [
+          0.12376690128545298,
+          0.5574213309273474
+        ],
+        "feature": "futures_log_mid",
+        "hac_se": 0.11062613001068734,
+        "standardized_coefficient": 0.34059411610640017
+      },
+      {
+        "ci95": [
+          -0.17279346378328356,
+          0.10988678600785431
+        ],
+        "feature": "futures_relative_spread",
+        "hac_se": 0.07211230862018823,
+        "standardized_coefficient": -0.03145333888771463
+      },
+      {
+        "ci95": [
+          -0.10005669284761297,
+          0.08710548883481446
+        ],
+        "feature": "futures_microprice_dislocation",
+        "hac_se": 0.04774545451082333,
+        "standardized_coefficient": -0.006475602006399253
+      },
+      {
+        "ci95": [
+          -0.004822363861657061,
+          0.2111416372272651
+        ],
+        "feature": "futures_depth_imbalance",
+        "hac_se": 0.05509285742064341,
+        "standardized_coefficient": 0.10315963668280402
+      },
+      {
+        "ci95": [
+          -0.08318945306583521,
+          0.12467789149148593
+        ],
+        "feature": "futures_log_trade_intensity_10s",
+        "hac_se": 0.05302738381564315,
+        "standardized_coefficient": 0.020744219212825363
+      },
+      {
+        "ci95": [
+          -0.06504717632069165,
+          0.15492096703520097
+        ],
+        "feature": "futures_realized_volatility_30s",
+        "hac_se": 0.056114322284666486,
+        "standardized_coefficient": 0.044936895357254654
+      }
+    ],
+    "markout_5s": [
+      {
+        "ci95": [
+          0.028442021734235337,
+          0.11494134853460213
+        ],
+        "feature": "futures_log_mid",
+        "hac_se": 0.022066154796011934,
+        "standardized_coefficient": 0.07169168513441873
+      },
+      {
+        "ci95": [
+          -0.036103519661690314,
+          0.02188537084831741
+        ],
+        "feature": "futures_relative_spread",
+        "hac_se": 0.014793084313777481,
+        "standardized_coefficient": -0.007109074406686452
+      },
+      {
+        "ci95": [
+          -0.02353021631199423,
+          0.04058852956449022
+        ],
+        "feature": "futures_microprice_dislocation",
+        "hac_se": 0.016356822927674604,
+        "standardized_coefficient": 0.008529156626247996
+      },
+      {
+        "ci95": [
+          -0.020771879762615904,
+          0.03968060021720031
+        ],
+        "feature": "futures_depth_imbalance",
+        "hac_se": 0.015421551015259239,
+        "standardized_coefficient": 0.009454360227292204
+      },
+      {
+        "ci95": [
+          -0.01465864491274905,
+          0.04555802439311577
+        ],
+        "feature": "futures_log_trade_intensity_10s",
+        "hac_se": 0.015361395231087965,
+        "standardized_coefficient": 0.01544968974018336
+      },
+      {
+        "ci95": [
+          -0.020105180448049147,
+          0.03633055610614732
+        ],
+        "feature": "futures_realized_volatility_30s",
+        "hac_se": 0.014396871569948079,
+        "standardized_coefficient": 0.008112687829049087
+      }
+    ]
+  },
+  "dataset_id": "sha-20260826T063840.939559Z-b7c47c19",
+  "features": [
+    "option_log_mid",
+    "option_relative_spread",
+    "option_microprice_dislocation",
+    "option_depth_imbalance",
+    "option_return_5s",
+    "option_is_call",
+    "option_strike_scaled",
+    "time_sin",
+    "time_cos",
+    "futures_log_mid",
+    "futures_relative_spread",
+    "futures_microprice_dislocation",
+    "futures_depth_imbalance",
+    "futures_log_trade_intensity_10s",
+    "futures_realized_volatility_30s"
+  ],
+  "interpretation": [
+    "Pearson correlations are descriptive, univariate, and not predictive validation.",
+    "Train/test correlations are stability diagnostics, not fitted-model performance.",
+    "Chronological predictive evidence is only the held-out baseline-versus-augmented result."
+  ],
+  "panel_rows": 151223,
+  "panel_rows_by_epoch": {
+    "1": 105874,
+    "2": 7357,
+    "4": 37992
+  },
+  "panel_sha256": "7493d11591318cc85ef960b1d38901eb10abd695007db1cf2575641396e726ab",
+  "pearson_associations": [
+    {
+      "feature": "option_log_mid",
+      "pearson_correlation": 0.004014757532709546,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_log_mid",
+      "pearson_correlation": -0.09484194285601379,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_log_mid",
+      "pearson_correlation": 0.0028463632196954803,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_log_mid",
+      "pearson_correlation": -0.09180019264043679,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_relative_spread",
+      "pearson_correlation": 0.0025078941554269934,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_relative_spread",
+      "pearson_correlation": -0.26153660486847685,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_relative_spread",
+      "pearson_correlation": 0.0017882567858573193,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_relative_spread",
+      "pearson_correlation": -0.2639356046758775,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_microprice_dislocation",
+      "pearson_correlation": 0.0512052693850461,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_microprice_dislocation",
+      "pearson_correlation": -0.012512148351663298,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_microprice_dislocation",
+      "pearson_correlation": 0.02631395752197116,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_microprice_dislocation",
+      "pearson_correlation": -0.013644722426443127,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_depth_imbalance",
+      "pearson_correlation": 0.050350213175987965,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_depth_imbalance",
+      "pearson_correlation": -0.009028744289926257,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_depth_imbalance",
+      "pearson_correlation": 0.023899376793241663,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_depth_imbalance",
+      "pearson_correlation": -0.0114474462170571,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_return_5s",
+      "pearson_correlation": 0.024369287594879187,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_return_5s",
+      "pearson_correlation": -0.004693729775519811,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_return_5s",
+      "pearson_correlation": -0.004999332849129275,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_return_5s",
+      "pearson_correlation": -0.005833802525313006,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_is_call",
+      "pearson_correlation": -0.012461144878858112,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_is_call",
+      "pearson_correlation": -0.08231853201648763,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_is_call",
+      "pearson_correlation": -0.03221275334860048,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_is_call",
+      "pearson_correlation": -0.07040431281047856,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_strike_scaled",
+      "pearson_correlation": 0.001511527253962203,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_strike_scaled",
+      "pearson_correlation": -0.016190878172830523,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_strike_scaled",
+      "pearson_correlation": -0.0008508668383652506,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_strike_scaled",
+      "pearson_correlation": -0.011068183831231322,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "time_sin",
+      "pearson_correlation": -0.0021975068159654897,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "time_sin",
+      "pearson_correlation": -0.06771793427280867,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "time_sin",
+      "pearson_correlation": -0.006290509059754828,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "time_sin",
+      "pearson_correlation": -0.08196401282138359,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "time_cos",
+      "pearson_correlation": -0.002345653622325104,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "time_cos",
+      "pearson_correlation": -0.053956778261493955,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "time_cos",
+      "pearson_correlation": -0.007427380400238249,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "time_cos",
+      "pearson_correlation": -0.06052077003466975,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_log_mid",
+      "pearson_correlation": -0.0008457052584330896,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_log_mid",
+      "pearson_correlation": 0.022387769058978508,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_log_mid",
+      "pearson_correlation": 0.001539387487823602,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_log_mid",
+      "pearson_correlation": 0.01767452968541217,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_relative_spread",
+      "pearson_correlation": -0.0011696424354996843,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_relative_spread",
+      "pearson_correlation": -0.03297647293297548,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_relative_spread",
+      "pearson_correlation": 0.0007526030506288276,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_relative_spread",
+      "pearson_correlation": -0.06612199776787887,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_microprice_dislocation",
+      "pearson_correlation": 0.004072180297028363,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_microprice_dislocation",
+      "pearson_correlation": -0.0074542701434868845,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_microprice_dislocation",
+      "pearson_correlation": 0.004570815191715094,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_microprice_dislocation",
+      "pearson_correlation": -0.010168252620290861,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_depth_imbalance",
+      "pearson_correlation": -0.0002625795292439961,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_depth_imbalance",
+      "pearson_correlation": -0.00941451176585715,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_depth_imbalance",
+      "pearson_correlation": 0.004754951643860276,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_depth_imbalance",
+      "pearson_correlation": -0.013331473861397592,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_log_trade_intensity_10s",
+      "pearson_correlation": 0.00224080979941341,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_log_trade_intensity_10s",
+      "pearson_correlation": 0.04252917536260391,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_log_trade_intensity_10s",
+      "pearson_correlation": 0.001054382113669279,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_log_trade_intensity_10s",
+      "pearson_correlation": 0.023040183913561173,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_realized_volatility_30s",
+      "pearson_correlation": 0.0035798426406845134,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_realized_volatility_30s",
+      "pearson_correlation": 0.035120402379372105,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_realized_volatility_30s",
+      "pearson_correlation": 0.007123648560050043,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_realized_volatility_30s",
+      "pearson_correlation": -0.0029065093640490776,
+      "rows": 151223,
+      "sample": "all_primary_clean",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_log_mid",
+      "pearson_correlation": 0.006697599990129481,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_log_mid",
+      "pearson_correlation": -0.09613153477120957,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_log_mid",
+      "pearson_correlation": 0.00901048045281572,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_log_mid",
+      "pearson_correlation": -0.09798625425021988,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_relative_spread",
+      "pearson_correlation": 0.0018245608931800861,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_relative_spread",
+      "pearson_correlation": -0.2807416082580186,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_relative_spread",
+      "pearson_correlation": 0.0019261141444767958,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_relative_spread",
+      "pearson_correlation": -0.2975177720689263,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_microprice_dislocation",
+      "pearson_correlation": 0.05898900224654851,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_microprice_dislocation",
+      "pearson_correlation": -0.01265781233073892,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_microprice_dislocation",
+      "pearson_correlation": 0.029125854246874996,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_microprice_dislocation",
+      "pearson_correlation": -0.009360300030082284,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_depth_imbalance",
+      "pearson_correlation": 0.05751911624426713,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_depth_imbalance",
+      "pearson_correlation": -0.009938560561368428,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_depth_imbalance",
+      "pearson_correlation": 0.02082960976952935,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_depth_imbalance",
+      "pearson_correlation": -0.012075097703599193,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_return_5s",
+      "pearson_correlation": 0.021173213071766676,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_return_5s",
+      "pearson_correlation": -0.00011152990282633313,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_return_5s",
+      "pearson_correlation": -0.04318224523213308,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_return_5s",
+      "pearson_correlation": -0.00744597889745969,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_is_call",
+      "pearson_correlation": 0.012421925813303624,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_is_call",
+      "pearson_correlation": -0.11084764968922611,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_is_call",
+      "pearson_correlation": 0.02226510347217025,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_is_call",
+      "pearson_correlation": -0.11109122735041627,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_strike_scaled",
+      "pearson_correlation": 0.004169944052786699,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_strike_scaled",
+      "pearson_correlation": -0.032847438989945445,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_strike_scaled",
+      "pearson_correlation": 0.0036626307950615665,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_strike_scaled",
+      "pearson_correlation": -0.03039205547987343,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "time_sin",
+      "pearson_correlation": -0.00019096640519222145,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "time_sin",
+      "pearson_correlation": -0.019165591477988287,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "time_sin",
+      "pearson_correlation": -0.002303406656604653,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "time_sin",
+      "pearson_correlation": 0.006542268680542243,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "time_cos",
+      "pearson_correlation": -0.0017030288006979833,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "time_cos",
+      "pearson_correlation": -0.004772408043463285,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "time_cos",
+      "pearson_correlation": -0.005982703322920328,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "time_cos",
+      "pearson_correlation": 0.021209766788772955,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_log_mid",
+      "pearson_correlation": 0.004078032334022751,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_log_mid",
+      "pearson_correlation": 0.05619386294153506,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_log_mid",
+      "pearson_correlation": 0.0054554845979415695,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_log_mid",
+      "pearson_correlation": 0.05950185722062769,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_relative_spread",
+      "pearson_correlation": 0.0004878865429288722,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_relative_spread",
+      "pearson_correlation": -0.03832635554668553,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_relative_spread",
+      "pearson_correlation": 0.004583534484915179,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_relative_spread",
+      "pearson_correlation": -0.04927004354937671,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_microprice_dislocation",
+      "pearson_correlation": 0.005075506076284273,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_microprice_dislocation",
+      "pearson_correlation": -0.00941842183704248,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_microprice_dislocation",
+      "pearson_correlation": 0.006419581328897736,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_microprice_dislocation",
+      "pearson_correlation": -0.026527770815325882,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_depth_imbalance",
+      "pearson_correlation": 0.0005427605852843673,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_depth_imbalance",
+      "pearson_correlation": -0.01756126969078746,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_depth_imbalance",
+      "pearson_correlation": 0.005461046070182369,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_depth_imbalance",
+      "pearson_correlation": -0.013642375124767698,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_log_trade_intensity_10s",
+      "pearson_correlation": 0.002370519089502737,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_log_trade_intensity_10s",
+      "pearson_correlation": 0.007896086848306038,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_log_trade_intensity_10s",
+      "pearson_correlation": -0.003424509277361433,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_log_trade_intensity_10s",
+      "pearson_correlation": -0.03425196493631023,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_realized_volatility_30s",
+      "pearson_correlation": 0.0004816385616970389,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_realized_volatility_30s",
+      "pearson_correlation": 0.00937219092180711,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_realized_volatility_30s",
+      "pearson_correlation": 0.0023068363259544293,
+      "rows": 106113,
+      "sample": "train",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_realized_volatility_30s",
+      "pearson_correlation": -0.05277654244156884,
+      "rows": 106113,
+      "sample": "train",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_log_mid",
+      "pearson_correlation": -0.00022136191414424695,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_log_mid",
+      "pearson_correlation": -0.09423258663555129,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_log_mid",
+      "pearson_correlation": -0.004882830231598004,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_log_mid",
+      "pearson_correlation": -0.08736075048646,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_relative_spread",
+      "pearson_correlation": 0.0034209627760824536,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_relative_spread",
+      "pearson_correlation": -0.2466132771599186,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_relative_spread",
+      "pearson_correlation": 0.0011984380760111598,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_relative_spread",
+      "pearson_correlation": -0.2443321307094176,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_microprice_dislocation",
+      "pearson_correlation": 0.04093797246850838,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_microprice_dislocation",
+      "pearson_correlation": -0.011160324784155124,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_microprice_dislocation",
+      "pearson_correlation": 0.02438138269867853,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_microprice_dislocation",
+      "pearson_correlation": -0.018125353169556362,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_depth_imbalance",
+      "pearson_correlation": 0.04077743939123361,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_depth_imbalance",
+      "pearson_correlation": -0.006548043296252602,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_depth_imbalance",
+      "pearson_correlation": 0.029056736451904066,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_depth_imbalance",
+      "pearson_correlation": -0.009676736124598241,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_return_5s",
+      "pearson_correlation": 0.029886451726053486,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_return_5s",
+      "pearson_correlation": -0.010450513214735821,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_return_5s",
+      "pearson_correlation": 0.036227147903441066,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_return_5s",
+      "pearson_correlation": -0.004169294198600242,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_is_call",
+      "pearson_correlation": -0.055489852627964395,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_is_call",
+      "pearson_correlation": -0.03873362769017557,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_is_call",
+      "pearson_correlation": -0.11129449729973816,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_is_call",
+      "pearson_correlation": -0.01769081548678646,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "option_strike_scaled",
+      "pearson_correlation": -0.0029783897290639465,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "option_strike_scaled",
+      "pearson_correlation": 0.009005258939269475,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "option_strike_scaled",
+      "pearson_correlation": -0.007220035916969511,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "option_strike_scaled",
+      "pearson_correlation": 0.014029452605425811,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "time_sin",
+      "pearson_correlation": -0.006948417778098724,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "time_sin",
+      "pearson_correlation": -0.02431183445487207,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "time_sin",
+      "pearson_correlation": -0.0038084611946337635,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "time_sin",
+      "pearson_correlation": -0.053598286795778445,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "time_cos",
+      "pearson_correlation": -0.006855262438185499,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "time_cos",
+      "pearson_correlation": -0.025607707566404125,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "time_cos",
+      "pearson_correlation": -0.004122423804515369,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "time_cos",
+      "pearson_correlation": -0.05484963576463039,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_log_mid",
+      "pearson_correlation": -0.005440017364813769,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_log_mid",
+      "pearson_correlation": -0.023932443515214456,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_log_mid",
+      "pearson_correlation": -0.0032904478112627342,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_log_mid",
+      "pearson_correlation": -0.0359148749691651,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_relative_spread",
+      "pearson_correlation": -0.004403107581409616,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_relative_spread",
+      "pearson_correlation": -0.008689678830283383,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_relative_spread",
+      "pearson_correlation": -0.0033852291761392443,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_relative_spread",
+      "pearson_correlation": -0.08408942953911304,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_microprice_dislocation",
+      "pearson_correlation": 0.0027873070064993693,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_microprice_dislocation",
+      "pearson_correlation": 0.00846402250949336,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_microprice_dislocation",
+      "pearson_correlation": 0.004218309350534777,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_microprice_dislocation",
+      "pearson_correlation": 0.02975454210509973,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_depth_imbalance",
+      "pearson_correlation": -0.0014443288081147935,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_depth_imbalance",
+      "pearson_correlation": 0.024348706159118185,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_depth_imbalance",
+      "pearson_correlation": 0.006693586896232014,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_depth_imbalance",
+      "pearson_correlation": 0.011646010844881666,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_log_trade_intensity_10s",
+      "pearson_correlation": 0.0010455103901883473,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_log_trade_intensity_10s",
+      "pearson_correlation": 0.05648770213767736,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_log_trade_intensity_10s",
+      "pearson_correlation": 0.0035196923194237635,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_log_trade_intensity_10s",
+      "pearson_correlation": 0.04665831767144495,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    },
+    {
+      "feature": "futures_realized_volatility_30s",
+      "pearson_correlation": 0.007847958127189634,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_5s"
+    },
+    {
+      "feature": "futures_realized_volatility_30s",
+      "pearson_correlation": 0.055419408543405976,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_5s"
+    },
+    {
+      "feature": "futures_realized_volatility_30s",
+      "pearson_correlation": 0.013229212881960217,
+      "rows": 44276,
+      "sample": "test",
+      "target": "markout_30s"
+    },
+    {
+      "feature": "futures_realized_volatility_30s",
+      "pearson_correlation": 0.036788896351474885,
+      "rows": 44276,
+      "sample": "test",
+      "target": "adverse_proxy_30s"
+    }
+  ],
+  "primary_quality_buffer_seconds": 30,
+  "sample_rows": {
+    "all_primary_clean": 151223,
+    "test": 44276,
+    "train": 106113
+  },
+  "status": "descriptive_correlations_and_training_coefficient_associations",
+  "tape_sha256": "13f9931bbe9e03c4c11bcabb72f8fed397c86e7284523a3d0797120d6bcaa0e0",
+  "target_distributions": {
+    "adverse_proxy_30s": {
+      "maximum_absolute": 341.9999694824219,
+      "mean": 4.291854471570376,
+      "p01": 0.0,
+      "p50": 2.0,
+      "p99": 33.99799969484285,
+      "standard_deviation": 7.731867487114917
+    },
+    "adverse_proxy_5s": {
+      "maximum_absolute": 121.99267622825755,
+      "mean": 1.6287112925494822,
+      "p01": 0.0,
+      "p50": 0.722220338408328,
+      "p99": 13.666497126290626,
+      "standard_deviation": 3.0097378430487884
+    },
+    "markout_30s": {
+      "maximum_absolute": 341.9999694824219,
+      "mean": -0.04095594074985708,
+      "p01": -24.99844064693317,
+      "p50": 0.0,
+      "p99": 24.712090086965755,
+      "standard_deviation": 8.843082734791112
+    },
+    "markout_5s": {
+      "maximum_absolute": 121.99267622825755,
+      "mean": -0.016258342263965345,
+      "p01": -9.999961853172863,
+      "p50": 0.0,
+      "p99": 9.666547988403439,
+      "standard_deviation": 3.422127704318617
+    }
+  },
+  "targets": [
+    "markout_5s",
+    "adverse_proxy_5s",
+    "markout_30s",
+    "adverse_proxy_30s"
+  ]
+}
