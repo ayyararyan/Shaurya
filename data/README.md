@@ -5,6 +5,12 @@ capture, immutable tape and manifest storage, integrity validation, indexing, ar
 cataloguing, dataset discovery, and deterministic replay. It has no dependency on Shaurya
 Research and contains no order-placement or live-trading code.
 
+## Documentation
+
+- [`DAT.md`](DAT.md) is the canonical DAT specification and internal architecture.
+- [`DAT_01_RECONCILIATION.md`](DAT_01_RECONCILIATION.md) is the supporting decision record for
+  the original Dhan-client reconciliation and rejected unsafe paths.
+
 ## Install and test
 
 From the repository root, enter the Data project before running its tools so test discovery and

@@ -40,15 +40,43 @@ Every tape row retains its `CON-06` category and data-quality flags. Missing pro
 - Server-backed JSONL is the warm, appendable lossless representation. A sidecar index provides bounded
   time seeking and channel/instrument filtering; a lossless compressed archive is the permanent
   cold representation. Hashes bind tape, index and archive. Moving data between the settled
-  `/Volumes/Aryan/NSE/YYYY-MM-DD/` lanes does not change dataset identity or semantics.
+  `/Volumes/Aryan/NSE/YYYY-MM-DD/` lanes does not change dataset identity or semantics. Archive
+  promotion reads the gzip copy back, validates its CRC, and verifies that its decompressed SHA-256
+  matches the warm tape; DAT does not delete the warm copy.
 - Current Python implementation lives in `src/shaurya/data/` and `src/shaurya/contracts/`; the production C++ order path consumes canonical outputs through contracts and does not duplicate Dhan ingestion.
 - GCP scaling, where used, applies only to DAT → SIG → BKT → ANL. It does not move EXE/RSK/NAT off their latency-sensitive Kotak/AWS path.
+
+### Dataset lifecycle and failure semantics
+
+1. A consumer constructs a strict `DatasetRequest` containing the trading date, canonical
+   instrument IDs, channels, optional coverage, and whether active data is admissible.
+2. `DataAccess.request` resolves a compatible catalogue handle. Consumer and purpose remain in the
+   audit record but are excluded from acquisition identity, so multiple consumers can share one
+   raw dataset.
+3. When acquisition is required, a DAT capture command claims it under a cross-process lock. A
+   compatible live claim raises `DatasetAlreadyActiveError` with the existing handle instead of
+   opening another broker connection.
+4. DAT publishes an active `DatasetHandle` before the first row for consumers using
+   `DataAccess.follow`, then publishes a terminal handle with actual coverage, row and byte counts,
+   locations, and hashes for `DataAccess.rows`.
+
+An unsatisfied request raises `DatasetUnavailableError`; consumers cannot bypass it by opening
+Dhan directly. Malformed catalogue records, tapes, indexes, archives, or hash mismatches fail
+closed. Dead producers are excluded from active resolution, completed-only requests never return
+active data, and rows outside the claimed channel or instrument set are rejected before
+persistence. Unexpected termination remains visible as active/orphaned lifecycle history and
+cannot be mistaken for a completed dataset.
+
+Existing tapes remain immutable evidence. `DataAccess.adopt_legacy_tape` validates a tape in a
+streaming pass, builds or verifies its seek index, and registers a content-addressed handle without
+rewriting old rows. Transport changes do not alter research estimators, causal timing rules, or
+execution authority.
 
 ## Requirements and traceability
 
 | Requirement | Normative statement | TASKS.md trace | Code target | Test / output target |
 |---|---|---|---|---|
-| REQ-DAT-01 | Maintain one reconciled market-data-only Dhan client based on Mushin's structure plus Shoshin's retry, pacing, and normalization behaviour; document rejected unsafe/strategy-specific paths. | DAT-01, D7 | `src/shaurya/data/dhan_client.py`; `docs/DAT_01_RECONCILIATION.md` | `tests/test_dhan_client.py`; reconciliation record |
+| REQ-DAT-01 | Maintain one reconciled market-data-only Dhan client based on Mushin's structure plus Shoshin's retry, pacing, and normalization behaviour; document rejected unsafe/strategy-specific paths. | DAT-01, D7 | `src/shaurya/data/dhan_client.py`; [`DAT_01_RECONCILIATION.md`](DAT_01_RECONCILIATION.md) | `tests/test_dhan_client.py`; reconciliation record |
 | REQ-DAT-02 | Stream Dhan standard Full/5-level and 20-level feeds with parsing, reconnect/resubscribe, heartbeat, gap semantics, metrics, and per-enabled-channel acceptance. | DAT-02, D16 | `src/shaurya/data/dhan_stream.py`, `src/shaurya/cli/capture_dhan.py` | `tests/test_dhan_stream.py`; capture tape/metrics/manifest |
 | REQ-DAT-03 | Fetch bars/coarser historical data and store it under a stable on-disk schema; never describe it as tick history. | DAT-03, D16 | `src/shaurya/data/historical.py` | `tests/test_historical.py`; versioned immutable bar store and gap audit |
 | REQ-DAT-04 | Fetch and validate option chains against canonical instrument identity. | DAT-04 | `src/shaurya/data/option_chain.py` | `tests/test_option_chain.py`; validated option-chain artifact |
