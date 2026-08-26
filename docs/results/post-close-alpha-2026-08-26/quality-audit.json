@@ -1,0 +1,411 @@
+{
+  "audit_origin": "derived_replay_audit_not_collector_native",
+  "book_invalid_counts": {
+    "partial_book": 374
+  },
+  "buffers": {
+    "10": {
+      "buffer_seconds": 10,
+      "epochs": [
+        {
+          "clean_seconds": 8334.83063808,
+          "clean_windows": [
+            [
+              1787726357099062016,
+              1787727567970038016
+            ],
+            [
+              1787727587970038016,
+              1787728422071639040
+            ],
+            [
+              1787728744725796864,
+              1787730609998316032
+            ],
+            [
+              1787730629998316032,
+              1787732585004028928
+            ],
+            [
+              1787732605004028928,
+              1787733181097771776
+            ],
+            [
+              1787733201097771776,
+              1787733880167216128
+            ],
+            [
+              1787734017750700032,
+              1787735232167341824
+            ]
+          ],
+          "epoch": 1
+        },
+        {
+          "clean_seconds": 1090.132259072,
+          "clean_windows": [
+            [
+              1787735259204536832,
+              1787735698983351040
+            ],
+            [
+              1787735719409036032,
+              1787736369762480896
+            ]
+          ],
+          "epoch": 2
+        },
+        {
+          "clean_seconds": 0.0,
+          "clean_windows": [],
+          "epoch": 3
+        },
+        {
+          "clean_seconds": 2434.174800896,
+          "clean_windows": [
+            [
+              1787736476800816896,
+              1787737528608834048
+            ],
+            [
+              1787737548608834048,
+              1787738930975617792
+            ]
+          ],
+          "epoch": 4
+        }
+      ],
+      "minimum_clean_window_seconds": 300,
+      "total_clean_seconds": 11859.137698048
+    },
+    "30": {
+      "buffer_seconds": 30,
+      "epochs": [
+        {
+          "clean_seconds": 8054.83063808,
+          "clean_windows": [
+            [
+              1787726377099062016,
+              1787727547970038016
+            ],
+            [
+              1787727607970038016,
+              1787728402071639040
+            ],
+            [
+              1787728764725796864,
+              1787730589998316032
+            ],
+            [
+              1787730649998316032,
+              1787732565004028928
+            ],
+            [
+              1787732625004028928,
+              1787733161097771776
+            ],
+            [
+              1787733221097771776,
+              1787733860167216128
+            ],
+            [
+              1787734037750700032,
+              1787735212167341824
+            ]
+          ],
+          "epoch": 1
+        },
+        {
+          "clean_seconds": 1010.132259072,
+          "clean_windows": [
+            [
+              1787735279204536832,
+              1787735678983351040
+            ],
+            [
+              1787735739409036032,
+              1787736349762480896
+            ]
+          ],
+          "epoch": 2
+        },
+        {
+          "clean_seconds": 0.0,
+          "clean_windows": [],
+          "epoch": 3
+        },
+        {
+          "clean_seconds": 2354.174800896,
+          "clean_windows": [
+            [
+              1787736496800816896,
+              1787737508608834048
+            ],
+            [
+              1787737568608834048,
+              1787738910975617792
+            ]
+          ],
+          "epoch": 4
+        }
+      ],
+      "minimum_clean_window_seconds": 300,
+      "total_clean_seconds": 11419.137698048
+    },
+    "60": {
+      "buffer_seconds": 60,
+      "epochs": [
+        {
+          "clean_seconds": 7634.83063808,
+          "clean_windows": [
+            [
+              1787726407099062016,
+              1787727517970038016
+            ],
+            [
+              1787727637970038016,
+              1787728372071639040
+            ],
+            [
+              1787728794725796864,
+              1787730559998316032
+            ],
+            [
+              1787730679998316032,
+              1787732535004028928
+            ],
+            [
+              1787732655004028928,
+              1787733131097771776
+            ],
+            [
+              1787733251097771776,
+              1787733830167216128
+            ],
+            [
+              1787734067750700032,
+              1787735182167341824
+            ]
+          ],
+          "epoch": 1
+        },
+        {
+          "clean_seconds": 890.132259072,
+          "clean_windows": [
+            [
+              1787735309204536832,
+              1787735648983351040
+            ],
+            [
+              1787735769409036032,
+              1787736319762480896
+            ]
+          ],
+          "epoch": 2
+        },
+        {
+          "clean_seconds": 0.0,
+          "clean_windows": [],
+          "epoch": 3
+        },
+        {
+          "clean_seconds": 2234.174800896,
+          "clean_windows": [
+            [
+              1787736526800816896,
+              1787737478608834048
+            ],
+            [
+              1787737598608834048,
+              1787738880975617792
+            ]
+          ],
+          "epoch": 4
+        }
+      ],
+      "minimum_clean_window_seconds": 300,
+      "total_clean_seconds": 10759.137698048
+    }
+  },
+  "confirmed_epoch_transitions": [
+    {
+      "first_row_flags": [
+        "coalesced_print",
+        "connection_gap",
+        "heartbeat_timeout",
+        "reconnected",
+        "source_sequence_unavailable",
+        "trade_classification_degraded"
+      ],
+      "from_epoch": 1,
+      "gap_seconds": 5.620296192,
+      "previous_sequence": 1359489,
+      "previous_ts_ns": 1787735242167341824,
+      "sequence": 1359490,
+      "to_epoch": 2,
+      "ts_ns": 1787735247787638016
+    },
+    {
+      "first_row_flags": [
+        "coalesced_print",
+        "connection_gap",
+        "heartbeat_timeout",
+        "reconnected",
+        "source_sequence_unavailable",
+        "trade_classification_degraded"
+      ],
+      "from_epoch": 2,
+      "gap_seconds": 8.925332224,
+      "previous_sequence": 1533745,
+      "previous_ts_ns": 1787736385384599808,
+      "sequence": 1533746,
+      "to_epoch": 3,
+      "ts_ns": 1787736394309932032
+    },
+    {
+      "first_row_flags": [
+        "coalesced_print",
+        "connection_gap",
+        "heartbeat_timeout",
+        "reconnected",
+        "source_sequence_unavailable",
+        "trade_classification_degraded"
+      ],
+      "from_epoch": 3,
+      "gap_seconds": 20.587341056,
+      "previous_sequence": 1533768,
+      "previous_ts_ns": 1787736394318114048,
+      "sequence": 1533769,
+      "to_epoch": 4,
+      "ts_ns": 1787736414905455104
+    }
+  ],
+  "counter_reconciliation": {
+    "observed_epoch_transitions": 3,
+    "observed_epochs": 4,
+    "observed_heartbeat_first_row_flags": 3,
+    "summary_connections": 4,
+    "summary_heartbeat_timeouts": 3,
+    "summary_reconnect_attempts": 3
+  },
+  "epochs": [
+    {
+      "connection_ids": [
+        "primary"
+      ],
+      "duration_seconds": 8920.934579712,
+      "epoch": 1,
+      "first_sequence": 1,
+      "first_ts_ns": 1787726321232762112,
+      "last_sequence": 1359489,
+      "last_ts_ns": 1787735242167341824,
+      "quality_counts": {
+        "coalesced_print": 239804,
+        "exchange_time_regression": 12,
+        "exchange_timestamp_missing": 121,
+        "partial_book": 121,
+        "source_sequence_unavailable": 1359489,
+        "trade_classification_degraded": 320759
+      },
+      "rows": 1359489
+    },
+    {
+      "connection_ids": [
+        "primary"
+      ],
+      "duration_seconds": 1137.596961792,
+      "epoch": 2,
+      "first_sequence": 1359490,
+      "first_ts_ns": 1787735247787638016,
+      "last_sequence": 1533745,
+      "last_ts_ns": 1787736385384599808,
+      "quality_counts": {
+        "coalesced_print": 34756,
+        "connection_gap": 1,
+        "exchange_time_regression": 2,
+        "exchange_timestamp_missing": 121,
+        "heartbeat_timeout": 1,
+        "partial_book": 121,
+        "reconnected": 1,
+        "source_sequence_unavailable": 174256,
+        "trade_classification_degraded": 45211
+      },
+      "rows": 174256
+    },
+    {
+      "connection_ids": [
+        "primary"
+      ],
+      "duration_seconds": 0.008182016,
+      "epoch": 3,
+      "first_sequence": 1533746,
+      "first_ts_ns": 1787736394309932032,
+      "last_sequence": 1533768,
+      "last_ts_ns": 1787736394318114048,
+      "quality_counts": {
+        "coalesced_print": 10,
+        "connection_gap": 1,
+        "exchange_timestamp_missing": 11,
+        "heartbeat_timeout": 1,
+        "partial_book": 11,
+        "reconnected": 1,
+        "source_sequence_unavailable": 23,
+        "trade_classification_degraded": 11
+      },
+      "rows": 23
+    },
+    {
+      "connection_ids": [
+        "primary"
+      ],
+      "duration_seconds": 2526.070162688,
+      "epoch": 4,
+      "first_sequence": 1533769,
+      "first_ts_ns": 1787736414905455104,
+      "last_sequence": 1935092,
+      "last_ts_ns": 1787738940975617792,
+      "quality_counts": {
+        "coalesced_print": 95185,
+        "connection_gap": 1,
+        "exchange_time_regression": 2,
+        "exchange_timestamp_missing": 121,
+        "heartbeat_timeout": 1,
+        "partial_book": 121,
+        "reconnected": 1,
+        "source_sequence_unavailable": 401324,
+        "trade_classification_degraded": 121409
+      },
+      "rows": 401324
+    }
+  ],
+  "quality_counts": {
+    "coalesced_print": 369755,
+    "connection_gap": 3,
+    "exchange_time_regression": 16,
+    "exchange_timestamp_missing": 374,
+    "heartbeat_timeout": 3,
+    "partial_book": 374,
+    "reconnected": 3,
+    "source_sequence_unavailable": 1935092,
+    "trade_classification_degraded": 487390
+  },
+  "replay_rows": 1935092,
+  "source_sequence_available": false,
+  "stored_receive_sequence_contiguous": true,
+  "uncertain_receive_gaps_within_epoch": [
+    {
+      "epoch": 2,
+      "gap_seconds": 3.674057984,
+      "interpretation": "no records; source sequence unavailable",
+      "previous_sequence": 1533732,
+      "previous_ts_ns": 1787736379762480896,
+      "sequence": 1533733,
+      "ts_ns": 1787736383436538880
+    }
+  ],
+  "window_labels": {
+    "clean": "inside one epoch and outside all buffered quality events",
+    "excluded": "epoch edges or buffer around reconnect, gap, partial/crossed/stale/invalid book, sequence, or exchange-time-regression evidence",
+    "uncertain": "record-free receive gaps; source sequence is unavailable, so upstream loss cannot be tested"
+  }
+}

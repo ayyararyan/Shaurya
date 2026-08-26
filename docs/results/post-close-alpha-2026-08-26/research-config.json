@@ -1,0 +1,17 @@
+{
+  "dataset_id": "sha-20260826T063840.939559Z-b7c47c19",
+  "embargo_seconds": 30,
+  "feature_clip_quantiles": [0.005, 0.995],
+  "grid_seconds": 5,
+  "primary_quality_buffer_seconds": 30,
+  "quality_buffer_sensitivity_seconds": [10, 30, 60],
+  "research_status": "exploratory_single_session",
+  "seek_index_sha256": "97e3eab630c59dc1943edea523605840a8f626539e32e54f4e3cc78badcf8221",
+  "split_proportions": {
+    "test": 0.2,
+    "train": 0.6,
+    "validation": 0.2
+  },
+  "tape_sha256": "13f9931bbe9e03c4c11bcabb72f8fed397c86e7284523a3d0797120d6bcaa0e0",
+  "target_horizons_seconds": [5, 30]
+}
