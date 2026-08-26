@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shaurya-research"
+version = "0.2.0"
+description = "Shaurya feature engineering, statistical research, and daily reports"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=2.0,<2.3",
+  "scipy>=1.14,<2",
+  "shaurya-data>=0.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.15",
+  "pytest>=8.3",
+  "pytest-asyncio>=0.25",
+  "ruff>=0.11",
+]
+
+[project.scripts]
+shaurya-ofi-dashboard = "shaurya.cli.ofi_dashboard:main"
+shaurya-live-ofi-studies = "shaurya.cli.live_ofi_studies:main"
+shaurya-rolling-c8 = "shaurya.cli.rolling_c8:main"
+shaurya-surface-dashboard = "shaurya.cli.surface_dashboard:main"
+shaurya-feature-selection-experiment = "shaurya.cli.feature_selection_experiment:main"
+shaurya-daily-research = "shaurya.analytics.post_close_alpha_research:main"
+
+[tool.uv.sources]
+shaurya-data = { path = "../data", editable = true }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["shaurya.analytics", "shaurya.cli", "shaurya.signals", "shaurya.surfaces"]
+
+[[tool.mypy.overrides]]
+module = ["pandas", "pandas.*", "scipy", "scipy.*"]
+ignore_missing_imports = true

@@ -18,6 +18,15 @@
 *.ppk
 *.key
 *.token
+*.p12
+*.pfx
+*.crt
+*.cer
+credentials*.json
+credentials*.yaml
+credentials*.yml
+*access_token*
+*refresh_token*
 *.log
 __pycache__/
 *.py[cod]
@@ -43,13 +52,33 @@ run/
 runs/
 state/
 logs/
-/data/
-# Raw captures and generated tables are ignored by default. Curated evidence already tracked in
-# docs/results remains versioned, and new result tables there stay visible for deliberate review.
+
+# Runtime market-data and generated research outputs. The project directories themselves are
+# source code; only their local data/output lanes are ignored.
+data/raw/
+data/datasets/
+data/catalog/
+data/metadata/
+data/indexes/
+data/archives/
+data/live-evidence/
+research/artifacts/
+research/results/generated/
+research/run/
+research/runs/
+research/state/
+research/logs/
+
+# Raw captures and generated tables are ignored by default. Curated research evidence already
+# tracked under research/docs/results remains versioned for deliberate review.
 *.jsonl
 *.csv
-!docs/results/*.csv
+!research/docs/results/*.csv
 *.parquet
+*.jsonl.gz
+*.parquet.gz
+*.tar.gz
+*.zst
 
 # Large local research data / accidental venv under scratch (2026-08-25)
 scratch/gap_open_analysis/.ml_venv/
