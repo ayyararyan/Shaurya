@@ -133,3 +133,22 @@ foreach(policy_test IN ITEMS
       --start-commit bcb6dea02329f824c82488f29450af0dd0e826ca
   )
 endforeach()
+
+foreach(ops_shell_test IN ITEMS test_kotak_cli.sh test_doctor.sh test_portable_release.sh test_path_safety.sh)
+  get_filename_component(ops_name "${ops_shell_test}" NAME_WE)
+  add_test(
+    NAME "execution.ops.${ops_name}"
+    COMMAND "${CMAKE_COMMAND}" -E env
+      "PYTHONDONTWRITEBYTECODE=1"
+      "KOTAK_PYTHON=${Python3_EXECUTABLE}"
+      "/bin/sh" "${CMAKE_CURRENT_SOURCE_DIR}/ops/${ops_shell_test}"
+  )
+  set_tests_properties("execution.ops.${ops_name}" PROPERTIES LABELS "ops;hermetic")
+endforeach()
+add_test(
+  NAME execution.ops.test_auth_transport
+  COMMAND "${CMAKE_COMMAND}" -E env
+    "PYTHONDONTWRITEBYTECODE=1"
+    "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/ops/test_auth_transport.py"
+)
+set_tests_properties(execution.ops.test_auth_transport PROPERTIES LABELS "ops;hermetic")

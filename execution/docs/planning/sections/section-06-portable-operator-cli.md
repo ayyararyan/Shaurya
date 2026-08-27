@@ -171,8 +171,9 @@ and role. Relative paths must be normalized, unique, and contained beneath the r
 Checksums are called checksums unless an actual signing key and trust policy are introduced.
 
 The deployment manifest contains only bounded data fields: schema/deployment/compatibility versions,
-SSH host alias, expected remote OS/architecture, executor commit/build digest, deployment-manifest
-digest, remote installation root, fixed helper/watcher paths and digests, fixed orchestration unit,
+SSH host alias, expected remote OS/architecture, executor commit, clean source-tree digest, build
+digest, deployment-manifest digest, remote installation root, fixed helper/watcher paths and
+digests, fixed orchestration unit,
 expected protocol versions, and bounded timeouts. It contains no arbitrary commands, options,
 environment assignments, credential paths, or shell fragments. The CLI constructs fixed remote
 commands and treats every field as data.
