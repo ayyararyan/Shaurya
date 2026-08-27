@@ -5,9 +5,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import os
 import sys
 import time
+from contextlib import suppress
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -57,15 +57,6 @@ OFI_FULL_SESSION_SECONDS = float(
 )
 
 
-def _exclusive_json(path: Path, value: dict[str, Any]) -> None:
-    encoded = (json.dumps(value, sort_keys=True, indent=2) + "\n").encode()
-    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-    with os.fdopen(descriptor, "wb") as handle:
-        handle.write(encoded)
-        handle.flush()
-        os.fsync(handle.fileno())
-
-
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--credentials", required=True, type=Path)
@@ -100,7 +91,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--archive-on-close",
         action="store_true",
-        help="also create and verify the lossless gzip cold archive before publishing completion",
+        help="legacy compatibility flag; segmented Parquet is already compressed and immutable",
     )
     parser.add_argument("--no-standard", action="store_true")
     parser.add_argument("--no-depth20", action="store_true")
@@ -156,9 +147,7 @@ def _required_channels(config: DhanStreamConfig) -> set[str]:
     return required
 
 
-def _validate_depth_tier_scope(
-    args: argparse.Namespace, mapping: DhanInstrumentMapping
-) -> None:
+def _validate_depth_tier_scope(args: argparse.Namespace, mapping: DhanInstrumentMapping) -> None:
     """D33: the depth tier follows the instrument class, and options stop at 20 levels."""
     if args.enable_depth200 and mapping.instrument.kind not in DEPTH200_ELIGIBLE_KINDS:
         raise ValueError(
@@ -266,7 +255,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         raise ValueError(
             f"security-ID identity check failed: expected {args.expected_symbol!r}, "
             f"master has {mapping.trading_symbol!r}"
-    )
+        )
     _validate_depth_tier_scope(args, mapping)
     output_root = resolve_raw_capture_root(
         args.output_root,
@@ -313,13 +302,14 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         output_root=output_root,
         fsync_every=100,
     )
+    args._active_session = session
     manifest = session.manifest
     writer = session.writer
     stream = DhanLiveStream(
         credentials,
         [mapping],
         session.write,
-        run_id=str(manifest.run_id),
+        run_id=session.dataset_id,
         config=config,
         metrics=metrics,
     )
@@ -380,9 +370,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             },
         }
     )
-    metrics_path = manifest.run_dir / f"capture_metrics_{manifest.run_id}.json"
-    _exclusive_json(metrics_path, snapshot)
-    manifest.register_existing(metrics_path, kind="capture_metrics")
+    manifest.write_record("capture_metrics", snapshot)
     audit = CollectorQualityAudit.from_metrics(
         str(manifest.run_id), metrics, recorded_at=datetime.now(IST)
     )
@@ -448,6 +436,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     except BaseException as exc:
+        active_session = getattr(args, "_active_session", None)
+        if isinstance(active_session, DataCaptureSession):
+            # DataCaptureSession retains its claim if failure publication also fails.
+            with suppress(BaseException):
+                active_session.close(
+                    invalidation_reason=f"unexpected capture failure: {type(exc).__name__}"
+                )
         # Never print exception text: an upstream networking exception may contain an auth URL.
         print(
             json.dumps({"status": "preflight_failed", "error_type": type(exc).__name__}),

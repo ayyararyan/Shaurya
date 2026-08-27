@@ -53,8 +53,7 @@ def _verify_default_smb_mount() -> None:
     expected = f"{EXPECTED_NSE_ARCHIVE_SHARE} on {DEFAULT_NSE_ARCHIVE_MOUNT} (smbfs,"
     if expected not in observed:
         raise NSEArchiveUnavailableError(
-            f"{DEFAULT_NSE_ARCHIVE_MOUNT} is mounted, but not from "
-            f"{EXPECTED_NSE_ARCHIVE_SHARE}"
+            f"{DEFAULT_NSE_ARCHIVE_MOUNT} is mounted, but not from {EXPECTED_NSE_ARCHIVE_SHARE}"
         )
 
 
@@ -154,8 +153,8 @@ def resolve_data_catalog(
     layout = NSEArchiveLayout.configured(trading_date)
     if explicit is None:
         if allow_nonarchive and nonarchive_capture_root is not None:
-            return nonarchive_capture_root.resolve().parent / "datasets.jsonl"
-        return layout.prepare().metadata / "datasets.jsonl"
+            return nonarchive_capture_root.resolve().parent / "datasets"
+        return layout.prepare().metadata / "datasets"
     resolved_explicit = explicit.expanduser().resolve() if explicit.is_absolute() else explicit
     if resolved_explicit.is_absolute() and resolved_explicit.is_relative_to(layout.root):
         layout.prepare()

@@ -92,7 +92,7 @@ def test_fetch_intraday_bars_normalizes_schema_without_claiming_ticks() -> None:
 def test_historical_store_round_trip_permissions_and_gap_surface(tmp_path: Path) -> None:
     start = datetime(2026, 8, 18, 9, 15, tzinfo=IST)
     bars = (_bar(start), _bar(start + BarInterval.MINUTE_5.duration * 2))
-    store = HistoricalBarStore(tmp_path / "bars.jsonl")
+    store = HistoricalBarStore(tmp_path / "bars.parquet")
     assert store.write(bars) == 2
     assert stat.S_IMODE(store.path.stat().st_mode) == 0o600
     assert tuple(store.rows()) == bars

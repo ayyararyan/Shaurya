@@ -16,10 +16,10 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import os
 import sys
 import time
 from collections import Counter
+from contextlib import suppress
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -84,15 +84,6 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _exclusive_json(path: Path, value: dict[str, Any]) -> None:
-    encoded = (json.dumps(value, sort_keys=True, indent=2) + "\n").encode()
-    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-    with os.fdopen(descriptor, "wb") as handle:
-        handle.write(encoded)
-        handle.flush()
-        os.fsync(handle.fileno())
-
-
 async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     if args.duration_seconds <= 0:
         raise ValueError("duration-seconds must be positive")
@@ -150,6 +141,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         output_root=output_root,
         fsync_every=200,
     )
+    args._active_session = session
     manifest = session.manifest
     writer = session.writer
     seen: Counter[str] = Counter()
@@ -171,7 +163,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         credentials,
         instruments,
         consume,
-        run_id=str(manifest.run_id),
+        run_id=session.dataset_id,
         config=config,
         metrics=metrics,
     )
@@ -203,9 +195,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         "requested_instruments": len(requested),
         "instruments_with_packets": len(covered),
         "instruments_without_packets": len(silent),
-        "first_silent_request_index": (
-            requested.index(silent[0]) if silent else None
-        ),
+        "first_silent_request_index": (requested.index(silent[0]) if silent else None),
         "silent_instruments": silent,
         "rows": metrics.rows,
         "reconnect_attempts": dict(metrics.reconnect_attempts),
@@ -214,11 +204,9 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         "packets_per_instrument": dict(seen),
         "first_packet_ist_per_instrument": first_seen,
         "stream_error": type(stream_error).__name__ if stream_error else None,
-        "tape_path": str(writer.path),
+        "dataset_directory": str(writer.dataset_dir),
     }
-    coverage_path = manifest.run_dir / "chain_coverage.json"
-    _exclusive_json(coverage_path, report)
-    manifest.register_existing(coverage_path, kind="chain_coverage")
+    manifest.write_record("chain_coverage", report)
     reason = (
         f"stream failed: {type(stream_error).__name__}"
         if stream_error is not None
@@ -244,6 +232,16 @@ def main(argv: list[str] | None = None) -> int:
             "status": "reused_active_dataset",
             "dataset_handle": exc.handle.model_dump(mode="json"),
         }
+    except BaseException as exc:
+        active_session = getattr(args, "_active_session", None)
+        if isinstance(active_session, DataCaptureSession):
+            # DataCaptureSession retains its claim if failure publication also fails.
+            with suppress(BaseException):
+                active_session.close(
+                    invalidation_reason=f"unexpected capture failure: {type(exc).__name__}"
+                )
+        report = {"status": "preflight_failed", "error_type": type(exc).__name__}
+        code = 1
     json.dump(report, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write("\n")
     return code

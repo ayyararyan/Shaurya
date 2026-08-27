@@ -15,6 +15,7 @@ from shaurya.contracts.categories import ObjectCategory
 from shaurya.contracts.tape import QualityFlag
 from shaurya.contracts.timing import require_ist
 from shaurya.data.dhan_stream import StreamMetrics
+from shaurya.data.metadata import ParquetCaptureManifest
 
 
 class CollectorQualityAudit(ContractModel):
@@ -75,10 +76,15 @@ class CollectorQualityAudit(ContractModel):
 
 
 def write_quality_audit(
-    manifest: ArtifactManifest, audit: CollectorQualityAudit
+    manifest: ArtifactManifest | ParquetCaptureManifest, audit: CollectorQualityAudit
 ) -> Path:
     if audit.run_id != str(manifest.run_id):
         raise ValueError("quality audit run_id does not match manifest")
+    if isinstance(manifest, ParquetCaptureManifest):
+        return manifest.write_record(
+            "collector_quality_audit",
+            audit.model_dump(mode="json"),
+        )
     path = manifest.run_dir / f"collector_quality_{manifest.run_id}.json"
     descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     with os.fdopen(descriptor, "wb", closefd=True) as handle:
