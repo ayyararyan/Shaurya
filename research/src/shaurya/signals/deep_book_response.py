@@ -141,7 +141,7 @@ def build_depth20_response_labels(
     tape: with no coverage bound, an endpoint past the final observation silently resolves back
     to that final observation, which can sit *before* the response start and fabricate a
     zero-return label over a negative realised horizon.  See
-    ``research/docs/SIG-21-EXPLORATORY-RESPONSE-2026-08-19.md``.
+    ``research/docs/live-evidence/SIG-21-EXPLORATORY-RESPONSE-2026-08-19.md``.
     """
 
     if event_ts_ns < 0:

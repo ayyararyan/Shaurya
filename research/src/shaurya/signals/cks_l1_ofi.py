@@ -8,7 +8,7 @@ causally measured depth, and asks how much of the following futures mid change i
 Dhan publishes snapshots rather than order-by-order messages, so gross limit arrivals and gross
 cancellations are **not identified**.  Same-price increases are therefore called displayed
 additions and same-price decreases displayed removals throughout, never arrival or cancellation
-intensities.  See ``research/docs/CKS-L1-OFI-SPEC-2026-08-19.md`` for the frozen design.
+intensities.  See ``research/docs/live-evidence/CKS-L1-OFI-SPEC-2026-08-19.md`` for the frozen design.
 """
 
 from __future__ import annotations
@@ -53,9 +53,9 @@ from shaurya.signals.deep_book_response import NANOSECONDS_PER_SECOND
 
 EXPLORATORY_SCAN_ID = "X-CKS-L1-OFI-DAT20-04"
 CONFIRMATORY_ELIGIBLE = False
-DESIGN_DOCUMENT = "research/docs/CKS-L1-OFI-SPEC-2026-08-19.md"
-AMENDMENT_DOCUMENT = "research/docs/CKS-L1-OFI-SPEC-AMENDMENT-1-2026-08-19.md"
-MIGRATION_DOCUMENT = "research/docs/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
+DESIGN_DOCUMENT = "research/docs/live-evidence/CKS-L1-OFI-SPEC-2026-08-19.md"
+AMENDMENT_DOCUMENT = "research/docs/live-evidence/CKS-L1-OFI-SPEC-AMENDMENT-1-2026-08-19.md"
+MIGRATION_DOCUMENT = "research/docs/legacy/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
 
 #: Response horizons for this scan.  Amendment 1 admits the 0.5 s arm after confirming that the
 #: depth-20 mid resolves to two *different* snapshots at both endpoints in 99.4-99.5% of cases.

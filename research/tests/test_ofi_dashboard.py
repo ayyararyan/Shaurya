@@ -417,7 +417,7 @@ def test_val_ccz_08_dashboard_payload_carries_the_estimator_block(tmp_path: Path
     assert ccz["cumulates_across_levels"] is False
     assert ccz["per_band_denominator"] is False
     assert "ID-CCZ-01" in ccz["limitation"]
-    assert payload["migration_document"] == "research/docs/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
+    assert payload["migration_document"] == "research/docs/legacy/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
     # Before any refit there is no fitted component, and none is fabricated.
     assert payload["ccz_integrated_weights"] == {}
     assert ccz["explained_variance_ratio"] == {}

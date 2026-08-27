@@ -68,7 +68,7 @@ def _publish_metadata(
             "order_entry_enabled": False,
             "successive_prefixes_independent": False,
             "source_prefix": dict(source),
-            "live_amendment": "research/docs/D38-D39-D40-LIVE-AMENDMENT-2026-08-21.md",
+            "live_amendment": "research/docs/live-evidence/D38-D39-D40-LIVE-AMENDMENT-2026-08-21.md",
         }
     )
 

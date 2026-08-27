@@ -38,7 +38,7 @@ from shaurya.signals.ofi_horserace import (
     build_horserace_observations,
 )
 
-LIVE_SPECIFICATION: Final = "research/docs/D38-D39-D40-LIVE-AMENDMENT-2026-08-21.md"
+LIVE_SPECIFICATION: Final = "research/docs/live-evidence/D38-D39-D40-LIVE-AMENDMENT-2026-08-21.md"
 D40_HORIZONS_SECONDS: Final = (10.0, 20.0, 30.0, 45.0, 60.0, 90.0, 120.0)
 LIVE_RESPONSE_HORIZONS_SECONDS: Final = (
     0.5,

@@ -36,7 +36,7 @@ import numpy as np
 from shaurya.signals.deep_book_ofi import FUTURES_TICK_SIZE
 
 SPECIFICATION_ID: Final = "D38 / TOUCH-METRICS-2026-08-20"
-DESIGN_DOCUMENT: Final = "research/docs/TOUCH-METRICS-SPEC-2026-08-20.md"
+DESIGN_DOCUMENT: Final = "research/docs/legacy/TOUCH-METRICS-SPEC-2026-08-20.md"
 STOIKOV_REFERENCE: Final = (
     "Stoikov (2018), The Micro-Price: A High Frequency Estimator of Future Prices, "
     "Quantitative Finance 18(12)"
