@@ -88,6 +88,21 @@ foreach(ipc_test IN ITEMS
   set_tests_properties("execution.${ipc_test}" PROPERTIES LABELS "section05;ipc;hermetic")
 endforeach()
 
+add_executable(test_shaurya_parity_harness test_shaurya_parity_harness.cpp)
+target_link_libraries(test_shaurya_parity_harness PRIVATE shaurya_execution_contracts)
+add_dependencies(test_shaurya_parity_harness shaurya-parity-harness)
+shaurya_require_fresh_attestation(test_shaurya_parity_harness)
+shaurya_apply_warnings(test_shaurya_parity_harness)
+add_test(
+  NAME execution.shaurya_parity_harness
+  COMMAND test_shaurya_parity_harness
+    "$<TARGET_FILE:shaurya-parity-harness>"
+    "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/shaurya_parity"
+    "${PROJECT_SOURCE_DIR}/contracts/v1/parity_client_contract.json"
+)
+set_tests_properties(execution.shaurya_parity_harness PROPERTIES
+  LABELS "section07;parity;hermetic")
+
 get_filename_component(SHAURYA_REPOSITORY_ROOT "${PROJECT_SOURCE_DIR}" DIRECTORY)
 add_test(
   NAME execution.routing_exporter

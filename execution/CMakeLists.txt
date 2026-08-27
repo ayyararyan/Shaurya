@@ -181,5 +181,39 @@ shaurya_apply_warnings(shaurya-ledger-repair)
 
 include(CTest)
 if(BUILD_TESTING)
+  set(SHAURYA_PARITY_EVENT_SCHEMA
+      "${CMAKE_CURRENT_SOURCE_DIR}/contracts/v1/execution_event.schema.json")
+  set(SHAURYA_PARITY_CLIENT_CONTRACT
+      "${CMAKE_CURRENT_SOURCE_DIR}/contracts/v1/parity_client_contract.json")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${SHAURYA_PARITY_EVENT_SCHEMA}"
+    "${SHAURYA_PARITY_CLIENT_CONTRACT}"
+  )
+  file(SHA256 "${SHAURYA_PARITY_EVENT_SCHEMA}" SHAURYA_PARITY_EVENT_SCHEMA_DIGEST)
+  file(SHA256 "${SHAURYA_PARITY_CLIENT_CONTRACT}" SHAURYA_PARITY_CLIENT_CONTRACT_DIGEST)
+  foreach(parity_digest IN ITEMS
+      SHAURYA_PARITY_EVENT_SCHEMA_DIGEST
+      SHAURYA_PARITY_CLIENT_CONTRACT_DIGEST)
+    string(LENGTH "${${parity_digest}}" parity_digest_length)
+    if(NOT parity_digest_length EQUAL 64 OR
+        NOT "${${parity_digest}}" MATCHES "^[0-9a-f]+$")
+      message(FATAL_ERROR "${parity_digest} is not an exact lowercase SHA-256 digest")
+    endif()
+  endforeach()
+
+  add_library(shaurya_execution_parity STATIC src/parity_harness.cpp)
+  target_include_directories(shaurya_execution_parity PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  target_link_libraries(shaurya_execution_parity PUBLIC shaurya_execution_ipc)
+  target_compile_definitions(shaurya_execution_parity PRIVATE
+    SHAURYA_PARITY_SCHEMA_DIGEST="${SHAURYA_PARITY_EVENT_SCHEMA_DIGEST}"
+    SHAURYA_PARITY_CLIENT_CONTRACT_DIGEST="${SHAURYA_PARITY_CLIENT_CONTRACT_DIGEST}"
+  )
+  shaurya_apply_warnings(shaurya_execution_parity)
+
+  add_executable(shaurya-parity-harness tools/shaurya_parity_harness.cpp)
+  target_link_libraries(shaurya-parity-harness PRIVATE shaurya_execution_parity)
+  shaurya_require_fresh_attestation(shaurya-parity-harness)
+  shaurya_apply_warnings(shaurya-parity-harness)
+
   add_subdirectory(tests)
 endif()
