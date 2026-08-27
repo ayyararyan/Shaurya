@@ -58,7 +58,7 @@ context:
 - [x] `ledger.py`, `state.py`, `executor.py` -- require the exact bound pre-session state and ledger tail, validate the whole run before publication, and use a locked transaction/journal design that resumes at every injected crash boundary without changing event identities or duplicating OOS evidence. Verify state filenames/content, artifact manifests and hashes on retry; make batch-write failure recoverable; support an explicit next trading-session date rather than calendar-day inference; preserve `0700` directories and `0600` create-once artifacts.
 - [x] `evidence.py`, `stability.py`, `mechanisms.py`, `reports.py` -- compute lifecycle/grades only from artifact-bound folds, multiplicity, null, surface, and economic evidence under the frozen policy. Make `PROVISIONAL`, `REPLICATED`, `WEAKENING`, `DECAYING`, `DORMANT`, `REJECTED`, and predeclared reactivation reachable and distinct; missing scores interrupt decay streaks. Emit required complete daily surfaces/multiplicity/mechanisms, atomic reports, and a content-hashed Parquet ledger snapshot plus manifest on every completed run.
 - [x] `src/shaurya/cli/research.py`, `pyproject.toml` -- make planning, mining, evaluation, ledger, explanation, mechanism, surface, and historical-state commands run through an installed subprocess entry point. Production mining/evaluation derives results from canonical source-bound observations and a plan-frozen registry set; it never accepts caller-authored scores, fold hashes, gates, candidate universes, or copied provenance hashes as scientific authority.
-- [x] `tests/research/` -- add adversarial and true end-to-end subprocess tests that independently construct/replay canonical DAT fixtures and prove source/result binding, registry fingerprint enforcement, every executable axis/model, exact-universe provenance, gate-artifact binding, complete failure accounting, write/crash-boundary recovery, and the full seeded null/stable/drift/break/regime simulations through lifecycle and reporting—not only isolated helpers or custom callbacks.
+- [x] `tests/` -- add adversarial and true end-to-end subprocess tests that independently construct/replay canonical DAT fixtures and prove source/result binding, registry fingerprint enforcement, every executable axis/model, exact-universe provenance, gate-artifact binding, complete failure accounting, write/crash-boundary recovery, and the full seeded null/stable/drift/break/regime simulations through lifecycle and reporting—not only isolated helpers or custom callbacks.
 
 **Acceptance Criteria:**
 - Given any future target/result mutation or appended future session, when a historical feature run, selection, fold, regime, or state is reconstructed, then every pre-existing hash and decision is unchanged.
@@ -78,9 +78,9 @@ The canonical ledger is locked/fsynced append-only JSONL because a single Parque
 ## Verification
 
 **Commands:**
-- `PYTHONDONTWRITEBYTECODE=1 pytest -q tests/research` -- all new acceptance and synthetic tests pass.
+- `PYTHONDONTWRITEBYTECODE=1 pytest -q tests/test_adversarial_acceptance.py tests/test_contracts_and_planner.py tests/test_ledger_state_lifecycle_executor.py tests/test_research_cli.py tests/test_surfaces_nulls_multiplicity.py tests/test_v3_seeded_full_pipeline.py tests/test_v3_source_bound_e2e.py tests/test_walkforward_and_synthetic.py` -- all new acceptance and synthetic tests pass.
 - `PYTHONDONTWRITEBYTECODE=1 uv run --frozen --extra dev pytest -q` -- full existing and new suite passes in the declared development environment.
-- `PYTHONDONTWRITEBYTECODE=1 uv run ruff check src/shaurya/research src/shaurya/cli/research.py tests/research` -- changed-scope lint passes.
+- `PYTHONDONTWRITEBYTECODE=1 uv run ruff check src/shaurya/research src/shaurya/cli/research.py tests/test_*.py` -- changed-scope lint passes.
 - `PYTHONDONTWRITEBYTECODE=1 uv run mypy src/shaurya/research src/shaurya/cli/research.py` -- strict typing passes across the research implementation and CLI.
 
 ## Dev Agent Record
@@ -137,14 +137,14 @@ The canonical ledger is locked/fsynced append-only JSONL because a single Parque
 - `src/shaurya/research/targets.py`
 - `src/shaurya/research/walkforward.py`
 - `tests/conftest.py`
-- `tests/research/test_adversarial_acceptance.py`
-- `tests/research/test_contracts_and_planner.py`
-- `tests/research/test_ledger_state_lifecycle_executor.py`
-- `tests/research/test_research_cli.py`
-- `tests/research/test_surfaces_nulls_multiplicity.py`
-- `tests/research/test_v3_seeded_full_pipeline.py`
-- `tests/research/test_v3_source_bound_e2e.py`
-- `tests/research/test_walkforward_and_synthetic.py`
+- `tests/test_adversarial_acceptance.py`
+- `tests/test_contracts_and_planner.py`
+- `tests/test_ledger_state_lifecycle_executor.py`
+- `tests/test_research_cli.py`
+- `tests/test_surfaces_nulls_multiplicity.py`
+- `tests/test_v3_seeded_full_pipeline.py`
+- `tests/test_v3_source_bound_e2e.py`
+- `tests/test_walkforward_and_synthetic.py`
 
 ## Change Log
 
@@ -192,11 +192,11 @@ The canonical ledger is locked/fsynced append-only JSONL because a single Parque
   [`state.py:20`](../../src/shaurya/research/state.py#L20)
 
 - Run the clean-install, shared-ledger, multi-day, crash-recovery workflow.
-  [`test_v3_source_bound_e2e.py:251`](../../tests/research/test_v3_source_bound_e2e.py#L251)
+  [`test_v3_source_bound_e2e.py:251`](../../tests/test_v3_source_bound_e2e.py#L251)
 
 - Inspect seeded null, stability, drift, break, and causal-regime outcomes.
-  [`test_v3_seeded_full_pipeline.py:283`](../../tests/research/test_v3_seeded_full_pipeline.py#L283)
+  [`test_v3_seeded_full_pipeline.py:283`](../../tests/test_v3_seeded_full_pipeline.py#L283)
 
 - Review bootstrap tamper rejection and repeated negative-control warnings.
-  [`test_surfaces_nulls_multiplicity.py:151`](../../tests/research/test_surfaces_nulls_multiplicity.py#L151)
+  [`test_surfaces_nulls_multiplicity.py:151`](../../tests/test_surfaces_nulls_multiplicity.py#L151)
 - **2026-08-26:** Closed the final iteration-5 evidence gap by registering a target-blind source-keyed autocorrelated negative control and executing the frozen stationary block bootstrap as a candidate-keyed, tamper-evident daily authority through gates, ledger, lifecycle, report, and state. The exact initial plan cardinality is now 22,681 raw and 7,561 effective hypotheses across 64 predictor specifications and two families; 39 focused tests, mypy, scoped Ruff, diff, frozen-block, and cache checks pass; status remains review.

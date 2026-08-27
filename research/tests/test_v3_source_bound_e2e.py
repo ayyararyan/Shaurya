@@ -250,7 +250,7 @@ def _run(
 
 
 def test_installed_cli_derives_mining_and_evaluation_from_canonical_tapes(tmp_path: Path) -> None:
-    repository = Path(__file__).resolve().parents[2]
+    repository = Path(__file__).resolve().parents[1]
     data_repository = repository.parent / "data"
     environment = dict(os.environ)
     environment.pop("PYTHONPATH", None)
