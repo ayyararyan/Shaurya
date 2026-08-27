@@ -1,0 +1,62 @@
+{
+  "registry_type": "hypotheses",
+  "version": "alpha_hypotheses_v1",
+  "frozen": true,
+  "hierarchy": {
+    "ORDER_FLOW": {"OFI": ["window", "depth", "normalization"]},
+    "BOOK_GEOMETRY": ["imbalance", "spread", "depth"],
+    "OPTIONS_SURFACE": ["level", "skew", "curvature", "innovation", "residual"]
+  },
+  "templates": [
+    {
+      "display_name": "OFI d{depth} w{window}s to mid h{target_horizon_seconds}s {regime} {model_class}",
+      "family": "ORDER_FLOW/OFI",
+      "predictor_feature_ids": ["ofi.cumulative.depth={depth}.window={window}s"],
+      "target_id": "future_mid_return.horizon={target_horizon_seconds}s",
+      "target_horizon_seconds": 10,
+      "conditioning_variables": ["book.spread_ticks", "regime.trailing_volatility"],
+      "admissible_regime": "global",
+      "model_class": "ridge",
+      "fitting_window_sessions": 20,
+      "training_cadence_seconds": 1,
+      "regularization": {"ridge_penalty": 1.0, "elastic_alpha": 0.01, "elastic_l1_ratio": 0.5},
+      "evaluation_metric": "pearson_correlation",
+      "transaction_cost_relevance": "expected_ticks_relative_to_spread",
+      "selection_method": "nested_past_only",
+      "selection_threshold": 0.15,
+      "minimum_observations": 100,
+      "minimum_effective_sample_size": 50,
+      "first_registration_date": "2026-08-26",
+      "axes": {
+        "depth": [1, 5, 10, 20, 50, 100, 200],
+        "pooling_coordinate": ["instrument", "delta_moneyness_tenor"],
+        "sampling_clock": ["calendar_1s", "event", "volume"],
+        "model_class": ["ridge", "elastic_net"],
+        "regime": ["global", "spread_normal", "volatility_high"],
+        "target_horizon_seconds": [0.5, 1, 2, 5, 10, 20, 30, 60, 120, 300],
+        "window": [1, 2, 5, 10, 20, 30, 60, 120, 300]
+      }
+    },
+    {
+      "display_name": "Negative control: source-keyed AR(1) phi=0.8 to mid h10s",
+      "family": "NEGATIVE_CONTROL/SOURCE_KEYED_AR1",
+      "predictor_feature_ids": ["control.source_keyed_ar1_phi_0_8"],
+      "target_id": "future_mid_return.horizon=10s",
+      "target_horizon_seconds": 10,
+      "conditioning_variables": [],
+      "admissible_regime": "global",
+      "model_class": "ridge",
+      "fitting_window_sessions": 20,
+      "training_cadence_seconds": 1,
+      "regularization": {"ridge_penalty": 1.0},
+      "evaluation_metric": "pearson_correlation",
+      "transaction_cost_relevance": "diagnostic_only",
+      "selection_method": "nested_past_only",
+      "selection_threshold": 0.15,
+      "minimum_observations": 100,
+      "minimum_effective_sample_size": 50,
+      "first_registration_date": "2026-08-26",
+      "axes": {}
+    }
+  ]
+}

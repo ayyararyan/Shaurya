@@ -29,6 +29,7 @@ shaurya-rolling-c8 = "shaurya.cli.rolling_c8:main"
 shaurya-surface-dashboard = "shaurya.cli.surface_dashboard:main"
 shaurya-feature-selection-experiment = "shaurya.cli.feature_selection_experiment:main"
 shaurya-daily-research = "shaurya.analytics.post_close_alpha_research:main"
+shaurya-research = "shaurya.cli.research:main"
 
 [tool.uv.sources]
 shaurya-data = { path = "../data", editable = true }

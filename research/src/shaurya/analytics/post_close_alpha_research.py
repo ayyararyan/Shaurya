@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 from shaurya.contracts.artifacts import sha256_file
 from shaurya.contracts.data import DatasetStatus
 from shaurya.data import DataAccess, DataCatalog
@@ -727,8 +728,12 @@ def build_panel(
 
 
 def fit_standardized_ols(
-    x_train: np.ndarray, y_train: np.ndarray
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    x_train: npt.NDArray[np.float64], y_train: npt.NDArray[np.float64]
+) -> tuple[
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+]:
     mean = x_train.mean(axis=0)
     scale = x_train.std(axis=0)
     scale[scale < 1e-12] = 1.0
@@ -740,11 +745,16 @@ def fit_standardized_ols(
     return beta, mean, scale
 
 
-def predict(beta: np.ndarray, mean: np.ndarray, scale: np.ndarray, x: np.ndarray) -> np.ndarray:
+def predict(
+    beta: npt.NDArray[np.float64],
+    mean: npt.NDArray[np.float64],
+    scale: npt.NDArray[np.float64],
+    x: npt.NDArray[np.float64],
+) -> npt.NDArray[np.float64]:
     return np.column_stack([np.ones(x.shape[0]), (x - mean) / scale]) @ beta
 
 
-def r2(y: np.ndarray, prediction: np.ndarray) -> float:
+def r2(y: npt.NDArray[np.float64], prediction: npt.NDArray[np.float64]) -> float:
     denominator = float(np.sum((y - y.mean()) ** 2))
     return (
         float(1.0 - np.sum((y - prediction) ** 2) / denominator)
@@ -754,8 +764,11 @@ def r2(y: np.ndarray, prediction: np.ndarray) -> float:
 
 
 def hac_standard_errors(
-    design: np.ndarray, residuals: np.ndarray, timestamps: np.ndarray, lags: int = 12
-) -> np.ndarray:
+    design: npt.NDArray[np.float64],
+    residuals: npt.NDArray[np.float64],
+    timestamps: npt.NDArray[np.int64],
+    lags: int = 12,
+) -> npt.NDArray[np.float64]:
     unique, inverse = np.unique(timestamps, return_inverse=True)
     scores = np.zeros((unique.size, design.shape[1]), dtype=float)
     np.add.at(scores, inverse, design * residuals[:, None])
@@ -766,14 +779,14 @@ def hac_standard_errors(
         meat += weight * (cross + cross.T)
     bread = np.linalg.pinv(design.T @ design)
     covariance = bread @ meat @ bread
-    return np.sqrt(np.maximum(np.diag(covariance), 0.0))
+    return np.asarray(np.sqrt(np.maximum(np.diag(covariance), 0.0)), dtype=np.float64)
 
 
 def bootstrap_metric_deltas(
-    y: np.ndarray,
-    baseline: np.ndarray,
-    augmented: np.ndarray,
-    timestamps: np.ndarray,
+    y: npt.NDArray[np.float64],
+    baseline: npt.NDArray[np.float64],
+    augmented: npt.NDArray[np.float64],
+    timestamps: npt.NDArray[np.int64],
     *,
     seed: int,
 ) -> dict[str, list[float]]:
@@ -806,7 +819,7 @@ def bootstrap_metric_deltas(
 
 def run_models(
     panel: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], dict[str, Any], np.ndarray]:
+) -> tuple[list[dict[str, Any]], dict[str, Any], npt.NDArray[np.object_]]:
     timestamps = np.asarray([item["timestamp_ns"] for item in panel], dtype=np.int64)
     unique_times = np.unique(timestamps)
     boundary = unique_times[int(0.70 * unique_times.size)]
@@ -890,7 +903,11 @@ def run_models(
     return results, split, roles
 
 
-def write_panel(path: Path, panel: list[dict[str, Any]], roles: np.ndarray) -> str:
+def write_panel(
+    path: Path,
+    panel: list[dict[str, Any]],
+    roles: npt.NDArray[np.object_],
+) -> str:
     fields = list(panel[0]) + ["sample_role"]
     digest = hashlib.sha256()
     with gzip.open(path, "wt", encoding="utf-8", newline="") as raw:
@@ -1002,6 +1019,10 @@ def execute(args: argparse.Namespace) -> int:
                 raise GateFailure("one-shot completion wait expired")
             time.sleep(args.poll_seconds)
 
+        if handle.completed_at is None:
+            raise GateFailure("completed dataset has no completion timestamp")
+        if handle.coverage_start is None or handle.coverage_end is None:
+            raise GateFailure("completed dataset has no coverage interval")
         atomic_text(marker, datetime.now().astimezone().isoformat() + "\n")
         append_status(
             status_path, "terminal_handle_observed", completed_at=handle.completed_at.isoformat()
@@ -1030,7 +1051,7 @@ def execute(args: argparse.Namespace) -> int:
         panel_superset, panel_diagnostics = build_panel(access, handle, clean_windows)
         robustness: dict[str, Any] = {}
         primary_panel: list[dict[str, Any]] | None = None
-        primary_roles: np.ndarray | None = None
+        primary_roles: npt.NDArray[np.object_] | None = None
         for buffer_seconds in BUFFER_SECONDS:
             panel = [
                 row for row in panel_superset if bool(row[f"eligible_buffer_{buffer_seconds}s"])

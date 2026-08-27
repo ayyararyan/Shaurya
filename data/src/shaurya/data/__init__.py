@@ -28,7 +28,9 @@ from .tape import (
     JsonlTapeReader,
     JsonlTapeWriter,
     TapeIndexBuilder,
+    TapeIntegrityError,
     archive_tape,
+    data_channel_for_row,
 )
 from .trade_direction import (
     TRADE_ALIGNMENT_VERSION,
@@ -65,8 +67,10 @@ __all__ = [
     "TRADE_CLASSIFIER_VERSION",
     "TradeClassification",
     "TapeIndexBuilder",
+    "TapeIntegrityError",
     "ValidatedOptionChain",
     "archive_tape",
+    "data_channel_for_row",
     "fetch_and_validate_option_chain",
     "fetch_historical_bars",
     "classify_trade",
