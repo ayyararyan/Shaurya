@@ -4,15 +4,21 @@ This catalogue describes sources observed in repository code and retained docume
 not contact external services, use credentials, or run a live/broker path. Absolute paths embedded
 in old artifacts are host-specific references and were not assumed to exist on this machine.
 
-## Canonical Shaurya Data catalogue and tapes
+## Canonical Shaurya Data catalogue and datasets
 
-Research consumes completed dataset handles through the public `shaurya.data` facade. The expected
-archive convention documented by the project is `/Volumes/Aryan/NSE/YYYY-MM-DD/{raw,metadata,
-indexes,derived}` with a `metadata/datasets.jsonl` catalogue. A usable source requires completed
-lifecycle state, manifest and coverage agreement, content SHA-256, a hash-bound seek index, and
-full replay row-count agreement. JSONL tape rows carry instrument/channel, receive/exchange timing,
-connection epoch, quality flags, book levels, and feed-specific volume fields. Raw evidence is
-append-only and is never copied into this catalogue.
+Research consumes completed dataset handles through the public `shaurya.data` facade. New sources
+are ordered immutable Parquet segments with immutable Parquet catalogue events under the documented
+`YYYY-MM-DD/{raw,metadata,indexes,derived}` layout. A usable source requires completed lifecycle
+state, schema and ordered-segment agreement, per-segment hashes, dataset digest, coverage, and full
+logical replay row-count agreement. `DataAccess` returns the same canonical rows for storage-v2 and
+read-only legacy JSONL sources; physical paths are not research lineage keys. Rows carry
+instrument/channel, receive/exchange timing, connection epoch, quality flags, book levels, and
+feed-specific volume fields. Raw evidence is append-only and is never copied into this catalogue.
+
+Historical reports that identify immutable JSONL tapes, manifests, and seek indexes keep that exact
+provenance. They are not relabelled as Parquet. New lineage records use dataset ID, storage format,
+dataset digest, logical row digest, schema version, and coverage. Incomplete, partial, orphaned,
+cancelled, failed, or invalidated dataset states remain ineligible regardless of file readability.
 
 The quality-aware post-close memo records one completed 2026-08-26 dataset with 1,935,092 rows and
 all 121 requested instruments observed, plus four connection epochs, three localized reconnects,

@@ -133,7 +133,7 @@ never empirical support.
   `T-deepbook-normal-activity` ([source](../tests/test_deepbook_normal_activity.py)), and
   `T-deep-book-anomaly` ([source](../tests/test_deep_book_anomaly.py)).
 - **Evaluation / outputs:** Rates, quantiles, Spearman/two-proportion diagnostics; retained
-  [normal-activity](../docs/DEEPBOOK-NORMAL-ACTIVITY-2026-08-19.md) and
+  [normal-activity](../docs/live-evidence/DEEPBOOK-NORMAL-ACTIVITY-2026-08-19.md) and
   [construction evidence](../docs/live-evidence/SIG-21-CONSTRUCTION-2026-08-19.md).
 - **Status:** implementation `implemented`; evidence `result located but not validated`.
 - **Limits / unresolved:** Short samples cannot define stable full-session “normal”; researcher must

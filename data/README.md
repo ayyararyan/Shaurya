@@ -1,13 +1,17 @@
 # Shaurya Data
 
 Shaurya Data is the independently installable market-data engine. It owns Dhan connectivity,
-capture, immutable tape and manifest storage, integrity validation, indexing, archival,
-cataloguing, dataset discovery, and deterministic replay. It has no dependency on Shaurya
-Research and contains no order-placement or live-trading code.
+capture, immutable storage, integrity validation, cataloguing, dataset discovery, and deterministic
+replay. New captures use segmented Parquet; legacy JSONL remains read-only. Data has no dependency
+on Research and contains no order-placement or live-trading code.
 
 ## Documentation
 
 - [`DAT.md`](DAT.md) is the canonical DAT specification and internal architecture.
+- [`ADR-0001-SEGMENTED-PARQUET-STORAGE.md`](ADR-0001-SEGMENTED-PARQUET-STORAGE.md)
+  records the storage-v2 decision, recovery model, alternatives, and benchmark.
+- [`STORAGE_V2_IMPLEMENTATION_PLAN.md`](STORAGE_V2_IMPLEMENTATION_PLAN.md) records the observed
+  persistence inventory and migration acceptance criteria.
 - [`DAT_01_RECONCILIATION.md`](DAT_01_RECONCILIATION.md) is the supporting decision record for
   the original Dhan-client reconciliation and rejected unsafe paths.
 
@@ -32,29 +36,108 @@ from pathlib import Path
 
 from shaurya.data import DataAccess, DataCatalog
 
-catalog = DataCatalog(Path("/Volumes/Aryan/NSE/2026-08-26/metadata/datasets.jsonl"))
+catalog = DataCatalog(Path("/archive/NSE/2026-08-26/metadata/datasets"))
 dataset = catalog.get_dataset(trading_date=date(2026, 8, 26))
-rows = DataAccess(catalog).rows(dataset)
+access = DataAccess(catalog)
+validation = access.validate(dataset)  # completed datasets only
+rows = access.rows(dataset)            # logical TapeRow stream, any supported format
 ```
 
 The equivalent CLI commands are:
 
 ```bash
+uv run shaurya-data catalog list \
+  --catalog /archive/NSE/2026-08-26/metadata/datasets
+
+uv run shaurya-data inspect \
+  --catalog /archive/NSE/2026-08-26/metadata/datasets \
+  --dataset-id ds-example
+
 uv run shaurya-data catalog get \
-  --catalog /Volumes/Aryan/NSE/2026-08-26/metadata/datasets.jsonl \
+  --catalog /archive/NSE/2026-08-26/metadata/datasets \
   --date 2026-08-26
 
 uv run shaurya-data validate \
-  --catalog /Volumes/Aryan/NSE/2026-08-26/metadata/datasets.jsonl \
+  --catalog /archive/NSE/2026-08-26/metadata/datasets \
   --date 2026-08-26
 
-uv run shaurya-data replay \
-  --catalog /Volumes/Aryan/NSE/2026-08-26/metadata/datasets.jsonl \
+uv run shaurya-data preview \
+  --catalog /archive/NSE/2026-08-26/metadata/datasets \
   --date 2026-08-26 --limit 100
+
+uv run shaurya-data export \
+  --catalog /archive/NSE/2026-08-26/metadata/datasets \
+  --dataset-id ds-example --limit 1000 --output /private/tmp/preview.csv
 ```
 
-Validation streams the complete selected dataset through the existing hash- and index-aware
-reader. Replay emits canonical tape rows as JSON Lines.
+`inspect` and `preview` are human-oriented. `validate` verifies lifecycle, ordered segment
+metadata, hashes, schema, sequence, coverage, and complete logical replay. `replay` emits JSONL only
+as an explicit machine export; production capture and metadata do not write JSON/JSONL.
+
+## Storage layout and lifecycle
+
+```text
+YYYY-MM-DD/
+├── raw/dhan/nifty-future/
+│   └── dhan-nifty-future-depth20-depth200-20260827-034500-a1b2c3d4/
+│       ├── market-events-000001-034500000000Z-034529999999Z.parquet
+│       └── market-events-000002-034530000000Z-034559999999Z.parquet
+├── metadata/datasets/
+│   ├── events/ds-…/00000001-active.parquet
+│   ├── claims/<acquisition-fingerprint>.claim
+│   └── operational/ds-…/capture-metrics.parquet
+├── indexes/
+└── derived/
+```
+
+Segments rotate at the first of 50,000 rows, 30 seconds of receive-time span, or 64 MiB estimated
+uncompressed data. Row groups default to 10,000 rows. The writer closes and validates a unique
+`.partial-*` file, fsyncs it, atomically renames it, hashes it, and only then publishes catalogue
+metadata. Active readers see only published closed segments. File presence never implies a
+completed dataset: only the catalogue `completed` lifecycle event does.
+
+On restart, `inventory_recovery(dataset_dir, published_segments)` identifies partials for
+quarantine and final-but-unpublished orphan files for operator review. Do not put either into
+service without footer/schema/count/hash verification and an explicit catalogue event. Failed,
+invalidated, cancelled, and orphaned handles retain their terminal reason.
+
+## Direct bounded inspection
+
+When optional tools are installed, a published segment can be inspected without changing it:
+
+```python
+import pyarrow.parquet as pq
+table = pq.read_table("market-events-000001-034500000000Z-034529999999Z.parquet")
+print(table.select(["receive_ts", "instrument_id", "last_price"]).slice(0, 20))
+
+# pandas: table.slice(0, 1000).to_pandas()
+# Polars: polars.scan_parquet("market-events-*.parquet").head(1000).collect()
+# DuckDB: duckdb.sql("SELECT * FROM 'market-events-*.parquet' LIMIT 1000")
+```
+
+PyArrow is the storage implementation. pandas, Polars, and DuckDB are optional bounded readers,
+not catalogue authorities or mutable storage backends.
+
+## Legacy conversion
+
+Legacy JSONL tapes, sidecar indexes, manifests, and archives remain supported through DataAccess
+so historical runs stay reproducible. Conversion is explicit and preserves the source:
+
+```bash
+# Read-only eligibility and semantic-digest report (default)
+uv run shaurya-data legacy-migrate \
+  --catalog /archive/NSE/2026-08-26/metadata/datasets \
+  --tape /archive/legacy/completed.jsonl --source-state completed
+
+# Write a new Parquet representation; never edits or deletes the JSONL source
+uv run shaurya-data legacy-migrate \
+  --catalog /archive/NSE/2026-08-26/metadata/datasets \
+  --tape /archive/legacy/completed.jsonl --source-state completed \
+  --convert --execute --output-root /archive/NSE/2026-08-26/raw
+```
+
+Active, torn-tail, failed, cancelled, or invalidated sources cannot be converted into completed
+datasets. Rollback disables new acquisition; it does not rewrite either representation.
 
 ## Collection
 

@@ -23,14 +23,15 @@ the Dhan collector is not imported by Research.
 
 ## Run research for a dataset or date
 
-The quality-aware daily pipeline waits for a completed catalogue handle, verifies its manifest,
-hashes, index, and coverage, then writes its report and machine-readable results to the requested
-output directory:
+The quality-aware daily pipeline waits for a completed catalogue handle, verifies lifecycle,
+schema, hashes, ordered logical replay, and coverage through `DataAccess`, then writes its report
+and machine-readable results to the requested output directory. Research does not open Parquet or
+legacy JSONL paths directly:
 
 ```bash
 uv run shaurya-daily-research \
-  --catalog /Volumes/Aryan/NSE/2026-08-26/metadata/datasets.jsonl \
-  --dataset-id sha-20260826T034500.000000Z-example \
+  --catalog /archive/NSE/2026-08-26/metadata/datasets \
+  --dataset-id ds-example \
   --output-root /absolute/path/to/research-results
 ```
 
@@ -38,7 +39,7 @@ To resolve the latest completed dataset for a trading date through the same cata
 
 ```bash
 uv run shaurya-daily-research \
-  --catalog /Volumes/Aryan/NSE/2026-08-26/metadata/datasets.jsonl \
+  --catalog /archive/NSE/2026-08-26/metadata/datasets \
   --date 2026-08-26 \
   --output-root /absolute/path/to/research-results
 ```
@@ -50,6 +51,13 @@ including `shaurya-ofi-dashboard`, `shaurya-surface-dashboard`,
 
 Curated research provenance lives under `docs/results/`. Large or local generated artifacts must
 remain outside Git.
+
+Historical scripts that deliberately pin immutable JSONL evidence remain supported through the
+legacy compatibility lane and retain their original provenance. Current capture, dashboards,
+rolling studies, post-close research, and full-session OFI orchestration resolve dataset IDs and
+consume format-neutral logical rows. A passing storage/software test is not evidence that a market
+session is complete; the completed catalogue state and the pipeline's domain coverage gates are
+both required.
 
 ## High-frequency v2 registry bundle
 

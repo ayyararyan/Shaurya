@@ -26,8 +26,9 @@ Shaurya Data  --->  Shaurya Research
 ```
 
 - **`data/` never imports `research/` or `execution/`.** It is the sole owner of Dhan broker
-  connectivity for market data, immutable tape/manifest storage, integrity validation, indexing,
-  archival, and a dataset catalogue. It contains no order-placement or live-trading code.
+  connectivity for market data, immutable segmented-Parquet storage and lifecycle metadata,
+  integrity validation, legacy replay, and a dataset catalogue. It contains no order-placement or
+  live-trading code.
 - **`research/` has no broker or order authority and never imports `execution/`.** It selects a
   `DatasetHandle` from Data's append-only catalogue and reads rows through `DataAccess`; it does
   not discover raw capture directories or open broker connections itself.
@@ -110,9 +111,9 @@ SSH.
 **Data — resolve, validate, and replay a dataset** (from `data/`, after `uv sync`):
 
 ```bash
-uv run shaurya-data catalog get --catalog <path/to/datasets.jsonl> --date 2026-08-26
-uv run shaurya-data validate    --catalog <path/to/datasets.jsonl> --date 2026-08-26
-uv run shaurya-data replay      --catalog <path/to/datasets.jsonl> --date 2026-08-26 --limit 100
+uv run shaurya-data catalog get --catalog <path/to/datasets> --date 2026-08-26
+uv run shaurya-data validate    --catalog <path/to/datasets> --date 2026-08-26
+uv run shaurya-data replay      --catalog <path/to/datasets> --date 2026-08-26 --limit 100
 ```
 
 **Data — live capture** (credential and security-master files must live *outside* the repo; see
@@ -130,7 +131,7 @@ uv run shaurya-chain-capture --help   # option-chain capture
 **Research — daily post-close pipeline** (from `research/`, after `uv sync`):
 
 ```bash
-uv run shaurya-daily-research --catalog <path/to/datasets.jsonl> --date 2026-08-26 --output-root <dir>
+uv run shaurya-daily-research --catalog <path/to/datasets> --date 2026-08-26 --output-root <dir>
 ```
 
 This produces a `FINAL_MEMO.md` report under the given output root. Related research CLIs, each

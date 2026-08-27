@@ -199,7 +199,11 @@ def _check_paths(values: tuple[str, ...], label: str, errors: list[str]) -> None
     for value in values:
         if value.startswith(("expected:", "not_generated:", "external:", "none")):
             continue
-        if not (REPO_ROOT / value).exists():
+        raw = Path(value)
+        candidate = (REPO_ROOT / raw).resolve()
+        if raw.is_absolute() or not candidate.is_relative_to(REPO_ROOT.resolve()):
+            errors.append(f"{label}: path escapes repository {value}")
+        elif not candidate.exists():
             errors.append(f"{label}: nonexistent path {value}")
 
 
