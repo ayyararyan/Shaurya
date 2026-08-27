@@ -258,8 +258,8 @@ class EvaluationRow:
             raise ValueError("feature and target observation IDs differ")
         if self.feature.session_date != self.target.session_date:
             raise ValueError("feature and target sessions differ")
-        if self.target.interval_start_ts_ns <= self.feature.anchor_ts_ns:
-            raise ValueError("target must start strictly after the feature anchor")
+        if self.target.interval_start_ts_ns < self.feature.anchor_ts_ns:
+            raise ValueError("target cannot start before the feature anchor")
         if not self.feature.source_dataset_id or not self.target.source_dataset_id:
             raise ValueError("feature/target join requires non-empty canonical source identities")
         if self.feature.source_dataset_id != self.target.source_dataset_id:

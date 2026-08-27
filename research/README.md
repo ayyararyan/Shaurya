@@ -50,3 +50,11 @@ including `shaurya-ofi-dashboard`, `shaurya-surface-dashboard`,
 
 Curated research provenance lives under `docs/results/`. Large or local generated artifacts must
 remain outside Git.
+
+## High-frequency v2 registry bundle
+
+`HIGH_FREQUENCY_REGISTRY_BINDING` binds `microstructure_features_v2`,
+`microstructure_targets_v2`, `alpha_hypotheses_v2`, and `alpha_research_policy_v2`. Select those
+versions explicitly for the 2026-08-27 construction freeze; v1 remains the legacy default for
+backward-compatible historical workflows. The v2 policy keeps three-session candidates in shadow
+status and quarantines the non-transportable/replication-only fields from automatic live weight.

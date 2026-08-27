@@ -72,3 +72,15 @@ For an option-chain capture, use `shaurya-chain-capture --help`. Production capt
 the date-partitioned NSE archive. Use non-archive overrides only for intentional isolated tests.
 
 See [`SECURITY.md`](SECURITY.md) for the credential-handle and file-permission policy.
+## High-frequency derived variables
+
+The public `shaurya.data.high_frequency` API constructs the versioned futures, parity, option-book,
+leave-ATM eSSVI, ATM-IV, state, gate, interaction, and future-only target families frozen on
+2026-08-27. `VersionedFeatureRow` persists the exact feature-version string and causal source
+timestamps with every value; `TargetValue` is a separate type and cannot be placed in a feature
+row. Invalid, stale, incomplete, or cross-reconnect inputs are explicit missing values, never zero.
+
+Canonical identities, roles, units, clocks, freshness, and validation status are registered in
+`research/registries/microstructure_features_v2.yaml` and documented in
+`research/hypothesis_feature_research/methodology/high-frequency-constructions.md`. The v1
+registries remain frozen for historical replay.

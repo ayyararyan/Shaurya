@@ -15,6 +15,8 @@ from pydantic.types import JsonValue
 from scipy.optimize import minimize
 from shaurya.contracts.tape import QualityFlag, TapeRow
 from shaurya.contracts.timing import IST
+from shaurya.data import black76_price as black76_price
+from shaurya.data import implied_volatility as implied_volatility
 
 from shaurya.research_contracts.surface import FitDiagnostic, SurfaceParameter
 
@@ -80,13 +82,8 @@ class _OptionIdentity:
 def _total_variance_array(
     log_moneyness: NDArray[np.float64], *, theta: float, rho: float, psi: float
 ) -> NDArray[np.float64]:
-    core = np.sqrt(
-        ((psi * log_moneyness) + (rho * theta)) ** 2
-        + (theta**2 * (1.0 - rho**2))
-    )
-    return np.asarray(
-        0.5 * (theta + (rho * psi * log_moneyness) + core), dtype=np.float64
-    )
+    core = np.sqrt(((psi * log_moneyness) + (rho * theta)) ** 2 + (theta**2 * (1.0 - rho**2)))
+    return np.asarray(0.5 * (theta + (rho * psi * log_moneyness) + core), dtype=np.float64)
 
 
 def _option_identity(instrument_id: str) -> _OptionIdentity | None:
@@ -106,107 +103,6 @@ def _option_identity(instrument_id: str) -> _OptionIdentity | None:
         expiry=expiry,
         strike=strike,
         is_call=option_type == "CE",
-    )
-
-
-def _normal_cdf(value: float) -> float:
-    return 0.5 * (1.0 + math.erf(value / math.sqrt(2.0)))
-
-
-def black76_price(
-    *,
-    forward: float,
-    strike: float,
-    maturity_years: float,
-    volatility: float,
-    risk_free_rate: float,
-    is_call: bool,
-) -> float:
-    """Discounted Black-76 price, also used by deterministic synthetic fixtures."""
-
-    if forward <= 0 or strike <= 0 or maturity_years <= 0 or volatility < 0:
-        raise ValueError("Black-76 inputs must be positive (volatility may be zero)")
-    discount = math.exp(-risk_free_rate * maturity_years)
-    intrinsic = max(forward - strike, 0.0) if is_call else max(strike - forward, 0.0)
-    if volatility == 0:
-        return discount * intrinsic
-    sigma_root_t = volatility * math.sqrt(maturity_years)
-    d1 = (math.log(forward / strike) / sigma_root_t) + (0.5 * sigma_root_t)
-    d2 = d1 - sigma_root_t
-    if is_call:
-        return discount * ((forward * _normal_cdf(d1)) - (strike * _normal_cdf(d2)))
-    return discount * ((strike * _normal_cdf(-d2)) - (forward * _normal_cdf(-d1)))
-
-
-def _implied_volatility(
-    *,
-    price: float,
-    forward: float,
-    strike: float,
-    maturity_years: float,
-    risk_free_rate: float,
-    is_call: bool,
-) -> float | None:
-    if price <= 0:
-        return None
-    discount = math.exp(-risk_free_rate * maturity_years)
-    intrinsic = discount * (
-        max(forward - strike, 0.0) if is_call else max(strike - forward, 0.0)
-    )
-    maximum = discount * (forward if is_call else strike)
-    tolerance = max(1e-10, maximum * 1e-12)
-    if price < intrinsic - tolerance or price >= maximum:
-        return None
-    low = 1e-6
-    high = 5.0
-    if black76_price(
-        forward=forward,
-        strike=strike,
-        maturity_years=maturity_years,
-        volatility=high,
-        risk_free_rate=risk_free_rate,
-        is_call=is_call,
-    ) < price:
-        return None
-    for _ in range(100):
-        middle = 0.5 * (low + high)
-        model_price = black76_price(
-            forward=forward,
-            strike=strike,
-            maturity_years=maturity_years,
-            volatility=middle,
-            risk_free_rate=risk_free_rate,
-            is_call=is_call,
-        )
-        if model_price < price:
-            low = middle
-        else:
-            high = middle
-    return 0.5 * (low + high)
-
-
-def implied_volatility(
-    *,
-    price: float,
-    forward: float,
-    strike: float,
-    maturity_years: float,
-    risk_free_rate: float,
-    is_call: bool,
-) -> float | None:
-    """Public Black-76 inversion used by analytics outside the surface fitter.
-
-    Returning ``None`` preserves the fitter's existing explicit data-insufficient semantics
-    for prices outside discounted intrinsic/maximum bounds.
-    """
-
-    return _implied_volatility(
-        price=price,
-        forward=forward,
-        strike=strike,
-        maturity_years=maturity_years,
-        risk_free_rate=risk_free_rate,
-        is_call=is_call,
     )
 
 
@@ -257,7 +153,7 @@ def _extract_observations(
             expiry_timestamp - request.valuation_timestamp
         ).total_seconds() / SECONDS_PER_YEAR
         mid = 0.5 * (bid + ask)
-        mid_iv = _implied_volatility(
+        mid_iv = implied_volatility(
             price=mid,
             forward=forward,
             strike=identity.strike,
@@ -268,7 +164,7 @@ def _extract_observations(
         if mid_iv is None or not math.isfinite(mid_iv):
             excluded["implied_volatility_failure"] += 1
             continue
-        bid_iv = _implied_volatility(
+        bid_iv = implied_volatility(
             price=bid,
             forward=forward,
             strike=identity.strike,
@@ -276,7 +172,7 @@ def _extract_observations(
             risk_free_rate=request.risk_free_rate,
             is_call=identity.is_call,
         )
-        ask_iv = _implied_volatility(
+        ask_iv = implied_volatility(
             price=ask,
             forward=forward,
             strike=identity.strike,
@@ -355,10 +251,7 @@ class ESSVISurface(VolatilitySurface):
     ) -> float:
         """eSSVI total variance using ``psi = theta * phi(theta)``."""
 
-        core = math.sqrt(
-            ((psi * log_moneyness) + (rho * theta)) ** 2
-            + (theta**2 * (1.0 - rho**2))
-        )
+        core = math.sqrt(((psi * log_moneyness) + (rho * theta)) ** 2 + (theta**2 * (1.0 - rho**2)))
         return 0.5 * (theta + (rho * psi * log_moneyness) + core)
 
     @classmethod
@@ -412,8 +305,10 @@ class ESSVISurface(VolatilitySurface):
             )
 
         def unpack(values: NDArray[np.float64], index: int) -> tuple[float, float, float]:
-            return float(values[3 * index]), float(values[(3 * index) + 1]), float(
-                values[(3 * index) + 2]
+            return (
+                float(values[3 * index]),
+                float(values[(3 * index) + 1]),
+                float(values[(3 * index) + 2]),
             )
 
         def objective(values: NDArray[np.float64]) -> float:
@@ -421,9 +316,7 @@ class ESSVISurface(VolatilitySurface):
             for index, expiry in enumerate(expiries):
                 theta, rho, psi = unpack(values, index)
                 for row in by_expiry[expiry]:
-                    model = cls.total_variance(
-                        row.log_moneyness, theta=theta, rho=rho, psi=psi
-                    )
+                    model = cls.total_variance(row.log_moneyness, theta=theta, rho=rho, psi=psi)
                     squared_error += row.weight * ((model - row.total_variance) ** 2)
             return squared_error / len(expiries)
 
@@ -446,17 +339,11 @@ class ESSVISurface(VolatilitySurface):
                 early_w = _total_variance_array(
                     grid, theta=earlier[0], rho=earlier[1], psi=earlier[2]
                 )
-                late_w = _total_variance_array(
-                    grid, theta=later[0], rho=later[1], psi=later[2]
-                )
+                late_w = _total_variance_array(grid, theta=later[0], rho=later[1], psi=later[2])
                 margins.extend(float(value) for value in late_w - early_w)
             return np.asarray(margins, dtype=np.float64)
 
-        bounds = [
-            bound
-            for _ in expiries
-            for bound in ((1e-8, 5.0), (-0.999, 0.999), (1e-8, 4.0))
-        ]
+        bounds = [bound for _ in expiries for bound in ((1e-8, 5.0), (-0.999, 0.999), (1e-8, 4.0))]
         result: Any = minimize(
             objective,
             initial,
@@ -531,9 +418,7 @@ class ESSVISurface(VolatilitySurface):
         slice_by_expiry = {item.expiry: item for item in slices}
         residual_rows: list[tuple[_Observation, float]] = []
         for observation in observations:
-            fitted = slice_by_expiry[observation.expiry].total_variance(
-                observation.log_moneyness
-            )
+            fitted = slice_by_expiry[observation.expiry].total_variance(observation.log_moneyness)
             residual_rows.append((observation, observation.total_variance - fitted))
         weight_sum = sum(item.weight for item, _ in residual_rows)
         weighted_mean = (
@@ -541,8 +426,7 @@ class ESSVISurface(VolatilitySurface):
         )
         weighted_sse = sum(item.weight * residual**2 for item, residual in residual_rows)
         weighted_sst = sum(
-            item.weight * ((item.total_variance - weighted_mean) ** 2)
-            for item, _ in residual_rows
+            item.weight * ((item.total_variance - weighted_mean) ** 2) for item, _ in residual_rows
         )
         weighted_r_squared = 1.0 - (weighted_sse / weighted_sst) if weighted_sst > 0 else None
         weighted_rmse = math.sqrt(weighted_sse / len(slices))
@@ -630,11 +514,7 @@ class ESSVISurface(VolatilitySurface):
 
     def _slice_for_exact_maturity(self, maturity_years: float) -> ESSVISlice | None:
         return next(
-            (
-                item
-                for item in self._slices
-                if abs(item.maturity_years - maturity_years) <= 1e-10
-            ),
+            (item for item in self._slices if abs(item.maturity_years - maturity_years) <= 1e-10),
             None,
         )
 
@@ -749,8 +629,7 @@ class ESSVISurface(VolatilitySurface):
             "arbitrage": self.arb_check().to_dict(),
         }
         return tuple(
-            FitDiagnostic(name=name, value=cast(JsonValue, value))
-            for name, value in values.items()
+            FitDiagnostic(name=name, value=cast(JsonValue, value)) for name, value in values.items()
         )
 
     def arb_check(self) -> ArbitrageReport:
@@ -803,11 +682,7 @@ class ESSVISurface(VolatilitySurface):
                 earlier_slice: ESSVISlice = earlier,
                 later_slice: ESSVISlice = later,
             ) -> float:
-                current = (
-                    earlier_slice
-                    if maturity == earlier_slice.maturity_years
-                    else later_slice
-                )
+                current = earlier_slice if maturity == earlier_slice.maturity_years else later_slice
                 return current.total_variance(log_moneyness)
 
             report = check_arbitrage(
