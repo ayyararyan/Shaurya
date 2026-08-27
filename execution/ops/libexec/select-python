@@ -1,0 +1,33 @@
+#!/bin/sh
+# Select only a fixed, self-attested local runtime. No PATH or environment override is consulted.
+set -eu
+for candidate in /usr/bin/python3; do
+  [ -x "$candidate" ] || continue
+  if result=$(
+    "$candidate" -I -S -E -c '
+import os, stat, sys
+given=sys.argv[1]
+if sys.version_info < (3, 9) or given != "/usr/bin/python3":
+    raise SystemExit(1)
+allowed={0, os.geteuid()}
+roots=("/usr", "/Library/Developer/CommandLineTools", "/Applications/Xcode.app")
+for resolved in (os.path.realpath(given), os.path.realpath(sys.executable)):
+  if not any(resolved==item or resolved.startswith(item+"/") for item in roots):
+    raise SystemExit(1)
+  current=resolved
+  while True:
+    info=os.stat(current, follow_symlinks=False)
+    if info.st_uid not in allowed or stat.S_IMODE(info.st_mode) & 0o022:
+        raise SystemExit(1)
+    if current=="/": break
+    current=os.path.dirname(current)
+  if not stat.S_ISREG(os.stat(resolved, follow_symlinks=False).st_mode):
+    raise SystemExit(1)
+print(given)
+' "$candidate" 2>/dev/null
+  ) && [ "$result" = "$candidate" ]; then
+    printf '%s\n' "$candidate"
+    exit 0
+  fi
+done
+exit 70

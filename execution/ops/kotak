@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+case "$0" in */*) script_parent=${0%/*} ;; *) script_parent=. ;; esac
+script_dir=$(CDPATH= cd -- "$script_parent" && pwd -P)
+if [ "$#" -eq 0 ] || { [ "$#" -eq 1 ] && { [ "$1" = help ] || [ "$1" = --help ]; }; }; then
+  printf '%s\n' 'kotak 1.0.0' 'commands: help version doctor auth status prepare preflight shaurya-shadow-launch shadow-launch'; exit 0
+fi
+if [ "$#" -eq 1 ] && [ "$1" = version ]; then printf '%s\n' 'kotak 1.0.0 compatibility=1'; exit 0; fi
+case "${1-}" in --internal-*) printf '%s\n' '[KOTAK_RESULT] command=parser status=usage_refused code=2 verified=no'; exit 2 ;; esac
+if [ "${1-}" = help ] || [ "${1-}" = --help ] || [ "${1-}" = version ]; then
+  printf '%s\n' '[KOTAK_RESULT] command=parser status=usage_refused code=2 verified=no'; exit 2
+fi
+if ! python_bin=$("$script_dir/libexec/select-python"); then
+  command_name=bootstrap; [ "${1-}" = doctor ] && command_name=doctor
+  printf '%s\n' "[KOTAK_RESULT] command=$command_name status=python_unavailable code=70 verified=no"
+  exit 70
+fi
+exec "$python_bin" -I -B "$script_dir/libexec/portable_ops.py" "$@"

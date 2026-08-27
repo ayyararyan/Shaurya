@@ -53,6 +53,11 @@ runs/
 state/
 logs/
 
+# Local deep workflow state; plans and section specifications remain versioned.
+execution/docs/planning/sections/.prompts/
+execution/docs/planning/implementation/
+execution/docs/planning/deep_plan_config.json
+
 # Runtime market-data and generated research outputs. The project directories themselves are
 # source code; only their local data/output lanes are ignored.
 data/raw/

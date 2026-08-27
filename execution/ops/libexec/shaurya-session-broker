@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+[ -x /usr/bin/python3 ] || exit 70
+case "$0" in */*) script_parent=${0%/*} ;; *) script_parent=. ;; esac
+script_dir=$(CDPATH= cd -- "$script_parent" && pwd -P)
+exec /usr/bin/env -i PATH=/usr/bin:/bin LC_ALL=C LANG=C /usr/bin/python3 -I -B -S -E "$script_dir/remote_protocol.py" --broker "$@"

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shaurya.invalid/contracts/v1/risk_decision.schema.json",
+  "title": "Shaurya RiskDecision 1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "decision_id", "intent_id", "decision", "timestamp_ns", "rule_set_version", "configuration_digest", "rules_checked", "mapping_age_ns", "market_age_ns", "session_state"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "decision_id": {"$ref": "#/$defs/uuid"},
+    "intent_id": {"$ref": "#/$defs/uuid"},
+    "decision": {"enum": ["approved", "rejected"]},
+    "timestamp_ns": {"$ref": "#/$defs/int64"},
+    "rule_set_version": {"type": "string", "minLength": 1, "maxLength": 64},
+    "configuration_digest": {"$ref": "#/$defs/digest"},
+    "rules_checked": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"$ref": "#/$defs/rule"}},
+    "rejection_code": {"type": "string", "minLength": 1, "maxLength": 64},
+    "rejection_reason": {"type": "string", "minLength": 1, "maxLength": 160},
+    "mapping_age_ns": {"type": "integer", "minimum": 0, "maximum": 9223372036854775807},
+    "market_age_ns": {"type": "integer", "minimum": 0, "maximum": 9223372036854775807},
+    "session_state": {"enum": ["ready", "not_ready", "safety_stop", "reconciliation_required", "stopping"]}
+  },
+  "$defs": {
+    "uuid": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "int64": {"type": "integer", "minimum": -9223372036854775808, "maximum": 9223372036854775807},
+    "rule": {"type": "object", "additionalProperties": false, "required": ["rule", "outcome", "before_value", "projected_value", "limit_value", "unit"], "properties": {"rule": {"type": "string", "minLength": 1, "maxLength": 64}, "outcome": {"enum": ["pass", "fail"]}, "before_value": {"$ref": "#/$defs/int64"}, "projected_value": {"$ref": "#/$defs/int64"}, "limit_value": {"$ref": "#/$defs/int64"}, "unit": {"type": "string", "minLength": 1, "maxLength": 24}}}
+  },
+  "allOf": [
+    {"if": {"properties": {"decision": {"const": "approved"}}}, "then": {"not": {"anyOf": [{"required": ["rejection_code"]}, {"required": ["rejection_reason"]}]}}},
+    {"if": {"properties": {"decision": {"const": "rejected"}}}, "then": {"required": ["rejection_code", "rejection_reason"]}}
+  ]
+}

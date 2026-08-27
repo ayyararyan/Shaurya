@@ -1,0 +1,18 @@
+#!/bin/sh
+# Fixed synthetic authentication-transport diagnostic; no broker authentication.
+set -eu
+[ -x /usr/bin/python3 ] || exit 70
+exec /usr/bin/env -i PATH=/usr/bin:/bin LC_ALL=C LANG=C /usr/bin/python3 -I -B -S -E -c '
+import json, os, sys
+value = bytearray()
+try:
+    while len(value) <= 7:
+        byte = os.read(0, 1)
+        if not byte or byte in (b"\n", b"\r"): break
+        value.extend(byte)
+    if len(value) != 6 or any(item < 48 or item > 57 for item in value): raise SystemExit(2)
+    response = {"diagnostic_ok": True, "status": "synthetic_transport_only"}
+    sys.stdout.write(json.dumps(response, sort_keys=True, separators=(",", ":")) + "\n")
+finally:
+    for index in range(len(value)): value[index] = 0
+'

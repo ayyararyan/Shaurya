@@ -1,0 +1,11 @@
+#include "shaurya/execution/build_attestation.hpp"
+
+namespace shaurya::execution {
+const char kProjectVersion[] = "@PROJECT_VERSION@";
+const char kSourceRevision[] = "@SHAURYA_SOURCE_REVISION@";
+const char kSourceState[] = "@SHAURYA_SOURCE_STATE@";
+const char kSourceTreeDigest[] = "@SHAURYA_SOURCE_TREE_DIGEST@";
+const char kCompilerId[] = "@CMAKE_CXX_COMPILER_ID@";
+const char kBuildType[] = "@CMAKE_BUILD_TYPE@";
+const char kLiveRouter[] = "@SHAURYA_LIVE_ROUTER_ATTESTATION@";
+}  // namespace shaurya::execution

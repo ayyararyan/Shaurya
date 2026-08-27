@@ -1,0 +1,65 @@
+#!/usr/bin/python3
+"""Recording SSH process used only by the non-packaged fixture driver."""
+import fcntl, hashlib, os, subprocess, sys, time
+from pathlib import Path
+
+record = Path(os.environ["FIXTURE_SSH_RECORD"]); responses = Path(os.environ["FIXTURE_RESPONSE_DIR"])
+with record.open("a", encoding="ascii") as output:
+    output.write("BEGIN\n")
+    for argument in sys.argv[1:]: output.write(f"arg={argument}\n")
+    output.write("END\n")
+delay = float(os.environ.get("FIXTURE_SSH_DELAY", "0"))
+if delay: time.sleep(delay)
+operation = sys.argv[-1]
+if len(sys.argv) < 3 or sys.argv[-2] != "shaurya-operator-v1": raise SystemExit(3)
+try:
+    identity_name = sys.argv[sys.argv.index("-i") + 1]
+    identity_descriptor = int(identity_name.removeprefix("/dev/fd/"))
+    known_hosts_argument = next(value for value in sys.argv if value.startswith("-oUserKnownHostsFile=/dev/fd/"))
+    known_hosts_descriptor = int(known_hosts_argument.rsplit("/", 1)[1])
+    identity_info = os.fstat(identity_descriptor); known_hosts_info = os.fstat(known_hosts_descriptor)
+    source_identity = os.stat(os.environ["FIXTURE_SSH_IDENTITY"], follow_symlinks=False)
+    source_known_hosts = os.stat(Path(os.environ["FIXTURE_SSH_IDENTITY"]).with_name("known_hosts"),
+                                 follow_symlinks=False)
+    if ((identity_info.st_dev, identity_info.st_ino) == (source_identity.st_dev, source_identity.st_ino)
+            or (known_hosts_info.st_dev, known_hosts_info.st_ino) ==
+               (source_known_hosts.st_dev, source_known_hosts.st_ino)
+            or identity_info.st_nlink != 0 or known_hosts_info.st_nlink != 0
+            or fcntl.fcntl(identity_descriptor, fcntl.F_GETFL) & os.O_ACCMODE != os.O_RDONLY
+            or fcntl.fcntl(known_hosts_descriptor, fcntl.F_GETFL) & os.O_ACCMODE != os.O_RDONLY):
+        raise OSError("transport descriptor is not an unlinked read-only snapshot")
+    identity_prefix = os.read(identity_descriptor, 32)
+    known_hosts_prefix = os.read(known_hosts_descriptor, 64)
+except (ValueError, IndexError, OSError):
+    raise SystemExit(3)
+if not identity_prefix.startswith(b"-----BEGIN OPENSSH " + b"PRIVATE KEY"):
+    raise SystemExit(3)
+if not known_hosts_prefix.startswith(b"shaurya-fixture "):
+    raise SystemExit(3)
+with record.open("a", encoding="ascii") as output:
+    output.write("identity_fd_consumed=yes\n")
+    output.write("known_hosts_fd_consumed=yes\n")
+    output.write("transport_fds_unlinked_read_only=yes\n")
+payload = bytearray(sys.stdin.buffer.read(65537))
+try:
+    forced = os.environ.get("FIXTURE_SSH_EXIT")
+    if forced is not None: raise SystemExit(int(forced))
+    if operation == "auth":
+        with record.open("a", encoding="ascii") as output: output.write("stdin_sha256=" + hashlib.sha256(payload).hexdigest() + "\n")
+    if operation in {"auth", "launch"} and os.environ.get("FIXTURE_CHAIN_ROOT"):
+        driver = Path(os.environ["FIXTURE_REPO_ROOT"]) / "tests/ops/fixtures/remote_fixture_driver.py"
+        error_stream = None if os.environ.get("FIXTURE_DEBUG") == "1" else subprocess.DEVNULL
+        result = subprocess.run([sys.executable, "-B", str(driver), "doctor", operation], input=payload,
+                                stdout=subprocess.PIPE, stderr=error_stream, env=os.environ, check=False)
+        drop = os.environ.get("FIXTURE_DROP_RESPONSE_ONCE")
+        if operation == "launch" and result.returncode == 0 and drop and not Path(drop).exists():
+            Path(drop).write_text("dropped\n", encoding="ascii")
+            raise SystemExit(0)
+        if operation == "auth" and result.returncode == 0 and os.environ.get("FIXTURE_DROP_AUTH_RESPONSE") == "1":
+            raise SystemExit(0)
+        sys.stdout.buffer.write(result.stdout); raise SystemExit(result.returncode)
+    path = responses / f"{operation}.json"
+    if not path.is_file(): raise SystemExit(5)
+    sys.stdout.buffer.write(path.read_bytes())
+finally:
+    for index in range(len(payload)): payload[index] = 0

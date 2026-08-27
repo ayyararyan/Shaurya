@@ -1,0 +1,1 @@
+{"event_id":"00000000-0000-4000-8000-000000000014","event_type":"session_stopping","execution_session_id":"00000000-0000-4000-8000-000000000003","payload":{"reason":"operator_shutdown","state":"stopping"},"schema_version":"1.0.0","timestamp_ns":103}
