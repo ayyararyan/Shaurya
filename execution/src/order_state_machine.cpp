@@ -235,10 +235,13 @@ TransitionResult apply_order_update(const OrderAggregate& current,
       return apply_evidence(std::move(next), update);
 
     case OrderEventKind::SubmissionAmbiguous:
-      if (current.state != OrderState::SubmissionStarted) {
+      if (current.state != OrderState::SubmissionStarted &&
+          current.pending_mutation == PendingMutation::None) {
         return refuse(current, "FSM_ILLEGAL_TRANSITION");
       }
-      next.state = OrderState::AmbiguousSubmission;
+      next.state = current.state == OrderState::SubmissionStarted
+                       ? OrderState::AmbiguousSubmission
+                       : OrderState::ReconciliationRequired;
       return apply_evidence(std::move(next), update);
 
     case OrderEventKind::ReconcileWorking: {

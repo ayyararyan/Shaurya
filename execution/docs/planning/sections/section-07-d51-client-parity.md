@@ -18,7 +18,7 @@ Create `tests/test_shaurya_client.cpp` for the neutral client and conversion bou
 
 Cover these cases:
 
-- Convert an enabled D51 BUY quote and an inventory-authorized SELL quote into the frozen OrderIntent schema. Assert lowercase canonical UUIDs; the canonical instrument from the MarketObservation; `place`; BUY/SELL; positive exchange-unit quantity; positive paise price; `NRML`; `DAY`; creation/expiry timestamps; run/session correlation; and absence of broker token, broker symbol, credentials, floating-point price, D51 Greeks, model scores, and transport metadata.
+- Convert an enabled D51 BUY quote and an inventory-authorized SELL quote into the frozen OrderIntent schema. Assert lowercase canonical UUIDs; the canonical instrument from the `StrategyBookObservation`; `place`; BUY/SELL; positive exchange-unit quantity; positive paise price; `NRML`; `DAY`; creation/expiry timestamps; run/session correlation; and absence of broker token, broker symbol, credentials, floating-point price, D51 Greeks, model scores, and transport metadata.
 - Convert price to integer paise deterministically. Reject non-finite, non-positive, overflowed, non-tick-aligned, or lossy values rather than rounding an ambiguous value. Quantity is the exact exchange-unit quantity derived from whole D51 lots and must pass the observation/routing lot size.
 - Do not invent a canonical instrument from a D51 trading symbol or token. The selected action must retain the canonical identity and routing-date provenance from the observation that produced it. A missing, stale, or mismatched observation produces no intent.
 - Convert quote withdrawal or replacement to canonical cancel/modify semantics using the previously correlated Shaurya internal-order ID. Cancel forbids price and quantity. Modify requires the target ID. A token/canonical-instrument change cancels the old order and creates a distinct place intent; it never modifies an order into another instrument.
@@ -37,10 +37,10 @@ At minimum include:
 
 1. no eligible quote and no order;
 2. one BUY place and ACK with no fill;
-3. conservative post-placement trade/cross causing a partial then full paper fill;
+3. conservative post-placement trade/cross causing the frozen D51ProxyV1 complete fill;
 4. repeated and out-of-order fill events that remain idempotent;
 5. quote replacement on the same instrument;
-6. cancellation before fill and cancellation racing with a partial fill;
+6. cancellation before fill and cancellation racing with a scripted partial fill;
 7. ATM/token change requiring cancel then a new place;
 8. exact-token inventory preventing an unauthorized SELL;
 9. authorized SELL reducing only the matching position;
@@ -48,7 +48,7 @@ At minimum include:
 11. restart/replay followed by exact reconciliation;
 12. market/session cutoff with factual terminal state.
 
-For every scenario run the frozen legacy shadow harness and the Shaurya client plus PaperBroker harness from the same normalized inputs. Compare, in deterministic sequence order:
+For every scenario run an independent frozen legacy shadow harness and a test-only Shaurya parity harness built from the actual PaperBroker and control-plane libraries from the same normalized inputs. D51 must receive the exact absolute Shaurya harness path as a CMake cache value, execute a version/attestation probe, and fail rather than skip on a missing, wrong-version, or unverifiable harness. The comparator must not derive both expected and actual results from the same implementation. Compare, in deterministic sequence order:
 
 - selected canonical intents and intent fingerprints;
 - ACK/REJECT and internal-order correlation;
@@ -59,7 +59,7 @@ For every scenario run the frozen legacy shadow harness and the Shaurya client p
 
 Exclude only transport-envelope fields declared non-semantic by the frozen contract, such as fixture-assigned packet sequence or receive timestamp. Keep an explicit allowlist of those exclusions in the test harness. Do not normalize away action, price, quantity, instrument, event order, fill evidence, inventory, or terminal-state differences.
 
-Write a machine-readable parity result to the test build directory, never the source tree. It must contain fixture-manifest digest, D51 commit, Shaurya protocol/schema digest, PaperBroker model version, scenario count, mismatch count, and pass/fail. A mismatch count greater than zero fails CTest and prevents the default-backend assertion from passing. There is no waiver flag. An intentional semantic difference requires explicit approval in a later user request and a newly frozen expected fixture; this implementation cannot infer approval.
+Write a machine-readable parity result to the test build directory, never the source tree. It must contain fixture-manifest digest, D51 commit, exact Shaurya commit/build identity, Shaurya protocol/schema digest, PaperBroker model version, scenario count, mismatch count, and pass/fail. A mismatch count greater than zero fails CTest and prevents the default-backend assertion from passing. There is no waiver flag. An intentional semantic difference requires explicit approval in a later user request and a newly frozen expected fixture; this implementation cannot infer approval.
 
 ### Live-negative and dependency tests
 
@@ -109,7 +109,7 @@ Migration occurs in two reviewable stages:
 
 For the Shaurya backend:
 
-- consume Shaurya MarketObservation packets instead of constructing market observations from the legacy authenticated feed inside the execution path;
+- consume Shaurya `StrategyBookObservation` packets, including the exact ordered depth, LTQ, volume, and OI fields required by D51, instead of constructing market observations from the legacy authenticated feed inside the execution path;
 - retain D51's existing book/surface/model/policy decision cycle unchanged behind the observation adapter;
 - carry the observation's canonical instrument identity into each selected quote action;
 - submit enabled quote actions, replacements, and withdrawals through `ExecutionAdapter`;

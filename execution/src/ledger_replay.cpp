@@ -18,6 +18,22 @@ std::uint64_t uint_field(const ExecutionEvent& event, std::string_view name) {
   try { return json_uint64(field(event, name), name); }
   catch (const JsonError&) { throw LedgerError("replay_invalid_payload_field"); }
 }
+void record_broker_source(ReconstructedState& state, const ExecutionEvent& event) {
+  if (!event.payload.contains("source_fingerprint")) return;
+  const auto sequence = uint_field(event, "source_sequence");
+  const auto update_id = string_field(event, "update_id");
+  const auto fingerprint = string_field(event, "source_fingerprint");
+  static_cast<void>(string_field(event, "source_provenance"));
+  const auto [existing, inserted] = state.broker_update_fingerprints.emplace(
+      update_id, fingerprint);
+  if (!inserted && existing->second != fingerprint)
+    throw LedgerError("replay_broker_update_fingerprint_conflict");
+  if (sequence != 0U) {
+    if (sequence <= state.last_broker_update_sequence)
+      throw LedgerError("replay_broker_update_sequence_fault");
+    state.last_broker_update_sequence = sequence;
+  }
+}
 std::string required_id(const std::optional<std::string>& value, std::string_view code) {
   if (!value) throw LedgerError(std::string(code));
   return *value;
@@ -35,6 +51,39 @@ void update_intent(ReconstructedState& state, const ExecutionEvent& event,
   found->second.disposition = std::move(disposition);
   if (event.internal_order_id) found->second.internal_order_id = event.internal_order_id;
   found->second.ambiguous = ambiguous;
+}
+void record_risk_decision(ReconstructedState& state, const ExecutionEvent& event) {
+  if (!event.intent_id) throw LedgerError("replay_missing_intent_id");
+  const auto found = state.intents.find(*event.intent_id);
+  if (found == state.intents.end()) throw LedgerError("replay_unknown_intent");
+  std::string serialized;
+  try { serialized = canonical_json(field(event, "risk_decision")); }
+  catch (const JsonError&) { throw LedgerError("replay_invalid_risk_decision"); }
+  if (found->second.risk_decision_json && *found->second.risk_decision_json != serialized)
+    throw LedgerError("replay_risk_decision_conflict");
+  found->second.risk_decision_json = std::move(serialized);
+}
+void record_broker_outcome(ReconstructedState& state, const ExecutionEvent& event) {
+  if (!event.intent_id) throw LedgerError("replay_missing_intent_id");
+  const auto found = state.intents.find(*event.intent_id);
+  if (found == state.intents.end()) throw LedgerError("replay_unknown_intent");
+  IntentBrokerOutcomeReplay outcome;
+  outcome.event_type = event.event_type;
+  outcome.update_id = string_field(event, "update_id");
+  outcome.source_provenance = string_field(event, "source_provenance");
+  outcome.source_fingerprint = string_field(event, "source_fingerprint");
+  outcome.timestamp_ns = event.timestamp_ns;
+  if (event.event_type == "broker_acknowledged")
+    outcome.broker_order_id = string_field(event, "broker_order_id");
+  if (event.event_type == "modified") {
+    outcome.accepted_quantity = uint_field(event, "quantity");
+    outcome.accepted_limit_price_paise = uint_field(event, "limit_price_paise");
+  }
+  if (event.event_type == "modify_rejected" || event.event_type == "cancel_rejected" ||
+      event.event_type == "broker_rejected" || event.event_type == "ambiguous_submission")
+    outcome.error_code = string_field(event, "error_code");
+  if (found->second.broker_outcome) return;
+  found->second.broker_outcome = std::move(outcome);
 }
 TransitionResult apply(ReconstructedState& state, const ExecutionEvent& event,
                        OrderUpdateEvidence evidence) {
@@ -69,11 +118,14 @@ void add_route_position(ReconstructedState& state, const ExecutionEvent& event,
 }
 void replay_record(ReconstructedState& state, const LedgerRecord& record) {
     const auto& event = record.event;
+    record_broker_source(state, event);
     if (event.event_type == "intent_received") {
       const auto intent_id = required_id(event.intent_id, "replay_missing_intent_id");
       const auto fingerprint = string_field(event, "semantic_fingerprint");
       const auto [found, inserted] = state.intents.emplace(
-          intent_id, IntentReplayState{fingerprint, record.sequence, "received", std::nullopt, false});
+          intent_id, IntentReplayState{fingerprint, record.sequence, "received", std::nullopt,
+                                       false, *event.strategy_id, *event.strategy_run_id,
+                                       std::nullopt, std::nullopt});
       if (!inserted && found->second.semantic_fingerprint != fingerprint) {
         state.incidents.push_back("idempotency_conflict");
         state.safety_stopped = true;
@@ -87,8 +139,14 @@ void replay_record(ReconstructedState& state, const LedgerRecord& record) {
       if (!inserted && found->second != token) throw LedgerError("replay_route_token_conflict");
     }
     else if (event.event_type == "mapping_refused") update_intent(state, event, "mapping_refused");
-    else if (event.event_type == "risk_approved") update_intent(state, event, "risk_approved");
-    else if (event.event_type == "risk_rejected") update_intent(state, event, "risk_rejected");
+    else if (event.event_type == "risk_approved") {
+      record_risk_decision(state, event);
+      update_intent(state, event, "risk_approved");
+    }
+    else if (event.event_type == "risk_rejected") {
+      record_risk_decision(state, event);
+      update_intent(state, event, "risk_rejected");
+    }
     else if (event.event_type == "submission_started") {
       const auto order_id = required_id(event.internal_order_id, "replay_missing_order_id");
       OrderAggregate aggregate;
@@ -109,11 +167,13 @@ void replay_record(ReconstructedState& state, const LedgerRecord& record) {
         throw LedgerError("replay_duplicate_order");
       }
       update_intent(state, event, "submission_started");
+      state.broker_attempt_timestamps_ns.push_back(event.timestamp_ns);
     } else if (event.event_type == "broker_acknowledged") {
       apply(state, event, {OrderEventKind::BrokerAcknowledged, string_field(event, "update_id"),
                            string_field(event, "broker_order_id"), std::nullopt, std::nullopt,
                            std::nullopt});
       update_intent(state, event, "acknowledged");
+      record_broker_outcome(state, event);
     } else if (event.event_type == "partially_filled" || event.event_type == "filled") {
       const auto instrument = required_order(state, event).canonical_instrument_id;
       const auto transition = apply(
@@ -127,18 +187,44 @@ void replay_record(ReconstructedState& state, const LedgerRecord& record) {
       apply(state, event, {OrderEventKind::CancelRequested, string_field(event, "update_id"),
                            std::nullopt, std::nullopt, std::nullopt, std::nullopt});
       update_intent(state, event, "cancel_requested");
+    } else if (event.event_type == "modify_requested") {
+      apply(state, event, {OrderEventKind::ModifyRequested, string_field(event, "update_id"),
+                           std::nullopt, std::nullopt, uint_field(event, "quantity"),
+                           uint_field(event, "limit_price_paise")});
+      update_intent(state, event, "modify_requested");
+      state.broker_attempt_timestamps_ns.push_back(event.timestamp_ns);
+    } else if (event.event_type == "modified") {
+      apply(state, event, {OrderEventKind::ModifyAccepted, string_field(event, "update_id"),
+                           std::nullopt, std::nullopt, uint_field(event, "quantity"),
+                           uint_field(event, "limit_price_paise")});
+      update_intent(state, event, "modified");
+      record_broker_outcome(state, event);
+    } else if (event.event_type == "modify_rejected") {
+      apply(state, event, {OrderEventKind::ModifyRejected, string_field(event, "update_id"),
+                           std::nullopt, std::nullopt, std::nullopt, std::nullopt});
+      update_intent(state, event, "modify_rejected");
+      record_broker_outcome(state, event);
+    } else if (event.event_type == "cancel_rejected") {
+      apply(state, event, {OrderEventKind::CancelRejected, string_field(event, "update_id"),
+                           std::nullopt, std::nullopt, std::nullopt, std::nullopt});
+      update_intent(state, event, "cancel_rejected", true);
+      record_broker_outcome(state, event);
+      state.reconciliation_required = true;
     } else if (event.event_type == "cancelled") {
       apply(state, event, {OrderEventKind::CancelAccepted, string_field(event, "update_id"),
                            std::nullopt, std::nullopt, std::nullopt, std::nullopt});
       update_intent(state, event, "cancelled");
+      record_broker_outcome(state, event);
     } else if (event.event_type == "broker_rejected") {
       apply(state, event, {OrderEventKind::BrokerRejected, string_field(event, "update_id"),
                            std::nullopt, std::nullopt, std::nullopt, std::nullopt});
       update_intent(state, event, "rejected");
+      record_broker_outcome(state, event);
     } else if (event.event_type == "ambiguous_submission") {
       apply(state, event, {OrderEventKind::SubmissionAmbiguous, string_field(event, "update_id"),
                            std::nullopt, std::nullopt, std::nullopt, std::nullopt});
       update_intent(state, event, "ambiguous_submission", true);
+      record_broker_outcome(state, event);
       state.reconciliation_required = true;
       state.incidents.push_back("ambiguous_submission");
     } else if (event.event_type == "reconciliation_required") {
@@ -179,6 +265,7 @@ void replay_record(ReconstructedState& state, const LedgerRecord& record) {
       state.safety_stopped = true;
       state.incidents.push_back("safety_stop");
     } else if (event.event_type == "session_started") state.session_state = "started";
+    else if (event.event_type == "session_stopping") state.session_state = "stopping";
     else if (event.event_type == "session_stopped") state.session_state = "stopped";
     else if (event.event_type == "ledger_repair_recorded") {
       state.reconciliation_required = true;

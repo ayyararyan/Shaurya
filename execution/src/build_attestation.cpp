@@ -8,6 +8,8 @@ std::string build_attestation() {
   output << "project=shaurya-execution"
          << " version=" << kProjectVersion
          << " revision=" << kSourceRevision
+         << " source_state=" << kSourceState
+         << " source_tree_sha256=" << kSourceTreeDigest
          << " compiler=" << kCompilerId
          << " build_type=" << kBuildType
          << " live_router=" << kLiveRouter;

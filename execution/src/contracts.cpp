@@ -64,6 +64,12 @@ std::optional<std::uint64_t> optional_uint64(const JsonObject& object, std::stri
   const auto* item = optional(object, key);
   return item == nullptr ? std::nullopt : std::optional<std::uint64_t>(json_uint64(*item, key));
 }
+std::optional<std::uint64_t> nullable_uint64_required(const JsonObject& object,
+                                                      std::string_view key) {
+  const auto& item = required(object, key);
+  if (std::holds_alternative<std::nullptr_t>(item.value)) return std::nullopt;
+  return json_uint64(item, key);
+}
 bool lowercase_hex(std::string_view value, std::size_t length) {
   return value.size() == length && std::all_of(value.begin(), value.end(), [](char item) {
     return (item >= '0' && item <= '9') || (item >= 'a' && item <= 'f');
@@ -78,6 +84,16 @@ void require_version(const JsonObject& object) {
 }
 void require_digest(const std::string& value) {
   if (!lowercase_hex(value, 64)) invalid("invalid_digest");
+}
+void validate_broker_source(const JsonObject& payload) {
+  (void)json_uint64(required(payload, "source_sequence"), "source_sequence");
+  require_digest(bounded_string(required(payload, "source_fingerprint"),
+                                "source_fingerprint", 64));
+  static const std::set<std::string> provenances = {
+      "simulated", "proxy", "simulated_proxy", "broker_confirmed"};
+  if (!provenances.contains(bounded_string(required(payload, "source_provenance"),
+                                           "source_provenance", 32)))
+    invalid("invalid_source_provenance");
 }
 JsonObject base_document() { return {{"schema_version", text(std::string(kContractVersion))}}; }
 void add_optional(JsonObject& object, std::string key, const std::optional<std::string>& value) {
@@ -161,10 +177,42 @@ void forbid_correlation(const ExecutionEvent& event) {
 }
 void validate_event_variant(const ExecutionEvent& event) {
   const auto& type = event.event_type;
-  if (type == "session_started" || type == "session_stopped") {
+  if (type == "session_started" || type == "session_stopping" || type == "session_stopped") {
     forbid_correlation(event);
     payload_fields(event.payload,
-                   {"mode", "build_digest", "routing_snapshot_digest", "state", "reason"});
+                   {"mode", "build_digest", "routing_snapshot_digest", "state", "reason",
+                    "launch_attestation_digest", "invocation_id", "operator_id", "device_id",
+                    "public_key_fingerprint", "cli_release_digest",
+                    "deployment_manifest_digest", "executor_build_digest", "requested_mode",
+                    "confirmation_type", "launch_timestamp_ns"});
+    const std::array<std::string_view, 11U> launch_fields = {
+        "launch_attestation_digest", "invocation_id", "operator_id", "device_id",
+        "public_key_fingerprint", "cli_release_digest", "deployment_manifest_digest",
+        "executor_build_digest", "requested_mode", "confirmation_type", "launch_timestamp_ns"};
+    const bool any_launch = std::any_of(launch_fields.begin(), launch_fields.end(),
+                                       [&](std::string_view field) {
+                                         return event.payload.contains(field);
+                                       });
+    if (any_launch) {
+      if (type != "session_started" ||
+          std::any_of(launch_fields.begin(), launch_fields.end(),
+                      [&](std::string_view field) { return !event.payload.contains(field); }))
+        invalid("invalid_launch_evidence");
+      for (const auto field : {"launch_attestation_digest", "cli_release_digest",
+                               "deployment_manifest_digest", "executor_build_digest"})
+        require_digest(bounded_string(required(event.payload, field), field, 64));
+      require_uuid(bounded_string(required(event.payload, "invocation_id"), "invocation_id"));
+      (void)bounded_string(required(event.payload, "operator_id"), "operator_id", 128);
+      (void)bounded_string(required(event.payload, "device_id"), "device_id", 128);
+      (void)bounded_string(required(event.payload, "public_key_fingerprint"),
+                           "public_key_fingerprint", 128);
+      if (bounded_string(required(event.payload, "requested_mode"), "requested_mode", 16) !=
+              "shadow" ||
+          bounded_string(required(event.payload, "confirmation_type"), "confirmation_type", 64) !=
+              "SHAURYA_SHADOW_LAUNCH" ||
+          json_int64(required(event.payload, "launch_timestamp_ns"), "launch_timestamp_ns") <= 0)
+        invalid("invalid_launch_evidence");
+    }
   } else if (type == "ledger_repair_recorded") {
     forbid_correlation(event);
     payload_fields(event.payload,
@@ -191,6 +239,30 @@ void validate_event_variant(const ExecutionEvent& event) {
       invalid("invalid_event_correlation");
     }
     payload_fields(event.payload, {"reason", "error_code", "queue", "stage"});
+  } else if (type == "market_observation_accepted") {
+    forbid_correlation(event);
+    payload_fields(event.payload,
+                   {"best_ask_paise", "best_bid_paise", "canonical_instrument_id",
+                    "cumulative_volume", "last_trade_paise", "provenance",
+                    "receive_timestamp_ns", "source", "source_digest", "source_sequence"},
+                   {"best_ask_paise", "best_bid_paise", "canonical_instrument_id",
+                    "cumulative_volume", "last_trade_paise", "provenance",
+                    "receive_timestamp_ns", "source", "source_digest", "source_sequence"});
+    if (!is_canonical_instrument_id(bounded_string(
+            required(event.payload, "canonical_instrument_id"), "canonical_instrument_id", 192)) ||
+        bounded_string(required(event.payload, "source"), "source", 32) != "dhan" ||
+        bounded_string(required(event.payload, "provenance"), "provenance", 24) != "observed" ||
+        json_int64(required(event.payload, "receive_timestamp_ns"),
+                   "receive_timestamp_ns") <= 0 ||
+        json_uint64(required(event.payload, "source_sequence"), "source_sequence") == 0U)
+      invalid("invalid_market_observation_evidence");
+    for (const auto field : {"best_ask_paise", "best_bid_paise", "last_trade_paise"}) {
+      const auto price = nullable_uint64_required(event.payload, field);
+      if (price && *price == 0U) invalid("invalid_market_observation_evidence");
+    }
+    (void)json_uint64(required(event.payload, "cumulative_volume"), "cumulative_volume");
+    require_digest(bounded_string(required(event.payload, "source_digest"),
+                                  "source_digest", 64));
   } else if (type == "intent_received") {
     require_strategy_correlation(event, false);
     payload_fields(event.payload, {"semantic_fingerprint", "canonical_instrument_id"},
@@ -211,21 +283,38 @@ void validate_event_variant(const ExecutionEvent& event) {
   } else if (type == "risk_rejected") {
     require_strategy_correlation(event, false);
     payload_fields(event.payload,
-                   {"decision_id", "configuration_digest", "rejection_code"},
-                   {"decision_id", "configuration_digest", "rejection_code"});
+                   {"broker_call_count", "decision_id", "configuration_digest",
+                    "rejection_code", "risk_decision"},
+                   {"broker_call_count", "decision_id", "configuration_digest",
+                    "rejection_code", "risk_decision"});
+    if (json_uint64(required(event.payload, "broker_call_count"), "broker_call_count") != 0U)
+      invalid("invalid_risk_boundary");
     require_uuid(bounded_string(required(event.payload, "decision_id"), "decision_id"));
     require_digest(bounded_string(required(event.payload, "configuration_digest"),
                                   "configuration_digest", 64));
     (void)bounded_string(required(event.payload, "rejection_code"), "rejection_code", 64);
+    const auto embedded = RiskDecision::parse(canonical_json(required(event.payload,
+                                                                  "risk_decision")));
+    if (embedded.decision_id != bounded_string(required(event.payload, "decision_id"),
+                                               "decision_id", 64) ||
+        embedded.configuration_digest != bounded_string(
+            required(event.payload, "configuration_digest"), "configuration_digest", 64) ||
+        !embedded.rejection_code ||
+        *embedded.rejection_code != bounded_string(required(event.payload, "rejection_code"),
+                                                    "rejection_code", 64))
+      invalid("invalid_risk_boundary");
   } else if (type == "mapping_validated") {
     require_strategy_correlation(event, true);
     payload_fields(event.payload,
-                   {"routing_snapshot_digest", "instrument_token", "exchange_segment",
+                   {"canonical_instrument_id", "routing_snapshot_digest", "instrument_token", "exchange_segment",
                     "trading_symbol", "lot_size", "tick_size_paise"},
                    {"routing_snapshot_digest", "instrument_token", "exchange_segment",
                     "trading_symbol", "lot_size", "tick_size_paise"});
     require_digest(bounded_string(required(event.payload, "routing_snapshot_digest"),
                                   "routing_snapshot_digest", 64));
+    if (const auto* canonical = optional(event.payload, "canonical_instrument_id"); canonical &&
+        !is_canonical_instrument_id(bounded_string(*canonical, "canonical_instrument_id", 192)))
+      invalid("invalid_instrument");
     (void)bounded_string(required(event.payload, "instrument_token"), "instrument_token", 64);
     if (bounded_string(required(event.payload, "exchange_segment"), "exchange_segment", 16) !=
         "nse_fo") invalid("invalid_route_payload");
@@ -235,16 +324,29 @@ void validate_event_variant(const ExecutionEvent& event) {
       invalid("invalid_route_payload");
   } else if (type == "risk_approved") {
     require_strategy_correlation(event, true);
-    payload_fields(event.payload, {"decision_id", "configuration_digest"},
-                   {"decision_id", "configuration_digest"});
+    payload_fields(event.payload,
+                   {"broker_call_count", "decision_id", "configuration_digest",
+                    "risk_decision"},
+                   {"broker_call_count", "decision_id", "configuration_digest",
+                    "risk_decision"});
+    if (json_uint64(required(event.payload, "broker_call_count"), "broker_call_count") != 0U)
+      invalid("invalid_risk_boundary");
     require_uuid(bounded_string(required(event.payload, "decision_id"), "decision_id"));
     require_digest(bounded_string(required(event.payload, "configuration_digest"),
                                   "configuration_digest", 64));
+    const auto embedded = RiskDecision::parse(canonical_json(required(event.payload,
+                                                                  "risk_decision")));
+    if (embedded.decision != "approved" || embedded.rejection_code ||
+        embedded.decision_id != bounded_string(required(event.payload, "decision_id"),
+                                               "decision_id", 64) ||
+        embedded.configuration_digest != bounded_string(
+            required(event.payload, "configuration_digest"), "configuration_digest", 64))
+      invalid("invalid_risk_boundary");
   } else if (type == "submission_started") {
     require_strategy_correlation(event, true);
     payload_fields(event.payload,
-                   {"canonical_instrument_id", "route_digest", "side", "quantity",
-                    "limit_price_paise", "broker", "attempt_sequence"},
+                   {"baseline_cumulative_volume", "canonical_instrument_id", "route_digest",
+                    "side", "quantity", "limit_price_paise", "broker", "attempt_sequence"},
                    {"canonical_instrument_id", "route_digest", "side", "quantity",
                     "limit_price_paise"});
     if (!is_canonical_instrument_id(bounded_string(
@@ -256,32 +358,84 @@ void validate_event_variant(const ExecutionEvent& event) {
     if (json_uint64(required(event.payload, "quantity"), "quantity") == 0 ||
         json_uint64(required(event.payload, "limit_price_paise"), "limit_price_paise") == 0)
       invalid("invalid_order_fields");
+    if (const auto* baseline = optional(event.payload, "baseline_cumulative_volume"))
+      (void)json_uint64(*baseline, "baseline_cumulative_volume");
   } else if (type == "broker_acknowledged") {
     require_strategy_correlation(event, true);
     payload_fields(event.payload,
                    {"update_id", "broker_order_id", "provenance", "instrument_token",
-                    "quantity", "limit_price_paise"},
-                   {"update_id", "broker_order_id"});
+                    "quantity", "limit_price_paise", "source_sequence",
+                    "source_fingerprint", "source_provenance"},
+                   {"update_id", "broker_order_id", "source_sequence",
+                    "source_fingerprint", "source_provenance"});
     (void)bounded_string(required(event.payload, "update_id"), "update_id", 128);
     (void)bounded_string(required(event.payload, "broker_order_id"), "broker_order_id", 128);
+    validate_broker_source(event.payload);
   } else if (type == "partially_filled" || type == "filled") {
     require_strategy_correlation(event, true);
     payload_fields(event.payload,
                    {"update_id", "broker_order_id", "cumulative_filled_quantity",
-                    "fill_price_paise", "provenance", "instrument_token"},
-                   {"update_id", "cumulative_filled_quantity"});
+                    "fill_price_paise", "provenance", "instrument_token",
+                    "evidence_timestamp_ns", "source_sequence", "source_fingerprint",
+                    "source_provenance"},
+                   {"update_id", "cumulative_filled_quantity", "source_sequence",
+                    "source_fingerprint", "source_provenance"});
     (void)bounded_string(required(event.payload, "update_id"), "update_id", 128);
     (void)json_uint64(required(event.payload, "cumulative_filled_quantity"),
                       "cumulative_filled_quantity");
+    if (const auto* timestamp = optional(event.payload, "evidence_timestamp_ns"))
+      (void)json_int64(*timestamp, "evidence_timestamp_ns");
+    validate_broker_source(event.payload);
   } else if (type == "cancel_requested" || type == "cancelled") {
     require_strategy_correlation(event, true);
-    payload_fields(event.payload, {"update_id", "broker_order_id", "provenance"},
-                   {"update_id"});
+    payload_fields(event.payload,
+                   {"update_id", "broker_order_id", "provenance", "source_sequence",
+                    "source_fingerprint", "source_provenance"},
+                   type == "cancelled"
+                       ? std::initializer_list<std::string_view>{"update_id", "source_sequence",
+                                                                 "source_fingerprint",
+                                                                 "source_provenance"}
+                       : std::initializer_list<std::string_view>{"update_id"});
     (void)bounded_string(required(event.payload, "update_id"), "update_id", 128);
+    if (type == "cancelled") validate_broker_source(event.payload);
+  } else if (type == "modify_requested" || type == "modified") {
+    require_strategy_correlation(event, true);
+    payload_fields(event.payload,
+                   {"update_id", "quantity", "limit_price_paise", "provenance",
+                    "source_sequence", "source_fingerprint", "source_provenance"},
+                   type == "modified"
+                       ? std::initializer_list<std::string_view>{"update_id", "quantity",
+                                                                 "limit_price_paise",
+                                                                 "source_sequence",
+                                                                 "source_fingerprint",
+                                                                 "source_provenance"}
+                       : std::initializer_list<std::string_view>{"update_id", "quantity",
+                                                                 "limit_price_paise"});
+    (void)bounded_string(required(event.payload, "update_id"), "update_id", 128);
+    if (json_uint64(required(event.payload, "quantity"), "quantity") == 0U ||
+        json_uint64(required(event.payload, "limit_price_paise"), "limit_price_paise") == 0U)
+      invalid("invalid_modify_payload");
+    if (type == "modified") validate_broker_source(event.payload);
+  } else if (type == "modify_rejected" || type == "cancel_rejected") {
+    require_strategy_correlation(event, true);
+    payload_fields(event.payload,
+                   {"update_id", "error_code", "provenance", "source_sequence",
+                    "source_fingerprint", "source_provenance"},
+                   {"update_id", "error_code", "source_sequence", "source_fingerprint",
+                    "source_provenance"});
+    (void)bounded_string(required(event.payload, "update_id"), "update_id", 128);
+    (void)bounded_string(required(event.payload, "error_code"), "error_code", 64);
+    validate_broker_source(event.payload);
   } else if (type == "broker_rejected" || type == "ambiguous_submission") {
     require_strategy_correlation(event, true);
-    payload_fields(event.payload, {"update_id", "error_code", "provenance"}, {"update_id"});
+    payload_fields(event.payload,
+                   {"update_id", "error_code", "provenance", "source_sequence",
+                    "source_fingerprint", "source_provenance"},
+                   {"update_id", "error_code", "source_sequence", "source_fingerprint",
+                    "source_provenance"});
     (void)bounded_string(required(event.payload, "update_id"), "update_id", 128);
+    (void)bounded_string(required(event.payload, "error_code"), "error_code", 64);
+    validate_broker_source(event.payload);
   } else if (type == "reconciliation_required" || type == "reconciliation_completed") {
     const bool any_correlation = event.strategy_id || event.strategy_run_id || event.intent_id ||
                                  event.internal_order_id;
@@ -417,7 +571,7 @@ ExecutionEvent ExecutionEvent::parse(std::string_view json) {
   require_version(object); ExecutionEvent output;
   output.event_id=bounded_string(required(object,"event_id"),"event_id"); require_uuid(output.event_id);
   output.event_type=bounded_string(required(object,"event_type"),"event_type",40);
-  static const std::set<std::string> types={"intent_received","mapping_validated","mapping_refused","risk_approved","risk_rejected","submission_started","broker_acknowledged","partially_filled","filled","cancel_requested","cancelled","broker_rejected","ambiguous_submission","reconciliation_required","reconciliation_completed","safety_stop","session_started","session_stopped","ledger_repair_recorded"};
+  static const std::set<std::string> types={"market_observation_accepted","intent_received","mapping_validated","mapping_refused","risk_approved","risk_rejected","submission_started","broker_acknowledged","partially_filled","filled","modify_requested","modified","modify_rejected","cancel_requested","cancelled","cancel_rejected","broker_rejected","ambiguous_submission","reconciliation_required","reconciliation_completed","safety_stop","session_started","session_stopping","session_stopped","ledger_repair_recorded"};
   if (!types.contains(output.event_type)) invalid("invalid_event_type");
   output.timestamp_ns=json_int64(required(object,"timestamp_ns"),"timestamp_ns");
   output.execution_session_id=bounded_string(required(object,"execution_session_id"),"execution_session_id"); require_uuid(output.execution_session_id);

@@ -4,8 +4,9 @@
 
 This section exposes the completed ExecutionSession through local, bounded, peer-validated Unix
 IPC and supplies the independently runnable `shaurya-executor` command. The executor is a
-shadow-only state owner. It receives Dhan-derived `MarketObservation` messages from one Data-owned
-publisher, relays validated observations to the connected strategy client, receives broker-neutral
+shadow-only state owner. It receives Dhan-derived `StrategyBookObservation` messages from one
+Data-owned publisher, relays the unchanged validated full-depth books to the connected strategy
+client, derives the frozen aggregate `MarketObservation` for risk and paper execution, receives broker-neutral
 `OrderIntent` messages, and returns correlated `ExecutionEvent` messages. It owns routing, risk,
 idempotency, FSM, ledger, paper-broker state, reconciliation, and readiness; it does not acquire
 market data, authenticate to Kotak, construct live transport, launch a strategy, or manage AWS.
@@ -69,7 +70,7 @@ Create `execution/tests/test_ipc_protocol.cpp` with fixtures under
 `market_publisher` and one `strategy_client`, then test:
 
 - unknown, missing, duplicate, oversized, wrong-version, wrong-session, and wrong-role fields;
-- a Data publisher can send `MarketObservation` only; a strategy can send `OrderIntent` and event
+- a Data publisher can send `StrategyBookObservation` only; a strategy can send `OrderIntent` and event
   acknowledgements only;
 - the executor relays only successfully validated observations and preserves their source sequence;
 - every accepted intent receives correlated events with stable intent/run/session IDs;
@@ -80,9 +81,13 @@ Create `execution/tests/test_ipc_protocol.cpp` with fixtures under
 - duplicate reconnects are idempotent and never resubmit an intent;
 - a slow or disconnected strategy cannot cause silent event loss.
 
-The strategy connection is bidirectional. Market observations and execution events carry distinct
-message kinds, so D51 can consume the same validated Data observation stream used by paper risk and
-fills without sending observations back into Execution.
+The strategy connection is bidirectional. Full strategy books and execution events carry distinct
+message kinds. Each book contains one to five real ordered levels per side, exact positive
+integer-paise prices, positive quantities and order counts, optional LTP, cumulative volume,
+last-trade quantity, open interest, exchange/receive timestamps, and exact Dhan
+source/provenance/quality evidence. The executor assigns one durable source sequence and digest,
+derives the aggregate risk/paper observation without padding or invented values, and relays the
+unchanged full book with the same sequence and digest. Missing required D51 evidence fails closed.
 
 ### Queue and safety-stop tests
 
@@ -163,13 +168,15 @@ single ownership for session mutation, and `std::stop_token` or an equivalent ex
 The executor owns two configurable Unix sockets inside one protected runtime directory:
 
 - `market.sock`: accepts exactly one attested `market_publisher`. The publisher is owned by Shaurya
-  Data and is the sole producer of Dhan-derived `MarketObservation` packets.
+  Data and is the sole producer of Dhan-derived `StrategyBookObservation` packets.
 - `strategy.sock`: accepts exactly one attested `strategy_client` for the initial release. It sends
   validated observations and execution events to the strategy and receives neutral intents and
   event acknowledgements.
 
-The executor validates and sequences each observation once, then feeds the same immutable value to
-risk/paper execution and the strategy outbound stream. The strategy cannot inject market data.
+The executor validates and sequences each full book once, derives the existing immutable aggregate
+only for risk/paper execution, and sends the unchanged full book to the strategy. Broker events
+caused by a book are durably delivered before that triggering book. The strategy cannot inject
+market data.
 Supporting more clients later requires a new schema version and explicit fan-out policy; do not
 silently generalize this release.
 
@@ -198,9 +205,10 @@ The runtime configuration has an exact schema and includes:
 - runtime directory and the two socket basenames;
 - maximum packet, per-stage queue capacities, I/O deadlines, reconnect window, and shutdown
   deadline;
-- expected UID, GID, executable digest, and configuration digest for each peer role;
+- expected UID, GID, executable digest, configuration digest, and protected configuration artifact
+  path for each peer role;
 - routing snapshot/manifest, risk configuration, ledger root, and paper-model paths;
-- launch-attestation path and expected digest;
+- protected launch-attestation root, maximum age, and immutable CLI/deployment/executor bindings;
 - required initial observation freshness and expected strategy ID.
 
 Paths must be absolute, normalized, beneath their configured protected roots, and opened without

@@ -19,6 +19,9 @@ class IdempotencyStore {
                                                   ExecutionLedger& ledger,
                                                   const ExecutionEvent& intent_received,
                                                   const ExecutionEvent& conflict_incident);
+  [[nodiscard]] IdempotencyResult check(const OrderIntent& intent) const;
+  void record_durable(const OrderIntent& intent, std::uint64_t sequence);
+  void record_conflict_durable();
   void update(std::string_view intent_id, std::string disposition,
               std::optional<std::string> internal_order_id = std::nullopt, bool ambiguous = false);
   [[nodiscard]] bool safety_stopped() const noexcept { return safety_stopped_; }

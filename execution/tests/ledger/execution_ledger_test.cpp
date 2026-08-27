@@ -2,7 +2,10 @@
 #include "test_support.hpp"
 
 #include <array>
+#include <fcntl.h>
 #include <fstream>
+#include <sys/stat.h>
+#include <unistd.h>
 
 using namespace shaurya::execution;
 
@@ -248,6 +251,28 @@ int main() {
   const auto streamed = verify_ledger(path);
   require_test(streamed.records.empty() && streamed.verified_records == 3,
                "metadata verification retained segment records");
+
+  const auto descriptor_root = root / "descriptor-root";
+  const auto displaced_root = root / "descriptor-root-displaced";
+  std::filesystem::create_directory(descriptor_root);
+  (void)::chmod(descriptor_root.c_str(), 0700);
+  const int root_descriptor = ::open(descriptor_root.c_str(),
+                                     O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_DIRECTORY);
+  require_test(root_descriptor >= 0, "descriptor-root fixture open failed");
+  {
+    auto ledger = ExecutionLedger::create_new_at(root_descriptor, "events.jsonl");
+    std::filesystem::rename(descriptor_root, displaced_root);
+    std::filesystem::create_directory(descriptor_root);
+    (void)::chmod(descriptor_root.c_str(), 0700);
+    static_cast<void>(ledger.append(
+        event("00000000-0000-4000-8000-000000000199", "session_started")));
+    require_test(ledger.verify().clean() && ledger.last_sequence() == 1U,
+                 "descriptor-root ledger lost authority after pathname replacement");
+  }
+  (void)::close(root_descriptor);
+  require_test(verify_ledger(displaced_root / "events.jsonl").verified_records == 1U &&
+                   !std::filesystem::exists(descriptor_root / "events.jsonl"),
+               "descriptor-root ledger followed a replaced pathname");
 
   std::filesystem::remove_all(root);
 }

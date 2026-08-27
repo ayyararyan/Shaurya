@@ -153,6 +153,111 @@ LedgerVerificationResult result(LedgerVerificationStatus status, std::string cod
   return {status, std::move(code), count, prefix, std::move(last_hash), std::move(records)};
 }
 
+LedgerVerificationResult scan_opened(int descriptor, LedgerVerificationMode mode,
+                                     const LedgerRecordVisitor& visitor) {
+  struct stat identity{};
+  if (::fstat(descriptor, &identity) != 0 || !S_ISREG(identity.st_mode) ||
+      identity.st_uid != ::geteuid() || (identity.st_mode & 0077U) != 0U ||
+      identity.st_nlink != 1)
+    return result(LedgerVerificationStatus::Unsafe, "ledger_unsafe_file", 0, 0,
+                  std::string(kGenesisHash));
+  std::set<std::string> event_ids;
+  std::vector<LedgerRecord> retained;
+  std::string line;
+  line.reserve(4096);
+  std::string previous(kGenesisHash);
+  std::uint64_t count{}, prefix{}, total{};
+  std::uint64_t file_offset{};
+  char buffer[8192];
+  for (;;) {
+    const auto read_count = ::pread(descriptor, buffer, sizeof(buffer),
+                                    static_cast<off_t>(file_offset));
+    if (read_count < 0) {
+      if (errno == EINTR) continue;
+      return result(LedgerVerificationStatus::Unsafe, "ledger_read_failed", count, prefix,
+                    previous, std::move(retained));
+    }
+    if (read_count == 0) break;
+    file_offset += static_cast<std::uint64_t>(read_count);
+    total += static_cast<std::uint64_t>(read_count);
+    if (total > kMaximumLedgerBytes)
+      return result(LedgerVerificationStatus::Unsafe, "ledger_segment_too_large", count, prefix,
+                    previous, std::move(retained));
+    for (std::ptrdiff_t index = 0; index < read_count; ++index) {
+      const char item = buffer[index];
+      if (item != '\n') {
+        if (line.size() >= kMaximumLedgerRecordBytes)
+          return result(LedgerVerificationStatus::Corrupt, "ledger_record_size", count, prefix,
+                        previous, std::move(retained));
+        line.push_back(item);
+        continue;
+      }
+      LedgerRecord record;
+      try {
+        record = parse_record(line);
+        if (record.sequence != count + 1U) throw LedgerError("ledger_sequence_mismatch");
+        if (record.previous_record_hash != previous) throw LedgerError("ledger_chain_mismatch");
+        if (!event_ids.insert(record.event.event_id).second)
+          throw LedgerError("ledger_duplicate_event_id");
+        const auto expected = sha256_hex(canonical_json(JsonValue(record_without_hash(record))));
+        if (record.record_hash != expected) throw LedgerError("ledger_hash_mismatch");
+        if (ledger_record_json(record) != line) throw LedgerError("ledger_noncanonical_record");
+      } catch (const LedgerError& error) {
+        return result(LedgerVerificationStatus::Corrupt, error.code(), count, prefix, previous,
+                      std::move(retained));
+      } catch (const JsonError& error) {
+        return result(LedgerVerificationStatus::Corrupt, error.code(), count, prefix, previous,
+                      std::move(retained));
+      } catch (const std::exception&) {
+        return result(LedgerVerificationStatus::Corrupt, "ledger_invalid_record", count, prefix,
+                      previous, std::move(retained));
+      }
+      previous = record.record_hash;
+      ++count;
+      prefix += static_cast<std::uint64_t>(line.size()) + 1U;
+      if (mode == LedgerVerificationMode::RetainRecords) retained.push_back(record);
+      if (visitor) visitor(record);
+      line.clear();
+    }
+  }
+  struct stat after{};
+  if (::fstat(descriptor, &after) != 0 || identity.st_dev != after.st_dev ||
+      identity.st_ino != after.st_ino || identity.st_size != after.st_size ||
+      identity.st_mode != after.st_mode || identity.st_uid != after.st_uid
+#if defined(__APPLE__)
+      || identity.st_mtimespec.tv_sec != after.st_mtimespec.tv_sec
+      || identity.st_mtimespec.tv_nsec != after.st_mtimespec.tv_nsec
+      || identity.st_ctimespec.tv_sec != after.st_ctimespec.tv_sec
+      || identity.st_ctimespec.tv_nsec != after.st_ctimespec.tv_nsec
+#else
+      || identity.st_mtim.tv_sec != after.st_mtim.tv_sec
+      || identity.st_mtim.tv_nsec != after.st_mtim.tv_nsec
+      || identity.st_ctim.tv_sec != after.st_ctim.tv_sec
+      || identity.st_ctim.tv_nsec != after.st_ctim.tv_nsec
+#endif
+      )
+    return result(LedgerVerificationStatus::Unsafe, "ledger_identity_changed", count, prefix,
+                  previous, std::move(retained));
+  if (!line.empty()) {
+    if (!plausible_record_prefix(line))
+      return result(LedgerVerificationStatus::Corrupt, "ledger_invalid_truncated_prefix", count,
+                    prefix, previous, std::move(retained));
+    try {
+      static_cast<void>(parse_json(line, kMaximumLedgerRecordBytes));
+      return result(LedgerVerificationStatus::Corrupt, "ledger_missing_final_newline", count,
+                    prefix, previous, std::move(retained));
+    } catch (const JsonError& error) {
+      if (!error.incomplete())
+        return result(LedgerVerificationStatus::Corrupt, error.code(), count, prefix, previous,
+                      std::move(retained));
+      return result(LedgerVerificationStatus::TruncatedTail, "ledger_truncated_tail", count,
+                    prefix, previous, std::move(retained));
+    }
+  }
+  return result(LedgerVerificationStatus::Clean, {}, count, prefix, previous,
+                std::move(retained));
+}
+
 LedgerVerificationResult scan(const std::filesystem::path& raw_path, LedgerVerificationMode mode,
                               const LedgerRecordVisitor& visitor) {
   std::filesystem::path path;
@@ -317,18 +422,20 @@ LedgerVerificationResult visit_verified_ledger(const std::filesystem::path& path
   return scan(path, LedgerVerificationMode::MetadataOnly, visitor);
 }
 
-ExecutionLedger::ExecutionLedger(std::filesystem::path path, int descriptor,
+ExecutionLedger::ExecutionLedger(std::filesystem::path path, int parent_descriptor,
+                                 std::string basename, int descriptor,
                                  std::uint64_t device, std::uint64_t inode,
                                  std::uint64_t sequence, std::string hash,
                                  LedgerFaultHook fault_hook)
-    : path_(std::move(path)), descriptor_(descriptor), device_(device), inode_(inode),
+    : path_(std::move(path)), parent_descriptor_(parent_descriptor),
+      basename_(std::move(basename)), descriptor_(descriptor), device_(device), inode_(inode),
       last_sequence_(sequence), last_hash_(std::move(hash)), fault_hook_(std::move(fault_hook)) {}
 
 ExecutionLedger ExecutionLedger::create_new(const std::filesystem::path& raw_path,
                                              LedgerFaultHook fault_hook) {
   const auto path = absolute_normalized(raw_path);
   if (!safe_parent(path)) throw LedgerError("ledger_unsafe_parent");
-  const int descriptor = ::open(path.c_str(), O_CREAT | O_EXCL | O_APPEND | O_WRONLY | O_CLOEXEC |
+  const int descriptor = ::open(path.c_str(), O_CREAT | O_EXCL | O_APPEND | O_RDWR | O_CLOEXEC |
                                                   O_NOFOLLOW, 0600);
   if (descriptor < 0) throw LedgerError("ledger_create_failed");
   if (::flock(descriptor, LOCK_EX | LOCK_NB) != 0) {
@@ -340,7 +447,14 @@ ExecutionLedger ExecutionLedger::create_new(const std::filesystem::path& raw_pat
     ::close(descriptor);
     throw LedgerError("ledger_unsafe_file");
   }
-  return ExecutionLedger(path, descriptor, static_cast<std::uint64_t>(status.st_dev),
+  const int parent_descriptor = ::open(path.parent_path().c_str(),
+      O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_DIRECTORY);
+  if (parent_descriptor < 0) {
+    ::close(descriptor);
+    throw LedgerError("ledger_unsafe_parent");
+  }
+  return ExecutionLedger(path, parent_descriptor, path.filename().string(), descriptor,
+                         static_cast<std::uint64_t>(status.st_dev),
                          static_cast<std::uint64_t>(status.st_ino), 0,
                          std::string(kGenesisHash), std::move(fault_hook));
 }
@@ -352,7 +466,7 @@ ExecutionLedger ExecutionLedger::open_existing(const std::filesystem::path& raw_
   if (!verification.clean()) throw LedgerError(verification.error_code);
   struct stat linked {};
   if (!safe_file(path, &linked)) throw LedgerError("ledger_unsafe_file");
-  const int descriptor = ::open(path.c_str(), O_APPEND | O_WRONLY | O_CLOEXEC | O_NOFOLLOW);
+  const int descriptor = ::open(path.c_str(), O_APPEND | O_RDWR | O_CLOEXEC | O_NOFOLLOW);
   if (descriptor < 0) throw LedgerError("ledger_open_failed");
   if (::flock(descriptor, LOCK_EX | LOCK_NB) != 0) {
     ::close(descriptor);
@@ -371,47 +485,142 @@ ExecutionLedger ExecutionLedger::open_existing(const std::filesystem::path& raw_
     ::close(descriptor);
     throw LedgerError(verification.clean() ? "ledger_identity_changed" : verification.error_code);
   }
-  return ExecutionLedger(path, descriptor, device, inode, verification.verified_records,
+  const int parent_descriptor = ::open(path.parent_path().c_str(),
+      O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_DIRECTORY);
+  if (parent_descriptor < 0) {
+    ::close(descriptor);
+    throw LedgerError("ledger_unsafe_parent");
+  }
+  return ExecutionLedger(path, parent_descriptor, path.filename().string(), descriptor,
+                         device, inode, verification.verified_records,
                          verification.last_record_hash, std::move(fault_hook));
 }
 
+ExecutionLedger ExecutionLedger::create_new_at(int directory_descriptor, std::string basename,
+                                                LedgerFaultHook fault_hook) {
+  if (basename.empty() || basename == "." || basename == ".." ||
+      basename.find('/') != std::string::npos)
+    throw LedgerError("ledger_invalid_path");
+  const int parent = ::dup(directory_descriptor);
+  if (parent < 0) throw LedgerError("ledger_unsafe_parent");
+  struct stat directory{};
+  if (::fstat(parent, &directory) != 0 || !S_ISDIR(directory.st_mode) ||
+      directory.st_uid != ::geteuid() || (directory.st_mode & 07777U) != 0700U) {
+    ::close(parent);
+    throw LedgerError("ledger_unsafe_parent");
+  }
+  const int descriptor = ::openat(parent, basename.c_str(),
+      O_CREAT | O_EXCL | O_APPEND | O_RDWR | O_CLOEXEC | O_NOFOLLOW, 0600);
+  if (descriptor < 0) { ::close(parent); throw LedgerError("ledger_create_failed"); }
+  if (::flock(descriptor, LOCK_EX | LOCK_NB) != 0) {
+    ::close(descriptor); ::close(parent); throw LedgerError("ledger_locked");
+  }
+  struct stat status{};
+  if (::fstat(descriptor, &status) != 0 || !S_ISREG(status.st_mode) || status.st_nlink != 1 ||
+      status.st_uid != ::geteuid() || (status.st_mode & 0077U) != 0U) {
+    ::close(descriptor); ::close(parent); throw LedgerError("ledger_unsafe_file");
+  }
+  return ExecutionLedger({}, parent, std::move(basename), descriptor,
+                         static_cast<std::uint64_t>(status.st_dev),
+                         static_cast<std::uint64_t>(status.st_ino), 0U,
+                         std::string(kGenesisHash), std::move(fault_hook));
+}
+
+ExecutionLedger ExecutionLedger::open_existing_at(int directory_descriptor, std::string basename,
+                                                   LedgerFaultHook fault_hook) {
+  if (basename.empty() || basename == "." || basename == ".." ||
+      basename.find('/') != std::string::npos)
+    throw LedgerError("ledger_invalid_path");
+  const int parent = ::dup(directory_descriptor);
+  if (parent < 0) throw LedgerError("ledger_unsafe_parent");
+  struct stat directory{};
+  if (::fstat(parent, &directory) != 0 || !S_ISDIR(directory.st_mode) ||
+      directory.st_uid != ::geteuid() || (directory.st_mode & 07777U) != 0700U) {
+    ::close(parent); throw LedgerError("ledger_unsafe_parent");
+  }
+  const int descriptor = ::openat(parent, basename.c_str(),
+      O_APPEND | O_RDWR | O_CLOEXEC | O_NOFOLLOW);
+  if (descriptor < 0) { ::close(parent); throw LedgerError("ledger_open_failed"); }
+  if (::flock(descriptor, LOCK_EX | LOCK_NB) != 0) {
+    ::close(descriptor); ::close(parent); throw LedgerError("ledger_locked");
+  }
+  const auto verification = scan_opened(descriptor, LedgerVerificationMode::MetadataOnly, {});
+  struct stat status{}, linked{};
+  if (!verification.clean() || ::fstat(descriptor, &status) != 0 ||
+      ::fstatat(parent, basename.c_str(), &linked, AT_SYMLINK_NOFOLLOW) != 0 ||
+      status.st_dev != linked.st_dev || status.st_ino != linked.st_ino || status.st_nlink != 1) {
+    ::close(descriptor); ::close(parent);
+    throw LedgerError(verification.clean() ? "ledger_identity_changed" : verification.error_code);
+  }
+  return ExecutionLedger({}, parent, std::move(basename), descriptor,
+                         static_cast<std::uint64_t>(status.st_dev),
+                         static_cast<std::uint64_t>(status.st_ino),
+                         verification.verified_records, verification.last_record_hash,
+                         std::move(fault_hook));
+}
+
 ExecutionLedger::ExecutionLedger(ExecutionLedger&& other) noexcept
-    : path_(std::move(other.path_)), descriptor_(other.descriptor_), device_(other.device_),
+    : path_(std::move(other.path_)), parent_descriptor_(other.parent_descriptor_),
+      basename_(std::move(other.basename_)), descriptor_(other.descriptor_), device_(other.device_),
       inode_(other.inode_), last_sequence_(other.last_sequence_),
       last_hash_(std::move(other.last_hash_)), fault_hook_(std::move(other.fault_hook_)) {
-  other.descriptor_ = -1;
+  other.parent_descriptor_ = -1; other.descriptor_ = -1;
 }
 ExecutionLedger& ExecutionLedger::operator=(ExecutionLedger&& other) noexcept {
   if (this != &other) {
     close();
     path_ = std::move(other.path_);
+    parent_descriptor_ = other.parent_descriptor_;
+    basename_ = std::move(other.basename_);
     descriptor_ = other.descriptor_;
     device_ = other.device_;
     inode_ = other.inode_;
     last_sequence_ = other.last_sequence_;
     last_hash_ = std::move(other.last_hash_);
     fault_hook_ = std::move(other.fault_hook_);
-    other.descriptor_ = -1;
+    other.parent_descriptor_ = -1; other.descriptor_ = -1;
   }
   return *this;
 }
 ExecutionLedger::~ExecutionLedger() { close(); }
 void ExecutionLedger::close() noexcept {
   if (descriptor_ >= 0) { ::close(descriptor_); descriptor_ = -1; }
+  if (parent_descriptor_ >= 0) { ::close(parent_descriptor_); parent_descriptor_ = -1; }
+}
+
+LedgerVerificationResult ExecutionLedger::verify(LedgerVerificationMode mode) const {
+  if (descriptor_ < 0 || parent_descriptor_ < 0)
+    return result(LedgerVerificationStatus::Unsafe, "ledger_closed", 0, 0,
+                  std::string(kGenesisHash));
+  struct stat linked{}, opened{};
+  if (::fstat(descriptor_, &opened) != 0 ||
+      ::fstatat(parent_descriptor_, basename_.c_str(), &linked, AT_SYMLINK_NOFOLLOW) != 0 ||
+      static_cast<std::uint64_t>(opened.st_dev) != device_ ||
+      static_cast<std::uint64_t>(opened.st_ino) != inode_ ||
+      linked.st_dev != opened.st_dev || linked.st_ino != opened.st_ino)
+    return result(LedgerVerificationStatus::Unsafe, "ledger_identity_changed", 0, 0,
+                  std::string(kGenesisHash));
+  return scan_opened(descriptor_, mode, {});
 }
 
 LedgerRecord ExecutionLedger::append(const ExecutionEvent& event) {
   if (descriptor_ < 0) throw LedgerError("ledger_closed");
   try { static_cast<void>(ExecutionEvent::parse(event.to_json())); }
   catch (const JsonError& error) { throw LedgerError(error.code()); }
-  if (!path_matches(path_, device_, inode_, descriptor_)) {
+  struct stat linked{}, opened{};
+  if (parent_descriptor_ < 0 ||
+      ::fstatat(parent_descriptor_, basename_.c_str(), &linked, AT_SYMLINK_NOFOLLOW) != 0 ||
+      ::fstat(descriptor_, &opened) != 0 ||
+      static_cast<std::uint64_t>(linked.st_dev) != device_ ||
+      static_cast<std::uint64_t>(linked.st_ino) != inode_ ||
+      opened.st_dev != linked.st_dev || opened.st_ino != linked.st_ino || opened.st_nlink != 1) {
     close();
     throw LedgerError("ledger_identity_changed");
   }
   bool duplicate = false;
-  const auto current = visit_verified_ledger(path_, [&](const LedgerRecord& record) {
+  const auto current = scan_opened(descriptor_, LedgerVerificationMode::RetainRecords, {});
+  for (const auto& record : current.records)
     if (record.event.event_id == event.event_id) duplicate = true;
-  });
   if (!current.clean() || current.verified_records != last_sequence_ ||
       current.last_record_hash != last_hash_) {
     close();
@@ -427,7 +636,9 @@ LedgerRecord ExecutionLedger::append(const ExecutionEvent& event) {
   std::uint64_t written{};
   try {
     injected(fault_hook_, LedgerFaultPoint::BeforeWrite, LedgerDurabilityBoundary::NotWritten, 0);
-    if (!path_matches(path_, device_, inode_, descriptor_)) {
+    if (::fstatat(parent_descriptor_, basename_.c_str(), &linked, AT_SYMLINK_NOFOLLOW) != 0 ||
+        ::fstat(descriptor_, &opened) != 0 || linked.st_dev != opened.st_dev ||
+        linked.st_ino != opened.st_ino) {
       throw LedgerError("ledger_identity_changed");
     }
     if (fault_hook_ && line.size() > 1) {
@@ -446,7 +657,9 @@ LedgerRecord ExecutionLedger::append(const ExecutionEvent& event) {
     }
     injected(fault_hook_, LedgerFaultPoint::AfterFsync,
              LedgerDurabilityBoundary::Durable, written);
-    if (!path_matches(path_, device_, inode_, descriptor_)) {
+    if (::fstatat(parent_descriptor_, basename_.c_str(), &linked, AT_SYMLINK_NOFOLLOW) != 0 ||
+        ::fstat(descriptor_, &opened) != 0 || linked.st_dev != opened.st_dev ||
+        linked.st_ino != opened.st_ino) {
       throw LedgerError("ledger_identity_changed", LedgerDurabilityBoundary::Uncertain, written);
     }
   } catch (...) {

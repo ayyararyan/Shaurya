@@ -3,11 +3,16 @@
   "fixtures": [
     {"path":"valid/order_intent_place_option.json","contract":"order_intent","expect":"valid","golden":"golden/order_intent_place_option.canonical.json"},
     {"path":"valid/execution_event_session_started.json","contract":"execution_event","expect":"valid"},
+    {"path":"valid/execution_event_modify_requested.json","contract":"execution_event","expect":"valid"},
+    {"path":"valid/execution_event_cancel_rejected.json","contract":"execution_event","expect":"valid"},
+    {"path":"valid/execution_event_session_stopping.json","contract":"execution_event","expect":"valid"},
     {"path":"valid/risk_decision_approved.json","contract":"risk_decision","expect":"valid"},
     {"path":"valid/position_snapshot_matched.json","contract":"position_snapshot","expect":"valid"},
     {"path":"valid/market_observation.json","contract":"market_observation","expect":"valid"},
     {"path":"invalid/order_intent_duplicate_field.json","contract":"order_intent","expect":"invalid","error":"duplicate_field"},
     {"path":"invalid/order_intent_trailing_zero_strike.json","contract":"order_intent","expect":"invalid","error":"invalid_instrument"},
-    {"path":"invalid/order_intent_unknown_field.json","contract":"order_intent","expect":"invalid","error":"unknown_field"}
+    {"path":"invalid/order_intent_unknown_field.json","contract":"order_intent","expect":"invalid","error":"unknown_field"},
+    {"path":"invalid/execution_event_modify_missing_price.json","contract":"execution_event","expect":"invalid","error":"missing_payload_field"},
+    {"path":"invalid/execution_event_session_with_intent.json","contract":"execution_event","expect":"invalid","error":"invalid_event_correlation"}
   ]
 }

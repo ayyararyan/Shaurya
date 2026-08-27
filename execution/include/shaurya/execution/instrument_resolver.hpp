@@ -43,6 +43,9 @@ class InstrumentResolver {
   [[nodiscard]] static InstrumentResolver load(const std::filesystem::path& snapshot_path,
                                                const std::filesystem::path& manifest_path,
                                                std::string_view expected_trading_date);
+  [[nodiscard]] static InstrumentResolver load_documents(
+      std::string_view snapshot_bytes, std::string_view snapshot_filename,
+      std::string_view manifest_bytes, std::string_view expected_trading_date);
   [[nodiscard]] ResolutionResult resolve(std::string_view canonical_instrument_id) const;
   [[nodiscard]] ResolutionResult resolve_token(std::string_view instrument_token) const;
   [[nodiscard]] const std::string& snapshot_digest() const noexcept;

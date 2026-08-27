@@ -101,6 +101,15 @@ int main() {
     expect(false, "non-Dhan observation source accepted");
   } catch (const JsonError&) {}
 
+  stage = "schema documents";
+  const auto contract_root = std::filesystem::path(SHAURYA_EXECUTION_SOURCE_ROOT) / "contracts/v1";
+  for (const auto* schema : {"execution_event.schema.json", "market_observation.schema.json",
+                             "order_intent.schema.json", "position_snapshot.schema.json",
+                             "risk_decision.schema.json"}) {
+    const auto document = parse_json(read_file(contract_root / schema));
+    expect(json_object(document, schema).contains("$schema"), "malformed schema document");
+  }
+
   stage = "fixture corpus";
   const auto fixture_root = std::filesystem::path(SHAURYA_EXECUTION_SOURCE_ROOT) /
                             "contracts/fixtures/v1";

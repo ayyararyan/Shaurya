@@ -33,6 +33,36 @@ IdempotencyStore IdempotencyStore::from_reconstructed(const ReconstructedState& 
   return store;
 }
 
+IdempotencyResult IdempotencyStore::check(const OrderIntent& intent) const {
+  const auto found = intents_.find(intent.intent_id);
+  if (found != intents_.end()) {
+    if (found->second.semantic_fingerprint != intent.semantic_fingerprint()) {
+      return {IdempotencyOutcome::Conflict, found->second.disposition,
+              found->second.internal_order_id};
+    }
+    if (found->second.ambiguous) {
+      return {IdempotencyOutcome::ReconciliationRequired, found->second.disposition,
+              found->second.internal_order_id};
+    }
+    return {IdempotencyOutcome::Duplicate, found->second.disposition,
+            found->second.internal_order_id};
+  }
+  if (safety_stopped_) return {IdempotencyOutcome::SafetyStopped, "safety_stop", std::nullopt};
+  return {IdempotencyOutcome::NewIntent, "received", std::nullopt};
+}
+
+void IdempotencyStore::record_durable(const OrderIntent& intent, std::uint64_t sequence) {
+  const auto [unused, inserted] = intents_.emplace(
+      intent.intent_id, IntentReplayState{intent.semantic_fingerprint(), sequence,
+                                         "received", std::nullopt, false,
+                                         intent.strategy_id, intent.strategy_run_id,
+                                         std::nullopt, std::nullopt});
+  static_cast<void>(unused);
+  if (!inserted) throw LedgerError("idempotency_already_recorded");
+}
+
+void IdempotencyStore::record_conflict_durable() { safety_stopped_ = true; }
+
 IdempotencyResult IdempotencyStore::check_or_record(
     const OrderIntent& intent, ExecutionLedger& ledger, const ExecutionEvent& intent_received,
     const ExecutionEvent& conflict_incident) {
@@ -57,7 +87,9 @@ IdempotencyResult IdempotencyStore::check_or_record(
   validate_received(intent, intent_received, fingerprint);
   const auto durable = ledger.append(intent_received);
   intents_.emplace(intent.intent_id,
-                   IntentReplayState{fingerprint, durable.sequence, "received", std::nullopt, false});
+                   IntentReplayState{fingerprint, durable.sequence, "received", std::nullopt,
+                                     false, intent.strategy_id, intent.strategy_run_id,
+                                     std::nullopt, std::nullopt});
   return {IdempotencyOutcome::NewIntent, "received", std::nullopt};
 }
 

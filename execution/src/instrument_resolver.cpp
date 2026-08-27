@@ -109,12 +109,19 @@ InstrumentResolver InstrumentResolver::load(const std::filesystem::path& snapsho
   if(snapshot_exists!=manifest_exists) routing_fail(RoutingErrorCode::Partial);
   if(!snapshot_exists) routing_fail(RoutingErrorCode::Missing);
   const auto snapshot_bytes=read_regular(snapshot_path); const auto manifest_bytes=read_regular(manifest_path);
+  return load_documents(snapshot_bytes, snapshot_path.filename().string(), manifest_bytes,
+                        expected_trading_date);
+}
+
+InstrumentResolver InstrumentResolver::load_documents(
+    std::string_view snapshot_bytes, std::string_view snapshot_filename,
+    std::string_view manifest_bytes, std::string_view expected_trading_date) {
   try {
     const auto manifest_document=parse_json(manifest_bytes); const auto& manifest=json_object(manifest_document,"manifest");
     fields(manifest,{"bytes","exporter_version","record_count","requested_universe_sha256","schema_version","snapshot_file","snapshot_sha256","sources","trading_date"});
     if(string_field(manifest,"schema_version")!="1.0.0"||string_field(manifest,"exporter_version")!="1.0.0") routing_fail(RoutingErrorCode::Unsupported);
     if(string_field(manifest,"trading_date")!=expected_trading_date) routing_fail(RoutingErrorCode::Stale);
-    if(string_field(manifest,"snapshot_file")!=snapshot_path.filename().string()) routing_fail(RoutingErrorCode::Tampered);
+    if(string_field(manifest,"snapshot_file")!=snapshot_filename) routing_fail(RoutingErrorCode::Tampered);
     const auto digest=string_field(manifest,"snapshot_sha256"); if(!lowercase_hex(digest)) routing_fail(RoutingErrorCode::Malformed);
     if(!lowercase_hex(string_field(manifest,"requested_universe_sha256"))) routing_fail(RoutingErrorCode::Malformed);
     const auto& manifest_sources=json_array(field(manifest,"sources"),"sources"); if(manifest_sources.size()!=2) routing_fail(RoutingErrorCode::Malformed);

@@ -35,8 +35,13 @@ points, or trailing fractional zeros such as `25000.50` are rejected.
 - `OrderIntent` is broker-neutral. Place and modify carry BUY/SELL, quantity, paise limit, `NRML`,
   and `DAY`; modify also targets an internal order UUID. Cancel carries the target and forbids order
   terms. Its semantic fingerprint excludes only `intent_id`.
-- `ExecutionEvent` is a closed event union with stable session/order correlation. Its bounded
-  payload rejects secret-shaped keys and never contains raw broker transport data.
+- `ExecutionEvent` is a closed event union with stable session/order correlation. Session lifecycle
+  variants forbid intent/order correlation. Intent, place, modify, cancel, broker outcome,
+  reconciliation, repair, and safety variants require only their typed bounded payload keys.
+  Modify evidence carries exact quantity and limit terms; cancel evidence carries a stable update
+  ID, while terminal confirmation is established at the adapter/session boundary before a
+  `cancelled` event is emitted. Payloads reject secret-shaped keys and never contain raw broker
+  transport data.
 - `RiskDecision` records a versioned ordered rule evaluation using unit-labelled integer values and
   an exact configuration digest.
 - `PositionSnapshot` keeps strategy-desired, ledger-reconstructed, and broker-authoritative
@@ -47,9 +52,10 @@ points, or trailing fractional zeros such as `25000.50` are rejected.
 ## Conformance corpus
 
 `execution/contracts/fixtures/v1/manifest.json` enumerates valid, golden, and invalid raw JSON
-fixtures and the expected stable error for every invalid case. `execution.contracts` reads this
-manifest from the source tree through a CMake-provided compile definition, round-trips every valid
-contract, compares golden bytes, and rejects invalid raw inputs without preprocessing.
+fixtures, including correlated modification/cancellation and uncorrelated session lifecycle events,
+and the expected stable error for every invalid case. `execution.contracts` reads this manifest from
+the source tree through a CMake-provided compile definition, round-trips every valid contract,
+compares golden bytes, and rejects invalid raw inputs without preprocessing.
 
 Routing snapshots are separately date-, provenance-, universe-, length-, filename-, and SHA-256
 bound. Both snapshot and manifest must be regular files owned by the effective process user with no

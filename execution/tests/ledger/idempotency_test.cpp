@@ -70,7 +70,9 @@ int main() {
   ambiguous_state.intents.emplace(
       original.intent_id,
       IntentReplayState{original.semantic_fingerprint(), 1, "ambiguous_submission",
-                        std::optional<std::string>("00000000-0000-4000-8000-000000000201"), true});
+                        std::optional<std::string>("00000000-0000-4000-8000-000000000201"), true,
+                        original.strategy_id, original.strategy_run_id,
+                        std::nullopt, std::nullopt});
   auto restarted = IdempotencyStore::from_reconstructed(ambiguous_state);
   const auto empty_path = root / "restart.jsonl";
   {
