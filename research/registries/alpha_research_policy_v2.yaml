@@ -1,0 +1,50 @@
+{
+  "registry_type": "policy",
+  "version": "alpha_research_policy_v2",
+  "frozen": true,
+  "permitted_model_classes": ["ridge", "elastic_net"],
+  "selection_methods": ["family_shrinkage", "nested_past_only"],
+  "training_windows_sessions": [20],
+  "training_cadences_seconds": [1],
+  "sampling_clocks": ["calendar_1s"],
+  "pooling_coordinates": ["instrument"],
+  "selection_thresholds": [0.15],
+  "validation": {"minimum_inner_sessions": 5, "scheme": "expanding"},
+  "outer_test": {"sessions_per_block": 1, "purge_seconds": 60, "embargo_seconds": 60},
+  "minimum_evidence": {"observations": 120, "effective_sample_size": 60, "sessions_for_provisional": 5, "sessions_for_stable": 20, "outer_folds_for_stable": 5},
+  "multiplicity": {"method": "benjamini_yekutieli", "fdr": 0.05, "family_level": true},
+  "promotion": {"minimum_sign_consistency": 0.7, "minimum_neighbor_robustness": 0.5, "minimum_adjusted_evidence": 0.95, "minimum_abs_score": 0.005, "single_day_promotion": false, "three_session_features_are_shadow_only": true},
+  "decay": {"weakening_ratio": 0.5, "decaying_consecutive_sessions": 3, "dormant_consecutive_sessions": 5},
+  "reactivation": {"minimum_new_confirmatory_sessions": 3, "retrospective_reactivation": false},
+  "null_simulation": {"method": "circular_shift", "minimum_shift_blocks": 2, "replicates": 199, "seed": 20260827, "statistic": "maximum_absolute_score", "rerun_complete_miner": true},
+  "regime_rules": {
+    "causal_only": true,
+    "history_seconds": 900,
+    "minimum_prior_observations": 120,
+    "exclude_current_from_thresholds": true,
+    "same_connection_epoch": true,
+    "minimum_bucket_observations": 50,
+    "definitions": {
+      "global": {"strategy": "always"},
+      "diagnostic_only": {"strategy": "always", "live_weight": 0}
+    }
+  },
+  "redundancy_controls": [
+    ["futures.quantity_imbalance_cum1.v1", "futures.microprice_tilt_ticks.v1"],
+    ["option.call_put_surface_residual_diff.v2", "option.atm_cp_iv_diff_bp.v1"]
+  ],
+  "quarantined_from_live_weight": [
+    "futures.ccz_ofi_0p5s_m1_average.v1",
+    "interaction.parity_order_count_agree_historical.v1",
+    "postfill.aligned_fast_ofi_historical.v1",
+    "postfill.aligned_order_count_imbalance_historical.v1"
+  ],
+  "robustness": {
+    "require_complete_surface": true,
+    "isolated_spike_penalty": 0.5,
+    "block_bootstrap": true,
+    "block_bootstrap_replicates": 199,
+    "block_bootstrap_mean_length": 8.0,
+    "block_bootstrap_seed": 20260827
+  }
+}

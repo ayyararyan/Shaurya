@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, replace
 from datetime import date
+from importlib import import_module
 from pathlib import Path
 from typing import Any
 
@@ -90,9 +91,10 @@ def _validate_nested_policy(policy: FrozenRegistry) -> None:
         raise ValueError("purge and embargo must be non-negative")
     if multiplicity.get("method") not in {"benjamini_hochberg", "benjamini_yekutieli"}:
         raise ValueError("unsupported multiplicity method")
-    if not 0 < float(multiplicity.get("fdr", 0)) < 1 or multiplicity.get(
-        "family_level"
-    ) is not True:
+    if (
+        not 0 < float(multiplicity.get("fdr", 0)) < 1
+        or multiplicity.get("family_level") is not True
+    ):
         raise ValueError("multiplicity FDR must lie in (0,1)")
     observations = int(minimum.get("observations", 0))
     effective_sample_size = float(minimum.get("effective_sample_size", 0))
@@ -226,11 +228,30 @@ def plan_alpha(
         "interaction.ofi_w10_d10_x_trailing_volatility",
         "interaction.front_skew_innovation_x_ofi_w10_d10",
     }
+    constructor_module = feature_registry.payload.get("constructor_module")
+    if constructor_module is not None:
+        if not isinstance(constructor_module, str):
+            raise ValueError("feature constructor_module must be a string")
+        module = import_module(constructor_module)
+        definitions = feature_registry.payload.get("features")
+        if not isinstance(definitions, (tuple, list)):
+            raise ValueError("versioned constructor registry requires feature definitions")
+        for definition in definitions:
+            if not isinstance(definition, Mapping):
+                raise ValueError("feature definition must be an object")
+            constructor = definition.get("constructor")
+            feature_id = definition.get("feature_id")
+            if (
+                not isinstance(constructor, str)
+                or not isinstance(feature_id, str)
+                or not callable(getattr(module, constructor, None))
+            ):
+                raise ValueError(f"feature {feature_id} has no callable constructor")
+            executable_exact.add(feature_id)
     unsupported_features = {
         identity
         for identity in features
-        if not identity.startswith("ofi.cumulative.depth=")
-        and identity not in executable_exact
+        if not identity.startswith("ofi.cumulative.depth=") and identity not in executable_exact
     }
     if unsupported_features:
         raise ValueError(
