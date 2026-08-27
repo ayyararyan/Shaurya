@@ -17,6 +17,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Final
 
+from shaurya.contracts.data import DatasetHandle
+from shaurya.data import DataAccess
+
 from shaurya.analytics.depth_thinning_analysis import (
     DEPTH20,
     DEPTH200,
@@ -61,7 +64,7 @@ class CompletePrefixSnapshot:
     """One newline-complete immutable prefix and its constructed research objects."""
 
     dataset_id: str
-    tape_path: Path
+    storage_format: str
     prefix_bytes: int
     prefix_sha256: str
     snapshot_at: str
@@ -73,7 +76,7 @@ class CompletePrefixSnapshot:
     def provenance(self) -> dict[str, Any]:
         return {
             "dataset_id": self.dataset_id,
-            "tape_path": str(self.tape_path),
+            "storage_format": self.storage_format,
             "prefix_bytes": self.prefix_bytes,
             "prefix_sha256": self.prefix_sha256,
             "snapshot_at": self.snapshot_at,
@@ -210,9 +213,97 @@ def snapshot_growing_tape(
     )
     return CompletePrefixSnapshot(
         dataset_id=dataset_id,
-        tape_path=resolved,
+        storage_format="legacy_jsonl",
         prefix_bytes=limit,
         prefix_sha256=digest.hexdigest(),
+        snapshot_at=datetime.now(UTC).isoformat(),
+        last_receive_ts=last_receive_ts,
+        channel_rows=channel_rows,
+        full_rows=tuple(full_rows),
+        tape=tape,
+    )
+
+
+def snapshot_dataset(access: DataAccess, handle: DatasetHandle) -> CompletePrefixSnapshot:
+    """Construct one immutable prefix from currently published logical DAT rows."""
+
+    current = access.handle(handle.dataset_id)
+    digest = hashlib.sha256()
+    depth200: list[BookState] = []
+    depth20: list[BookState] = []
+    full_rows: list[dict[str, Any]] = []
+    channel_rows = {"full": 0, DEPTH20: 0, DEPTH200: 0}
+    run_id: str | None = None
+    instrument_id: str | None = None
+    last_receive_ts: str | None = None
+    last_stamp_ns: int | None = None
+    row_count = 0
+    for row in access.rows(current):
+        payload = row.to_dict()
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+        digest.update(len(encoded).to_bytes(8, "big"))
+        digest.update(encoded)
+        observed_run = row.run_id
+        observed_instrument = row.instrument_id
+        run_id = run_id or observed_run
+        instrument_id = instrument_id or observed_instrument
+        if observed_run != run_id or observed_instrument != instrument_id:
+            raise ValueError("dataset prefix mixes run or instrument identities")
+        raw_ts = payload["receive_ts"]
+        stamp_ns = parse_receive_ts_ns(raw_ts)
+        if last_stamp_ns is not None and stamp_ns < last_stamp_ns:
+            raise ValueError("dataset prefix receive time moved backwards")
+        last_stamp_ns = stamp_ns
+        last_receive_ts = raw_ts
+        event = payload.get("event_type")
+        if event in channel_rows:
+            channel_rows[str(event)] += 1
+        if event == DEPTH200:
+            built = build_states([payload], DEPTH200)
+            if built:
+                _append_state(depth200, built[0])
+        elif event == DEPTH20:
+            built = build_states([payload], DEPTH20)
+            if built:
+                _append_state(depth20, built[0])
+        elif event == "full":
+            full_rows.append(payload)
+        row_count += 1
+    if row_count == 0 or run_id is None or instrument_id is None or last_receive_ts is None:
+        raise ValueError("published dataset prefix is empty")
+    if not depth200 or not depth20 or not full_rows:
+        raise ValueError("prefix needs full, depth20 and depth200 support")
+    observations, failures = build_horserace_observations(
+        depth200_states=depth200,
+        depth20_states=depth20,
+        rows=full_rows,
+        tape_index=0,
+        run_id=run_id,
+        level_counts=LIVE_LEVEL_COUNTS,
+        response_horizons=LIVE_RESPONSE_HORIZONS_SECONDS,
+    )
+    observed_seconds = (
+        (depth200[-1].receive_ts_ns - depth200[0].receive_ts_ns) / 1_000_000_000
+        if len(depth200) > 1
+        else 0.0
+    )
+    row_digest = digest.hexdigest()
+    tape = HorseRaceTapeInput(
+        tape_index=0,
+        run_id=run_id,
+        instrument_id=instrument_id,
+        tape_sha256=row_digest,
+        observations=tuple(observations),
+        depth200_publications=len(depth200),
+        depth20_publications=len(depth20),
+        observed_seconds=observed_seconds,
+        failures=failures,
+    )
+    return CompletePrefixSnapshot(
+        dataset_id=current.dataset_id,
+        storage_format=str(current.storage_format or "legacy_jsonl"),
+        prefix_bytes=current.bytes,
+        prefix_sha256=row_digest,
         snapshot_at=datetime.now(UTC).isoformat(),
         last_receive_ts=last_receive_ts,
         channel_rows=channel_rows,

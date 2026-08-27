@@ -14,6 +14,8 @@ from typing import Any
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from shaurya.data import DataAccess, DataCatalog
+
 from scripts.sig21_construction_replay import (
     capture_metrics_for,
     iter_tape_rows,
@@ -41,6 +43,8 @@ from shaurya.analytics.ofi_replication import (
 from shaurya.analytics.ofi_replication import (
     filtered_session_rows,
     inspect_replication_capture,
+    inspect_replication_rows,
+    iter_session_records,
     iter_session_rows,
     require_accepted_receipt,
 )
@@ -141,6 +145,61 @@ def build_tape_input(
     )
 
 
+def build_dataset_input(
+    dataset_id: str,
+    catalog_path: Path,
+    *,
+    tape_index: int,
+    full_session_replication: bool,
+) -> CksL1TapeInput:
+    if not full_session_replication:
+        raise ValueError("catalogue datasets are supported only by full-session replication")
+    access = DataAccess(DataCatalog(catalog_path))
+    handle = access.handle(dataset_id)
+    validation = access.validate(handle)
+    metrics = access.operational_record(handle, "capture_metrics")
+    digest = str(handle.dataset_digest or validation["canonical_row_digest"])
+    receipt = inspect_replication_rows(
+        (row.to_dict() for row in access.rows(handle)),
+        metrics,
+        data_digest=digest,
+        catalog_digest=digest,
+        source={"dataset_id": handle.dataset_id, "storage_format": str(handle.storage_format)},
+    )
+    require_accepted_receipt(receipt)
+
+    def session_rows() -> Any:
+        return iter_session_records(row.to_dict() for row in access.rows(handle))
+
+    depth200 = build_states_streaming(session_rows(), DEPTH200)
+    depth20 = build_states_streaming(session_rows(), DEPTH20)
+    full_rows = [row for row in session_rows() if row.get("event_type") == "full"]
+    observations, failures, intensities = build_cks_l1_observations(
+        depth200_states=depth200,
+        depth20_states=depth20,
+        tape_index=tape_index,
+        run_id=str(metrics["run_id"]),
+    )
+    observed_seconds = (
+        (depth200[-1].receive_ts_ns - depth200[0].receive_ts_ns) / NANOSECONDS_PER_SECOND
+        if len(depth200) > 1
+        else 0.0
+    )
+    return CksL1TapeInput(
+        tape_index=tape_index,
+        run_id=str(metrics["run_id"]),
+        instrument_id=str(metrics["instrument_id"]),
+        tape_sha256=digest,
+        observations=tuple(observations),
+        depth200_publications=len(depth200),
+        depth20_publications=len(depth20),
+        observed_seconds=observed_seconds,
+        failures=failures,
+        intensities=intensities,
+        trades=build_trade_totals(full_rows),
+    )
+
+
 def _write(path: Path, payload: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor = os.open(path, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o600)
@@ -150,7 +209,10 @@ def _write(path: Path, payload: str) -> None:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tape", action="append", required=True, type=Path)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--tape", action="append", type=Path)
+    source.add_argument("--dataset-id", action="append")
+    parser.add_argument("--data-catalog", type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--grid-output", required=True, type=Path)
     parser.add_argument("--components-output", required=True, type=Path)
@@ -172,17 +234,33 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    if (args.full_session_replication or args.late_partial_exploratory) and len(args.tape) != 1:
-        raise ValueError("the one-session scoped modes consume exactly one tape")
-    tapes = [
-        build_tape_input(
-            tape,
-            tape_index=index,
-            full_session_replication=args.full_session_replication,
-            late_partial_exploratory=args.late_partial_exploratory,
-        )
-        for index, tape in enumerate(args.tape)
-    ]
+    source_count = len(args.tape or args.dataset_id or [])
+    if (args.full_session_replication or args.late_partial_exploratory) and source_count != 1:
+        raise ValueError("the one-session scoped modes consume exactly one dataset")
+    if args.dataset_id:
+        if args.data_catalog is None:
+            raise ValueError("--data-catalog is required with --dataset-id")
+        if args.late_partial_exploratory:
+            raise ValueError("late partial historical replay requires the pinned legacy tape")
+        tapes = [
+            build_dataset_input(
+                dataset_id,
+                args.data_catalog,
+                tape_index=index,
+                full_session_replication=args.full_session_replication,
+            )
+            for index, dataset_id in enumerate(args.dataset_id)
+        ]
+    else:
+        tapes = [
+            build_tape_input(
+                tape,
+                tape_index=index,
+                full_session_replication=args.full_session_replication,
+                late_partial_exploratory=args.late_partial_exploratory,
+            )
+            for index, tape in enumerate(args.tape or [])
+        ]
     artifact = build_cks_l1_artifact(
         tapes,
         code_commit=code_commit(),

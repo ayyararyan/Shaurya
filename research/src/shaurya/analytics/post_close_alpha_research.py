@@ -28,9 +28,8 @@ from typing import Any
 
 import numpy as np
 import numpy.typing as npt
-from shaurya.contracts.artifacts import sha256_file
 from shaurya.contracts.data import DatasetStatus
-from shaurya.data import DataAccess, DataCatalog
+from shaurya.data import DataAccess, DataCatalog, TapeIntegrityError
 
 RUNNER_VERSION = "post-close-alpha-v2-quality-aware"
 GRID_SECONDS = 5
@@ -137,64 +136,15 @@ def read_json(path: Path) -> dict[str, Any]:
     return loaded
 
 
-def manifest_gate(handle: Any) -> tuple[dict[str, Any], dict[str, Any]]:
-    if handle.manifest_path is None:
-        raise GateFailure("completed handle has no manifest path")
-    manifest_path = Path(handle.manifest_path)
-    if not manifest_path.is_file():
-        raise GateFailure("published manifest is missing")
-    events: list[dict[str, Any]] = []
-    for line_number, line in enumerate(manifest_path.read_text(encoding="utf-8").splitlines(), 1):
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError as exc:
-            raise GateFailure(f"manifest JSON is invalid at line {line_number}") from exc
-        if not isinstance(event, dict):
-            raise GateFailure(f"manifest event {line_number} is not an object")
-        if event.get("run_id") != handle.dataset_id:
-            raise GateFailure("manifest mixes or misstates run IDs")
-        if event.get("manifest_sequence") != line_number:
-            raise GateFailure("manifest sequence is not contiguous")
-        events.append(event)
-    event_types = [str(item.get("event_type")) for item in events]
-    if event_types.count("run_started") != 1 or event_types.count("run_completed") != 1:
-        raise GateFailure("manifest does not contain exactly one start and one completion")
-    if event_types[-1] != "run_completed":
-        raise GateFailure("manifest terminal event is not run_completed")
-    if any(item in event_types for item in ("run_invalidated", "artifact_failed")):
-        raise GateFailure("manifest contains invalidation or failed-artifact evidence")
-    completed = events[-1]
-    if completed.get("status") != "completed" or int(completed.get("rows", -1)) != handle.rows:
-        raise GateFailure("manifest completion summary disagrees with catalog rows")
-
-    artifacts: dict[str, dict[str, Any]] = {}
-    for event in events:
-        if event.get("event_type") != "artifact_closed":
-            continue
-        name = str(event.get("artifact", ""))
-        path = manifest_path.parent / name
-        if not path.is_file():
-            raise GateFailure(f"registered manifest artifact is missing: {name}")
-        if sha256_file(path) != event.get("sha256"):
-            raise GateFailure(f"registered manifest artifact hash differs: {name}")
-        artifacts[str(event.get("kind"))] = {**event, "path": str(path)}
-    tape_event = artifacts.get("market_data_tape")
-    if tape_event is None or tape_event.get("sha256") != handle.tape_sha256:
-        raise GateFailure("manifest tape registration disagrees with completed handle")
-    coverage_event = artifacts.get("chain_coverage")
-    if coverage_event is None:
-        raise GateFailure("manifest has no registered chain coverage artifact")
-    return completed, read_json(Path(coverage_event["path"]))
-
-
-def completed_dataset_gate(handle: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+def completed_dataset_gate(
+    handle: Any,
+    access: DataAccess,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     required = {
         "completed_at": handle.completed_at,
         "coverage_start": handle.coverage_start,
         "coverage_end": handle.coverage_end,
-        "tape_sha256": handle.tape_sha256,
-        "index_path": handle.index_path,
-        "index_sha256": handle.index_sha256,
+        "integrity_digest": handle.dataset_digest or handle.tape_sha256,
     }
     missing = sorted(name for name, value in required.items() if value is None)
     if handle.status is not DatasetStatus.COMPLETED:
@@ -207,42 +157,11 @@ def completed_dataset_gate(handle: Any) -> tuple[dict[str, Any], dict[str, Any]]
     if coverage_seconds < MIN_COVERAGE_SECONDS:
         raise GateFailure(f"coverage is only {coverage_seconds:.1f}s; need {MIN_COVERAGE_SECONDS}s")
 
-    tape = Path(handle.tape_path)
-    index_path = Path(handle.index_path)
-    if not tape.is_file() or not index_path.is_file():
-        raise GateFailure("published tape or seek index is missing")
-    if tape.stat().st_size != handle.bytes:
-        raise GateFailure("published tape byte count disagrees with catalog")
-    observed_tape_hash = sha256_file(tape)
-    observed_index_hash = sha256_file(index_path)
-    if observed_tape_hash != handle.tape_sha256:
-        raise GateFailure("published tape SHA-256 differs from catalog")
-    if observed_index_hash != handle.index_sha256:
-        raise GateFailure("published index SHA-256 differs from catalog")
-    index = read_json(index_path)
-    if index.get("schema_version") != "1.0.0" or index.get("tape_name") != tape.name:
-        raise GateFailure("seek index schema or tape binding is invalid")
-    if index.get("tape_sha256") != handle.tape_sha256:
-        raise GateFailure("seek index is not bound to the published tape hash")
-    if int(index.get("rows", -1)) != handle.rows or int(index.get("bytes", -1)) != handle.bytes:
-        raise GateFailure("seek index row/byte counts disagree with catalog")
-    if not index.get("receive_time_monotone"):
-        raise GateFailure("seek index reports non-monotone receive timestamps")
-    if index.get("coverage_start") != handle.coverage_start.isoformat():
-        raise GateFailure("seek-index coverage start disagrees with catalog")
-    if index.get("coverage_end") != handle.coverage_end.isoformat():
-        raise GateFailure("seek-index coverage end disagrees with catalog")
-    checkpoints = index.get("checkpoints")
-    if (
-        not isinstance(checkpoints, list)
-        or not checkpoints
-        or checkpoints[0].get("row_number") != 1
-    ):
-        raise GateFailure("seek index has no valid first checkpoint")
-
-    completed, coverage = manifest_gate(handle)
-    if completed.get("run_id") != handle.dataset_id:
-        raise GateFailure("manifest completion run ID disagrees with catalog")
+    try:
+        validation = access.validate(handle)
+        coverage = access.operational_record(handle, "chain_coverage")
+    except (FileNotFoundError, TapeIntegrityError, ValueError) as exc:
+        raise GateFailure("DataAccess integrity or coverage validation failed") from exc
     if coverage.get("run_id") != handle.dataset_id or int(coverage.get("rows", -1)) != handle.rows:
         raise GateFailure("chain coverage row count or run ID disagrees with catalog")
     if coverage.get("stream_error") is not None:
@@ -252,7 +171,7 @@ def completed_dataset_gate(handle: Any) -> tuple[dict[str, Any], dict[str, Any]]
     silent = int(coverage.get("instruments_without_packets", -1))
     if requested <= 0 or covered != requested or silent != 0:
         raise GateFailure("chain coverage reports silent or inconsistent instruments")
-    return index, coverage
+    return validation, coverage
 
 
 def book_state(row: Any) -> State:
@@ -377,16 +296,16 @@ def derive_replay_audit(
     event_times: dict[int, list[tuple[int, str]]] = defaultdict(list)
     transitions: list[dict[str, Any]] = []
     uncertain_gaps: list[dict[str, Any]] = []
-    previous_sequence = 0
+    previous_sequence: int | None = None
     previous_ts_ns: int | None = None
     previous_epoch: int | None = None
     replay_rows = 0
 
     for row in access.rows(handle):
         replay_rows += 1
-        if row.run_id != handle.dataset_id:
-            raise GateFailure("replay tape mixes run IDs")
-        if row.receive_sequence != previous_sequence + 1:
+        if row.run_id != (handle.row_run_id or handle.dataset_id):
+            raise GateFailure("replay dataset mixes run IDs")
+        if previous_sequence is not None and row.receive_sequence != previous_sequence + 1:
             raise GateFailure("stored receive sequence is not contiguous")
         ts_ns = int(row.receive_ts.timestamp() * 1_000_000_000)
         epoch = int(row.connection_epoch)
@@ -932,10 +851,10 @@ def render_memo(metadata: dict[str, Any], results: Sequence[dict[str, Any]]) -> 
         "",
         "## Data and quality",
         "",
-        f"- Dataset: `{metadata['dataset_id']}`; immutable tape SHA-256 `{metadata['tape_sha256']}`.",
+        f"- Dataset: `{metadata['dataset_id']}`; {metadata['storage_format']} integrity digest `{metadata['integrity_digest']}`.",
         f"- Coverage: {metadata['coverage_start']} to {metadata['coverage_end']} ({metadata['coverage_seconds'] / 3600:.2f} hours).",
         f"- Published rows: {metadata['catalog_rows']:,}; primary 30-second-buffer panel rows: {metadata['panel']['panel_rows_by_buffer']['30']:,} across {metadata['panel']['option_instruments']} options.",
-        "- Hard gates passed: COMPLETED/no invalidation; tape and index hashes; index binding/counts/coverage; manifest completion and artifact hashes; all 121 requested instruments observed; two full replay row-count checks.",
+        "- Hard gates passed: COMPLETED/no invalidation; DataAccess schema, ordered-segment, hash, digest, count, and coverage validation; Data-owned coverage evidence; all 121 requested instruments observed; two full logical replay row-count checks.",
         f"- The capture was stable for most of the session, but record evidence confirms {len(audit['confirmed_epoch_transitions'])} localized heartbeat-driven reconnect transitions. Their record-free gaps were "
         + ", ".join(f"{item['gap_seconds']:.2f}s" for item in audit["confirmed_epoch_transitions"])
         + ".",
@@ -1027,11 +946,11 @@ def execute(args: argparse.Namespace) -> int:
         append_status(
             status_path, "terminal_handle_observed", completed_at=handle.completed_at.isoformat()
         )
-        index, coverage = completed_dataset_gate(handle)
+        validation, coverage = completed_dataset_gate(handle, access)
         append_status(
             status_path,
             "immutable_gates_passed",
-            tape_sha256=handle.tape_sha256,
+            integrity_digest=handle.dataset_digest or handle.tape_sha256,
             rows=handle.rows,
         )
         quality_audit, clean_windows = derive_replay_audit(access, handle, coverage)
@@ -1077,14 +996,16 @@ def execute(args: argparse.Namespace) -> int:
             "research_status": "exploratory_single_session",
             "dataset_id": handle.dataset_id,
             "catalog_path": str(Path(args.catalog).resolve()),
-            "tape_sha256": handle.tape_sha256,
-            "index_sha256": handle.index_sha256,
+            "storage_format": str(handle.storage_format or "legacy_jsonl"),
+            "integrity_digest": handle.dataset_digest or handle.tape_sha256,
+            "segment_count": len(handle.segments),
+            "canonical_row_digest": validation["canonical_row_digest"],
             "catalog_rows": handle.rows,
             "catalog_bytes": handle.bytes,
             "coverage_start": handle.coverage_start.isoformat(),
             "coverage_end": handle.coverage_end.isoformat(),
             "coverage_seconds": (handle.coverage_end - handle.coverage_start).total_seconds(),
-            "index": index,
+            "storage_validation": validation,
             "chain_coverage": coverage,
             "quality_audit": quality_audit,
             "panel": panel_diagnostics,
@@ -1147,9 +1068,9 @@ def main(argv: Iterable[str] | None = None) -> int:
     if args.poll_seconds <= 0 or args.max_wait_seconds <= 0:
         raise ValueError("poll and max-wait durations must be positive")
     if args.dataset_id is None:
-        args.dataset_id = DataCatalog(args.catalog).get_dataset(
-            trading_date=args.trading_date
-        ).dataset_id
+        args.dataset_id = (
+            DataCatalog(args.catalog).get_dataset(trading_date=args.trading_date).dataset_id
+        )
     return execute(args)
 
 

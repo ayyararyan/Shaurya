@@ -41,13 +41,12 @@ from shaurya.data import (
     DataCatalog,
     DatasetUnavailableError,
     DhanDailyInstrumentMaster,
+    LegacySourceState,
     resolve_data_catalog,
     resolve_raw_capture_root,
 )
 
 from scripts.sig21_construction_replay import (
-    capture_metrics_for,
-    manifest_sha256_for,
     sha256_file,
 )
 from shaurya.analytics.ofi_replication import (
@@ -56,7 +55,7 @@ from shaurya.analytics.ofi_replication import (
     SOURCE_AMENDMENT,
     SOURCE_SPEC,
     TRADING_DATE,
-    inspect_replication_capture,
+    inspect_replication_rows,
     require_accepted_receipt,
     resolve_nifty_front_month_future,
 )
@@ -413,17 +412,15 @@ class Controller:
         root = self.capture_root
         handles: list[DatasetHandle] = []
         for handle in DataCatalog(self.data_catalog).handles().values():
-            tape = Path(handle.tape_path)
-            if tape.is_relative_to(root):
+            owned_paths = [Path(segment.path) for segment in handle.segments]
+            if handle.tape_path is not None:
+                owned_paths.append(Path(handle.tape_path))
+            if any(path.is_relative_to(root) for path in owned_paths):
                 handles.append(handle)
         return tuple(handles)
 
     def capture_bytes(self) -> int:
-        return sum(
-            path.stat().st_size
-            for path in (Path(handle.tape_path) for handle in self.capture_handles())
-            if path.is_file()
-        )
+        return sum(handle.bytes for handle in self.capture_handles())
 
     def monitor_existing_child(self, stage: str, pid: int) -> None:
         self.log(f"reattached state monitoring for surviving {stage} child PID {pid}")
@@ -489,6 +486,7 @@ class Controller:
             # indexes the evidence before SIG receives it; SIG never owns tape discovery.
             return access.adopt_legacy_tape(
                 Path(value["tape"]),
+                source_state=LegacySourceState.COMPLETED,
                 consumer="SIG-23",
                 purpose=PROTOCOL_ID,
             )
@@ -549,15 +547,18 @@ class Controller:
                 self.run_child("capture", command)
         completed_request = request.model_copy(update={"allow_active": False})
         handle = access.request(completed_request)
-        tape = Path(handle.tape_path)
-        metrics = capture_metrics_for(tape)
-        computed = sha256_file(tape)
-        recorded = manifest_sha256_for(tape)
-        receipt = inspect_replication_capture(
-            tape,
+        validation = access.validate(handle)
+        metrics = access.operational_record(handle, "capture_metrics")
+        digest = str(handle.dataset_digest or validation["canonical_row_digest"])
+        receipt = inspect_replication_rows(
+            (row.to_dict() for row in access.rows(handle)),
             metrics,
-            tape_sha256=computed,
-            manifest_sha256=recorded,
+            data_digest=digest,
+            catalog_digest=digest,
+            source={
+                "dataset_id": handle.dataset_id,
+                "storage_format": str(handle.storage_format),
+            },
         )
         atomic_json(self.run_root / "artifacts/capture_acceptance.json", receipt)
         require_accepted_receipt(receipt)
@@ -568,12 +569,13 @@ class Controller:
                 "accepted_at": datetime.now(IST).isoformat(),
                 "dataset_id": handle.dataset_id,
                 "data_catalog": str(self.data_catalog),
-                "tape": str(tape),
+                "storage_format": str(handle.storage_format),
+                "dataset_digest": digest,
                 "observed_code_commit": self.observed_commits.get("capture"),
-                # `OPS-CCZ-02`: the pin must still hold at acceptance, or the tape and the
+                # `OPS-CCZ-02`: the pin must still hold at acceptance, or the dataset and the
                 # recorded provenance straddle two revisions.
                 "observed_code_commit_at_completion": self.assert_on_pin("capture_completion"),
-                "outputs": {str(tape): computed},
+                "outputs": {segment.path: segment.sha256 for segment in handle.segments},
             },
         )
         return handle
@@ -622,7 +624,7 @@ class Controller:
             },
         )
 
-    def analyze(self, tape: Path) -> None:
+    def analyze(self, dataset: DatasetHandle) -> None:
         if self.final_analysis.exists():
             self.log("final analysis directory already exists; preserving it")
             return
@@ -639,8 +641,10 @@ class Controller:
             [
                 str(self.python),
                 "scripts/cks_l1_ofi_scan.py",
-                "--tape",
-                str(tape),
+                "--dataset-id",
+                dataset.dataset_id,
+                "--data-catalog",
+                str(self.data_catalog),
                 "--output",
                 str(cks_outputs[0]),
                 "--grid-output",
@@ -671,8 +675,10 @@ class Controller:
             [
                 str(self.python),
                 "scripts/ofi_horserace.py",
-                "--tape",
-                str(tape),
+                "--dataset-id",
+                dataset.dataset_id,
+                "--data-catalog",
+                str(self.data_catalog),
                 "--output",
                 str(horse_outputs[0]),
                 "--cells-output",
@@ -715,8 +721,9 @@ class Controller:
             "observed_code_commit_by_unit": dict(self.observed_commits),
             "source_spec": SOURCE_SPEC,
             "source_amendment": SOURCE_AMENDMENT,
-            "tape": str(tape),
-            "tape_sha256": sha256_file(tape),
+            "dataset_id": dataset.dataset_id,
+            "storage_format": str(dataset.storage_format),
+            "dataset_digest": dataset.dataset_digest,
             "artifacts": hash_files(all_outputs),
         }
         atomic_json(self.partial_analysis / "hash_manifest.json", hash_manifest)
@@ -737,7 +744,7 @@ class Controller:
             if not self.capture_already_started():
                 self.wait_for_capture_time()
             dataset = self.capture(master, security_id, symbol, instrument_id)
-            self.analyze(Path(dataset.tape_path))
+            self.analyze(dataset)
             self.update(
                 stage="complete",
                 status="complete",

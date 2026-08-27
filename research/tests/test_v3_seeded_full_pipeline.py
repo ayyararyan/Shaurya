@@ -157,10 +157,11 @@ def test_derived_dataset_constructor_and_tampered_surface_fail_closed() -> None:
         VerifiedResearchSource(
             "forged",
             date(2026, 1, 1),
-            Path("tape"),
-            Path("index"),
+            Path("catalog"),
+            "segmented_parquet",
             "a" * 64,
             "b" * 64,
+            "logical-run",
             1,
             1,
             "start",

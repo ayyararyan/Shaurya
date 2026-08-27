@@ -32,7 +32,6 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 import numpy as np
-from shaurya.data import CompleteLineJsonlTail
 
 from shaurya.analytics.depth_thinning_analysis import (
     DEPTH20,
@@ -84,7 +83,7 @@ COLLINEARITY_VIF_THRESHOLD = 100.0
 
 CellStatus = Literal["WARMING", "INSUFFICIENT", "ESTIMATED", "BLOCKED_UNIDENTIFIED"]
 
-__all__ = ["CompleteLineJsonlTail", "OfiDashboardEngine"]
+__all__ = ["OfiDashboardEngine"]
 
 
 def _json_safe(value: Any) -> Any:

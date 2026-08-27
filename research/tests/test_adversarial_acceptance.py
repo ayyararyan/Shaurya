@@ -249,9 +249,10 @@ def test_source_requires_completed_hash_and_index_bound_full_replay(tmp_path: Pa
             handle.model_copy(update={"status": "active", "completed_at": None, "producer_pid": 1}),
             catalog=catalog,
         )
-    index_path = Path(handle.index_path or "")
-    index_path.write_text(index_path.read_text(encoding="utf-8") + " ", encoding="utf-8")
-    with pytest.raises(TapeIntegrityError, match="index hash"):
+    segment_path = Path(handle.segments[0].path)
+    with segment_path.open("ab") as segment:
+        segment.write(b"tamper")
+    with pytest.raises(TapeIntegrityError, match="hash or byte count"):
         verify_completed_source(handle, catalog=catalog)
 
 

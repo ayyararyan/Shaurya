@@ -124,11 +124,11 @@ def _surface_frames(access: DataAccess, dataset_id: str) -> tuple[list[Any], Map
         previous_levels = current
         previous_ts_ns = int(round(snapshot.fit_timestamp.timestamp() * 1_000_000_000))
     if not frames:
-        raise ValueError("completed surface DAT tape produced no usable canonical eSSVI frames")
+        raise ValueError("completed surface DAT dataset produced no usable canonical eSSVI frames")
     return frames, {
         "dataset_id": handle.dataset_id,
-        "tape_path": handle.tape_path,
-        "tape_sha256": handle.tape_sha256,
+        "storage_format": str(handle.storage_format),
+        "dataset_digest": handle.dataset_digest or handle.tape_sha256,
         "rows": handle.rows,
         "bytes": handle.bytes,
         "coverage_start": handle.coverage_start.isoformat() if handle.coverage_start else None,
@@ -325,16 +325,12 @@ def _materialization_cache_from_bytes(
     if surface_source.get("tape_sha256") != surface_sha256:
         raise ValueError("D51 materialization cache surface SHA changed")
     rows = tuple(_feature_row_from_payload(item) for item in payload["rows"])
-    if not rows or _common_row_fingerprint(rows) != payload.get(
-        "common_row_fingerprint_sha256"
-    ):
+    if not rows or _common_row_fingerprint(rows) != payload.get("common_row_fingerprint_sha256"):
         raise ValueError("D51 materialization cache row fingerprint changed")
     return rows, futures_source, surface_source, int(payload["constructed_row_count"])
 
 
-def _checkpoint_text(
-    *, kind: str, identity: Mapping[str, Any], artifact_json: str
-) -> str:
+def _checkpoint_text(*, kind: str, identity: Mapping[str, Any], artifact_json: str) -> str:
     payload = {
         "version": COMPUTE_CHECKPOINT_VERSION,
         "kind": kind,
@@ -345,9 +341,7 @@ def _checkpoint_text(
     return json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
-def _checkpoint_artifact_json(
-    encoded: str, *, kind: str, identity: Mapping[str, Any]
-) -> str:
+def _checkpoint_artifact_json(encoded: str, *, kind: str, identity: Mapping[str, Any]) -> str:
     payload = json.loads(encoded)
     if payload.get("version") != COMPUTE_CHECKPOINT_VERSION:
         raise ValueError("unsupported D51 compute checkpoint version")
@@ -509,9 +503,7 @@ def _stability_rows(evidence: Any) -> list[dict[str, Any]]:
                 else "evaluated"
             ),
             "economic_guard": (
-                "not_supplied"
-                if item.cost_latency_adjusted_median_value is None
-                else "evaluated"
+                "not_supplied" if item.cost_latency_adjusted_median_value is None else "evaluated"
             ),
             "aggregate_comparator_minus_full_mean_squared_loss": (
                 item.aggregate_comparator_minus_full_mean_squared_loss
@@ -743,9 +735,7 @@ def execute(args: argparse.Namespace) -> Mapping[str, Any]:
             reader=conditional_usefulness_artifact_from_json,
         )
 
-    def elastic_stability_provider(
-        fold_id: str, factory: Callable[[], Any]
-    ) -> Any:
+    def elastic_stability_provider(fold_id: str, factory: Callable[[], Any]) -> Any:
         selected_model = selected_by_fold_kind[(fold_id, "elastic_net")]
         identity = {
             **checkpoint_base_identity,
@@ -840,13 +830,10 @@ def execute(args: argparse.Namespace) -> Mapping[str, Any]:
             if conditional_usefulness_artifact_from_json(importance_json) != importance:
                 raise AssertionError("conditional-usefulness exact artifact readback failed")
             _write(
-                output
-                / f"d51_importance_{fold.fold_id}_{importance.config.model_kind}.json",
+                output / f"d51_importance_{fold.fold_id}_{importance.config.model_kind}.json",
                 importance_json + "\n",
             )
-        elastic_json = elastic_net_cluster_stability_artifact_to_json(
-            fold.elastic_net_stability
-        )
+        elastic_json = elastic_net_cluster_stability_artifact_to_json(fold.elastic_net_stability)
         if (
             elastic_net_cluster_stability_artifact_from_json(elastic_json)
             != fold.elastic_net_stability

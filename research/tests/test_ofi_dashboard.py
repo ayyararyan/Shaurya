@@ -9,11 +9,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from shaurya.data import CompleteLineJsonlTail
 
 from shaurya.analytics.depth_thinning_analysis import DEPTH20, BookState
 from shaurya.analytics.ofi_dashboard import (
     CELL_COUNT,
-    CompleteLineJsonlTail,
     OfiDashboardEngine,
     RefitArtifactSink,
     WalkForwardConfig,
@@ -584,10 +584,7 @@ def test_compact_matrix_payload_uses_only_rolling_c8_scores() -> None:
     matrix = compact["matrices"][-1]
     assert matrix["h1_seconds"] == list(MATRIX_LOOKBACKS_SECONDS)
     assert matrix["h2_seconds"] == list(MATRIX_HORIZONS_SECONDS)
-    matrix_cells = {
-        (cell["h1_seconds"], cell["h2_seconds"]): cell
-        for cell in matrix["cells"]
-    }
+    matrix_cells = {(cell["h1_seconds"], cell["h2_seconds"]): cell for cell in matrix["cells"]}
     assert matrix_cells[(1.0, 5.0)]["cumulative_oos_r2"] == pytest.approx(0.13)
     assert matrix_cells[(1.0, 5.0)]["rolling_mean_win_score_5m"] == pytest.approx(0.2)
     assert matrix_cells[(1.0, 5.0)]["source"] == "rolling_c8_30m"

@@ -19,7 +19,7 @@ from shaurya.analytics.live_ofi_studies import (
     LiveStudyStateWriter,
     atomic_write_json,
     build_live_d38,
-    snapshot_growing_tape,
+    snapshot_dataset,
     summarize_d39_cell,
     summarize_d40_cell,
 )
@@ -75,14 +75,14 @@ def _publish_metadata(
 
 def _run_cycle(
     *,
-    tape_path: Path,
+    access: DataAccess,
     dataset_id: str,
     writer: LiveStudyStateWriter,
     cycle: int,
     replicates: int,
     seed: int,
 ) -> int:
-    snapshot = snapshot_growing_tape(tape_path, dataset_id=dataset_id)
+    snapshot = snapshot_dataset(access, access.handle(dataset_id))
     writer.begin_cycle(snapshot, cycle=cycle)
     print(
         json.dumps(
@@ -229,7 +229,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
     if handle.status is DatasetStatus.INVALIDATED:
         raise ValueError("live studies cannot consume an invalidated DAT dataset")
-    tape_path = Path(handle.tape_path)
     writer = LiveStudyStateWriter(
         args.state_output,
         args.artifact_dir,
@@ -242,7 +241,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         cycle += 1
         try:
             last_prefix = _run_cycle(
-                tape_path=tape_path,
+                access=access,
                 dataset_id=handle.dataset_id,
                 writer=writer,
                 cycle=cycle,
@@ -262,7 +261,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             )
         if args.once:
             break
-        while tape_path.stat().st_size <= last_prefix:
+        while True:
+            latest = access.handle(handle.dataset_id)
+            if latest.bytes > last_prefix:
+                break
+            if latest.status is DatasetStatus.COMPLETED:
+                return writer.state
+            if latest.status is not DatasetStatus.ACTIVE:
+                raise ValueError(f"live study ended with ineligible dataset state {latest.status}")
             time.sleep(min(args.refresh_seconds, 5.0))
         time.sleep(args.refresh_seconds)
     return writer.state
