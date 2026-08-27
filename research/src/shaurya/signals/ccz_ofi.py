@@ -14,7 +14,7 @@ two earlier constructions that were not CCZ:
 The level-one CKS (2014) event increment in :mod:`shaurya.signals.cks_l1_ofi` is CCZ Eq. (1)'s
 base case and is retained unchanged.
 
-Frozen specification: ``research/docs/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md`` (``D37``).
+Frozen specification: ``research/docs/legacy/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md`` (``D37``).
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ import numpy as np
 from shaurya.analytics.depth_thinning_analysis import BookState
 
 SPECIFICATION_ID: Final = "D37 / CCZ-OFI-MIGRATION-2026-08-20"
-DESIGN_DOCUMENT: Final = "research/docs/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
+DESIGN_DOCUMENT: Final = "research/docs/legacy/CCZ-OFI-MIGRATION-SPEC-2026-08-20.md"
 ESTIMATOR_NAME: Final = "CCZ"
 CCZ_REFERENCE: Final = (
     "Cont, Cucuringu & Zhang (2023), Cross-Impact of Order Flow Imbalance in Equity Markets, "

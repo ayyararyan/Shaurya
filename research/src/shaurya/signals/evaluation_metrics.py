@@ -40,7 +40,7 @@ FloatArray = NDArray[np.float64]
 IntArray = NDArray[np.int64]
 
 SPECIFICATION_ID: Final = "D38 / TOUCH-METRICS-2026-08-20"
-DESIGN_DOCUMENT: Final = "research/docs/TOUCH-METRICS-SPEC-2026-08-20.md"
+DESIGN_DOCUMENT: Final = "research/docs/legacy/TOUCH-METRICS-SPEC-2026-08-20.md"
 
 #: `METRIC-01`.  Percentile confidence level for the bootstrap interval.
 CONFIDENCE_LEVEL: Final = 0.95

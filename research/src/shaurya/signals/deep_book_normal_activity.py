@@ -541,7 +541,7 @@ class Depth20MidSeries:
         Refuses any target outside the covered span.  At the right edge of a finite tape the as-of
         rule alone is unsafe: an endpoint past the final observation silently resolves back to it
         and fabricates a measurement.  That defect was found on these exact tapes and is recorded
-        in `research/docs/SIG-21-EXPLORATORY-RESPONSE-2026-08-19.md` §6.1.
+        in `research/docs/live-evidence/SIG-21-EXPLORATORY-RESPONSE-2026-08-19.md` §6.1.
         """
 
         if not self.timestamps:
