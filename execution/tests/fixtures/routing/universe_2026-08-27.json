@@ -1,0 +1,10 @@
+{
+  "canonical_instrument_ids": [
+    "NSE:NSE_FNO:NIFTY:option:2026-09-03:25000:CE",
+    "NSE:NSE_FNO:NIFTY:future:2026-09-03"
+  ],
+  "dhan_master_as_of_date": "2026-08-27",
+  "kotak_master_as_of_date": "2026-08-27",
+  "schema_version": "1.0.0",
+  "trading_date": "2026-08-27"
+}

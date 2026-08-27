@@ -36,7 +36,7 @@ def main() -> None:
     for project in (root / "data", root / "research"):
         for path in project.rglob("*.py"):
             require(not any(name.startswith(execution_import) for name in imports(path)), path)
-    allowed_exporter = root / "execution/tools/export_routing_snapshot.py"
+    allowed_exporter = root / "execution/ops/export_routing_snapshot.py"
     for path in (root / "execution").rglob("*.py"):
         if "planning" in path.parts or path == allowed_exporter:
             continue

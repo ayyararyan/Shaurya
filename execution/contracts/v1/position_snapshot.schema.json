@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shaurya.invalid/contracts/v1/position_snapshot.schema.json",
+  "title": "Shaurya PositionSnapshot 1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "snapshot_id", "execution_session_id", "timestamp_ns", "source", "provenance", "reconciliation_status", "positions"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "snapshot_id": {"$ref": "#/$defs/uuid"},
+    "execution_session_id": {"$ref": "#/$defs/uuid"},
+    "timestamp_ns": {"$ref": "#/$defs/int64"},
+    "source": {"enum": ["paper", "kotak"]},
+    "provenance": {"enum": ["simulated", "proxy", "broker_confirmed"]},
+    "reconciliation_status": {"enum": ["matched", "mismatch", "unavailable", "partial"]},
+    "positions": {"type": "array", "maxItems": 4096, "items": {"$ref": "#/$defs/position"}}
+  },
+  "$defs": {
+    "uuid": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
+    "int64": {"type": "integer", "minimum": -9223372036854775808, "maximum": 9223372036854775807},
+    "instrument": {"type": "string", "maxLength": 192, "pattern": "^NSE:NSE_FNO:[A-Z0-9][A-Z0-9._-]{0,63}:(future:[0-9]{4}-[0-9]{2}-[0-9]{2}|option:[0-9]{4}-[0-9]{2}-[0-9]{2}:[1-9][0-9]*(\\.[0-9]*[1-9])?:(CE|PE))$"},
+    "position": {"type": "object", "additionalProperties": false, "required": ["canonical_instrument_id", "instrument_token", "strategy_desired", "ledger_reconstructed", "broker_authoritative"], "properties": {"canonical_instrument_id": {"$ref": "#/$defs/instrument"}, "instrument_token": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9._-]+$"}, "strategy_desired": {"$ref": "#/$defs/int64"}, "ledger_reconstructed": {"$ref": "#/$defs/int64"}, "broker_authoritative": {"anyOf": [{"$ref": "#/$defs/int64"}, {"type": "null"}]}}}
+  }
+}

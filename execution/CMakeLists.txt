@@ -31,6 +31,15 @@ add_library(shaurya_execution_build STATIC src/build_attestation.cpp)
 target_include_directories(shaurya_execution_build PUBLIC "${SHAURYA_GENERATED_INCLUDE_DIR}")
 shaurya_apply_warnings(shaurya_execution_build)
 
+add_library(shaurya_execution_contracts STATIC
+  src/canonical_json.cpp
+  src/contracts.cpp
+  src/routing_snapshot.cpp
+  src/instrument_resolver.cpp
+)
+target_include_directories(shaurya_execution_contracts PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+shaurya_apply_warnings(shaurya_execution_contracts)
+
 include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(tests)
