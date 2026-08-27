@@ -1,0 +1,13 @@
+#pragma once
+
+#include <string>
+
+namespace shaurya::execution {
+inline constexpr const char* kProjectVersion = "@PROJECT_VERSION@";
+inline constexpr const char* kSourceRevision = "@SHAURYA_SOURCE_REVISION@";
+inline constexpr const char* kCompilerId = "@CMAKE_CXX_COMPILER_ID@";
+inline constexpr const char* kBuildType = "@CMAKE_BUILD_TYPE@";
+inline constexpr const char* kLiveRouter = "@SHAURYA_LIVE_ROUTER_ATTESTATION@";
+
+[[nodiscard]] std::string build_attestation();
+}  // namespace shaurya::execution
