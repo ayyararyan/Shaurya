@@ -40,6 +40,22 @@ add_library(shaurya_execution_contracts STATIC
 target_include_directories(shaurya_execution_contracts PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 shaurya_apply_warnings(shaurya_execution_contracts)
 
+add_library(shaurya_execution_core STATIC
+  src/order_state_machine.cpp
+  src/execution_ledger.cpp
+  src/reconstructed_state.cpp
+  src/ledger_replay.cpp
+  src/idempotency_store.cpp
+  src/ledger_repair.cpp
+)
+target_include_directories(shaurya_execution_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_link_libraries(shaurya_execution_core PUBLIC shaurya_execution_contracts)
+shaurya_apply_warnings(shaurya_execution_core)
+
+add_executable(shaurya-ledger-repair tools/ledger_repair.cpp)
+target_link_libraries(shaurya-ledger-repair PRIVATE shaurya_execution_core)
+shaurya_apply_warnings(shaurya-ledger-repair)
+
 include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(tests)

@@ -8,7 +8,9 @@
 namespace shaurya::execution {
 namespace {
 
-[[noreturn]] void fail(std::string code) { throw JsonError(std::move(code)); }
+[[noreturn]] void fail(std::string code, bool incomplete = false) {
+  throw JsonError(std::move(code), incomplete);
+}
 
 bool valid_utf8(std::string_view value) {
   std::size_t index = 0;
@@ -74,7 +76,12 @@ class Parser {
     return false;
   }
   void literal(std::string_view expected) {
-    if (input_.substr(position_, expected.size()) != expected) fail("invalid_json");
+    const auto remaining = input_.substr(position_);
+    if (remaining.size() < expected.size()) {
+      if (expected.substr(0, remaining.size()) == remaining) fail("invalid_json", true);
+      fail("invalid_json");
+    }
+    if (remaining.substr(0, expected.size()) != expected) fail("invalid_json");
     position_ += expected.size();
   }
   static std::uint32_t hex(char value) {
@@ -84,20 +91,20 @@ class Parser {
     fail("invalid_unicode_escape");
   }
   std::uint32_t code_unit() {
-    if (position_ + 4 > input_.size()) fail("invalid_unicode_escape");
+    if (position_ + 4 > input_.size()) fail("invalid_unicode_escape", true);
     std::uint32_t result = 0;
     for (int index = 0; index < 4; ++index) result = (result << 4U) | hex(input_[position_++]);
     return result;
   }
   std::string string() {
-    if (!consume('"')) fail("string_required");
+    if (!consume('"')) fail("string_required", position_ == input_.size());
     std::string output;
     while (position_ < input_.size()) {
       const char item = input_[position_++];
       if (item == '"') return output;
       if (static_cast<unsigned char>(item) < 0x20U) fail("invalid_control_character");
       if (item != '\\') { output.push_back(item); continue; }
-      if (position_ == input_.size()) fail("invalid_escape");
+      if (position_ == input_.size()) fail("invalid_escape", true);
       const char escaped = input_[position_++];
       switch (escaped) {
         case '"': output.push_back('"'); break;
@@ -124,13 +131,13 @@ class Parser {
         default: fail("invalid_escape");
       }
     }
-    fail("unterminated_string");
+    fail("unterminated_string", true);
   }
   JsonValue integer() {
     const std::size_t start = position_;
     consume('-');
-    if (position_ == input_.size() || input_[position_] < '0' || input_[position_] > '9')
-      fail("integer_required");
+    if (position_ == input_.size()) fail("integer_required", true);
+    if (input_[position_] < '0' || input_[position_] > '9') fail("integer_required");
     if (input_[position_] == '0') {
       ++position_;
       if (position_ < input_.size() && input_[position_] >= '0' && input_[position_] <= '9')
@@ -156,7 +163,7 @@ class Parser {
       output.push_back(value(depth + 1));
       space();
       if (consume(']')) break;
-      if (!consume(',')) fail("invalid_json");
+      if (!consume(',')) fail("invalid_json", position_ == input_.size());
       space();
     }
     return JsonValue(std::move(output));
@@ -170,14 +177,14 @@ class Parser {
       if (++members_ > kMaximumJsonMembers) fail("too_many_members");
       std::string key = string();
       space();
-      if (!consume(':')) fail("invalid_json");
+      if (!consume(':')) fail("invalid_json", position_ == input_.size());
       space();
       auto [unused, inserted] = output.emplace(std::move(key), value(depth + 1));
       (void)unused;
       if (!inserted) fail("duplicate_field");
       space();
       if (consume('}')) break;
-      if (!consume(',')) fail("invalid_json");
+      if (!consume(',')) fail("invalid_json", position_ == input_.size());
       space();
     }
     return JsonValue(std::move(output));
@@ -185,7 +192,7 @@ class Parser {
   JsonValue value(std::size_t depth) {
     if (depth > kMaximumJsonDepth) fail("maximum_depth");
     space();
-    if (position_ == input_.size()) fail("invalid_json");
+    if (position_ == input_.size()) fail("invalid_json", true);
     switch (input_[position_]) {
       case '{': return object(depth);
       case '[': return array(depth);
@@ -306,8 +313,10 @@ std::array<std::uint8_t, 32> sha256(std::string_view input) {
 }
 }  // namespace
 
-JsonError::JsonError(std::string code) : std::runtime_error(code), code_(std::move(code)) {}
+JsonError::JsonError(std::string code, bool incomplete)
+    : std::runtime_error(code), code_(std::move(code)), incomplete_(incomplete) {}
 const std::string& JsonError::code() const noexcept { return code_; }
+bool JsonError::incomplete() const noexcept { return incomplete_; }
 JsonValue::JsonValue() : value(nullptr) {}
 JsonValue::JsonValue(bool item) : value(item) {}
 JsonValue::JsonValue(JsonInteger item) : value(std::move(item)) {}

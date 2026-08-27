@@ -13,11 +13,13 @@ namespace shaurya::execution {
 
 class JsonError : public std::runtime_error {
  public:
-  explicit JsonError(std::string code);
+  explicit JsonError(std::string code, bool incomplete = false);
   [[nodiscard]] const std::string& code() const noexcept;
+  [[nodiscard]] bool incomplete() const noexcept;
 
  private:
   std::string code_;
+  bool incomplete_{};
 };
 
 struct JsonInteger {

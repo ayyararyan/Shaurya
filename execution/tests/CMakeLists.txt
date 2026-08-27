@@ -33,6 +33,22 @@ target_link_libraries(test_instrument_resolver PRIVATE shaurya_execution_contrac
 shaurya_apply_warnings(test_instrument_resolver)
 add_test(NAME execution.instrument_resolver COMMAND test_instrument_resolver)
 
+add_executable(test_order_fsm fsm/order_state_machine_test.cpp)
+target_link_libraries(test_order_fsm PRIVATE shaurya_execution_core)
+target_compile_definitions(test_order_fsm PRIVATE
+  SHAURYA_EXECUTION_SOURCE_ROOT="${PROJECT_SOURCE_DIR}"
+)
+shaurya_apply_warnings(test_order_fsm)
+add_test(NAME execution.order_fsm COMMAND test_order_fsm)
+
+foreach(ledger_test IN ITEMS execution_ledger ledger_replay ledger_repair idempotency)
+  add_executable("test_${ledger_test}" "ledger/${ledger_test}_test.cpp")
+  target_include_directories("test_${ledger_test}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/ledger")
+  target_link_libraries("test_${ledger_test}" PRIVATE shaurya_execution_core)
+  shaurya_apply_warnings("test_${ledger_test}")
+  add_test(NAME "execution.${ledger_test}" COMMAND "test_${ledger_test}")
+endforeach()
+
 get_filename_component(SHAURYA_REPOSITORY_ROOT "${PROJECT_SOURCE_DIR}" DIRECTORY)
 add_test(
   NAME execution.routing_exporter
