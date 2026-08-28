@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import uuid
@@ -13,6 +14,46 @@ import pyarrow.parquet as pq
 
 from shaurya.contracts.artifacts import sha256_file
 from shaurya.contracts.data import OperationalArtifact
+
+JSON_FIELDS_METADATA_KEY = b"shaurya.json_fields"
+
+
+def _encode_mapping_fields(payload: dict[str, Any]) -> tuple[dict[str, Any], tuple[str, ...]]:
+    """Give open-ended mappings a stable Arrow representation, including empty mappings."""
+
+    encoded = dict(payload)
+    json_fields: list[str] = []
+    for field_name, value in payload.items():
+        if isinstance(value, dict):
+            encoded[field_name] = json.dumps(
+                value,
+                allow_nan=False,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            )
+            json_fields.append(field_name)
+    return encoded, tuple(json_fields)
+
+
+def decode_mapping_fields(
+    record: dict[str, Any], metadata: dict[bytes, bytes]
+) -> dict[str, Any]:
+    """Restore mappings encoded by :class:`ParquetCaptureManifest`."""
+
+    raw_fields = metadata.get(JSON_FIELDS_METADATA_KEY)
+    if raw_fields is None:
+        return record
+    field_names = json.loads(raw_fields)
+    if not isinstance(field_names, list) or not all(isinstance(name, str) for name in field_names):
+        raise ValueError("operational artifact has invalid JSON-field metadata")
+    decoded = dict(record)
+    for field_name in field_names:
+        value = decoded.get(field_name)
+        if not isinstance(value, str):
+            raise ValueError(f"operational artifact JSON field is not a string: {field_name}")
+        decoded[field_name] = json.loads(value)
+    return decoded
 
 
 def _fsync_directory(path: Path) -> None:
@@ -49,13 +90,15 @@ class ParquetCaptureManifest:
         partial = self.run_dir / f"{target.name}.partial-{uuid.uuid4().hex}"
         if target.exists():
             raise FileExistsError(target)
-        table = pa.Table.from_pylist([payload]).replace_schema_metadata(
-            {
-                b"shaurya.artifact_kind": kind.encode(),
-                b"shaurya.artifact_schema_version": b"2.0.0",
-                b"shaurya.dataset_id": self.run_id.encode(),
-            }
-        )
+        encoded_payload, json_fields = _encode_mapping_fields(payload)
+        metadata = {
+            b"shaurya.artifact_kind": kind.encode(),
+            b"shaurya.artifact_schema_version": b"2.0.0",
+            b"shaurya.dataset_id": self.run_id.encode(),
+        }
+        if json_fields:
+            metadata[JSON_FIELDS_METADATA_KEY] = json.dumps(json_fields).encode()
+        table = pa.Table.from_pylist([encoded_payload]).replace_schema_metadata(metadata)
         pq.write_table(table, partial, compression="zstd", version="2.6")
         written = pq.read_table(partial)
         if written.num_rows != 1 or not written.schema.equals(table.schema, check_metadata=True):
