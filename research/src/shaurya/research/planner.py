@@ -411,8 +411,8 @@ def plan_from_directory(
     through: date,
     feature_version: str,
     target_version: str,
-    hypothesis_version: str = "alpha_hypotheses_v1",
-    policy_version: str = "alpha_research_policy_v1",
+    hypothesis_version: str = "alpha_hypotheses_v2",
+    policy_version: str = "alpha_research_policy_v2",
 ) -> AlphaPlan:
     return plan_alpha(
         through=through,

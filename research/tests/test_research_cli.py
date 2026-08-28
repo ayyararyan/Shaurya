@@ -14,7 +14,7 @@ def test_plan_cli_is_deterministic_and_reports_complete_cardinality(
     arguments = [
         "plan-alpha",
         "--through",
-        "2026-08-26",
+        "2026-08-27",
         "--registry-dir",
         "registries",
     ]
@@ -24,7 +24,7 @@ def test_plan_cli_is_deterministic_and_reports_complete_cardinality(
     second = capsys.readouterr().out
     assert first == second
     payload = json.loads(first)
-    assert payload["total_raw_hypothesis_count"] == 22_681
+    assert payload["total_raw_hypothesis_count"] == 8
     assert payload["interactions"] == 4
 
 

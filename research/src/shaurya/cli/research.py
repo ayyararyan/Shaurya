@@ -42,10 +42,7 @@ from shaurya.research.planner import (
     validate_plan_registries,
 )
 from shaurya.research.registry import FrozenRegistry, expand_hypotheses, registry_by_version
-from shaurya.research.registry_bindings import (
-    HIGH_FREQUENCY_REGISTRY_BINDING,
-    LEGACY_REGISTRY_BINDING,
-)
+from shaurya.research.registry_bindings import HIGH_FREQUENCY_REGISTRY_BINDING
 from shaurya.research.source import (
     DerivedResearchDataset,
     derivation_hash_for_sources,
@@ -75,10 +72,10 @@ def _common(parser: argparse.ArgumentParser) -> None:
 
 
 def _registry_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--feature-registry", default="microstructure_features_v1")
-    parser.add_argument("--target-registry", default="microstructure_targets_v1")
-    parser.add_argument("--hypothesis-registry", default="alpha_hypotheses_v1")
-    parser.add_argument("--policy", default="alpha_research_policy_v1")
+    parser.add_argument("--feature-registry", default="microstructure_features_v2")
+    parser.add_argument("--target-registry", default="microstructure_targets_v2")
+    parser.add_argument("--hypothesis-registry", default="alpha_hypotheses_v2")
+    parser.add_argument("--policy", default="alpha_research_policy_v2")
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -129,9 +126,6 @@ def _parser() -> argparse.ArgumentParser:
     daily.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIRECTORY)
     daily.add_argument("--report-dir", type=Path, default=DEFAULT_REPORT_DIRECTORY)
     daily.add_argument("--snapshot-dir", type=Path, default=DEFAULT_SNAPSHOT_DIRECTORY)
-    daily.add_argument(
-        "--bundle", choices=("high_frequency", "legacy"), default="high_frequency"
-    )
     daily.add_argument(
         "--mode",
         choices=(ResearchMode.CONFIRMATORY.value, ResearchMode.LIVE_SHADOW.value),
@@ -896,11 +890,7 @@ def _advance_warmup_state(
 
 
 def _daily(args: argparse.Namespace) -> None:
-    binding = (
-        HIGH_FREQUENCY_REGISTRY_BINDING
-        if args.bundle == "high_frequency"
-        else LEGACY_REGISTRY_BINDING
-    )
+    binding = HIGH_FREQUENCY_REGISTRY_BINDING
     registries = _registries(
         args.registry_dir,
         feature=binding.feature_registry,

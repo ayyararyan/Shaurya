@@ -6,7 +6,7 @@ from pathlib import Path
 
 import shaurya.data as constructors
 
-from shaurya.research import HIGH_FREQUENCY_REGISTRY_BINDING, LEGACY_REGISTRY_BINDING
+from shaurya.research import HIGH_FREQUENCY_REGISTRY_BINDING
 from shaurya.research.planner import plan_from_directory
 from shaurya.research.registry import (
     declared_feature_ids,
@@ -16,18 +16,6 @@ from shaurya.research.registry import (
 )
 
 REGISTRIES = Path("registries")
-
-
-def test_v2_registries_are_new_frozen_versions_and_v1_remains_addressable() -> None:
-    feature_v1 = registry_by_version(
-        REGISTRIES, LEGACY_REGISTRY_BINDING.feature_registry, expected_type="features"
-    )
-    feature_v2 = registry_by_version(
-        REGISTRIES, HIGH_FREQUENCY_REGISTRY_BINDING.feature_registry, expected_type="features"
-    )
-    assert feature_v1.version == "microstructure_features_v1"
-    assert feature_v2.version == "microstructure_features_v2"
-    assert feature_v1.fingerprint_sha256 != feature_v2.fingerprint_sha256
 
 
 def test_every_v2_registry_entry_points_to_a_real_constructor() -> None:

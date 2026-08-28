@@ -62,10 +62,11 @@ both required.
 ## High-frequency v2 registry bundle
 
 `HIGH_FREQUENCY_REGISTRY_BINDING` binds `microstructure_features_v2`,
-`microstructure_targets_v2`, `alpha_hypotheses_v2`, and `alpha_research_policy_v2`. Select those
-versions explicitly for the 2026-08-27 construction freeze; v1 remains the legacy default for
-backward-compatible historical workflows. The v2 policy keeps three-session candidates in shadow
-status and quarantines the non-transportable/replication-only fields from automatic live weight.
+`microstructure_targets_v2`, `alpha_hypotheses_v2`, and `alpha_research_policy_v2`, frozen for the
+2026-08-27 construction and now the only registry bundle: it is the default for every CLI command
+and the `daily` orchestration. The legacy `v1` registries and binding have been removed. The v2
+policy keeps three-session candidates in shadow status and quarantines the
+non-transportable/replication-only fields from automatic live weight.
 
 ## Prospective daily hypothesis testing
 
@@ -76,8 +77,7 @@ run one unseen session with the exact plan/state frozen before that session:
 uv run shaurya-research daily \
   --date 2026-08-28 \
   --next-session 2026-08-31 \
-  --catalog /archive/NSE/metadata/datasets \
-  --bundle high_frequency
+  --catalog /archive/NSE/metadata/datasets
 ```
 
 On a fresh research workspace the command creates the first content-addressed plan and pre-session
