@@ -1,0 +1,50 @@
+name: Sync JEPA branch with main
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # 03:00 UTC daily = 08:30 IST
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: shaurya_28-08-2026_JEPA
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Attempt merge from main
+        id: merge
+        run: |
+          git fetch origin main
+          if git merge origin/main --no-edit; then
+            echo "clean=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "clean=false" >> "$GITHUB_OUTPUT"
+            git merge --abort
+          fi
+
+      - name: Push if clean
+        if: steps.merge.outputs.clean == 'true'
+        run: git push origin shaurya_28-08-2026_JEPA
+
+      - name: Open PR if conflicted
+        if: steps.merge.outputs.clean == 'false'
+        run: |
+          git fetch origin main
+          git checkout -b sync/main-into-jepa-$(date +%Y%m%d)
+          git push origin HEAD
+          gh pr create --base shaurya_28-08-2026_JEPA --head sync/main-into-jepa-$(date +%Y%m%d) \
+            --title "Sync main into JEPA branch (conflicts, needs manual merge)" \
+            --body "Auto-sync detected conflicts merging main into shaurya_28-08-2026_JEPA. Resolve manually."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
