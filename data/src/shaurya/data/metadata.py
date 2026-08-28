@@ -19,12 +19,20 @@ JSON_FIELDS_METADATA_KEY = b"shaurya.json_fields"
 
 
 def _encode_mapping_fields(payload: dict[str, Any]) -> tuple[dict[str, Any], tuple[str, ...]]:
-    """Give open-ended mappings a stable Arrow representation, including empty mappings."""
+    """Give open-ended mappings/sequences a stable Arrow representation.
+
+    Both are JSON-encoded to a scalar string rather than left as native Arrow
+    list/struct columns: PyArrow's Parquet writer renames a list's child field
+    from ``item`` to ``element`` on every round trip, which fails this module's
+    strict post-write schema-equality check for *any* top-level list field, not
+    just nested structs. JSON-encoding sidesteps that entirely, the same way it
+    already does for mappings.
+    """
 
     encoded = dict(payload)
     json_fields: list[str] = []
     for field_name, value in payload.items():
-        if isinstance(value, dict):
+        if isinstance(value, dict | list):
             encoded[field_name] = json.dumps(
                 value,
                 allow_nan=False,

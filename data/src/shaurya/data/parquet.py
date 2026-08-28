@@ -86,8 +86,23 @@ MARKET_EVENT_SCHEMA = pa.schema(
 )
 
 
+_PRICE_QUANTUM = Decimal(1).scaleb(-PRICE_TYPE.scale)
+
+
 def _decimal(value: float | None) -> Decimal | None:
-    return Decimal(str(value)) if value is not None else None
+    """Convert a feed price to the schema's fixed ``decimal128(38, 12)`` scale.
+
+    Dhan's wire format carries prices as IEEE-754 single precision (float32).
+    Widened to Python's float64, the exact binary value can need more than 12
+    fractional digits to state precisely (e.g. ``71.55`` arrives as
+    ``71.55000305175781``) even though the schema's own metadata declares
+    ``shaurya.price_units: native-quote-currency-decimal-12``. Quantizing here
+    conforms every price to that declared contract instead of failing PyArrow's
+    Parquet rescale at segment-finalize time, potentially discarding an entire
+    in-memory segment of already-captured rows.
+    """
+
+    return Decimal(str(value)).quantize(_PRICE_QUANTUM) if value is not None else None
 
 
 def _utc(value: datetime | None) -> datetime | None:
