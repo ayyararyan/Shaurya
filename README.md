@@ -43,7 +43,7 @@ Shaurya Data  --->  Shaurya Research
 |---|---|---|
 | `data/` | Python package `shaurya-data`: Dhan capture, tape/manifest storage, validation, catalogue, replay | Capture, validate, or read market data |
 | `data/src/shaurya/data/` | Access, capture, Dhan REST/stream clients, instrument master, option chain, quality, storage, tape, trade-direction modules | Understand or extend the data engine internals |
-| `data/src/shaurya/data_cli/` | `shaurya-data`, `shaurya-dhan-capture`, `shaurya-chain-capture` entry points | Find the CLI implementations |
+| `data/src/shaurya/data_cli/` | `shaurya-data`, `shaurya-dhan-capture`, `shaurya-chain-capture`, `shaurya-daily-chain-launch` entry points | Find the CLI implementations |
 | `data/src/shaurya/contracts/` | Shared typed schema layer for datasets, tape rows, instruments | Understand the wire/storage contracts Data exposes |
 | `data/scripts/` | One-off investigation probes (e.g. `dat09_concurrency_probe.py`, `dat17_depth200_*probe.py`) tied to specific tickets, not general CLI tooling | Reproduce a specific past investigation |
 | `research/` | Python package `shaurya` (research): OFI/microstructure signals, vol-surface fitting, hypothesis-driven alpha research, dashboards | Run backtests, feature studies, or the daily research pipeline |
@@ -126,6 +126,11 @@ uv run shaurya-dhan-capture \
   --security-id <id> --expected-symbol <symbol>
 
 uv run shaurya-chain-capture --help   # option-chain capture
+
+uv run shaurya-daily-chain-launch \
+  --credentials /absolute/external/path/dhan.env \
+  --security-master /absolute/external/path/security_id_list.csv \
+  --launch   # canonical daily entry point: whole chain, every underlying, every session
 ```
 
 **Research — daily post-close pipeline** (from `research/`, after `uv sync`):

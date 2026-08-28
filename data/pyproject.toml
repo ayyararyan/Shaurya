@@ -30,6 +30,7 @@ dev = [
 shaurya-data = "shaurya.data_cli.main:main"
 shaurya-dhan-capture = "shaurya.data_cli.capture_dhan:main"
 shaurya-chain-capture = "shaurya.data_cli.capture_chain:main"
+shaurya-daily-chain-launch = "shaurya.data_cli.daily_chain_launch:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

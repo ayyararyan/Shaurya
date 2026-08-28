@@ -33,10 +33,44 @@ from shaurya.data.access import (
     DataCatalog,
     DatasetAlreadyActiveError,
 )
-from shaurya.data.dhan_client import DhanCredentials
+from shaurya.data.dhan_client import DhanClient, DhanCredentials
 from shaurya.data.dhan_stream import DhanLiveStream, DhanStreamConfig, StreamMetrics
 from shaurya.data.storage import resolve_data_catalog, resolve_raw_capture_root
 from shaurya.data.universe import select_chain_universe
+
+UNDERLYING_INDEX_SECURITY_ID: dict[str, int] = {"NIFTY": 13, "BANKNIFTY": 25}
+
+
+def resolve_live_spot_and_expiries(
+    client: DhanClient, underlying: str, *, expiry_count: int
+) -> tuple[float, list[str]]:
+    """Fetch the live spot and nearest ``expiry_count`` expiries for one underlying.
+
+    Kept separate from ``select_chain_universe`` so a live capture command can omit
+    ``--spot``/``--expiry`` for the common single-underlying case without ever guessing a
+    strike band: the values here come straight off the exchange, never a fabricated default.
+    """
+
+    normalized = underlying.strip().upper()
+    security_id = UNDERLYING_INDEX_SECURITY_ID.get(normalized)
+    if security_id is None:
+        raise ValueError(
+            f"no index security id configured for underlying {underlying!r}; "
+            f"known underlyings are {sorted(UNDERLYING_INDEX_SECURITY_ID)}"
+        )
+    if expiry_count <= 0:
+        raise ValueError("expiry_count must be positive")
+    available = client.expiry_list(underlying_security_id=security_id)
+    if len(available) < expiry_count:
+        raise ValueError(
+            f"{normalized} offered only {len(available)} live expiries; requested {expiry_count}"
+        )
+    chosen = list(available[:expiry_count])
+    chain = client.option_chain(expiry=chosen[0], underlying_security_id=security_id)
+    spot = float(chain.get("last_price") or 0.0)
+    if spot <= 0:
+        raise ValueError(f"{normalized} option chain returned no positive underlying price")
+    return spot, chosen
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -52,10 +86,27 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--expiry",
         action="append",
-        required=True,
-        help="ISO expiry date; repeat for several maturities.",
+        default=None,
+        help=(
+            "ISO expiry date; repeat for several maturities. Omit to auto-resolve the "
+            "nearest --expiry-count live expiries from Dhan (single-underlying runs only)."
+        ),
     )
-    parser.add_argument("--spot", required=True, type=float)
+    parser.add_argument(
+        "--expiry-count",
+        type=int,
+        default=2,
+        help="Nearest live expiries to auto-resolve when --expiry is omitted.",
+    )
+    parser.add_argument(
+        "--spot",
+        type=float,
+        default=None,
+        help=(
+            "Omit to auto-resolve the live underlying price from Dhan "
+            "(single-underlying runs only)."
+        ),
+    )
     parser.add_argument("--strike-window-fraction", type=float, default=0.06)
     parser.add_argument("--max-options", type=int, default=120)
     parser.add_argument("--duration-seconds", type=float, default=120.0)
@@ -90,12 +141,26 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     master = DhanInstrumentMaster(args.security_master)
     underlyings = args.underlying or ["NIFTY"]
     mappings = list(master.mappings())
+    credentials = DhanCredentials.from_env_file(args.credentials)
+    spot = args.spot
+    expiry_values = args.expiry
+    if spot is None or not expiry_values:
+        if len(underlyings) != 1:
+            raise ValueError(
+                "--spot and --expiry must both be given explicitly when --underlying is "
+                "repeated; live auto-resolution only covers one underlying at a time"
+            )
+        resolved_spot, resolved_expiries = resolve_live_spot_and_expiries(
+            DhanClient(credentials), underlyings[0], expiry_count=args.expiry_count
+        )
+        spot = spot if spot is not None else resolved_spot
+        expiry_values = expiry_values or resolved_expiries
     universes = [
         select_chain_universe(
             mappings,
             underlying=underlying,
-            expiries=[date.fromisoformat(value) for value in args.expiry],
-            spot_reference=args.spot,
+            expiries=[date.fromisoformat(value) for value in expiry_values],
+            spot_reference=spot,
             strike_window_fraction=args.strike_window_fraction,
             max_options=args.max_options,
         )
@@ -124,7 +189,6 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         allow_nonarchive=args.allow_nonarchive_output,
         nonarchive_capture_root=output_root,
     )
-    credentials = DhanCredentials.from_env_file(args.credentials)
 
     metrics = StreamMetrics()
     request = DatasetRequest(
