@@ -21,15 +21,17 @@ from shaurya.analytics.ofi_response_surface import (
     surface_diagnostics,
 )
 from shaurya.analytics.rolling_c8 import append_jsonl
-from shaurya.cli.rolling_c8 import RollingTapeBuffer
+from shaurya.cli.rolling_c8 import RollingDatasetBuffer
 from shaurya.signals.ofi_horserace import build_horserace_observations
 from shaurya.signals.reference_prices import build_displayed_mid_path
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tape", type=Path, required=True)
-    parser.add_argument("--legacy-producer-pid", type=int, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--dataset-id", help="DAT dataset ID from the shared catalogue")
+    source.add_argument("--tape", type=Path, help="active pre-DAT JSONL compatibility evidence")
+    parser.add_argument("--legacy-producer-pid", type=int)
     parser.add_argument("--data-catalog", type=Path, required=True)
     parser.add_argument("--trading-date", type=date.fromisoformat, default=datetime.now(IST).date())
     parser.add_argument("--state-output", type=Path, required=True)
@@ -48,19 +50,24 @@ def _today_at(raw: str, trading_date: date) -> datetime:
 def run(args: argparse.Namespace) -> dict[str, Any]:
     catalog_path = resolve_data_catalog(args.data_catalog, trading_date=args.trading_date)
     access = DataAccess(DataCatalog(catalog_path))
-    handle = access.adopt_active_legacy_tape(
-        args.tape,
-        consumer="ANL-06-C8-RESPONSE-SURFACE",
-        purpose="prospective smoothness scan; no dashboard output",
-        producer_pid=args.legacy_producer_pid,
-    )
+    if args.dataset_id is not None:
+        handle = access.handle(args.dataset_id)
+    else:
+        if args.tape is None or args.legacy_producer_pid is None:
+            raise ValueError("active pre-DAT evidence requires --legacy-producer-pid")
+        handle = access.adopt_active_legacy_tape(
+            args.tape,
+            consumer="ANL-06-C8-RESPONSE-SURFACE",
+            purpose="prospective smoothness scan; no dashboard output",
+            producer_pid=args.legacy_producer_pid,
+        )
     if handle.status is DatasetStatus.INVALIDATED:
         raise ValueError("response-surface scan cannot consume an invalidated dataset")
     issue_until = _today_at(args.issue_until, args.trading_date)
     stop_at = _today_at(args.stop_at, args.trading_date)
     if issue_until >= stop_at:
         raise ValueError("issue-until must precede stop-at")
-    tape = RollingTapeBuffer(Path(handle.tape_path))
+    tape = RollingDatasetBuffer(access, handle)
     tracker = ResponseSurfaceTracker()
     args.artifact_dir.mkdir(parents=True, exist_ok=True)
     forecast_log = args.artifact_dir / "forecasts.jsonl"
@@ -93,13 +100,23 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 append_jsonl(forecast_log, issued)
         persist_tracker(tracker, args.state_output, source=tape.source(handle.dataset_id))
         if issued or outcomes:
-            print(json.dumps({"at": datetime.now(UTC).isoformat(), "issued": len(issued),
-                              "matured": len(outcomes), "pending": len(tracker.pending),
-                              "last_receive_ts": tape.last_receive_ts}), flush=True)
+            print(
+                json.dumps(
+                    {
+                        "at": datetime.now(UTC).isoformat(),
+                        "issued": len(issued),
+                        "matured": len(outcomes),
+                        "pending": len(tracker.pending),
+                        "last_receive_ts": tape.last_receive_ts,
+                    }
+                ),
+                flush=True,
+            )
         time.sleep(args.poll_seconds)
     payload = tracker.payload(source=tape.source(handle.dataset_id), status="completed")
     payload["smoothness"] = surface_diagnostics(payload["cells"])
     from shaurya.analytics.live_ofi_studies import atomic_write_json
+
     atomic_write_json(args.artifact_dir / "final.json", payload)
     persist_tracker(
         tracker,

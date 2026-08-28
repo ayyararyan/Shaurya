@@ -8,7 +8,6 @@ newline arrives.  Both modes use the same complete-line reader and walk-forward 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import sys
 import time
@@ -18,7 +17,13 @@ from typing import Any
 
 from shaurya.contracts.data import DatasetHandle, DatasetStatus
 from shaurya.contracts.timing import IST
-from shaurya.data import CompleteLineJsonlTail, DataAccess, DataCatalog, resolve_data_catalog
+from shaurya.data import (
+    DataAccess,
+    DataCatalog,
+    DatasetFollower,
+    LegacySourceState,
+    resolve_data_catalog,
+)
 
 from shaurya.analytics.ofi_dashboard import (
     OfiDashboardEngine,
@@ -93,14 +98,6 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1 << 20), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _config(args: argparse.Namespace) -> WalkForwardConfig:
     return WalkForwardConfig(
         test_block_seconds=args.test_block_seconds,
@@ -114,12 +111,11 @@ def _config(args: argparse.Namespace) -> WalkForwardConfig:
 
 def _engine(
     args: argparse.Namespace,
-    tail: CompleteLineJsonlTail,
+    tail: DatasetFollower,
     handle: DatasetHandle,
 ) -> tuple[OfiDashboardEngine, RefitArtifactSink]:
-    tape = Path(handle.tape_path)
     identity = (
-        f"dat:{handle.dataset_id}#sha256={handle.tape_sha256 or _sha256(tape)}"
+        f"dat:{handle.dataset_id}#digest={handle.dataset_digest or handle.tape_sha256}"
         if args.mode == "replay"
         else f"dat:{handle.dataset_id}#growing-read-only"
     )
@@ -191,13 +187,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     else:
         handle = access.adopt_legacy_tape(
             args.tape,
+            source_state=LegacySourceState.COMPLETED,
             consumer="ANL-06",
             purpose="dynamic OFI dashboard",
         )
     if args.mode == "replay" and handle.status is DatasetStatus.ACTIVE:
         raise ValueError("replay requires a completed DAT dataset; use follow for active data")
     tail = access.follow(handle)
-    tape = Path(handle.tape_path)
     engine, _ = _engine(args, tail, handle)
     state = OfiDashboardState(
         engine,
@@ -212,7 +208,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     error: BaseException | None = None
     try:
         if args.mode == "replay":
-            while tail.offset < tape.stat().st_size:
+            access.validate(handle)
+            while not tail.finished:
                 batch = tail.poll()
                 _ingest_batch(
                     engine,
@@ -222,8 +219,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     started=started,
                     refit_each_due_row=True,
                 )
-            if tail.trailing_partial_bytes:
-                raise ValueError("completed replay tape ends in a torn JSONL line")
             if engine.due_for_refit():
                 engine.refit()
             if args.serve_seconds:

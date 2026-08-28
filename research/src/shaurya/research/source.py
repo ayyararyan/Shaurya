@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from collections import defaultdict, deque
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
@@ -11,13 +10,11 @@ from math import log, sqrt
 from pathlib import Path
 from types import MappingProxyType
 
-from shaurya.contracts.artifacts import sha256_file
-from shaurya.contracts.data import DataChannel, DatasetHandle, DatasetStatus
+from shaurya.contracts.data import DataChannel, DatasetHandle, DatasetStatus, StorageFormat
 from shaurya.contracts.tape import TapeRow
 from shaurya.data import (
+    DataAccess,
     DataCatalog,
-    IndexedJsonlTapeReader,
-    JsonlTapeReader,
     TapeIntegrityError,
     data_channel_for_row,
 )
@@ -52,10 +49,11 @@ _BREAK_FLAGS = frozenset(
 class VerifiedResearchSource:
     dataset_id: str
     trading_date: date
-    tape_path: Path
-    index_path: Path
-    tape_sha256: str
-    index_sha256: str
+    catalog_path: Path
+    storage_format: str
+    dataset_digest: str
+    canonical_row_digest: str
+    logical_run_id: str
     rows: int
     bytes: int
     coverage_start: str
@@ -68,10 +66,11 @@ class VerifiedResearchSource:
         self,
         dataset_id: str,
         trading_date: date,
-        tape_path: Path,
-        index_path: Path,
-        tape_sha256: str,
-        index_sha256: str,
+        catalog_path: Path,
+        storage_format: str,
+        dataset_digest: str,
+        canonical_row_digest: str,
+        logical_run_id: str,
         rows: int,
         bytes: int,
         coverage_start: str,
@@ -144,9 +143,10 @@ class DerivedResearchDataset:
     def _validate_exact_derivation(self) -> None:
         if not self.sources or not self.features or not self.targets or not self.rows:
             raise ValueError("research derivation cannot be empty")
-        if len(self.feature_registry_fingerprint) != 64 or len(
-            self.target_registry_fingerprint
-        ) != 64:
+        if (
+            len(self.feature_registry_fingerprint) != 64
+            or len(self.target_registry_fingerprint) != 64
+        ):
             raise ValueError("research derivation registry fingerprints are invalid")
         if self.sources != tuple(
             sorted(self.sources, key=lambda item: (item.trading_date, item.dataset_id))
@@ -173,11 +173,9 @@ class DerivedResearchDataset:
             row_keys.append(key)
         if len(row_keys) != len(set(row_keys)) or set(row_keys) != set(target_keys):
             raise ValueError("research derivation rows do not exactly cover frozen targets")
-        if {item.registry_version for item in self.features} != {
-            self.feature_registry_version
-        } or {item.registry_version for item in self.targets} != {
-            self.target_registry_version
-        }:
+        if {item.registry_version for item in self.features} != {self.feature_registry_version} or {
+            item.registry_version for item in self.targets
+        } != {self.target_registry_version}:
             raise ValueError("research derivation registry versions are inconsistent")
         derivation_payload = {
             "source_manifest_hash": self.source_manifest_hash,
@@ -205,9 +203,7 @@ def derivation_hash_for_sources(
     if sources != dataset.sources[: len(sources)]:
         raise ValueError("historical sources must be an exact chronological prefix")
     source_ids = {item.dataset_id for item in sources}
-    features = tuple(
-        item for item in dataset.features if item.source_dataset_id in source_ids
-    )
+    features = tuple(item for item in dataset.features if item.source_dataset_id in source_ids)
     targets = tuple(item for item in dataset.targets if item.source_dataset_id in source_ids)
     rows = tuple(item for item in dataset.rows if item.feature.source_dataset_id in source_ids)
     return canonical_sha256(
@@ -245,46 +241,22 @@ def verify_completed_source(
         raise ValueError("DAT source is later than the research cutoff")
     if handle.completed_at is None or handle.coverage_start is None or handle.coverage_end is None:
         raise ValueError("completed DAT source lacks terminal coverage metadata")
-    if not handle.tape_sha256 or not handle.index_sha256 or not handle.index_path:
-        raise ValueError("completed DAT source must be pinned by tape and seek-index hashes")
-    tape_path = Path(handle.tape_path).resolve()
-    index_path = Path(handle.index_path).resolve()
-    if not tape_path.is_file() or not index_path.is_file():
-        raise FileNotFoundError(tape_path if not tape_path.is_file() else index_path)
-    if sha256_file(tape_path) != handle.tape_sha256:
-        raise TapeIntegrityError("DAT tape hash differs from its completed handle")
-    if sha256_file(index_path) != handle.index_sha256:
-        raise TapeIntegrityError("DAT index hash differs from its completed handle")
-    IndexedJsonlTapeReader(tape_path, index_path)
-    raw_index = json.loads(index_path.read_text(encoding="utf-8"))
-    if raw_index.get("rows") != handle.rows or raw_index.get("bytes") != handle.bytes:
-        raise TapeIntegrityError("DAT index counts differ from its completed handle")
-    if handle.bytes != tape_path.stat().st_size:
-        raise TapeIntegrityError("DAT tape size differs from its completed handle")
-    replayed = tuple(JsonlTapeReader(tape_path).rows())
-    if len(replayed) != handle.rows or not replayed:
-        raise TapeIntegrityError("full DAT replay count differs from its completed handle")
-    if any(row.receive_ts.date() != handle.trading_date for row in replayed):
-        raise TapeIntegrityError("DAT row trading dates differ from the completed handle")
-    if any(row.run_id != handle.dataset_id for row in replayed):
-        raise TapeIntegrityError("DAT row run identity differs from the completed handle")
-    authorized_instruments = set(handle.instrument_ids)
-    if any(row.instrument_id not in authorized_instruments for row in replayed):
-        raise TapeIntegrityError("DAT row instrument is not authorized by the completed handle")
-    authorized_channels = set(handle.channels)
-    if any(data_channel_for_row(row) not in authorized_channels for row in replayed):
-        raise TapeIntegrityError("DAT row channel is not authorized by the completed handle")
-    row_start = min(row.receive_ts for row in replayed).isoformat()
-    row_end = max(row.receive_ts for row in replayed).isoformat()
-    if row_start != handle.coverage_start.isoformat() or row_end != handle.coverage_end.isoformat():
-        raise TapeIntegrityError("DAT coverage metadata was not derived from its rows")
-    if raw_index.get("coverage_start") != row_start or raw_index.get("coverage_end") != row_end:
-        raise TapeIntegrityError("DAT index coverage differs from replayed rows")
+    access = DataAccess(catalog)
+    validation = access.validate(handle)
+    row_start = str(validation["coverage_start"])
+    row_end = str(validation["coverage_end"])
+    physical_digest = handle.dataset_digest or handle.tape_sha256
+    if not physical_digest:
+        raise ValueError("completed DAT source lacks a physical integrity digest")
+    row_digest = str(validation["canonical_row_digest"])
+    logical_run_id = handle.row_run_id or handle.dataset_id
     identity = {
         "dataset_id": handle.dataset_id,
         "trading_date": handle.trading_date.isoformat(),
-        "tape_sha256": handle.tape_sha256,
-        "index_sha256": handle.index_sha256,
+        "storage_format": str(handle.storage_format or StorageFormat.LEGACY_JSONL),
+        "dataset_digest": physical_digest,
+        "canonical_row_digest": row_digest,
+        "logical_run_id": logical_run_id,
         "rows": handle.rows,
         "bytes": handle.bytes,
         "coverage_start": row_start,
@@ -295,10 +267,11 @@ def verify_completed_source(
     return VerifiedResearchSource(
         handle.dataset_id,
         handle.trading_date,
-        tape_path,
-        index_path,
-        handle.tape_sha256,
-        handle.index_sha256,
+        catalog.path,
+        str(handle.storage_format or StorageFormat.LEGACY_JSONL),
+        physical_digest,
+        row_digest,
+        logical_run_id,
         handle.rows,
         handle.bytes,
         row_start,
@@ -372,12 +345,14 @@ def _declared_ofi_coordinates(declared: tuple[str, ...]) -> tuple[tuple[int, flo
 
 
 def _source_bytes_are_unchanged(source: VerifiedResearchSource) -> None:
+    catalog = DataCatalog(source.catalog_path)
+    handle = catalog.get(source.dataset_id)
+    report = DataAccess(catalog).validate(handle)
     if (
-        not source.tape_path.is_file()
-        or not source.index_path.is_file()
-        or source.tape_path.stat().st_size != source.bytes
-        or sha256_file(source.tape_path) != source.tape_sha256
-        or sha256_file(source.index_path) != source.index_sha256
+        (handle.dataset_digest or handle.tape_sha256) != source.dataset_digest
+        or report["canonical_row_digest"] != source.canonical_row_digest
+        or report["rows"] != source.rows
+        or report["bytes"] != source.bytes
     ):
         raise TapeIntegrityError("canonical DAT source changed during research derivation")
 
@@ -389,20 +364,19 @@ def _derive_source_features(
     coordinates = _declared_ofi_coordinates(declared)
     level_counts = tuple(sorted({level for level, _ in coordinates})) or (1,)
     _source_bytes_are_unchanged(source)
-    tape_rows = tuple(JsonlTapeReader(source.tape_path).rows())
+    catalog = DataCatalog(source.catalog_path)
+    handle = catalog.get(source.dataset_id)
+    tape_rows = tuple(DataAccess(catalog).rows(handle))
     if len(tape_rows) != source.rows:
         raise TapeIntegrityError("canonical DAT row count changed during derivation")
     required_depth = max(level_counts)
-    if any(
-        len(row.bids) < required_depth or len(row.asks) < required_depth
-        for row in tape_rows
-    ):
+    if any(len(row.bids) < required_depth or len(row.asks) < required_depth for row in tape_rows):
         raise TapeIntegrityError(
             "canonical DAT source lacks genuine depth for the registered OFI construction"
         )
     authorized_channels = {DataChannel(item) for item in source.authorized_channels}
     if any(
-        row.run_id != source.dataset_id
+        row.run_id != source.logical_run_id
         or row.instrument_id not in source.authorized_instrument_ids
         or data_channel_for_row(row) not in authorized_channels
         for row in tape_rows
@@ -442,9 +416,7 @@ def _derive_source_features(
         segment = segment_by_partition[partition_key]
         row_segment[row.receive_sequence] = segment
         grouped[(*partition_key, segment)].append(row)
-    state_series: dict[
-        tuple[str, str, str, int, int], tuple[CczFlowSeries, dict[int, int]]
-    ] = {}
+    state_series: dict[tuple[str, str, str, int, int], tuple[CczFlowSeries, dict[int, int]]] = {}
     for series_key, group in grouped.items():
         states = tuple(_book_state(row) for row in group)
         stamps = tuple(state.receive_ts_ns for state in states)
@@ -454,9 +426,7 @@ def _derive_source_features(
             CczFlowSeries.from_states(states, level_counts=level_counts),
             {row.receive_sequence: index for index, row in enumerate(group)},
         )
-    trailing: dict[
-        tuple[str, str, str, int, int], deque[tuple[int, float]]
-    ] = defaultdict(deque)
+    trailing: dict[tuple[str, str, str, int, int], deque[tuple[int, float]]] = defaultdict(deque)
     first_ts: dict[tuple[str, str, str, int, int], int] = {}
     control_state: dict[tuple[str, str, str, int, int], float] = {}
     features: list[FeatureObservation] = []
@@ -487,9 +457,7 @@ def _derive_source_features(
                 values[feature_id] = (
                     None
                     if evaluated is None
-                    else (
-                        evaluated.best_level if level == 1 else evaluated.simple_average
-                    )
+                    else (evaluated.best_level if level == 1 else evaluated.simple_average)
                 )
             elif feature_id == "book.spread_ticks":
                 assert row.best_bid is not None and row.best_ask is not None
@@ -648,9 +616,7 @@ def _exact_endpoint(
     distances = [abs(item.stamp_ns - expected_ns) for item in candidates]
     nearest = min(distances)
     winners = [
-        item
-        for item, distance in zip(candidates, distances, strict=True)
-        if distance == nearest
+        item for item, distance in zip(candidates, distances, strict=True) if distance == nearest
     ]
     return winners[0] if len(winners) == 1 else None
 
@@ -681,9 +647,7 @@ def derive_research_dataset(
         source_features, anchor_points = _derive_source_features(source, feature_registry)
         all_features.extend(source_features)
         features_by_id = {item.observation_id: item for item in source_features}
-        grouped_points: dict[
-            tuple[str, str, str, int, int], list[_AnchorPoint]
-        ] = defaultdict(list)
+        grouped_points: dict[tuple[str, str, str, int, int], list[_AnchorPoint]] = defaultdict(list)
         for point in anchor_points:
             grouped_points[
                 (
@@ -746,9 +710,7 @@ def derive_research_dataset(
                             else start_point.stamp_ns
                         ),
                         observed_end_ts_ns=(
-                            None
-                            if start_point is None or end_point is None
-                            else end_point.stamp_ns
+                            None if start_point is None or end_point is None else end_point.stamp_ns
                         ),
                     )
                     all_targets.append(target)

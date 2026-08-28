@@ -5,7 +5,9 @@ from .access import (
     DataCaptureSession,
     DataCatalog,
     DatasetAlreadyActiveError,
+    DatasetFollower,
     DatasetUnavailableError,
+    LegacySourceState,
 )
 from .capture import CaptureUniversePlan, DhanDepth20CapturePool
 from .high_frequency import (
@@ -91,6 +93,13 @@ from .option_pricing import (
     essvi_total_variance,
     implied_volatility,
 )
+from .parquet import (
+    MARKET_EVENT_SCHEMA,
+    ROW_SCHEMA_VERSION,
+    STORAGE_FORMAT_VERSION,
+    SegmentedParquetWriter,
+    iter_parquet_rows,
+)
 from .quality import CollectorQualityAudit
 from .storage import (
     NSEArchiveUnavailableError,
@@ -128,6 +137,7 @@ __all__ = [
     "DataCaptureSession",
     "DataCatalog",
     "DatasetAlreadyActiveError",
+    "DatasetFollower",
     "DatasetUnavailableError",
     "DailyInstrumentMasterStore",
     "DhanDailyInstrumentMaster",
@@ -141,6 +151,8 @@ __all__ = [
     "IndexedJsonlTapeReader",
     "JsonlTapeReader",
     "JsonlTapeWriter",
+    "LegacySourceState",
+    "MARKET_EVENT_SCHEMA",
     "KotakInstrumentIndex",
     "NSEArchiveUnavailableError",
     "OptionQuote",
@@ -152,6 +164,9 @@ __all__ = [
     "TimedValue",
     "TapeIndexBuilder",
     "TapeIntegrityError",
+    "ROW_SCHEMA_VERSION",
+    "STORAGE_FORMAT_VERSION",
+    "SegmentedParquetWriter",
     "ValidatedOptionChain",
     "TrendState",
     "VersionedFeatureRow",
@@ -211,6 +226,7 @@ __all__ = [
     "relative_tertile_state",
     "reversal_large_move_mid_parity_dispersion_gate",
     "reversal_pressure_5s",
+    "iter_parquet_rows",
     "classify_trade",
     "ChainUniverse",
     "resolve_data_catalog",

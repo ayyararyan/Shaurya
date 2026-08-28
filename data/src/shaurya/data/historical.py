@@ -1,8 +1,9 @@
-"""DAT-03: typed Dhan bar retrieval and immutable versioned JSONL storage."""
+"""DAT-03: typed Dhan bar retrieval and immutable versioned Parquet storage."""
 
 from __future__ import annotations
 
 import os
+import uuid
 from collections.abc import Iterable, Iterator
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -10,6 +11,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal, Self
 
+import pyarrow as pa
+import pyarrow.parquet as pq
 from pydantic import field_validator, model_validator
 
 from shaurya.contracts.base import ContractModel
@@ -17,6 +20,14 @@ from shaurya.contracts.categories import ObjectCategory
 from shaurya.contracts.instruments import DhanInstrumentMapping
 from shaurya.contracts.timing import IST, require_ist
 from shaurya.data.dhan_client import DhanClient
+
+
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
 
 
 class BarInterval(StrEnum):
@@ -87,45 +98,76 @@ class HistoricalBarStore:
         self.path = path
 
     def write(self, bars: Iterable[HistoricalBar]) -> int:
-        descriptor = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-        count = 0
+        if self.path.exists():
+            raise FileExistsError(self.path)
+        collected: list[HistoricalBar] = []
         prior: HistoricalBar | None = None
-        try:
-            with os.fdopen(descriptor, "wb", closefd=True) as handle:
-                for bar in bars:
-                    if prior is not None:
-                        same_series = (
-                            bar.instrument_id == prior.instrument_id
-                            and bar.interval is prior.interval
-                        )
-                        if not same_series:
-                            raise ValueError(
-                                "one bar artifact must contain one instrument and interval"
-                            )
-                        if bar.bar_start <= prior.bar_start:
-                            raise ValueError("historical bars must be strictly time-ordered")
-                    handle.write((bar.model_dump_json() + "\n").encode())
-                    prior = bar
-                    count += 1
-                handle.flush()
-                os.fsync(handle.fileno())
-        except BaseException:
-            # Preserve a failed artifact for diagnosis; callers decide whether to invalidate it.
-            raise
-        return count
+        for bar in bars:
+            if prior is not None:
+                same_series = (
+                    bar.instrument_id == prior.instrument_id and bar.interval is prior.interval
+                )
+                if not same_series:
+                    raise ValueError("one bar artifact must contain one instrument and interval")
+                if bar.bar_start <= prior.bar_start:
+                    raise ValueError("historical bars must be strictly time-ordered")
+            collected.append(bar)
+            prior = bar
+        schema = pa.schema(
+            [
+                pa.field("schema_version", pa.string(), nullable=False),
+                pa.field("instrument_id", pa.string(), nullable=False),
+                pa.field("broker_security_id", pa.string(), nullable=False),
+                pa.field("interval", pa.string(), nullable=False),
+                pa.field("bar_start", pa.timestamp("ns", tz="Asia/Kolkata"), nullable=False),
+                pa.field("bar_end", pa.timestamp("ns", tz="Asia/Kolkata"), nullable=False),
+                pa.field("open", pa.decimal128(38, 12), nullable=False),
+                pa.field("high", pa.decimal128(38, 12), nullable=False),
+                pa.field("low", pa.decimal128(38, 12), nullable=False),
+                pa.field("close", pa.decimal128(38, 12), nullable=False),
+                pa.field("volume", pa.int64(), nullable=False),
+                pa.field("open_interest", pa.int64()),
+                pa.field("source", pa.string(), nullable=False),
+                pa.field("category", pa.string(), nullable=False),
+            ],
+            metadata={b"shaurya.historical_bar_schema": b"1.0.0"},
+        )
+        records = [bar.model_dump(mode="python") for bar in collected]
+        for record in records:
+            record["interval"] = str(record["interval"])
+            record["category"] = str(record["category"])
+        table = pa.Table.from_pylist(records, schema=schema)
+        self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        partial = self.path.parent / f"{self.path.name}.partial-{uuid.uuid4().hex}"
+        pq.write_table(table, partial, compression="zstd", version="2.6")
+        verified = pq.read_table(partial)
+        if not verified.schema.equals(schema, check_metadata=True) or verified.num_rows != len(
+            collected
+        ):
+            raise ValueError("historical-bar Parquet changed during round-trip")
+        with partial.open("rb") as handle:
+            os.fsync(handle.fileno())
+        os.chmod(partial, 0o600)
+        os.rename(partial, self.path)
+        _fsync_directory(self.path.parent)
+        return len(collected)
 
     def rows(self) -> Iterator[HistoricalBar]:
         prior: HistoricalBar | None = None
-        with self.path.open(encoding="utf-8") as handle:
-            for line_number, line in enumerate(handle, start=1):
-                try:
-                    bar = HistoricalBar.model_validate_json(line)
-                except ValueError as exc:
-                    raise ValueError(f"invalid historical bar at line {line_number}") from exc
-                if prior is not None and bar.bar_start <= prior.bar_start:
-                    raise ValueError(f"historical bars are not ordered at line {line_number}")
-                prior = bar
-                yield bar
+        table = pq.read_table(self.path)
+        if table.schema.metadata != {b"shaurya.historical_bar_schema": b"1.0.0"}:
+            raise ValueError("unsupported historical-bar Parquet schema")
+        for row_number, record in enumerate(table.to_pylist(), start=1):
+            try:
+                record["interval"] = BarInterval(record["interval"])
+                record["category"] = ObjectCategory(record["category"])
+                bar = HistoricalBar.model_validate(record)
+            except ValueError as exc:
+                raise ValueError(f"invalid historical bar at row {row_number}") from exc
+            if prior is not None and bar.bar_start <= prior.bar_start:
+                raise ValueError(f"historical bars are not ordered at row {row_number}")
+            prior = bar
+            yield bar
 
     def gaps(self) -> tuple[tuple[datetime, datetime], ...]:
         missing: list[tuple[datetime, datetime]] = []

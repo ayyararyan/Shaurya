@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import os
+import socket
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -14,6 +17,7 @@ from shaurya.contracts.data import (
     DatasetHandle,
     DatasetRequest,
     DatasetStatus,
+    StorageFormat,
 )
 from shaurya.contracts.tape import DepthLevel, TapeRow
 from shaurya.data.access import (
@@ -22,6 +26,7 @@ from shaurya.data.access import (
     DataCatalog,
     DatasetAlreadyActiveError,
     DatasetUnavailableError,
+    LegacySourceState,
 )
 from shaurya.data.tape import TapeIntegrityError
 
@@ -64,6 +69,35 @@ def _row(sequence: int, *, channel: DataChannel, seconds: int) -> TapeRow:
     )
 
 
+def _write_completed_legacy(path: Path, rows: tuple[TapeRow, ...]) -> None:
+    path.write_text("".join(json.dumps(row.to_dict()) + "\n" for row in rows), encoding="utf-8")
+    events = (
+        {"event_type": "run_started"},
+        {
+            "event_type": "artifact_closed",
+            "artifact": path.name,
+            "bytes": path.stat().st_size,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        },
+        {"event_type": "run_completed"},
+    )
+    manifest = path.parent / f"manifest_{RUN_ID}.jsonl"
+    manifest.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "run_id": str(RUN_ID),
+                    "manifest_sequence": sequence,
+                    **event,
+                }
+            )
+            + "\n"
+            for sequence, event in enumerate(events, 1)
+        ),
+        encoding="utf-8",
+    )
+
+
 def _completed_dataset(
     tmp_path: Path, *, archive: bool = False
 ) -> tuple[DataAccess, DatasetHandle]:
@@ -75,6 +109,7 @@ def _completed_dataset(
         run_id=RUN_ID,
         fsync_every=1,
         index_stride_rows=2,
+        segment_max_rows=2,
     )
     session.write(_row(1, channel=DataChannel.STANDARD, seconds=0))
     session.write(_row(2, channel=DataChannel.DEPTH20, seconds=1))
@@ -128,6 +163,53 @@ def test_capture_claim_is_published_and_duplicate_is_blocked(tmp_path: Path) -> 
     session.close(invalidation_reason="test cleanup")
 
 
+def test_concurrent_exact_acquisitions_create_only_one_active_dataset(tmp_path: Path) -> None:
+    catalog = DataCatalog(tmp_path / "catalog" / "datasets")
+
+    def create() -> DataCaptureSession | DatasetAlreadyActiveError:
+        try:
+            return DataCaptureSession.create(
+                catalog=catalog,
+                request=_request("CONCURRENT"),
+                output_root=tmp_path / "raw",
+            )
+        except DatasetAlreadyActiveError as exc:
+            return exc
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        outcomes = tuple(executor.map(lambda _item: create(), range(2)))
+    sessions = [item for item in outcomes if isinstance(item, DataCaptureSession)]
+    conflicts = [item for item in outcomes if isinstance(item, DatasetAlreadyActiveError)]
+
+    assert len(sessions) == 1
+    assert len(conflicts) == 1
+    assert conflicts[0].handle.dataset_id == sessions[0].dataset_id
+    sessions[0].close(invalidation_reason="test cleanup")
+
+
+def test_dead_local_claim_publishes_orphaned_terminal_state(tmp_path: Path) -> None:
+    catalog = DataCatalog(tmp_path / "catalog")
+    request = _request("ORPHAN")
+    handle = DatasetHandle(
+        dataset_id=str(RUN_ID),
+        acquisition_fingerprint=request.acquisition_fingerprint,
+        source="dhan",
+        status=DatasetStatus.ACTIVE,
+        producer_pid=999_999_999,
+        producer_host=socket.gethostname(),
+        trading_date=request.trading_date,
+        channels=request.channels,
+        instrument_ids=request.instrument_ids,
+        tape_path=str(tmp_path / "orphan.jsonl"),
+        started_at=datetime(2026, 8, 21, 3, 0, tzinfo=UTC),
+    )
+    catalog.register(handle)
+    catalog.acquire_claim(request, dataset_id=handle.dataset_id, producer_pid=999_999_999)
+
+    assert catalog.claim_handle(request) is None
+    assert catalog.get(handle.dataset_id).status is DatasetStatus.ORPHANED
+
+
 def test_active_dataset_follow_reads_rows_written_after_handle_resolution(tmp_path: Path) -> None:
     catalog = DataCatalog(tmp_path / "catalog" / "datasets.jsonl")
     session = DataCaptureSession.create(
@@ -136,6 +218,7 @@ def test_active_dataset_follow_reads_rows_written_after_handle_resolution(tmp_pa
         output_root=tmp_path / "raw",
         run_id=RUN_ID,
         fsync_every=1,
+        segment_max_rows=1,
     )
     access = DataAccess(catalog)
     signal_handle = access.request(_request("SIG-23"))
@@ -149,15 +232,16 @@ def test_active_dataset_follow_reads_rows_written_after_handle_resolution(tmp_pa
     session.close(invalidation_reason="test cleanup")
 
 
-def test_completed_capture_has_index_hashes_and_filtered_retrieval(tmp_path: Path) -> None:
+def test_completed_capture_has_segment_hashes_and_filtered_retrieval(tmp_path: Path) -> None:
     access, handle = _completed_dataset(tmp_path)
     assert handle.status is DatasetStatus.COMPLETED
     assert handle.rows == 3
-    assert handle.tape_sha256
-    assert handle.index_sha256
-    assert handle.index_path is not None
-    payload = json.loads(Path(handle.index_path).read_text(encoding="utf-8"))
-    assert payload["channel_rows"] == {"depth20": 2, "standard": 1}
+    assert handle.storage_format is StorageFormat.SEGMENTED_PARQUET
+    assert handle.dataset_digest
+    assert len(handle.segments) == 2
+    assert all(segment.sha256 for segment in handle.segments)
+    assert handle.tape_path is None
+    assert handle.index_path is None
 
     rows = tuple(
         access.rows(
@@ -171,27 +255,29 @@ def test_completed_capture_has_index_hashes_and_filtered_retrieval(tmp_path: Pat
     assert resolved.dataset_id == handle.dataset_id
 
 
-def test_lossless_cold_archive_remains_replayable_without_warm_copy(tmp_path: Path) -> None:
+def test_parquet_capture_is_already_compressed_and_archive_promotion_is_noop(
+    tmp_path: Path,
+) -> None:
     access, handle = _completed_dataset(tmp_path, archive=True)
-    assert handle.archive_path is not None
-    warm = Path(handle.tape_path)
-    warm.unlink()
+    assert handle.archive_path is None
+    assert access.promote_archive(handle) == handle
     replayed = tuple(access.rows(handle))
     assert [row.receive_sequence for row in replayed] == [1, 2, 3]
 
 
-def test_published_hashes_fail_closed_after_tape_or_index_tampering(tmp_path: Path) -> None:
+def test_published_hashes_fail_closed_after_segment_or_dataset_tampering(tmp_path: Path) -> None:
     access, handle = _completed_dataset(tmp_path)
-    index_path = Path(handle.index_path or "")
-    index_path.write_text("{}\n", encoding="utf-8")
-    with pytest.raises(TapeIntegrityError, match="index hash"):
+    with Path(handle.segments[0].path).open("ab") as target:
+        target.write(b"tamper")
+    with pytest.raises(TapeIntegrityError, match="segment hash"):
         tuple(access.rows(handle))
 
     access, handle = _completed_dataset(tmp_path / "second")
-    with Path(handle.tape_path).open("ab") as target:
-        target.write(b"{}\n")
-    with pytest.raises(TapeIntegrityError, match="tape hash"):
-        tuple(access.rows(handle))
+    forged = DatasetHandle.model_validate(
+        handle.model_copy(update={"dataset_digest": "0" * 64}).model_dump()
+    )
+    with pytest.raises(TapeIntegrityError, match="dataset digest"):
+        tuple(access.rows(forged))
 
 
 def test_dead_active_producer_is_not_reused(tmp_path: Path) -> None:
@@ -217,18 +303,43 @@ def test_dead_active_producer_is_not_reused(tmp_path: Path) -> None:
 
 def test_legacy_tape_is_adopted_indexed_and_then_read_through_dat(tmp_path: Path) -> None:
     tape = tmp_path / "legacy.jsonl"
-    tape.write_text(
-        "".join(
-            json.dumps(_row(index, channel=DataChannel.DEPTH20, seconds=index).to_dict()) + "\n"
-            for index in (1, 2)
-        ),
-        encoding="utf-8",
+    _write_completed_legacy(
+        tape,
+        tuple(_row(index, channel=DataChannel.DEPTH20, seconds=index) for index in (1, 2)),
     )
     access = DataAccess(DataCatalog(tmp_path / "catalog.jsonl"))
-    handle = access.adopt_legacy_tape(tape, consumer="SIG-23", purpose="legacy evidence")
+    handle = access.adopt_legacy_tape(
+        tape,
+        source_state=LegacySourceState.COMPLETED,
+        consumer="SIG-23",
+        purpose="legacy evidence",
+    )
     assert handle.source == "legacy_tape"
     assert Path(handle.index_path or "").is_file()
     assert [row.receive_sequence for row in access.rows(handle)] == [1, 2]
+
+
+def test_completed_legacy_adoption_rejects_torn_or_noncompleted_evidence(
+    tmp_path: Path,
+) -> None:
+    tape = tmp_path / "legacy.jsonl"
+    tape.write_text(json.dumps(_row(1, channel=DataChannel.DEPTH20, seconds=1).to_dict()))
+    access = DataAccess(DataCatalog(tmp_path / "catalog.jsonl"))
+
+    with pytest.raises(TapeIntegrityError, match="torn"):
+        access.adopt_legacy_tape(
+            tape,
+            source_state=LegacySourceState.COMPLETED,
+            consumer="SIG-23",
+            purpose="legacy evidence",
+        )
+    with pytest.raises(ValueError, match="explicitly completed"):
+        access.adopt_legacy_tape(
+            tape,
+            source_state=LegacySourceState.CANCELLED,
+            consumer="SIG-23",
+            purpose="legacy evidence",
+        )
 
 
 def test_active_legacy_tape_is_registered_and_torn_tail_is_not_consumed(tmp_path: Path) -> None:

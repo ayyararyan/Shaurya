@@ -50,9 +50,7 @@ def resolve_nifty_front_month_future(
     if not candidates:
         raise ValueError("same-day Dhan master contains no unexpired NIFTY future")
     expiries = [
-        mapping.instrument.expiry
-        for mapping in candidates
-        if mapping.instrument.expiry is not None
+        mapping.instrument.expiry for mapping in candidates if mapping.instrument.expiry is not None
     ]
     expiry = min(expiries)
     front = [mapping for mapping in candidates if mapping.instrument.expiry == expiry]
@@ -117,23 +115,32 @@ def assert_replication_metrics(metrics: Mapping[str, Any]) -> None:
             raise ValueError(f"OFI replication capture has no {field}")
 
 
-def iter_session_rows(
-    tape: Path, *, trading_date: date = TRADING_DATE
-) -> Iterator[dict[str, Any]]:
+def iter_session_rows(tape: Path, *, trading_date: date = TRADING_DATE) -> Iterator[dict[str, Any]]:
     """Yield only rows inside the exact dated regular session, in tape order."""
 
+    def tape_rows() -> Iterator[dict[str, Any]]:
+        with tape.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                loaded = json.loads(line)
+                if isinstance(loaded, dict):
+                    yield loaded
+
+    yield from iter_session_records(tape_rows(), trading_date=trading_date)
+
+
+def iter_session_records(
+    rows: Iterable[Mapping[str, Any]], *, trading_date: date = TRADING_DATE
+) -> Iterator[dict[str, Any]]:
+    """Yield logical rows inside the exact dated regular session, preserving order."""
+
     opened, closed = nse_equity_derivatives_session_bounds(trading_date)
-    with tape.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
-            if not line:
-                continue
-            loaded = json.loads(line)
-            if not isinstance(loaded, dict):
-                continue
-            stamp = parse_receive_ts(loaded.get("receive_ts"))
-            if stamp is not None and opened <= stamp <= closed:
-                yield loaded
+    for row in rows:
+        stamp = parse_receive_ts(row.get("receive_ts"))
+        if stamp is not None and opened <= stamp <= closed:
+            yield dict(row)
 
 
 def filtered_session_rows(tape: Path, event_types: Iterable[str]) -> list[dict[str, Any]]:
@@ -149,24 +156,57 @@ def inspect_replication_capture(
     manifest_sha256: str | None,
     inspected_at: datetime | None = None,
 ) -> dict[str, Any]:
-    """Return the terminal acceptance receipt from actual raw-tape receive timestamps."""
+    """Return a legacy-tape acceptance receipt through the format-neutral row checker."""
+
+    def rows() -> Iterator[dict[str, Any]]:
+        with tape.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                loaded = json.loads(line)
+                if isinstance(loaded, dict):
+                    yield loaded
+
+    return inspect_replication_rows(
+        rows(),
+        metrics,
+        data_digest=tape_sha256,
+        catalog_digest=manifest_sha256,
+        inspected_at=inspected_at,
+        source={
+            "tape": str(tape),
+            "tape_sha256": tape_sha256,
+            "manifest_sha256": manifest_sha256,
+        },
+    )
+
+
+def inspect_replication_rows(
+    rows: Iterable[Mapping[str, Any]],
+    metrics: Mapping[str, Any],
+    *,
+    data_digest: str,
+    catalog_digest: str | None,
+    inspected_at: datetime | None = None,
+    source: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return the terminal acceptance receipt from logical receive-ordered rows."""
 
     reasons: list[str] = []
     try:
         assert_replication_metrics(metrics)
     except ValueError as exc:
         reasons.append(str(exc))
-    if manifest_sha256 is None:
-        reasons.append("append-only manifest does not contain a closed-tape hash")
-    elif manifest_sha256 != tape_sha256:
-        reasons.append("raw tape SHA-256 does not match the append-only manifest")
+    if catalog_digest is None:
+        reasons.append("catalogue does not contain a closed-dataset digest")
+    elif catalog_digest != data_digest:
+        reasons.append("logical data digest does not match the catalogue")
 
     opened, closed = nse_equity_derivatives_session_bounds(TRADING_DATE)
     first: dict[str, datetime | None] = {channel: None for channel in REQUIRED_CHANNELS}
     last: dict[str, datetime | None] = {channel: None for channel in REQUIRED_CHANNELS}
-    first_after_close: dict[str, datetime | None] = {
-        channel: None for channel in REQUIRED_CHANNELS
-    }
+    first_after_close: dict[str, datetime | None] = {channel: None for channel in REQUIRED_CHANNELS}
     first_complete: dict[str, datetime | None] = {"depth20": None, "depth200": None}
     last_complete: dict[str, datetime | None] = {"depth20": None, "depth200": None}
     first_complete_after_close: dict[str, datetime | None] = {
@@ -179,46 +219,39 @@ def inspect_replication_capture(
     instrument_ids: set[str] = set()
     observed_dates: set[date] = set()
 
-    with tape.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
-            if not line:
-                continue
-            loaded = json.loads(line)
-            if not isinstance(loaded, dict):
-                continue
-            stamp = parse_receive_ts(loaded.get("receive_ts"))
-            if stamp is None:
-                continue
-            observed_dates.add(stamp.date())
-            run_ids.add(str(loaded.get("run_id") or ""))
-            instrument_ids.add(str(loaded.get("instrument_id") or ""))
-            event_type = loaded.get("event_type")
-            channel = "standard" if event_type == "full" else event_type
-            if channel not in counts:
-                continue
-            counts[channel] += 1
-            if first[channel] is None:
-                first[channel] = stamp
-            last[channel] = stamp
-            if stamp >= closed and first_after_close[channel] is None:
-                first_after_close[channel] = stamp
-            if channel in complete_counts and loaded.get("bids") and loaded.get("asks"):
-                complete_counts[channel] += 1
-                if first_complete[channel] is None:
-                    first_complete[channel] = stamp
-                last_complete[channel] = stamp
-                if stamp >= closed and first_complete_after_close[channel] is None:
-                    first_complete_after_close[channel] = stamp
+    for loaded in rows:
+        stamp = parse_receive_ts(loaded.get("receive_ts"))
+        if stamp is None:
+            continue
+        observed_dates.add(stamp.date())
+        run_ids.add(str(loaded.get("run_id") or ""))
+        instrument_ids.add(str(loaded.get("instrument_id") or ""))
+        event_type = loaded.get("event_type")
+        channel = "standard" if event_type == "full" else event_type
+        if channel not in counts:
+            continue
+        counts[channel] += 1
+        if first[channel] is None:
+            first[channel] = stamp
+        last[channel] = stamp
+        if stamp >= closed and first_after_close[channel] is None:
+            first_after_close[channel] = stamp
+        if channel in complete_counts and loaded.get("bids") and loaded.get("asks"):
+            complete_counts[channel] += 1
+            if first_complete[channel] is None:
+                first_complete[channel] = stamp
+            last_complete[channel] = stamp
+            if stamp >= closed and first_complete_after_close[channel] is None:
+                first_complete_after_close[channel] = stamp
 
     expected_run = str(metrics.get("run_id") or "")
     expected_instrument = str(metrics.get("instrument_id") or "")
     if run_ids != {expected_run}:
-        reasons.append("raw tape contains mixed or unexpected run identities")
+        reasons.append("logical dataset contains mixed or unexpected run identities")
     if instrument_ids != {expected_instrument}:
-        reasons.append("raw tape contains mixed or unexpected instrument identities")
+        reasons.append("logical dataset contains mixed or unexpected instrument identities")
     if observed_dates != {TRADING_DATE}:
-        reasons.append("raw tape crosses or misses the registered trading date")
+        reasons.append("logical dataset crosses or misses the registered trading date")
     open_limit = opened + OPENING_PUBLICATION_TOLERANCE
     close_floor = closed - CLOSING_PUBLICATION_TOLERANCE
     inspection_time = (inspected_at or datetime.now(IST)).astimezone(IST)
@@ -246,11 +279,10 @@ def inspect_replication_capture(
 
     def encoded(values: Mapping[str, datetime | None]) -> dict[str, str | None]:
         return {
-            key: value.isoformat() if value is not None else None
-            for key, value in values.items()
+            key: value.isoformat() if value is not None else None for key, value in values.items()
         }
 
-    return {
+    receipt = {
         "schema_version": "1.1.0",
         "protocol_id": PROTOCOL_ID,
         "registration_commit": REGISTRATION_COMMIT,
@@ -259,9 +291,8 @@ def inspect_replication_capture(
         "sample_role": "prospective_full_session_replication",
         "confirmatory_eligible": False,
         "sig21_calibration_eligible": False,
-        "tape": str(tape),
-        "tape_sha256": tape_sha256,
-        "manifest_sha256": manifest_sha256,
+        "data_digest": data_digest,
+        "catalog_digest": catalog_digest,
         "run_id": expected_run,
         "instrument_id": expected_instrument,
         "session": {"open": opened.isoformat(), "close": closed.isoformat()},
@@ -278,11 +309,12 @@ def inspect_replication_capture(
         "accepted": not reasons,
         "reasons": reasons,
     }
+    receipt.update(dict(source or {}))
+    return receipt
 
 
 def require_accepted_receipt(receipt: Mapping[str, Any]) -> None:
     if receipt.get("accepted") is not True:
         raise ValueError(
-            "full-session replication capture is ineligible: "
-            f"{receipt.get('reasons')}"
+            f"full-session replication capture is ineligible: {receipt.get('reasons')}"
         )

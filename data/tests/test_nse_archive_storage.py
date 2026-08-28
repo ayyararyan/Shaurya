@@ -63,7 +63,7 @@ def test_default_catalog_uses_daily_metadata_lane(
 
     catalog = resolve_data_catalog(None, trading_date=date(2026, 8, 21))
 
-    assert catalog == archive / "2026-08-21" / "metadata" / "datasets.jsonl"
+    assert catalog == archive / "2026-08-21" / "metadata" / "datasets"
 
 
 def test_controlled_local_catalog_sits_beside_capture_root(tmp_path: Path) -> None:
@@ -76,7 +76,7 @@ def test_controlled_local_catalog_sits_beside_capture_root(tmp_path: Path) -> No
         nonarchive_capture_root=raw,
     )
 
-    assert catalog == tmp_path / "datasets.jsonl"
+    assert catalog == tmp_path / "datasets"
 
 
 def test_nonarchive_capture_is_rejected_without_controlled_override(tmp_path: Path) -> None:

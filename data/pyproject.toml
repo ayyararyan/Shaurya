@@ -12,6 +12,7 @@ dependencies = [
   "dhanhq>=2.2,<3",
   "numpy>=2.0,<2.3",
   "pandas>=2.2,<4",
+  "pyarrow>=18,<24",
   "pydantic>=2.10,<3",
   "scipy>=1.14,<2",
   "websockets>=15,<18",
@@ -56,5 +57,14 @@ strict = true
 packages = ["shaurya.contracts", "shaurya.data", "shaurya.data_cli"]
 
 [[tool.mypy.overrides]]
-module = ["dhanhq", "dhanhq.*", "pandas", "pandas.*", "scipy", "scipy.*"]
+module = [
+  "dhanhq",
+  "dhanhq.*",
+  "pandas",
+  "pandas.*",
+  "pyarrow",
+  "pyarrow.*",
+  "scipy",
+  "scipy.*",
+]
 ignore_missing_imports = true

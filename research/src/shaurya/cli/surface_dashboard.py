@@ -32,7 +32,13 @@ from shaurya.contracts.instruments import (
 )
 from shaurya.contracts.tape import TapeRow
 from shaurya.contracts.timing import IST
-from shaurya.data import DataAccess, DataCatalog, resolve_data_catalog, select_chain_universe
+from shaurya.data import (
+    DataAccess,
+    DataCatalog,
+    LegacySourceState,
+    resolve_data_catalog,
+    select_chain_universe,
+)
 
 from shaurya.analytics.mispricing import InstrumentMetadata, MispricingPolicy
 from shaurya.analytics.server import DashboardState, serve_in_background
@@ -111,8 +117,12 @@ def _parser() -> argparse.ArgumentParser:
         type=int,
         help="Replay fallback only. Live mode uses the date-stamped Dhan master per contract.",
     )
-    parser.add_argument("--serve-seconds", type=float, default=0.0,
-                        help="Stop after this many seconds; 0 serves until interrupted.")
+    parser.add_argument(
+        "--serve-seconds",
+        type=float,
+        default=0.0,
+        help="Stop after this many seconds; 0 serves until interrupted.",
+    )
     parser.add_argument(
         "--data-catalog",
         type=Path,
@@ -137,8 +147,12 @@ def _parser() -> argparse.ArgumentParser:
         type=Path,
         help="legacy tape; DAT adopts and indexes it before SUR ingests",
     )
-    parser.add_argument("--replay-speed", type=float, default=0.0,
-                        help="replay mode: 0 replays as fast as possible, 1.0 is real time")
+    parser.add_argument(
+        "--replay-speed",
+        type=float,
+        default=0.0,
+        help="replay mode: 0 replays as fast as possible, 1.0 is real time",
+    )
     parser.add_argument("--security-master", type=Path)
     parser.add_argument("--underlying", default="NIFTY")
     parser.add_argument("--spot", type=float)
@@ -203,13 +217,9 @@ def _engine(
             fdr_level=args.mispricing_fdr_level,
             confirmation_frames=args.mispricing_confirmation_frames,
             correction_frames=args.mispricing_correction_frames,
-            reference_smoothing_half_life_seconds=(
-                args.mispricing_reference_half_life_seconds
-            ),
+            reference_smoothing_half_life_seconds=(args.mispricing_reference_half_life_seconds),
             reference_smoothing_min_frames=args.mispricing_reference_min_frames,
-            reference_smoothing_max_gap_seconds=(
-                args.mispricing_reference_max_gap_seconds
-            ),
+            reference_smoothing_max_gap_seconds=(args.mispricing_reference_max_gap_seconds),
             reference_max_raw_smoothed_iv_gap_points=(
                 args.mispricing_reference_max_raw_smoothed_iv_gap_points
             ),
@@ -272,9 +282,7 @@ def _summarise(engine: SurfaceEngine) -> dict[str, Any]:
         "surface_age_max": surface_ages[-1] if surface_ages else None,
         "temporal_smoothing_states": sorted(smoothing_states),
         "arbitrage_failing_snapshots": arbitrage_failures,
-        "instruments_tracked": (
-            history[-1].health.tracked_instrument_count if history else 0
-        ),
+        "instruments_tracked": (history[-1].health.tracked_instrument_count if history else 0),
         "reconnects": history[-1].health.reconnect_count if history else 0,
     }
 
@@ -294,9 +302,7 @@ def _resolve_dataset(
         allow_nonarchive=args.allow_nonarchive_catalog,
     )
     access = DataAccess(DataCatalog(catalog_path))
-    metadata = _metadata_from_mappings(
-        mappings, default_tick_size=args.default_option_tick_size
-    )
+    metadata = _metadata_from_mappings(mappings, default_tick_size=args.default_option_tick_size)
     if args.dataset_id is not None:
         return access, access.handle(args.dataset_id), metadata
     if args.tape is not None:
@@ -304,6 +310,7 @@ def _resolve_dataset(
             access,
             access.adopt_legacy_tape(
                 args.tape,
+                source_state=LegacySourceState.COMPLETED,
                 consumer="SUR-09",
                 purpose="eSSVI surface ingestion",
             ),
@@ -330,9 +337,13 @@ def _resolve_dataset(
         instrument_ids=tuple(item.instrument.canonical for item in universe.instruments),
         allow_active=args.mode != "replay",
     )
-    return access, access.request(request), _metadata_from_mappings(
-        universe.options,
-        default_tick_size=args.default_option_tick_size,
+    return (
+        access,
+        access.request(request),
+        _metadata_from_mappings(
+            universe.options,
+            default_tick_size=args.default_option_tick_size,
+        ),
     )
 
 
@@ -380,6 +391,8 @@ def _run_replay(
             time.sleep(args.serve_seconds)
     finally:
         server.shutdown()
+    if handle.status not in {DatasetStatus.ACTIVE, DatasetStatus.COMPLETED}:
+        raise ValueError(f"surface follow ended with ineligible dataset state {handle.status}")
     summary = _summarise(engine)
     summary["dataset_id"] = handle.dataset_id
     summary["dataset_status"] = str(handle.status)
@@ -422,10 +435,7 @@ def _run_follow(
                     engine.fit(now)
             if batch.bytes_read == 0:
                 latest = access.handle(handle.dataset_id)
-                if (
-                    latest.status is not DatasetStatus.ACTIVE
-                    and tail.offset == Path(latest.tape_path).stat().st_size
-                ):
+                if latest.status is not DatasetStatus.ACTIVE and tail.finished:
                     handle = latest
                     break
             time.sleep(args.follow_poll_seconds)
@@ -445,7 +455,8 @@ def _run_follow(
     summary = _summarise(engine)
     summary["dataset_id"] = handle.dataset_id
     summary["dataset_status"] = str(handle.status)
-    summary["tape_path"] = handle.tape_path
+    summary["storage_format"] = str(handle.storage_format or "legacy_jsonl")
+    summary["dataset_digest"] = handle.dataset_digest or handle.tape_sha256
     summary["transport_error"] = type(error).__name__ if error else None
     if error is not None:
         raise error

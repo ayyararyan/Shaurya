@@ -363,6 +363,7 @@ def analyze_tape_rows(
 def analyze_alignment_tapes(
     paths: Sequence[Path], *, post_quote_horizon_ms: float = 1000.0
 ) -> dict[str, Any]:
+    """Replay explicitly supplied immutable legacy tapes for the historical DAT-15 audit."""
     if not paths:
         raise ValueError("at least one tape path is required")
     tapes = {str(path): tuple(JsonlTapeReader(path).rows()) for path in paths}

@@ -2,7 +2,15 @@
 
 from .artifacts import ArtifactManifest, RunId
 from .categories import CATEGORY_SEMANTICS, ObjectCategory, ObjectLabel
-from .data import DataChannel, DatasetHandle, DatasetRequest, DatasetStatus
+from .data import (
+    DataChannel,
+    DatasetHandle,
+    DatasetRequest,
+    DatasetSegment,
+    DatasetStatus,
+    OperationalArtifact,
+    StorageFormat,
+)
 from .instruments import (
     DhanInstrumentMapping,
     DhanInstrumentMaster,
@@ -24,7 +32,10 @@ __all__ = [
     "DataChannel",
     "DatasetHandle",
     "DatasetRequest",
+    "DatasetSegment",
     "DatasetStatus",
+    "OperationalArtifact",
+    "StorageFormat",
     "DhanInstrumentMapping",
     "DhanInstrumentMaster",
     "ExchangeSegment",

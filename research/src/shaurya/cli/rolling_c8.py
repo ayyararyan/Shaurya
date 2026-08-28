@@ -9,7 +9,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
-from shaurya.contracts.data import DatasetStatus
+from shaurya.contracts.data import DatasetHandle, DatasetStatus
 from shaurya.contracts.timing import IST
 from shaurya.data import DataAccess, DataCatalog, resolve_data_catalog
 
@@ -179,6 +179,64 @@ class RollingTapeBuffer:
         }
 
 
+class RollingDatasetBuffer:
+    """Bounded rolling state fed only by DataAccess logical rows."""
+
+    def __init__(self, access: DataAccess, handle: DatasetHandle) -> None:
+        self.access = access
+        self.dataset_id = handle.dataset_id
+        self.follower = access.follow(handle)
+        self.depth20: list[BookState] = []
+        self.depth200: list[BookState] = []
+        self.rows_parsed = 0
+        self.last_receive_ts = ""
+        self.poll()
+
+    def poll(self) -> int:
+        batch = self.follower.poll()
+        depth20_rows: list[dict[str, Any]] = []
+        depth200_rows: list[dict[str, Any]] = []
+        for row in batch.rows:
+            raw_ts = row.get("receive_ts")
+            if not isinstance(raw_ts, str):
+                raise ValueError("logical DAT row has no receive_ts")
+            self.last_receive_ts = raw_ts
+            if row.get("event_type") == DEPTH20:
+                depth20_rows.append(row)
+            elif row.get("event_type") == DEPTH200:
+                depth200_rows.append(row)
+        for state in build_states(depth20_rows, DEPTH20):
+            _append_state(self.depth20, state)
+        for state in build_states(depth200_rows, DEPTH200):
+            _append_state(self.depth200, state)
+        self.rows_parsed += len(batch.rows)
+        newest = max(
+            self.depth20[-1].receive_ts_ns if self.depth20 else 0,
+            self.depth200[-1].receive_ts_ns if self.depth200 else 0,
+        )
+        cutoff = newest - int(BUFFER_SECONDS * 1_000_000_000)
+        self.depth20 = [state for state in self.depth20 if state.receive_ts_ns >= cutoff]
+        self.depth200 = [state for state in self.depth200 if state.receive_ts_ns >= cutoff]
+        return len(batch.rows)
+
+    def source(self, dataset_id: str) -> dict[str, Any]:
+        handle = self.access.handle(dataset_id)
+        return {
+            "dataset_id": dataset_id,
+            "storage_format": str(handle.storage_format or "legacy_jsonl"),
+            "dataset_digest": handle.dataset_digest or handle.tape_sha256,
+            "published_bytes_consumed": self.follower.offset,
+            "last_receive_ts": self.last_receive_ts,
+            "rows_parsed_since_start": self.rows_parsed,
+            "depth20_buffered": len(self.depth20),
+            "depth200_buffered": len(self.depth200),
+        }
+
+    @property
+    def finished(self) -> bool:
+        return self.follower.finished
+
+
 def _append_rows(path: Path, rows: list[dict[str, Any]]) -> None:
     append_jsonl(path, rows)
 
@@ -217,11 +275,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
     if handle.status is DatasetStatus.INVALIDATED:
         raise ValueError("rolling C8 cannot consume an invalidated dataset")
-    tape = RollingTapeBuffer(Path(handle.tape_path))
+    tape = RollingDatasetBuffer(access, handle)
     tracker = RollingC8Tracker.load(args.state_output)
     args.artifact_dir.mkdir(parents=True, exist_ok=True)
     forecast_log = args.artifact_dir / "forecasts.jsonl"
     outcome_log = args.artifact_dir / "outcomes.jsonl"
+    while not tape.depth20:
+        if tape.finished:
+            raise ValueError("dataset completed without a usable depth20 publication")
+        if args.once:
+            raise ValueError("dataset has no published depth20 segment yet")
+        time.sleep(args.poll_seconds)
+        tape.poll()
     initial_price_path = build_displayed_mid_path(tape.depth20)
     tracker.restore_recent_win_scores(
         _read_jsonl(outcome_log), as_of_ts_ns=initial_price_path.coverage_end_ts_ns

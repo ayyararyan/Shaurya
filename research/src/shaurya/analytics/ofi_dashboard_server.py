@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from shaurya.data import CompleteLineJsonlTail
+from shaurya.data import DatasetFollower
 
 from shaurya.analytics.ofi_dashboard import OfiDashboardEngine
 
@@ -84,9 +84,7 @@ def _compact_live_studies(live: Any) -> dict[str, Any]:
         "updated_at": live_map.get("updated_at"),
         "last_error": live_map.get("last_error"),
         "confirmatory_eligible": live_map.get("confirmatory_eligible", False),
-        "successive_prefixes_independent": live_map.get(
-            "successive_prefixes_independent", False
-        ),
+        "successive_prefixes_independent": live_map.get("successive_prefixes_independent", False),
         "source": {
             key: source.get(key)
             for key in (
@@ -224,7 +222,7 @@ class OfiDashboardState:
     def __init__(
         self,
         engine: OfiDashboardEngine,
-        tail: CompleteLineJsonlTail,
+        tail: DatasetFollower,
         *,
         live_studies_path: Path | None = None,
         rolling_c8_path: Path | None = None,
