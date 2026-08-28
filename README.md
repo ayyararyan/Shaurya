@@ -127,10 +127,9 @@ uv run shaurya-dhan-capture \
 
 uv run shaurya-chain-capture --help   # option-chain capture
 
-uv run shaurya-daily-chain-launch \
-  --credentials /absolute/external/path/dhan.env \
-  --security-master /absolute/external/path/security_id_list.csv \
-  --launch   # canonical daily entry point: whole chain, every underlying, every session
+uv run shaurya-daily-chain-launch --launch
+  # canonical daily entry point: whole chain, every underlying, every session; see
+  # data/README.md for the default credentials/security-master/output-root paths
 ```
 
 **Research — daily post-close pipeline** (from `research/`, after `uv sync`):

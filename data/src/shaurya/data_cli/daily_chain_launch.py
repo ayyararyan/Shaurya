@@ -6,6 +6,10 @@ underlying. `shaurya-chain-capture` resolves live spot and expiries itself when 
 omitted, so this launcher never duplicates that Dhan call; it only owns scheduling and
 per-underlying orchestration. `shaurya-dhan-capture` (single instrument) remains available
 for isolated diagnostics, but it is never the daily production entry point: this command is.
+
+`--credentials` and `--security-master` default to this machine's live operational paths but
+stay overridable; `--output-root` overrides where captures land, on top of the archive's own
+`SHAURYA_NSE_ARCHIVE_ROOT` environment override (default `/Volumes/Aryan/NSE`).
 """
 
 from __future__ import annotations
@@ -20,6 +24,12 @@ from pathlib import Path
 from shaurya.contracts.timing import IST, nse_equity_derivatives_session_bounds
 
 DEFAULT_UNDERLYINGS: tuple[str, ...] = ("NIFTY", "BANKNIFTY")
+DEFAULT_CREDENTIALS_PATH = Path.home() / "Documents" / "Market-Making-Secrets" / "dhan.env"
+DEFAULT_SECURITY_MASTER_DIR = Path(__file__).resolve().parents[3] / "instrument-masters"
+
+
+def default_security_master_path(trading_date: date) -> Path:
+    return DEFAULT_SECURITY_MASTER_DIR / f"dhan_instrument_master_{trading_date.isoformat()}.csv"
 
 
 def duration_seconds_to_close(trading_date: date, *, now: datetime) -> float:
@@ -41,8 +51,9 @@ def build_capture_command(
     expiry_count: int,
     strike_window_fraction: float,
     max_options: int,
+    output_root: Path | None = None,
 ) -> list[str]:
-    return [
+    command = [
         "shaurya-chain-capture",
         "--credentials",
         str(credentials),
@@ -60,6 +71,9 @@ def build_capture_command(
         str(int(duration_seconds)),
         "--archive-on-close",
     ]
+    if output_root is not None:
+        command += ["--output-root", str(output_root)]
+    return command
 
 
 def _launch_tmux(session: str, commands: Sequence[tuple[str, list[str]]]) -> None:
@@ -82,16 +96,19 @@ def run(args: argparse.Namespace, *, now: datetime | None = None) -> int:
     trading_date = args.date or resolved_now.date()
     underlyings: list[str] = args.underlying or list(DEFAULT_UNDERLYINGS)
     duration_seconds = duration_seconds_to_close(trading_date, now=resolved_now)
+    credentials = args.credentials or DEFAULT_CREDENTIALS_PATH
+    security_master = args.security_master or default_security_master_path(trading_date)
     commands: list[tuple[str, list[str]]] = []
     for underlying in underlyings:
         command = build_capture_command(
             underlying,
-            credentials=args.credentials,
-            security_master=args.security_master,
+            credentials=credentials,
+            security_master=security_master,
             duration_seconds=duration_seconds,
             expiry_count=args.expiries,
             strike_window_fraction=args.strike_window_fraction,
             max_options=args.max_options,
+            output_root=args.output_root,
         )
         commands.append((underlying, command))
         print(shlex.join(command))
@@ -105,8 +122,22 @@ def run(args: argparse.Namespace, *, now: datetime | None = None) -> int:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--credentials", required=True, type=Path)
-    parser.add_argument("--security-master", required=True, type=Path)
+    parser.add_argument(
+        "--credentials",
+        type=Path,
+        default=None,
+        help=f"Defaults to {DEFAULT_CREDENTIALS_PATH} (this machine's live Dhan credentials).",
+    )
+    parser.add_argument(
+        "--security-master",
+        type=Path,
+        default=None,
+        help=(
+            "Defaults to "
+            f"{DEFAULT_SECURITY_MASTER_DIR}/dhan_instrument_master_<date>.csv for the "
+            "resolved trading date."
+        ),
+    )
     parser.add_argument(
         "--underlying",
         action="append",
@@ -122,6 +153,15 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--strike-window-fraction", type=float, default=0.06)
     parser.add_argument("--max-options", type=int, default=120)
     parser.add_argument("--date", type=date.fromisoformat, default=None)
+    parser.add_argument(
+        "--output-root",
+        type=Path,
+        default=None,
+        help=(
+            "Override where captures land. Default is the configured NSE archive root "
+            "(/Volumes/Aryan/NSE, or the SHAURYA_NSE_ARCHIVE_ROOT environment override)."
+        ),
+    )
     parser.add_argument("--tmux-session", default=None)
     parser.add_argument(
         "--launch",
