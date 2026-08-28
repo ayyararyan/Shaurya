@@ -157,6 +157,10 @@ survives those controls, but more full sessions are needed before excluding time
 
 ## Prospective outer-test lock
 
+**Superseded without being consumed.** This narrow signed-IV-only lock was replaced by the complete
+three-hypothesis prospective protocol in `market-jepa-prospective-2026-08-28`. Its fingerprint is
+retained below for audit history, but it must not be used for the final test.
+
 The implementation is now frozen. Bundle fingerprint:
 `c3350aa8ea7dfa984e19773975040caf6672af67756c2ce906ab5b907b836f28`.
 
