@@ -1,0 +1,810 @@
+{
+  "protocol": {
+    "test_months": "2022-01 through 2026-08",
+    "calibration": "trailing 252 sessions before each test month",
+    "candidates": [
+      "gap_continuation",
+      "large_gap_continuation_first_hour",
+      "gap_x_volatility_formula"
+    ],
+    "primary_round_trip_cost_bps": 1.0,
+    "cost_ladder_bps": [
+      0.0,
+      1.0,
+      2.0,
+      6.0
+    ],
+    "multiple_testing": "Holm one-sided correction across three frozen candidates",
+    "status": "retrospective pseudo-live stability test; not a new holdout"
+  },
+  "calibrations": [
+    {
+      "month": "2022-01",
+      "training_start": "2021-01-04",
+      "training_end": "2021-12-31",
+      "training_sessions": 219,
+      "large_gap_cutoff": 0.005294587438788963,
+      "formula_threshold": 0.593310768703275
+    },
+    {
+      "month": "2022-02",
+      "training_start": "2021-01-04",
+      "training_end": "2022-01-31",
+      "training_sessions": 238,
+      "large_gap_cutoff": 0.005277151205382077,
+      "formula_threshold": 0.5949449387598178
+    },
+    {
+      "month": "2022-03",
+      "training_start": "2021-01-12",
+      "training_end": "2022-02-28",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.005372712821967399,
+      "formula_threshold": 0.5944109382436102
+    },
+    {
+      "month": "2022-04",
+      "training_start": "2021-02-08",
+      "training_end": "2022-03-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.005394231352985779,
+      "formula_threshold": 0.5868593579407071
+    },
+    {
+      "month": "2022-05",
+      "training_start": "2021-03-04",
+      "training_end": "2022-04-29",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.005523343286197489,
+      "formula_threshold": 0.5885237325382828
+    },
+    {
+      "month": "2022-06",
+      "training_start": "2021-04-07",
+      "training_end": "2022-05-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.005523343286197489,
+      "formula_threshold": 0.5841080001959632
+    },
+    {
+      "month": "2022-07",
+      "training_start": "2021-05-11",
+      "training_end": "2022-06-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.005575143969010153,
+      "formula_threshold": 0.5802324787939868
+    },
+    {
+      "month": "2022-08",
+      "training_start": "2021-06-10",
+      "training_end": "2022-07-29",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.005695904709319818,
+      "formula_threshold": 0.5859294077713391
+    },
+    {
+      "month": "2022-09",
+      "training_start": "2021-07-08",
+      "training_end": "2022-08-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.005695904709319818,
+      "formula_threshold": 0.5917356911900562
+    },
+    {
+      "month": "2022-10",
+      "training_start": "2021-09-16",
+      "training_end": "2022-09-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.006083787221408135,
+      "formula_threshold": 0.5897563758013493
+    },
+    {
+      "month": "2022-11",
+      "training_start": "2021-10-12",
+      "training_end": "2022-10-28",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.006277842483389442,
+      "formula_threshold": 0.5855716000391926
+    },
+    {
+      "month": "2022-12",
+      "training_start": "2021-11-12",
+      "training_end": "2022-11-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.006083787221408135,
+      "formula_threshold": 0.5699522864701436
+    },
+    {
+      "month": "2023-01",
+      "training_start": "2021-12-14",
+      "training_end": "2022-12-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.005824422101866632,
+      "formula_threshold": 0.5675771080036953
+    },
+    {
+      "month": "2023-02",
+      "training_start": "2022-01-11",
+      "training_end": "2023-01-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.005653844682097948,
+      "formula_threshold": 0.5695332402508329
+    },
+    {
+      "month": "2023-03",
+      "training_start": "2022-02-09",
+      "training_end": "2023-02-28",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0055884222745468965,
+      "formula_threshold": 0.5757633814842811
+    },
+    {
+      "month": "2023-04",
+      "training_start": "2022-03-14",
+      "training_end": "2023-03-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.005032935928939786,
+      "formula_threshold": 0.5712400443716581
+    },
+    {
+      "month": "2023-05",
+      "training_start": "2022-04-06",
+      "training_end": "2023-04-28",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0049833841212646515,
+      "formula_threshold": 0.5795072401388539
+    },
+    {
+      "month": "2023-06",
+      "training_start": "2022-05-12",
+      "training_end": "2023-05-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.004536124603547413,
+      "formula_threshold": 0.5762996556647351
+    },
+    {
+      "month": "2023-07",
+      "training_start": "2022-06-10",
+      "training_end": "2023-06-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.004247057220048841,
+      "formula_threshold": 0.5769995240894713
+    },
+    {
+      "month": "2023-08",
+      "training_start": "2022-07-11",
+      "training_end": "2023-07-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.003934303785484062,
+      "formula_threshold": 0.5867005752918452
+    },
+    {
+      "month": "2023-09",
+      "training_start": "2022-08-11",
+      "training_end": "2023-08-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0036942178234769217,
+      "formula_threshold": 0.5929267797654041
+    },
+    {
+      "month": "2023-10",
+      "training_start": "2022-09-12",
+      "training_end": "2023-09-29",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0034799658372241253,
+      "formula_threshold": 0.5991171159821953
+    },
+    {
+      "month": "2023-11",
+      "training_start": "2022-10-12",
+      "training_end": "2023-10-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0034899505777100143,
+      "formula_threshold": 0.5873234581898603
+    },
+    {
+      "month": "2023-12",
+      "training_start": "2022-11-16",
+      "training_end": "2023-11-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.003357768956217313,
+      "formula_threshold": 0.5983183911424652
+    },
+    {
+      "month": "2024-01",
+      "training_start": "2022-12-14",
+      "training_end": "2023-12-29",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.003357768956217313,
+      "formula_threshold": 0.598505605946082
+    },
+    {
+      "month": "2024-02",
+      "training_start": "2023-01-16",
+      "training_end": "2024-01-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0033674698396428766,
+      "formula_threshold": 0.5949301531312114
+    },
+    {
+      "month": "2024-03",
+      "training_start": "2023-02-16",
+      "training_end": "2024-02-29",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.003302336160718483,
+      "formula_threshold": 0.5797403838078441
+    },
+    {
+      "month": "2024-04",
+      "training_start": "2023-03-15",
+      "training_end": "2024-03-28",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0033213273095418668,
+      "formula_threshold": 0.5822205425380029
+    },
+    {
+      "month": "2024-05",
+      "training_start": "2023-04-17",
+      "training_end": "2024-04-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0034167266444603975,
+      "formula_threshold": 0.582371014249321
+    },
+    {
+      "month": "2024-06",
+      "training_start": "2023-05-17",
+      "training_end": "2024-05-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0034659233046794103,
+      "formula_threshold": 0.585354203409759
+    },
+    {
+      "month": "2024-07",
+      "training_start": "2023-06-12",
+      "training_end": "2024-06-28",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0035018982628022585,
+      "formula_threshold": 0.5943536365163349
+    },
+    {
+      "month": "2024-08",
+      "training_start": "2023-07-12",
+      "training_end": "2024-07-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.003509349751760879,
+      "formula_threshold": 0.5926437704711514
+    },
+    {
+      "month": "2024-09",
+      "training_start": "2023-08-08",
+      "training_end": "2024-08-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0036398883277860617,
+      "formula_threshold": 0.5916652669298172
+    },
+    {
+      "month": "2024-10",
+      "training_start": "2023-09-07",
+      "training_end": "2024-09-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0036398883277860617,
+      "formula_threshold": 0.5880828154306991
+    },
+    {
+      "month": "2024-11",
+      "training_start": "2023-10-11",
+      "training_end": "2024-10-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.003518915161658977,
+      "formula_threshold": 0.5859149729850788
+    },
+    {
+      "month": "2024-12",
+      "training_start": "2023-11-07",
+      "training_end": "2024-11-29",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0034187924395537523,
+      "formula_threshold": 0.5808833564289914
+    },
+    {
+      "month": "2025-01",
+      "training_start": "2023-12-08",
+      "training_end": "2024-12-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.00334990311848757,
+      "formula_threshold": 0.5839824612972762
+    },
+    {
+      "month": "2025-02",
+      "training_start": "2024-01-11",
+      "training_end": "2025-01-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0033930042910403514,
+      "formula_threshold": 0.5783117773858515
+    },
+    {
+      "month": "2025-03",
+      "training_start": "2024-02-09",
+      "training_end": "2025-02-28",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.00335485855975987,
+      "formula_threshold": 0.575805373589765
+    },
+    {
+      "month": "2025-04",
+      "training_start": "2024-03-07",
+      "training_end": "2025-03-28",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.003447783342870805,
+      "formula_threshold": 0.5765454844489235
+    },
+    {
+      "month": "2025-05",
+      "training_start": "2024-04-08",
+      "training_end": "2025-04-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.003447783342870805,
+      "formula_threshold": 0.5869280325298843
+    },
+    {
+      "month": "2025-06",
+      "training_start": "2024-05-15",
+      "training_end": "2025-05-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0033173005483054683,
+      "formula_threshold": 0.5896098408499204
+    },
+    {
+      "month": "2025-07",
+      "training_start": "2024-06-18",
+      "training_end": "2025-06-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0032230717070991554,
+      "formula_threshold": 0.5864018189580359
+    },
+    {
+      "month": "2025-08",
+      "training_start": "2024-07-24",
+      "training_end": "2025-07-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0031457791479056257,
+      "formula_threshold": 0.5881952317964223
+    },
+    {
+      "month": "2025-09",
+      "training_start": "2024-08-23",
+      "training_end": "2025-08-29",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0030004691614957976,
+      "formula_threshold": 0.580903040228437
+    },
+    {
+      "month": "2025-10",
+      "training_start": "2024-09-24",
+      "training_end": "2025-09-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.00299742718074035,
+      "formula_threshold": 0.5777510078105317
+    },
+    {
+      "month": "2025-11",
+      "training_start": "2024-10-23",
+      "training_end": "2025-10-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.00299742718074035,
+      "formula_threshold": 0.5828307403208196
+    },
+    {
+      "month": "2025-12",
+      "training_start": "2024-11-22",
+      "training_end": "2025-11-28",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.002971257988158759,
+      "formula_threshold": 0.5898906630553457
+    },
+    {
+      "month": "2026-01",
+      "training_start": "2024-12-24",
+      "training_end": "2025-12-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0029461095691420635,
+      "formula_threshold": 0.597531914000168
+    },
+    {
+      "month": "2026-02",
+      "training_start": "2025-01-22",
+      "training_end": "2026-01-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0028111875797812804,
+      "formula_threshold": 0.6040363161725596
+    },
+    {
+      "month": "2026-03",
+      "training_start": "2025-02-19",
+      "training_end": "2026-02-27",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.002766919245626083,
+      "formula_threshold": 0.6085802119201591
+    },
+    {
+      "month": "2026-04",
+      "training_start": "2025-03-20",
+      "training_end": "2026-03-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.00299742718074035,
+      "formula_threshold": 0.6408668920242995
+    },
+    {
+      "month": "2026-05",
+      "training_start": "2025-04-23",
+      "training_end": "2026-04-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.003043021364337081,
+      "formula_threshold": 0.6411407155454775
+    },
+    {
+      "month": "2026-06",
+      "training_start": "2025-05-21",
+      "training_end": "2026-05-29",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0031388352889528534,
+      "formula_threshold": 0.6462825613784609
+    },
+    {
+      "month": "2026-07",
+      "training_start": "2025-06-19",
+      "training_end": "2026-06-30",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.0032430251980889975,
+      "formula_threshold": 0.640048920802889
+    },
+    {
+      "month": "2026-08",
+      "training_start": "2025-07-22",
+      "training_end": "2026-07-31",
+      "training_sessions": 252,
+      "large_gap_cutoff": 0.00340737702654685,
+      "formula_threshold": 0.6367293573808125
+    }
+  ],
+  "candidates": {
+    "gap_continuation": {
+      "costs": {
+        "cost_0bps": {
+          "days": 1119,
+          "mean_daily_bps": -0.3179865158860351,
+          "annualized_sharpe": -0.07651126840109408,
+          "t_statistic": -0.16122789157204395,
+          "one_sided_p": 0.564028478281767,
+          "positive_day_rate": 0.49865951742627346,
+          "worst_day_bps": -320.1054329691644,
+          "max_drawdown_bps": -3436.769348036784,
+          "average_round_trips_per_day": 0.9991063449508489
+        },
+        "cost_1bps": {
+          "days": 1119,
+          "mean_daily_bps": -1.3170928608368846,
+          "annualized_sharpe": -0.3169078669089586,
+          "t_statistic": -0.6678021195057678,
+          "one_sided_p": 0.7478011301147506,
+          "positive_day_rate": 0.4924039320822163,
+          "worst_day_bps": -321.1054329691644,
+          "max_drawdown_bps": -3971.769348036786,
+          "average_round_trips_per_day": 0.9991063449508489
+        },
+        "cost_2bps": {
+          "days": 1119,
+          "mean_daily_bps": -2.3161992057877336,
+          "annualized_sharpe": -0.5573042702272427,
+          "t_statistic": -1.1743759361274697,
+          "one_sided_p": 0.8797527187970097,
+          "positive_day_rate": 0.483467381590706,
+          "worst_day_bps": -322.1054329691644,
+          "max_drawdown_bps": -4506.769348036785,
+          "average_round_trips_per_day": 0.9991063449508489
+        },
+        "cost_6bps": {
+          "days": 1119,
+          "mean_daily_bps": -6.312624585591129,
+          "annualized_sharpe": -1.5188849703391134,
+          "t_statistic": -3.2006608493859443,
+          "one_sided_p": 0.9992951355028964,
+          "positive_day_rate": 0.46380697050938335,
+          "worst_day_bps": -326.1054329691644,
+          "max_drawdown_bps": -8238.43273704985,
+          "average_round_trips_per_day": 0.9991063449508489
+        }
+      },
+      "yearly_at_1bps": {
+        "2022": {
+          "days": 238,
+          "mean_daily_bps": -4.350636738239936,
+          "annualized_sharpe": -0.8418426422405714,
+          "t_statistic": -0.8181239916557056,
+          "one_sided_p": 0.7929459138372701,
+          "positive_day_rate": 0.48739495798319327,
+          "worst_day_bps": -321.1054329691644,
+          "max_drawdown_bps": -2157.0390833278743,
+          "average_round_trips_per_day": 1.0
+        },
+        "2023": {
+          "days": 240,
+          "mean_daily_bps": 0.11590051744229583,
+          "annualized_sharpe": 0.03638779683511146,
+          "t_statistic": 0.03551085358582168,
+          "one_sided_p": 0.4858510163031541,
+          "positive_day_rate": 0.5208333333333334,
+          "worst_day_bps": -205.89345858578645,
+          "max_drawdown_bps": -589.752449337306,
+          "average_round_trips_per_day": 1.0
+        },
+        "2024": {
+          "days": 237,
+          "mean_daily_bps": -2.763495381940726,
+          "annualized_sharpe": -0.6000452781176705,
+          "t_statistic": -0.5819128200078157,
+          "one_sided_p": 0.7194095732089476,
+          "positive_day_rate": 0.4472573839662447,
+          "worst_day_bps": -221.39594143711483,
+          "max_drawdown_bps": -2000.288867673094,
+          "average_round_trips_per_day": 0.9957805907172996
+        },
+        "2025": {
+          "days": 247,
+          "mean_daily_bps": 0.1656974889394824,
+          "annualized_sharpe": 0.0474771092652021,
+          "t_statistic": 0.04700374640305176,
+          "one_sided_p": 0.481274188764481,
+          "positive_day_rate": 0.4939271255060729,
+          "worst_day_bps": -214.32814942658374,
+          "max_drawdown_bps": -600.1746126439026,
+          "average_round_trips_per_day": 1.0
+        },
+        "2026": {
+          "days": 157,
+          "mean_daily_bps": 0.941590025416433,
+          "annualized_sharpe": 0.2335041061417916,
+          "t_statistic": 0.18430795389369542,
+          "one_sided_p": 0.42700562275077975,
+          "positive_day_rate": 0.5222929936305732,
+          "worst_day_bps": -207.16716578034655,
+          "max_drawdown_bps": -1017.6553025035382,
+          "average_round_trips_per_day": 1.0
+        }
+      },
+      "positive_month_rate_at_1bps": 0.42857142857142855,
+      "months": 56
+    },
+    "large_gap_continuation_first_hour": {
+      "costs": {
+        "cost_0bps": {
+          "days": 1119,
+          "mean_daily_bps": 0.40379736412530237,
+          "annualized_sharpe": 0.3755428385640484,
+          "t_statistic": 0.7913602966199967,
+          "one_sided_p": 0.21445081263003613,
+          "positive_day_rate": 0.16621983914209115,
+          "worst_day_bps": -117.42267376924076,
+          "max_drawdown_bps": -485.17058045545616,
+          "average_round_trips_per_day": 0.3163538873994638
+        },
+        "cost_1bps": {
+          "days": 1119,
+          "mean_daily_bps": 0.08744347672583852,
+          "annualized_sharpe": 0.08137183247971043,
+          "t_statistic": 0.17147028481192547,
+          "one_sided_p": 0.4319425116990338,
+          "positive_day_rate": 0.1581769436997319,
+          "worst_day_bps": -118.42267376924076,
+          "max_drawdown_bps": -572.6006973292724,
+          "average_round_trips_per_day": 0.3163538873994638
+        },
+        "cost_2bps": {
+          "days": 1119,
+          "mean_daily_bps": -0.22891041067362533,
+          "annualized_sharpe": -0.2129805800433216,
+          "t_statistic": -0.44880199457894043,
+          "one_sided_p": 0.6731692627560811,
+          "positive_day_rate": 0.15638963360142985,
+          "worst_day_bps": -119.42267376924076,
+          "max_drawdown_bps": -714.8063295229872,
+          "average_round_trips_per_day": 0.3163538873994638
+        },
+        "cost_6bps": {
+          "days": 1119,
+          "mean_daily_bps": -1.4943259602714807,
+          "annualized_sharpe": -1.3792079312376568,
+          "t_statistic": -2.906327282762812,
+          "one_sided_p": 0.9981354479821057,
+          "positive_day_rate": 0.14030384271671134,
+          "worst_day_bps": -123.42267376924076,
+          "max_drawdown_bps": -1779.307389385535,
+          "average_round_trips_per_day": 0.3163538873994638
+        }
+      },
+      "yearly_at_1bps": {
+        "2022": {
+          "days": 238,
+          "mean_daily_bps": 0.0004694635498143192,
+          "annualized_sharpe": 0.00031583233585613294,
+          "t_statistic": 0.0003069338595356226,
+          "one_sided_p": 0.4998776802050888,
+          "positive_day_rate": 0.17647058823529413,
+          "worst_day_bps": -118.42267376924076,
+          "max_drawdown_bps": -304.9875390253849,
+          "average_round_trips_per_day": 0.3739495798319328
+        },
+        "2023": {
+          "days": 240,
+          "mean_daily_bps": 0.42906255310234737,
+          "annualized_sharpe": 0.714731688173499,
+          "t_statistic": 0.6975067066271459,
+          "one_sided_p": 0.24308185659801404,
+          "positive_day_rate": 0.1125,
+          "worst_day_bps": -54.743027525889886,
+          "max_drawdown_bps": -104.09171156478291,
+          "average_round_trips_per_day": 0.1875
+        },
+        "2024": {
+          "days": 237,
+          "mean_daily_bps": -1.0567439036190418,
+          "annualized_sharpe": -0.9846539624414601,
+          "t_statistic": -0.9548992132953948,
+          "one_sided_p": 0.8296971290782118,
+          "positive_day_rate": 0.12236286919831224,
+          "worst_day_bps": -67.22510700173834,
+          "max_drawdown_bps": -449.78515995292776,
+          "average_round_trips_per_day": 0.32489451476793246
+        },
+        "2025": {
+          "days": 247,
+          "mean_daily_bps": 0.4763657106941717,
+          "annualized_sharpe": 0.5484538227769259,
+          "t_statistic": 0.5429855523761989,
+          "one_sided_p": 0.29381569059787893,
+          "positive_day_rate": 0.1700404858299595,
+          "worst_day_bps": -77.5100559799059,
+          "max_drawdown_bps": -233.70415041864143,
+          "average_round_trips_per_day": 0.2834008097165992
+        },
+        "2026": {
+          "days": 157,
+          "mean_daily_bps": 0.8124107006563477,
+          "annualized_sharpe": 0.6809306686406751,
+          "t_statistic": 0.5374678002639505,
+          "one_sided_p": 0.29585518357661533,
+          "positive_day_rate": 0.2356687898089172,
+          "worst_day_bps": -69.93077785452562,
+          "max_drawdown_bps": -230.24863892620638,
+          "average_round_trips_per_day": 0.46496815286624205
+        }
+      },
+      "positive_month_rate_at_1bps": 0.5178571428571429,
+      "months": 56
+    },
+    "gap_x_volatility_formula": {
+      "costs": {
+        "cost_0bps": {
+          "days": 1119,
+          "mean_daily_bps": 0.5581904168254646,
+          "annualized_sharpe": 0.3042977813935197,
+          "t_statistic": 0.6412295957104583,
+          "one_sided_p": 0.26075247435788473,
+          "positive_day_rate": 0.17247542448614836,
+          "worst_day_bps": -191.59924599405187,
+          "max_drawdown_bps": -1397.3396603715398,
+          "average_round_trips_per_day": 1.0232350312779268
+        },
+        "cost_1bps": {
+          "days": 1119,
+          "mean_daily_bps": -0.4650446144524623,
+          "annualized_sharpe": -0.2528363035641372,
+          "t_statistic": -0.5327877185726043,
+          "one_sided_p": 0.702856792414221,
+          "positive_day_rate": 0.16085790884718498,
+          "worst_day_bps": -194.59924599405187,
+          "max_drawdown_bps": -1888.3396603715385,
+          "average_round_trips_per_day": 1.0232350312779268
+        },
+        "cost_2bps": {
+          "days": 1119,
+          "mean_daily_bps": -1.488279645730389,
+          "annualized_sharpe": -0.8042097711573901,
+          "t_statistic": -1.694666007961356,
+          "one_sided_p": 0.9547913577144647,
+          "positive_day_rate": 0.1385165326184093,
+          "worst_day_bps": -197.59924599405187,
+          "max_drawdown_bps": -2386.6964550657935,
+          "average_round_trips_per_day": 1.0232350312779268
+        },
+        "cost_6bps": {
+          "days": 1119,
+          "mean_daily_bps": -5.581219770842095,
+          "annualized_sharpe": -2.8531823360166144,
+          "t_statistic": -6.012350623898163,
+          "one_sided_p": 0.9999999987636835,
+          "positive_day_rate": 0.08936550491510277,
+          "worst_day_bps": -209.59924599405187,
+          "max_drawdown_bps": -6260.906141067142,
+          "average_round_trips_per_day": 1.0232350312779268
+        }
+      },
+      "yearly_at_1bps": {
+        "2022": {
+          "days": 238,
+          "mean_daily_bps": -1.943694094889762,
+          "annualized_sharpe": -0.8908840725397457,
+          "t_statistic": -0.8657836951438544,
+          "one_sided_p": 0.8062578156837443,
+          "positive_day_rate": 0.19747899159663865,
+          "worst_day_bps": -194.59924599405187,
+          "max_drawdown_bps": -1052.1294066898645,
+          "average_round_trips_per_day": 1.1722689075630253
+        },
+        "2023": {
+          "days": 240,
+          "mean_daily_bps": -2.4968125114236313,
+          "annualized_sharpe": -3.102230439083404,
+          "t_statistic": -3.027466911804654,
+          "one_sided_p": 0.9986318354580934,
+          "positive_day_rate": 0.05416666666666667,
+          "worst_day_bps": -128.88626105935563,
+          "max_drawdown_bps": -599.2350027416716,
+          "average_round_trips_per_day": 0.5833333333333334
+        },
+        "2024": {
+          "days": 237,
+          "mean_daily_bps": 0.840434312720362,
+          "annualized_sharpe": 0.3343418465471053,
+          "t_statistic": 0.32423854309989786,
+          "one_sided_p": 0.37302231595921964,
+          "positive_day_rate": 0.15611814345991562,
+          "worst_day_bps": -166.82965868910537,
+          "max_drawdown_bps": -629.3912244626082,
+          "average_round_trips_per_day": 1.1729957805907174
+        },
+        "2025": {
+          "days": 247,
+          "mean_daily_bps": 0.42512705512132015,
+          "annualized_sharpe": 0.4424890233611058,
+          "t_statistic": 0.43807725790591945,
+          "one_sided_p": 0.3308573501306121,
+          "positive_day_rate": 0.1659919028340081,
+          "worst_day_bps": -78.35427129765648,
+          "max_drawdown_bps": -159.0822125889248,
+          "average_round_trips_per_day": 0.9392712550607287
+        },
+        "2026": {
+          "days": 157,
+          "mean_daily_bps": 1.51120993008559,
+          "annualized_sharpe": 0.6801103066915243,
+          "t_statistic": 0.5368202774653217,
+          "one_sided_p": 0.29607827025461336,
+          "positive_day_rate": 0.267515923566879,
+          "worst_day_bps": -164.7431657081324,
+          "max_drawdown_bps": -314.89897304048947,
+          "average_round_trips_per_day": 1.375796178343949
+        }
+      },
+      "positive_month_rate_at_1bps": 0.375,
+      "months": 56
+    }
+  },
+  "summary": {
+    "holm_passes": [],
+    "stable_candidates": [],
+    "verdict": "no candidate passed all retrospective stability gates"
+  },
+  "data_audit": {
+    "raw_index_rows": 587456,
+    "duplicate_index_timestamps": 376,
+    "invalid_index_rows": 12,
+    "rejected_sessions": 51,
+    "accepted_sessions": 1339,
+    "clean_index_rows": 502125,
+    "decision_rows": 97674,
+    "decision_sessions": 1338,
+    "first_decision": "2021-01-04T09:20:00",
+    "last_decision": "2026-08-21T15:20:00"
+  }
+}

@@ -521,7 +521,14 @@ class DataCatalog:
                             raise TypeError("catalogue event is not an object")
                         if loaded.get("schema_version") != self.LEGACY_SCHEMA_VERSION:
                             raise ValueError("unsupported legacy catalogue schema")
-                        handle = DatasetHandle.model_validate(loaded["handle"])
+                        if "handle" not in loaded:
+                            raise KeyError("handle")
+                        # Legacy records were written before the strict-at-boundary contract
+                        # model existed: re-validate through JSON mode so ISO date/datetime
+                        # strings, plain enum strings, and JSON arrays coerce the same way they
+                        # would coming straight off the wire, instead of strict python-mode
+                        # rejecting them outright.
+                        handle = DatasetHandle.model_validate_json(json.dumps(loaded["handle"]))
                     except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
                         raise ValueError(
                             f"invalid legacy data-catalogue record at line {line_number}: "

@@ -1,0 +1,27 @@
+{
+  "generations": 20,
+  "discovery": {
+    "rows": 14746,
+    "sessions": 202,
+    "start": "2025-09-01",
+    "end": "2026-06-30",
+    "robust_net_1bps": 0.502454711231425,
+    "net_1bps": 0.5215236537325734,
+    "net_6bps": -3.3151100096337633,
+    "first_period_net_1bps": 0.5488634628607255,
+    "second_period_net_1bps": 0.502454711231425,
+    "average_round_trips_per_day": 0.6585501670547736,
+    "complexity": 55
+  },
+  "validation": {
+    "days": 33,
+    "gross_mean_bps_per_day": 0.8467349310387904,
+    "net_1bps_per_day": 0.2709773552812146,
+    "net_2bps_per_day": -0.30478022047636116,
+    "net_6bps_per_day": -2.6078105235066644,
+    "one_sided_p_at_1bps": 0.43789396617504495,
+    "average_round_trips_per_day": 0.5757575757575758
+  },
+  "promoted": false,
+  "final_week": "not accessed"
+}

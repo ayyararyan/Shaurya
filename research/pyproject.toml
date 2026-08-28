@@ -21,6 +21,14 @@ dev = [
   "pytest-asyncio>=0.25",
   "ruff>=0.11",
 ]
+jepa = [
+  "scikit-learn>=1.6",
+  "torch>=2.6",
+]
+alpha = [
+  "openevolve>=0.2.27,<0.3",
+  "scikit-learn>=1.7,<2",
+]
 
 [project.scripts]
 shaurya-ofi-dashboard = "shaurya.cli.ofi_dashboard:main"
@@ -30,6 +38,12 @@ shaurya-surface-dashboard = "shaurya.cli.surface_dashboard:main"
 shaurya-feature-selection-experiment = "shaurya.cli.feature_selection_experiment:main"
 shaurya-daily-research = "shaurya.analytics.post_close_alpha_research:main"
 shaurya-research = "shaurya.cli.research:main"
+shaurya-intraday-volatility-experiment = "shaurya.cli.intraday_volatility_experiment:main"
+shaurya-intraday-alpha-tournament = "shaurya.cli.intraday_alpha_tournament:main"
+shaurya-paper-alpha-scan = "shaurya.cli.paper_alpha_scan:main"
+shaurya-parallel-alpha-research = "shaurya.cli.parallel_alpha_research:main"
+shaurya-openevolve-alpha = "shaurya.cli.openevolve_alpha:main"
+shaurya-rolling-gap-validation = "shaurya.cli.rolling_gap_validation:main"
 
 [tool.uv.sources]
 shaurya-data = { path = "../data", editable = true }
@@ -59,3 +73,11 @@ packages = ["shaurya.analytics", "shaurya.cli", "shaurya.signals", "shaurya.surf
 [[tool.mypy.overrides]]
 module = ["pandas", "pandas.*", "scipy", "scipy.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["sklearn", "sklearn.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["shaurya.research.intraday_volatility"]
+disable_error_code = ["no-untyped-call"]

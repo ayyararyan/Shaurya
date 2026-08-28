@@ -1,0 +1,912 @@
+{
+  "protocol": {
+    "index_final_holdout": "2026-08-17 through 2026-08-21",
+    "option_final_holdout": "2026-05-08 through 2026-05-14",
+    "selection_rule": "all thresholds/models fixed using discovery and validation before final week"
+  },
+  "data_audit": {
+    "phase": {
+      "raw_index_rows": 587456,
+      "duplicate_index_timestamps": 376,
+      "invalid_index_rows": 12,
+      "rejected_sessions": 51,
+      "accepted_sessions": 1339,
+      "clean_index_rows": 502125,
+      "phase_rows": 90000,
+      "phase_sessions": 240,
+      "first_phase_row": "2025-09-01T09:15:00",
+      "last_phase_row": "2026-08-21T15:29:00"
+    },
+    "gated": {
+      "raw_index_rows": 587456,
+      "duplicate_index_timestamps": 376,
+      "invalid_index_rows": 12,
+      "rejected_sessions": 51,
+      "accepted_sessions": 1339,
+      "clean_index_rows": 502125,
+      "decision_rows": 97674,
+      "decision_sessions": 1338,
+      "first_decision": "2021-01-04T09:20:00",
+      "last_decision": "2026-08-21T15:20:00"
+    },
+    "options": {
+      "raw_selected_option_rows": 1238623,
+      "duplicate_selected_option_rows": 0,
+      "grid_rows": 64600,
+      "grid_sessions": 173,
+      "first_grid_row": "2025-09-01T09:15:00",
+      "last_grid_row": "2026-05-14T15:29:00"
+    }
+  },
+  "quarter_hour": {
+    "definition": "clock minute modulo 15; phase 0 is :00/:15/:30/:45 and phases 1-14 are shifted-clock placebos",
+    "features": [
+      "phase_lag_1",
+      "phase_lag_2",
+      "phase_lag_3",
+      "phase_lag_4",
+      "phase_lag_5",
+      "phase_lag_6",
+      "phase_lag_7",
+      "phase_lag_8",
+      "phase_lag_9",
+      "phase_lag_10",
+      "phase_lag_11",
+      "phase_lag_12",
+      "prior_5m_bps",
+      "prior_rv_15_bps"
+    ],
+    "phases": {
+      "0": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.08890211083419111,
+          "gross_mean_bps_per_day": 5.208388012780224,
+          "net_6bps_mean_bps_per_day": -138.79161198721977
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": 0.06363992007395117,
+          "gross_mean_bps_per_day": 4.877715197032677,
+          "net_6bps_mean_bps_per_day": -139.1222848029673
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": 0.24787232065822884,
+          "gross_mean_bps_per_day": 3.77811158448279,
+          "net_6bps_mean_bps_per_day": -140.22188841551724
+        }
+      },
+      "1": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.0845259165009977,
+          "gross_mean_bps_per_day": 5.018370077908619,
+          "net_6bps_mean_bps_per_day": -138.98162992209137
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": -0.06461419569050039,
+          "gross_mean_bps_per_day": 0.7661884500778308,
+          "net_6bps_mean_bps_per_day": -143.23381154992217
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": -0.1731885125099325,
+          "gross_mean_bps_per_day": -0.7222026754088041,
+          "net_6bps_mean_bps_per_day": -144.72220267540882
+        }
+      },
+      "2": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.07363299177910562,
+          "gross_mean_bps_per_day": 2.54479661430076,
+          "net_6bps_mean_bps_per_day": -141.45520338569924
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": 0.00355586099538018,
+          "gross_mean_bps_per_day": -0.0048889717276933645,
+          "net_6bps_mean_bps_per_day": -144.00488897172772
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": 0.08979482472355903,
+          "gross_mean_bps_per_day": 2.464356964864058,
+          "net_6bps_mean_bps_per_day": -141.53564303513593
+        }
+      },
+      "3": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.0790066817111954,
+          "gross_mean_bps_per_day": 4.905972998330832,
+          "net_6bps_mean_bps_per_day": -139.0940270016692
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": 0.019188192258907142,
+          "gross_mean_bps_per_day": 4.112504849596425,
+          "net_6bps_mean_bps_per_day": -139.88749515040357
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": -0.1198508364441716,
+          "gross_mean_bps_per_day": -1.9451163957609907,
+          "net_6bps_mean_bps_per_day": -145.94511639576098
+        }
+      },
+      "4": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.07939936909870257,
+          "gross_mean_bps_per_day": 2.987910706825533,
+          "net_6bps_mean_bps_per_day": -141.01208929317445
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": 0.06459839774702013,
+          "gross_mean_bps_per_day": 1.7452015905322116,
+          "net_6bps_mean_bps_per_day": -142.2547984094678
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": 0.0093916215597486,
+          "gross_mean_bps_per_day": 3.6475687991039663,
+          "net_6bps_mean_bps_per_day": -140.35243120089604
+        }
+      },
+      "5": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.11459529971060771,
+          "gross_mean_bps_per_day": 5.690033903522699,
+          "net_6bps_mean_bps_per_day": -138.3099660964773
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": 0.0633866657365016,
+          "gross_mean_bps_per_day": 6.189336461745533,
+          "net_6bps_mean_bps_per_day": -137.81066353825446
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": 0.012366744165010254,
+          "gross_mean_bps_per_day": 6.226273048493749,
+          "net_6bps_mean_bps_per_day": -137.77372695150626
+        }
+      },
+      "6": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.1100433724946347,
+          "gross_mean_bps_per_day": 4.590016018707821,
+          "net_6bps_mean_bps_per_day": -139.40998398129216
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": 0.029008126700647563,
+          "gross_mean_bps_per_day": 5.423526829130688,
+          "net_6bps_mean_bps_per_day": -138.5764731708693
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": 0.12159720755499681,
+          "gross_mean_bps_per_day": 7.045646964122082,
+          "net_6bps_mean_bps_per_day": -136.95435303587792
+        }
+      },
+      "7": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.09113605194471702,
+          "gross_mean_bps_per_day": 3.83983000081569,
+          "net_6bps_mean_bps_per_day": -140.16016999918432
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": 0.0009231569222819511,
+          "gross_mean_bps_per_day": 3.420039572451757,
+          "net_6bps_mean_bps_per_day": -140.57996042754823
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": -0.04479878851603205,
+          "gross_mean_bps_per_day": 3.7906675016050357,
+          "net_6bps_mean_bps_per_day": -140.20933249839496
+        }
+      },
+      "8": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.0960350602919737,
+          "gross_mean_bps_per_day": 4.133374773137562,
+          "net_6bps_mean_bps_per_day": -139.86662522686242
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": -0.05096796512622433,
+          "gross_mean_bps_per_day": 2.44357999525403,
+          "net_6bps_mean_bps_per_day": -141.55642000474597
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": 0.061209242788665935,
+          "gross_mean_bps_per_day": 4.887119655435672,
+          "net_6bps_mean_bps_per_day": -139.11288034456433
+        }
+      },
+      "9": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.08982734372168345,
+          "gross_mean_bps_per_day": 2.8369462639308787,
+          "net_6bps_mean_bps_per_day": -141.16305373606912
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": 0.059580563554288854,
+          "gross_mean_bps_per_day": 2.9030027906006164,
+          "net_6bps_mean_bps_per_day": -141.09699720939938
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": -0.13794793200903716,
+          "gross_mean_bps_per_day": -0.23865042615713888,
+          "net_6bps_mean_bps_per_day": -144.23865042615714
+        }
+      },
+      "10": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.08388235601641451,
+          "gross_mean_bps_per_day": 3.1713244815011765,
+          "net_6bps_mean_bps_per_day": -140.82867551849884
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": 0.07413939333943513,
+          "gross_mean_bps_per_day": 6.428638146308747,
+          "net_6bps_mean_bps_per_day": -137.57136185369126
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": 0.15515965879312435,
+          "gross_mean_bps_per_day": 7.078510342441416,
+          "net_6bps_mean_bps_per_day": -136.92148965755857
+        }
+      },
+      "11": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.08152095585317018,
+          "gross_mean_bps_per_day": 3.351190199687887,
+          "net_6bps_mean_bps_per_day": -140.6488098003121
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": -0.009083664081508578,
+          "gross_mean_bps_per_day": 1.3867242202829064,
+          "net_6bps_mean_bps_per_day": -142.6132757797171
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": 0.09360681490430044,
+          "gross_mean_bps_per_day": 2.1908185455185847,
+          "net_6bps_mean_bps_per_day": -141.8091814544814
+        }
+      },
+      "12": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.07495338911155607,
+          "gross_mean_bps_per_day": 3.3060164277756288,
+          "net_6bps_mean_bps_per_day": -140.69398357222437
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": 0.010570791386200767,
+          "gross_mean_bps_per_day": 4.993435995965528,
+          "net_6bps_mean_bps_per_day": -139.00656400403446
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": 0.007737715842955314,
+          "gross_mean_bps_per_day": 3.6333535487492186,
+          "net_6bps_mean_bps_per_day": -140.36664645125077
+        }
+      },
+      "13": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.08310708031145325,
+          "gross_mean_bps_per_day": 3.90953888062031,
+          "net_6bps_mean_bps_per_day": -140.09046111937968
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": -0.012904615664000195,
+          "gross_mean_bps_per_day": 0.5844298722104331,
+          "net_6bps_mean_bps_per_day": -143.41557012778958
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": -0.011871365787223235,
+          "gross_mean_bps_per_day": 4.913105245722697,
+          "net_6bps_mean_bps_per_day": -139.0868947542773
+        }
+      },
+      "14": {
+        "discovery": {
+          "observations": 4848,
+          "days": 202,
+          "prediction_correlation": 0.09573692513863533,
+          "gross_mean_bps_per_day": 4.041294212858407,
+          "net_6bps_mean_bps_per_day": -139.95870578714158
+        },
+        "validation": {
+          "observations": 792,
+          "days": 33,
+          "prediction_correlation": -0.025376122466930922,
+          "gross_mean_bps_per_day": 0.34928510823224235,
+          "net_6bps_mean_bps_per_day": -143.65071489176776
+        },
+        "final_week": {
+          "observations": 120,
+          "days": 5,
+          "prediction_correlation": -0.018167731784412798,
+          "gross_mean_bps_per_day": -0.36996037062930964,
+          "net_6bps_mean_bps_per_day": -144.3699603706293
+        }
+      }
+    },
+    "summary": {
+      "phase_0_validation_correlation": 0.06363992007395117,
+      "phase_0_final_correlation": 0.24787232065822884,
+      "phase_0_validation_gross_bps_per_day": 4.877715197032677,
+      "phase_0_final_gross_bps_per_day": 3.77811158448279,
+      "phase_0_validation_net_6bps_per_day": -139.1222848029673,
+      "placebo_validation_correlation_median": 0.007063326190790474,
+      "phase_0_validation_percentile_among_phases": 85.71428571428572,
+      "phase_0_final_net_6bps_per_day": -140.22188841551724
+    }
+  },
+  "volatility_gated_direction": {
+    "protocol": {
+      "discovery": "2025-09-01 through 2026-06-30",
+      "validation": "2026-07-01 through 2026-08-14",
+      "final_week": "2026-08-17 through 2026-08-21",
+      "cost_bps_round_trip": 6.0,
+      "volatility_gates": "discovery predicted-volatility terciles"
+    },
+    "candidates": {
+      "all_vol_p0.1": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": -20.390508879991458,
+          "annualized_sharpe": -14.195078940199867,
+          "t_statistic": -5.136821936835723,
+          "one_sided_p": 0.9999933259914173,
+          "positive_day_rate": 0.09090909090909091,
+          "worst_day_bps": -96.00241370014737,
+          "max_drawdown_bps": -672.8867930397181,
+          "average_round_trips_per_day": 3.484848484848485
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": -11.857405497365903,
+          "annualized_sharpe": -13.89323013763272,
+          "t_statistic": -1.9569870937904579,
+          "one_sided_p": 0.9390123152941684,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -34.20595562184923,
+          "max_drawdown_bps": -59.287027486829516,
+          "average_round_trips_per_day": 2.0
+        }
+      },
+      "low_vol_p0.1": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": -2.0862771708609458,
+          "annualized_sharpe": -7.020690412618724,
+          "t_statistic": -2.5406013362236592,
+          "one_sided_p": 0.991941505418338,
+          "positive_day_rate": 0.030303030303030304,
+          "worst_day_bps": -15.98691424901898,
+          "max_drawdown_bps": -68.8471466384112,
+          "average_round_trips_per_day": 0.5151515151515151
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": -4.3315545910202555,
+          "annualized_sharpe": -11.262630406082254,
+          "t_statistic": -1.5864433345225295,
+          "one_sided_p": 0.9060872071343307,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -12.875726170996188,
+          "max_drawdown_bps": -21.65777295510128,
+          "average_round_trips_per_day": 0.6
+        }
+      },
+      "high_vol_p0.1": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": -11.061176834524066,
+          "annualized_sharpe": -9.150878127684287,
+          "t_statistic": -3.311459675964085,
+          "one_sided_p": 0.9988459538455746,
+          "positive_day_rate": 0.12121212121212122,
+          "worst_day_bps": -87.58936839433605,
+          "max_drawdown_bps": -365.0188355392943,
+          "average_round_trips_per_day": 1.606060606060606
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": -1.1459471258909104,
+          "annualized_sharpe": -7.09929573971954,
+          "t_statistic": -1.0000000000000002,
+          "one_sided_p": 0.8130495168499705,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -5.729735629454552,
+          "max_drawdown_bps": -5.729735629454552,
+          "average_round_trips_per_day": 0.2
+        }
+      },
+      "all_vol_p0.25": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": -53.94650068977557,
+          "annualized_sharpe": -24.271253322371635,
+          "t_statistic": -8.783121744238787,
+          "one_sided_p": 0.9999999997547618,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -153.35510109447617,
+          "max_drawdown_bps": -1780.2345227625945,
+          "average_round_trips_per_day": 9.06060606060606
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": -53.202888347755334,
+          "annualized_sharpe": -31.325139374425003,
+          "t_statistic": -4.412429137043179,
+          "one_sided_p": 0.9942106279210245,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -86.08007256712082,
+          "max_drawdown_bps": -266.01444173877667,
+          "average_round_trips_per_day": 8.4
+        }
+      },
+      "low_vol_p0.25": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": -19.801998729871794,
+          "annualized_sharpe": -13.197991674325982,
+          "t_statistic": -4.776002545703235,
+          "one_sided_p": 0.9999809681446316,
+          "positive_day_rate": 0.06060606060606061,
+          "worst_day_bps": -92.19169617633997,
+          "max_drawdown_bps": -653.465958085769,
+          "average_round_trips_per_day": 3.606060606060606
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": -30.44691595967019,
+          "annualized_sharpe": -18.62259816306105,
+          "t_statistic": -2.623161345268417,
+          "one_sided_p": 0.970697634049128,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -69.17287719202406,
+          "max_drawdown_bps": -152.23457979835095,
+          "average_round_trips_per_day": 5.2
+        }
+      },
+      "high_vol_p0.25": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": -16.528890743667368,
+          "annualized_sharpe": -13.268283418479914,
+          "t_statistic": -4.801439260417501,
+          "one_sided_p": 0.9999823200604211,
+          "positive_day_rate": 0.06060606060606061,
+          "worst_day_bps": -85.70088157757547,
+          "max_drawdown_bps": -545.4533945410233,
+          "average_round_trips_per_day": 2.484848484848485
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": -9.169274796807287,
+          "annualized_sharpe": -14.008946352879935,
+          "t_statistic": -1.9732867690666687,
+          "one_sided_p": 0.9401409873261953,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -24.03108759114002,
+          "max_drawdown_bps": -45.84637398403643,
+          "average_round_trips_per_day": 1.0
+        }
+      },
+      "all_vol_p0.5": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": -88.23868177130007,
+          "annualized_sharpe": -37.33662395168337,
+          "t_statistic": -13.51113225719707,
+          "one_sided_p": 0.9999999999999954,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -227.11325161416974,
+          "max_drawdown_bps": -2911.876498452901,
+          "average_round_trips_per_day": 14.606060606060606
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": -69.52202319891073,
+          "annualized_sharpe": -41.20783951030907,
+          "t_statistic": -5.804496815051264,
+          "one_sided_p": 0.9978088673318485,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -87.71725351036335,
+          "max_drawdown_bps": -347.61011599455367,
+          "average_round_trips_per_day": 11.2
+        }
+      },
+      "low_vol_p0.5": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": -42.10982061882157,
+          "annualized_sharpe": -31.085365116193216,
+          "t_statistic": -11.248967766653431,
+          "one_sided_p": 0.9999999999994099,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -79.69252889321947,
+          "max_drawdown_bps": -1389.6240804211118,
+          "average_round_trips_per_day": 7.0
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": -52.182201563489095,
+          "annualized_sharpe": -44.65068320310572,
+          "t_statistic": -6.289452480939985,
+          "one_sided_p": 0.9983676796636451,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -71.31331994656648,
+          "max_drawdown_bps": -260.91100781744547,
+          "average_round_trips_per_day": 8.6
+        }
+      },
+      "high_vol_p0.5": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": -20.640663470580208,
+          "annualized_sharpe": -16.89993497615249,
+          "t_statistic": -6.115637474248177,
+          "one_sided_p": 0.9999996115087348,
+          "positive_day_rate": 0.09090909090909091,
+          "worst_day_bps": -97.12273281900494,
+          "max_drawdown_bps": -681.1418945291468,
+          "average_round_trips_per_day": 3.4545454545454546
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": -15.888827808940267,
+          "annualized_sharpe": -19.641439815018387,
+          "t_statistic": -2.766674404776146,
+          "one_sided_p": 0.974748603611882,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -30.526306663787068,
+          "max_drawdown_bps": -79.44413904470133,
+          "average_round_trips_per_day": 1.8
+        }
+      },
+      "all_vol_p1": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": -109.1959269190507,
+          "annualized_sharpe": -32.40878196017407,
+          "t_statistic": -11.72787716225296,
+          "one_sided_p": 0.9999999999997998,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -190.29172468606058,
+          "max_drawdown_bps": -3603.4655883286728,
+          "average_round_trips_per_day": 17.696969696969695
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": -76.55204580221087,
+          "annualized_sharpe": -18.95403348961962,
+          "t_statistic": -2.6698470080031353,
+          "one_sided_p": 0.9720925620333991,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -154.33757408437808,
+          "max_drawdown_bps": -382.7602290110544,
+          "average_round_trips_per_day": 12.8
+        }
+      },
+      "low_vol_p1": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": -63.69302239409826,
+          "annualized_sharpe": -26.885720747852474,
+          "t_statistic": -9.729228044945508,
+          "one_sided_p": 0.9999999999779076,
+          "positive_day_rate": 0.030303030303030304,
+          "worst_day_bps": -140.36940408558016,
+          "max_drawdown_bps": -2101.8697390052425,
+          "average_round_trips_per_day": 10.303030303030303
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": -60.71197400898603,
+          "annualized_sharpe": -20.71990948876108,
+          "t_statistic": -2.9185866103360314,
+          "one_sided_p": 0.978347700990779,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -123.02968387422786,
+          "max_drawdown_bps": -303.55987004493016,
+          "average_round_trips_per_day": 11.0
+        }
+      },
+      "high_vol_p1": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": -23.888180145181906,
+          "annualized_sharpe": -18.162160788628018,
+          "t_statistic": -6.572403461255312,
+          "one_sided_p": 0.9999998953994232,
+          "positive_day_rate": 0.030303030303030304,
+          "worst_day_bps": -110.80297206421272,
+          "max_drawdown_bps": -788.3099447910029,
+          "average_round_trips_per_day": 4.242424242424242
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": -18.54248049757404,
+          "annualized_sharpe": -21.672375403727518,
+          "t_statistic": -3.0527500470889937,
+          "one_sided_p": 0.9810369345087029,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -34.40459267412763,
+          "max_drawdown_bps": -92.71240248787021,
+          "average_round_trips_per_day": 2.4
+        }
+      },
+      "cash": {
+        "validation": {
+          "days": 33,
+          "mean_daily_bps": 0.0,
+          "annualized_sharpe": 0.0,
+          "t_statistic": 0.0,
+          "one_sided_p": 0.5,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": 0.0,
+          "max_drawdown_bps": 0.0,
+          "average_round_trips_per_day": 0.0
+        },
+        "final_week": {
+          "days": 5,
+          "mean_daily_bps": 0.0,
+          "annualized_sharpe": 0.0,
+          "t_statistic": 0.0,
+          "one_sided_p": 0.5,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": 0.0,
+          "max_drawdown_bps": 0.0,
+          "average_round_trips_per_day": 0.0
+        }
+      }
+    },
+    "summary": {
+      "selected_on_validation": "cash",
+      "selected_final": {
+        "days": 5,
+        "mean_daily_bps": 0.0,
+        "annualized_sharpe": 0.0,
+        "t_statistic": 0.0,
+        "one_sided_p": 0.5,
+        "positive_day_rate": 0.0,
+        "worst_day_bps": 0.0,
+        "max_drawdown_bps": 0.0,
+        "average_round_trips_per_day": 0.0
+      },
+      "best_active_on_validation": "low_vol_p0.1",
+      "best_active_final": {
+        "days": 5,
+        "mean_daily_bps": -4.3315545910202555,
+        "annualized_sharpe": -11.262630406082254,
+        "t_statistic": -1.5864433345225295,
+        "one_sided_p": 0.9060872071343307,
+        "positive_day_rate": 0.0,
+        "worst_day_bps": -12.875726170996188,
+        "max_drawdown_bps": -21.65777295510128,
+        "average_round_trips_per_day": 0.6
+      },
+      "best_ungated_on_validation": "all_vol_p0.1",
+      "ungated_final": {
+        "days": 5,
+        "mean_daily_bps": -11.857405497365903,
+        "annualized_sharpe": -13.89323013763272,
+        "t_statistic": -1.9569870937904579,
+        "one_sided_p": 0.9390123152941684,
+        "positive_day_rate": 0.0,
+        "worst_day_bps": -34.20595562184923,
+        "max_drawdown_bps": -59.287027486829516,
+        "average_round_trips_per_day": 2.0
+      }
+    }
+  },
+  "options": {
+    "warning": "diagnostics only: rolling ATM buckets are not fixed contracts and quotes/IV/OI are absent",
+    "half_hour_reversal": {
+      "hypothesis": "negative shock/forward correlation, stronger after abnormal volume",
+      "robust_filter": "absolute prior and forward rolling-bucket returns <= 10%",
+      "discovery_high_volume_cutoff": 2.348300615841368,
+      "splits": {
+        "discovery": {
+          "raw": {
+            "observations": 1431,
+            "days": 144,
+            "correlation": 0.4481735684350707,
+            "spearman": 0.19713375187458773,
+            "daily_product_t_statistic": 5.666229377593625
+          },
+          "robust": {
+            "observations": 1173,
+            "days": 141,
+            "correlation": -0.0050788478566054646,
+            "spearman": -0.053575438653122025,
+            "daily_product_t_statistic": 3.81200035532018
+          },
+          "high_volume": {
+            "observations": 145,
+            "days": 64,
+            "correlation": 0.15835109235154363,
+            "spearman": 0.21848549292001299,
+            "daily_product_t_statistic": 3.165650424942344
+          }
+        },
+        "validation": {
+          "raw": {
+            "observations": 240,
+            "days": 24,
+            "correlation": 0.7236298456791685,
+            "spearman": 0.4244630983176791,
+            "daily_product_t_statistic": 2.348023585160825
+          },
+          "robust": {
+            "observations": 205,
+            "days": 23,
+            "correlation": 0.2897565353658217,
+            "spearman": 0.17759050577370422,
+            "daily_product_t_statistic": 2.2011348758112677
+          },
+          "high_volume": {
+            "observations": 17,
+            "days": 6,
+            "correlation": 0.5467485786914514,
+            "spearman": 0.4093137254901961,
+            "daily_product_t_statistic": 2.9357559157492856
+          }
+        },
+        "final_week": {
+          "raw": {
+            "observations": 50,
+            "days": 5,
+            "correlation": 0.7432750357039809,
+            "spearman": 0.01752701080432173,
+            "daily_product_t_statistic": 1.0019048433906663
+          },
+          "robust": {
+            "observations": 43,
+            "days": 5,
+            "correlation": -0.4102115790494894,
+            "spearman": -0.35925702204771975,
+            "daily_product_t_statistic": 0.07337458767817771
+          },
+          "high_volume": {
+            "observations": 3,
+            "days": 2,
+            "correlation": -0.847781905362382,
+            "spearman": -0.5,
+            "daily_product_t_statistic": -0.7740663660632133
+          }
+        }
+      }
+    },
+    "smile_curvature": {
+      "hypothesis": "negative ATM-richness/ATM-relative-forward correlation",
+      "definition": "ATM residual from quadratic fit to rolling offsets -2,-1,+1,+2",
+      "robust_filter": "absolute richness and relative forward return <= 10%",
+      "splits": {
+        "discovery": {
+          "raw": {
+            "observations": 1575,
+            "days": 144,
+            "correlation": 0.39036987438671245,
+            "spearman": 0.05989110285274182,
+            "daily_product_t_statistic": 3.6221054546261895
+          },
+          "robust": {
+            "observations": 1511,
+            "days": 144,
+            "correlation": 0.48419281215700205,
+            "spearman": -0.015608690603706567,
+            "daily_product_t_statistic": 4.450666314316135
+          }
+        },
+        "validation": {
+          "raw": {
+            "observations": 264,
+            "days": 24,
+            "correlation": 0.6987153342780378,
+            "spearman": -0.1506355614397798,
+            "daily_product_t_statistic": 1.9430553333665823
+          },
+          "robust": {
+            "observations": 257,
+            "days": 24,
+            "correlation": 0.4554125888309403,
+            "spearman": -0.24278204461134736,
+            "daily_product_t_statistic": 1.2806832524654697
+          }
+        },
+        "final_week": {
+          "raw": {
+            "observations": 55,
+            "days": 5,
+            "correlation": 0.9226080081620793,
+            "spearman": -0.2549062049062049,
+            "daily_product_t_statistic": 0.9979453661570281
+          },
+          "robust": {
+            "observations": 53,
+            "days": 5,
+            "correlation": 0.6248911396150303,
+            "spearman": -0.40211256248992094,
+            "daily_product_t_statistic": 0.9550221326354174
+          }
+        }
+      }
+    }
+  }
+}

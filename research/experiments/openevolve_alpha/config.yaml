@@ -1,0 +1,48 @@
+max_iterations: 100
+random_seed: 20260826
+
+llm:
+  models:
+    - name: "gpt-5.6-luna"
+      weight: 0.8
+      timeout: 300
+    - name: "gpt-5.6-sol"
+      weight: 0.2
+      timeout: 300
+  temperature: 0.8
+
+database:
+  population_size: 80
+  archive_size: 40
+  num_islands: 4
+  migration_interval: 20
+  feature_dimensions:
+    - "complexity"
+    - "average_round_trips_per_day"
+    - "robust_net_1bps"
+  feature_bins: 10
+
+evaluator:
+  timeout: 30
+  cascade_evaluation: false
+  parallel_evaluations: 2
+
+prompt:
+  system_message: |
+    You evolve a small, causal intraday NIFTY alpha scoring function.
+    Modify only the EVOLVE-BLOCK. Keep the exact alpha_score signature.
+    The inputs are robustly standardized causal features available at a five-minute decision.
+    Return one finite NumPy vector with the same length as each input.
+    Allowed operations are arithmetic and np.abs, np.clip, np.maximum, np.minimum,
+    np.sign, np.tanh, and np.where. Imports, loops, indexing, file/network access,
+    reflection, randomness, and future data are forbidden by the evaluator.
+    Seek stable net performance in both discovery subperiods. Prefer short formulas,
+    low turnover, and economic intuition. Do not optimize a single subperiod.
+  num_top_programs: 3
+  num_diverse_programs: 2
+
+evolution_trace:
+  enabled: true
+  format: "jsonl"
+  include_code: true
+  include_prompts: true

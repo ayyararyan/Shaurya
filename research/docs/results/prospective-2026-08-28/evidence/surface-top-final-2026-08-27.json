@@ -1,0 +1,15 @@
+{
+  "candidate": "surface__hist_gradient_boosting__realized_futures_volatility__h300",
+  "final_p_value": 0.0004997501249375312,
+  "final_samples": 4459,
+  "final_session": "2026-08-27",
+  "final_skill_vs_discovery_constant": 0.27186709791404096,
+  "selection_sessions": {
+    "conditional_final": "2026-08-27",
+    "discovery": "2026-08-21",
+    "validation": "2026-08-26"
+  },
+  "status": "frozen_candidate_final_evaluation_complete",
+  "training_refit_after_selection": false,
+  "validation_skill_reproduced": 0.3231474829604718
+}

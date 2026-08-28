@@ -24,9 +24,14 @@ from shaurya.contracts.tape import TapeRow
 
 from .tape import TapeIntegrityError, data_channel_for_row
 
-ROW_SCHEMA_VERSION = "2.0.0"
+ROW_SCHEMA_VERSION = "2.1.0"
 STORAGE_FORMAT_VERSION = "2.0.0"
-PRICE_TYPE = pa.decimal128(38, 12)
+# Broker payloads are decoded through IEEE-754 floats.  Their shortest exact
+# decimal representation can legitimately exceed 12 fractional digits (for
+# example, after a source-side calculation), so 12 places can reject otherwise
+# valid legacy rows during Arrow conversion.  Eighteen places preserve those
+# representations while leaving ample integer precision for quoted prices.
+PRICE_TYPE = pa.decimal128(38, 18)
 UTC_TIMESTAMP = pa.timestamp("ns", tz="UTC")
 DEPTH_LEVEL_TYPE = pa.struct(
     [
@@ -81,7 +86,7 @@ MARKET_EVENT_SCHEMA = pa.schema(
         b"shaurya.storage_format_version": STORAGE_FORMAT_VERSION.encode(),
         b"shaurya.ordering": b"strictly-increasing-receive-sequence",
         b"shaurya.timestamp_semantics": b"timezone-aware-instants-normalized-to-UTC",
-        b"shaurya.price_units": b"native-quote-currency-decimal-12",
+        b"shaurya.price_units": b"native-quote-currency-decimal-18",
     },
 )
 

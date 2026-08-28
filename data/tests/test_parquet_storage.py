@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -192,6 +193,24 @@ def test_arrow_round_trip_preserves_every_tape_field_and_depth(
     assert len(restored[0].bids) == expected_depth
     assert restored[0].receive_ts.tzinfo is not None
     assert restored[0].last_price == original.last_price
+
+
+def test_arrow_round_trip_preserves_subunit_price_with_more_than_12_places(
+    tmp_path: Path,
+) -> None:
+    original = replace(_row(1, event_type="quote"), last_price=0.123456789012345)
+    writer = SegmentedParquetWriter(
+        tmp_path / "high-precision-price",
+        dataset_id=str(RUN_ID),
+        max_rows=1,
+    )
+    writer.write(original)
+    segment = writer.close()[0]
+
+    restored = tuple(iter_parquet_rows(Path(segment.path)))
+
+    assert restored == (original,)
+    assert restored[0].last_price == 0.123456789012345
 
 
 def test_multiple_segments_replay_without_duplicate_or_missing_rows(tmp_path: Path) -> None:

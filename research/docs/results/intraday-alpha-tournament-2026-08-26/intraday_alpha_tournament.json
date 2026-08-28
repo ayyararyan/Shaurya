@@ -1,0 +1,4148 @@
+{
+  "data_audit": {
+    "raw_index_rows": 587456,
+    "duplicate_index_timestamps": 376,
+    "invalid_index_rows": 12,
+    "rejected_sessions": 51,
+    "accepted_sessions": 1339,
+    "clean_index_rows": 502125,
+    "decision_rows": 97674,
+    "decision_sessions": 1338,
+    "first_decision": "2021-01-04T09:20:00",
+    "last_decision": "2026-08-21T15:20:00"
+  },
+  "protocol": {
+    "decision_interval": "five minutes using completed one-minute bars",
+    "return_proxy": "NIFTY index; futures execution/basis unavailable",
+    "development": "2021-2023",
+    "model_and_participation_selection": "2024",
+    "untouched_evaluations": [
+      "2025",
+      "2026"
+    ],
+    "primary_round_trip_cost_bps": 6.0,
+    "multiple_testing": "Holm one-sided familywise correction on 2025 daily P&L"
+  },
+  "model_selection": {
+    "ridge_return": {
+      "participation": 0.1,
+      "selection_trials": {
+        "0.1": -31.77973632971832,
+        "0.25": -68.41438012308912,
+        "0.5": -108.07848438510283,
+        "1.0": -134.38278147647972
+      },
+      "frozen_threshold_bps": 0.20435817561651126
+    },
+    "hist_return": {
+      "participation": 0.1,
+      "selection_trials": {
+        "0.1": -30.660594416967797,
+        "0.25": -73.53075995571808,
+        "0.5": -141.9999688786304,
+        "1.0": -190.62031184980296
+      },
+      "frozen_threshold_bps": 0.24881113679435682
+    }
+  },
+  "strategies": {
+    "momentum_5m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": -17.2815837522839,
+          "annualized_sharpe": -4.060380591716269,
+          "t_statistic": -3.9376820493323996,
+          "one_sided_p": 0.9999458336894363,
+          "positive_day_rate": 0.379746835443038,
+          "worst_day_bps": -260.46855488649715,
+          "max_drawdown_bps": -4193.453130572953,
+          "average_round_trips_per_day": 39.42194092827004
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -96.12546560882397,
+          "annualized_sharpe": -20.783276445069067,
+          "t_statistic": -20.15523735657241,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.08438818565400844,
+          "worst_day_bps": -342.46855488649715,
+          "max_drawdown_bps": -22781.735349291277,
+          "average_round_trips_per_day": 39.42194092827004
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -253.81322932190415,
+          "annualized_sharpe": -46.68387001713001,
+          "t_statistic": -45.27315427889948,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008438818565400843,
+          "worst_day_bps": -506.46855488649715,
+          "max_drawdown_bps": -60153.735349291295,
+          "average_round_trips_per_day": 39.42194092827004
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -411.5009930349844,
+          "annualized_sharpe": -65.1635466075798,
+          "t_statistic": -63.19440307418164,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -670.4685548864971,
+          "max_drawdown_bps": -97525.73534929124,
+          "average_round_trips_per_day": 39.42194092827004
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": -11.832541645716974,
+          "annualized_sharpe": -3.5804548094546305,
+          "t_statistic": -3.5447564621324266,
+          "one_sided_p": 0.9997648811767117,
+          "positive_day_rate": 0.3765182186234818,
+          "worst_day_bps": -206.58840228815478,
+          "max_drawdown_bps": -2922.6377864920933,
+          "average_round_trips_per_day": 38.11740890688259
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -88.06735945948216,
+          "annualized_sharpe": -23.96306431897021,
+          "t_statistic": -23.724144450269726,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.06072874493927125,
+          "worst_day_bps": -302.5884022881548,
+          "max_drawdown_bps": -21752.63778649211,
+          "average_round_trips_per_day": 38.11740890688259
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -240.5369950870125,
+          "annualized_sharpe": -53.54787391359202,
+          "t_statistic": -53.01398347143778,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.004048582995951417,
+          "worst_day_bps": -494.5884022881548,
+          "max_drawdown_bps": -59412.637786492116,
+          "average_round_trips_per_day": 38.11740890688259
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -393.0066307145429,
+          "annualized_sharpe": -73.16753902585901,
+          "t_statistic": -72.43803387641296,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -686.5884022881548,
+          "max_drawdown_bps": -97072.63778649217,
+          "average_round_trips_per_day": 38.11740890688259
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": -8.210192405352474,
+          "annualized_sharpe": -2.1398669146996476,
+          "t_statistic": -1.689025941212431,
+          "one_sided_p": 0.9533938919478693,
+          "positive_day_rate": 0.43312101910828027,
+          "worst_day_bps": -279.4925348106858,
+          "max_drawdown_bps": -1358.4513143131007,
+          "average_round_trips_per_day": 37.859872611464965
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -83.92993762828242,
+          "annualized_sharpe": -20.133631704757807,
+          "t_statistic": -15.891748223475906,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.06369426751592357,
+          "worst_day_bps": -373.4925348106858,
+          "max_drawdown_bps": -13177.000207640343,
+          "average_round_trips_per_day": 37.859872611464965
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -235.3694280741423,
+          "annualized_sharpe": -47.99037303366705,
+          "t_statistic": -37.879451486216524,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.006369426751592357,
+          "worst_day_bps": -561.4925348106858,
+          "max_drawdown_bps": -36953.00020764033,
+          "average_round_trips_per_day": 37.859872611464965
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -386.8089185200021,
+          "annualized_sharpe": -67.8001924594056,
+          "t_statistic": -53.51561029168256,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -749.4925348106858,
+          "max_drawdown_bps": -60729.0002076403,
+          "average_round_trips_per_day": 37.859872611464965
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": -10.258298337799678,
+          "annualized_sharpe": -3.007644083841081,
+          "t_statistic": -2.935160080823736,
+          "one_sided_p": 0.9981706518436523,
+          "positive_day_rate": 0.4,
+          "worst_day_bps": -279.4925348106858,
+          "max_drawdown_bps": -2548.602091121063,
+          "average_round_trips_per_day": 37.958333333333336
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -86.17496500446636,
+          "annualized_sharpe": -22.966666638761286,
+          "t_statistic": -22.413171648151785,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.05416666666666667,
+          "worst_day_bps": -373.4925348106858,
+          "max_drawdown_bps": -20681.991601071924,
+          "average_round_trips_per_day": 37.958333333333336
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -238.0082983377997,
+          "annualized_sharpe": -52.74470371924356,
+          "t_statistic": -51.47356020725856,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.004166666666666667,
+          "worst_day_bps": -561.4925348106858,
+          "max_drawdown_bps": -57121.991601071895,
+          "average_round_trips_per_day": 37.958333333333336
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -389.84163167113303,
+          "annualized_sharpe": -73.02154678294032,
+          "t_statistic": -71.26173283228617,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -749.4925348106858,
+          "max_drawdown_bps": -93561.99160107196,
+          "average_round_trips_per_day": 37.958333333333336
+        }
+      }
+    },
+    "reversal_5m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": 17.2815837522839,
+          "annualized_sharpe": 4.060380591716269,
+          "t_statistic": 3.9376820493323996,
+          "one_sided_p": 5.416631056369747e-05,
+          "positive_day_rate": 0.620253164556962,
+          "worst_day_bps": -222.96693446927307,
+          "max_drawdown_bps": -301.42798854051034,
+          "average_round_trips_per_day": 39.42194092827004
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -61.56229810425617,
+          "annualized_sharpe": -15.700019345606325,
+          "t_statistic": -15.225588575979824,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.10970464135021098,
+          "worst_day_bps": -278.96693446927304,
+          "max_drawdown_bps": -14640.785192685384,
+          "average_round_trips_per_day": 39.42194092827004
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -219.25006181733636,
+          "annualized_sharpe": -64.62461241782458,
+          "t_statistic": -62.671754658143975,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.004219409282700422,
+          "worst_day_bps": -418.7151657538186,
+          "max_drawdown_bps": -51962.2646507087,
+          "average_round_trips_per_day": 39.42194092827004
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -376.9378255304165,
+          "annualized_sharpe": -120.432781732847,
+          "t_statistic": -116.793485750593,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -570.7151657538186,
+          "max_drawdown_bps": -89334.26465070878,
+          "average_round_trips_per_day": 39.42194092827004
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": 11.832541645716974,
+          "annualized_sharpe": 3.5804548094546305,
+          "t_statistic": 3.5447564621324266,
+          "one_sided_p": 0.00023511882328833893,
+          "positive_day_rate": 0.6234817813765182,
+          "worst_day_bps": -223.6457748666787,
+          "max_drawdown_bps": -537.4428610817715,
+          "average_round_trips_per_day": 38.11740890688259
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -64.4022761680482,
+          "annualized_sharpe": -21.66488179472088,
+          "t_statistic": -21.44887558429192,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0728744939271255,
+          "worst_day_bps": -275.6457748666787,
+          "max_drawdown_bps": -15907.36221350791,
+          "average_round_trips_per_day": 38.11740890688259
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -216.87191179557857,
+          "annualized_sharpe": -87.32060173816046,
+          "t_statistic": -86.44998575915093,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -403.1820488976856,
+          "max_drawdown_bps": -53567.36221350789,
+          "average_round_trips_per_day": 38.11740890688259
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -369.3415474231089,
+          "annualized_sharpe": -157.46310657040456,
+          "t_statistic": -155.8931460575836,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -551.1820488976856,
+          "max_drawdown_bps": -91227.3622135078,
+          "average_round_trips_per_day": 38.11740890688259
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": 8.210192405352474,
+          "annualized_sharpe": 2.1398669146996476,
+          "t_statistic": 1.689025941212431,
+          "one_sided_p": 0.04660610805213072,
+          "positive_day_rate": 0.5668789808917197,
+          "worst_day_bps": -225.05802666021424,
+          "max_drawdown_bps": -512.4323932688486,
+          "average_round_trips_per_day": 37.859872611464965
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -67.50955281757746,
+          "annualized_sharpe": -19.080451064727395,
+          "t_statistic": -15.060458478504193,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.08280254777070063,
+          "worst_day_bps": -285.05802666021424,
+          "max_drawdown_bps": -10598.99979235966,
+          "average_round_trips_per_day": 37.859872611464965
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -218.94904326343737,
+          "annualized_sharpe": -71.12238248170898,
+          "t_statistic": -56.13785987681396,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -405.05802666021424,
+          "max_drawdown_bps": -34374.99979235966,
+          "average_round_trips_per_day": 37.859872611464965
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -370.38853370929723,
+          "annualized_sharpe": -128.9278475109205,
+          "t_statistic": -101.76449642485848,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -525.0580266602142,
+          "max_drawdown_bps": -58150.99979235969,
+          "average_round_trips_per_day": 37.859872611464965
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": 10.258298337799678,
+          "annualized_sharpe": 3.007644083841081,
+          "t_statistic": 2.935160080823736,
+          "one_sided_p": 0.001829348156347694,
+          "positive_day_rate": 0.6,
+          "worst_day_bps": -225.05802666021424,
+          "max_drawdown_bps": -512.4323932688487,
+          "average_round_trips_per_day": 37.958333333333336
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -65.65836832886698,
+          "annualized_sharpe": -21.134479459532468,
+          "t_statistic": -20.625140046287008,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.06666666666666667,
+          "worst_day_bps": -285.05802666021424,
+          "max_drawdown_bps": -15758.008398928065,
+          "average_round_trips_per_day": 37.958333333333336
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -217.4917016622003,
+          "annualized_sharpe": -81.7356775242544,
+          "t_statistic": -79.76585365841764,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -405.05802666021424,
+          "max_drawdown_bps": -52198.00839892811,
+          "average_round_trips_per_day": 37.958333333333336
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -369.3250349955336,
+          "annualized_sharpe": -146.38270407718696,
+          "t_statistic": -142.8548915873303,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -525.0580266602142,
+          "max_drawdown_bps": -88638.00839892804,
+          "average_round_trips_per_day": 37.958333333333336
+        }
+      }
+    },
+    "momentum_15m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": -6.078511649179943,
+          "annualized_sharpe": -1.394696644530723,
+          "t_statistic": -1.3525510275162203,
+          "one_sided_p": 0.9112531994051336,
+          "positive_day_rate": 0.41350210970464135,
+          "worst_day_bps": -259.67873539530115,
+          "max_drawdown_bps": -1768.6983097460995,
+          "average_round_trips_per_day": 21.628691983122362
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -49.33589561542467,
+          "annualized_sharpe": -10.554454044455154,
+          "t_statistic": -10.235514453039954,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.18565400843881857,
+          "worst_day_bps": -321.67873539530115,
+          "max_drawdown_bps": -11692.607260855642,
+          "average_round_trips_per_day": 21.628691983122362
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -135.85066354791414,
+          "annualized_sharpe": -25.194762053504352,
+          "t_statistic": -24.433414561601687,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.05907172995780591,
+          "worst_day_bps": -445.67873539530115,
+          "max_drawdown_bps": -32196.607260855657,
+          "average_round_trips_per_day": 21.628691983122362
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -222.36543148040357,
+          "annualized_sharpe": -35.923848029268925,
+          "t_statistic": -34.838283833882045,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008438818565400843,
+          "worst_day_bps": -569.6787353953011,
+          "max_drawdown_bps": -52700.60726085568,
+          "average_round_trips_per_day": 21.628691983122362
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": 0.08603677449265082,
+          "annualized_sharpe": 0.0278249188037488,
+          "t_statistic": 0.02754749493763955,
+          "one_sided_p": 0.4890226964449019,
+          "positive_day_rate": 0.5222672064777328,
+          "worst_day_bps": -194.17681218829586,
+          "max_drawdown_bps": -682.1509015553847,
+          "average_round_trips_per_day": 20.234817813765183
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -40.3835988530377,
+          "annualized_sharpe": -11.915368959513781,
+          "t_statistic": -11.796568694679905,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.1902834008097166,
+          "worst_day_bps": -246.17681218829586,
+          "max_drawdown_bps": -10113.575260147589,
+          "average_round_trips_per_day": 20.234817813765183
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -121.32287010809844,
+          "annualized_sharpe": -29.81050903820712,
+          "t_statistic": -29.51328816484558,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.020242914979757085,
+          "worst_day_bps": -350.17681218829586,
+          "max_drawdown_bps": -29991.82980131612,
+          "average_round_trips_per_day": 20.234817813765183
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -202.26214136315917,
+          "annualized_sharpe": -41.92619076696182,
+          "t_statistic": -41.50817244260151,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008097165991902834,
+          "worst_day_bps": -463.9520312110021,
+          "max_drawdown_bps": -49958.74891670032,
+          "average_round_trips_per_day": 20.234817813765183
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": -1.1256081273478933,
+          "annualized_sharpe": -0.29050315512013175,
+          "t_statistic": -0.22929807532952654,
+          "one_sided_p": 0.5905312000725287,
+          "positive_day_rate": 0.5095541401273885,
+          "worst_day_bps": -225.02229516362604,
+          "max_drawdown_bps": -674.8222318787888,
+          "average_round_trips_per_day": 20.394904458598727
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -41.91541704454534,
+          "annualized_sharpe": -10.132682187358727,
+          "t_statistic": -7.99786330212605,
+          "one_sided_p": 0.9999999999998666,
+          "positive_day_rate": 0.21656050955414013,
+          "worst_day_bps": -267.02229516362604,
+          "max_drawdown_bps": -6580.720475993621,
+          "average_round_trips_per_day": 20.394904458598727
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -123.49503487894026,
+          "annualized_sharpe": -26.104791927874892,
+          "t_statistic": -20.604865869577818,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.05732484076433121,
+          "worst_day_bps": -351.02229516362604,
+          "max_drawdown_bps": -19388.72047599361,
+          "average_round_trips_per_day": 20.394904458598727
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -205.07465271333515,
+          "annualized_sharpe": -38.03207424259221,
+          "t_statistic": -30.019231360877278,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.012738853503184714,
+          "worst_day_bps": -437.66262291613486,
+          "max_drawdown_bps": -32196.72047599361,
+          "average_round_trips_per_day": 20.394904458598727
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": -3.0178448271416234,
+          "annualized_sharpe": -0.8734614741116937,
+          "t_statistic": -0.8524111163033353,
+          "one_sided_p": 0.8025803353827036,
+          "positive_day_rate": 0.5083333333333333,
+          "worst_day_bps": -225.02229516362604,
+          "max_drawdown_bps": -1006.4279208946659,
+          "average_round_trips_per_day": 20.370833333333334
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -43.75951149380829,
+          "annualized_sharpe": -11.722363606217815,
+          "t_statistic": -11.439855498437197,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.19166666666666668,
+          "worst_day_bps": -267.02229516362604,
+          "max_drawdown_bps": -10502.282758513986,
+          "average_round_trips_per_day": 20.370833333333334
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -125.24284482714162,
+          "annualized_sharpe": -28.664933463309207,
+          "t_statistic": -27.974110657908305,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0375,
+          "worst_day_bps": -351.02229516362604,
+          "max_drawdown_bps": -30058.28275851398,
+          "average_round_trips_per_day": 20.370833333333334
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -206.72617816047494,
+          "annualized_sharpe": -40.707346782776845,
+          "t_statistic": -39.72630269485316,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008333333333333333,
+          "worst_day_bps": -437.66262291613486,
+          "max_drawdown_bps": -49614.28275851397,
+          "average_round_trips_per_day": 20.370833333333334
+        }
+      }
+    },
+    "reversal_15m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": 6.078511649179943,
+          "annualized_sharpe": 1.394696644530723,
+          "t_statistic": 1.3525510275162203,
+          "one_sided_p": 0.08874680059486645,
+          "positive_day_rate": 0.5864978902953587,
+          "worst_day_bps": -511.491102442978,
+          "max_drawdown_bps": -844.8307961125855,
+          "average_round_trips_per_day": 21.628691983122362
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -37.17887231706479,
+          "annualized_sharpe": -9.113175332168233,
+          "t_statistic": -8.837788997195863,
+          "one_sided_p": 0.9999999999999999,
+          "positive_day_rate": 0.2489451476793249,
+          "worst_day_bps": -539.491102442978,
+          "max_drawdown_bps": -8824.377717711403,
+          "average_round_trips_per_day": 21.628691983122362
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -123.69364024955424,
+          "annualized_sharpe": -33.721548146615255,
+          "t_statistic": -32.7025341130642,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.012658227848101266,
+          "worst_day_bps": -595.491102442978,
+          "max_drawdown_bps": -29315.39273914435,
+          "average_round_trips_per_day": 21.628691983122362
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -210.20840818204368,
+          "annualized_sharpe": -59.97800994485489,
+          "t_statistic": -58.16556546358318,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -651.491102442978,
+          "max_drawdown_bps": -49819.392739144336,
+          "average_round_trips_per_day": 21.628691983122362
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": -0.08603677449265082,
+          "annualized_sharpe": -0.0278249188037488,
+          "t_statistic": -0.02754749493763955,
+          "one_sided_p": 0.5109773035550981,
+          "positive_day_rate": 0.4777327935222672,
+          "worst_day_bps": -185.2090693680708,
+          "max_drawdown_bps": -810.620113824019,
+          "average_round_trips_per_day": 20.234817813765183
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -40.55567240202303,
+          "annualized_sharpe": -14.2997362473705,
+          "t_statistic": -14.157163032977017,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.1659919028340081,
+          "worst_day_bps": -211.2090693680708,
+          "max_drawdown_bps": -10017.251083299685,
+          "average_round_trips_per_day": 20.234817813765183
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -121.49494365708374,
+          "annualized_sharpe": -48.66099329560119,
+          "t_statistic": -48.1758267086294,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.004048582995951417,
+          "worst_day_bps": -263.2090693680708,
+          "max_drawdown_bps": -30009.251083299685,
+          "average_round_trips_per_day": 20.234817813765183
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -202.43421491214448,
+          "annualized_sharpe": -82.24992882108805,
+          "t_statistic": -81.42986916874207,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -315.2090693680708,
+          "max_drawdown_bps": -50001.25108329967,
+          "average_round_trips_per_day": 20.234817813765183
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": 1.1256081273478933,
+          "annualized_sharpe": 0.29050315512013175,
+          "t_statistic": 0.22929807532952654,
+          "one_sided_p": 0.4094687999274713,
+          "positive_day_rate": 0.49044585987261147,
+          "worst_day_bps": -232.9817678325874,
+          "max_drawdown_bps": -570.6351660169595,
+          "average_round_trips_per_day": 20.394904458598727
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -39.66420078984956,
+          "annualized_sharpe": -10.887852797466358,
+          "t_statistic": -8.59392969380258,
+          "one_sided_p": 0.9999999999999959,
+          "positive_day_rate": 0.17197452229299362,
+          "worst_day_bps": -270.98176783258737,
+          "max_drawdown_bps": -6238.689888007315,
+          "average_round_trips_per_day": 20.394904458598727
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -121.24381862424445,
+          "annualized_sharpe": -36.79463251087674,
+          "t_statistic": -29.042501840340883,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.012738853503184714,
+          "worst_day_bps": -346.98176783258737,
+          "max_drawdown_bps": -19035.27952400639,
+          "average_round_trips_per_day": 20.394904458598727
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -202.8234364586394,
+          "annualized_sharpe": -64.55253954456548,
+          "t_statistic": -50.95219385510991,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.006369426751592357,
+          "worst_day_bps": -422.98176783258737,
+          "max_drawdown_bps": -31843.279524006393,
+          "average_round_trips_per_day": 20.394904458598727
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": 3.0178448271416234,
+          "annualized_sharpe": 0.8734614741116937,
+          "t_statistic": 0.8524111163033353,
+          "one_sided_p": 0.19741966461729646,
+          "positive_day_rate": 0.49166666666666664,
+          "worst_day_bps": -232.9817678325874,
+          "max_drawdown_bps": -570.6351660169595,
+          "average_round_trips_per_day": 20.370833333333334
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -37.723821839525044,
+          "annualized_sharpe": -11.73970964404441,
+          "t_statistic": -11.45678349801754,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.16666666666666666,
+          "worst_day_bps": -270.98176783258737,
+          "max_drawdown_bps": -9053.717241486012,
+          "average_round_trips_per_day": 20.370833333333334
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -119.20715517285838,
+          "annualized_sharpe": -41.47475919936564,
+          "t_statistic": -40.47522052818377,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008333333333333333,
+          "worst_day_bps": -346.98176783258737,
+          "max_drawdown_bps": -28609.717241486014,
+          "average_round_trips_per_day": 20.370833333333334
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -200.6904885061917,
+          "annualized_sharpe": -72.12929679062762,
+          "t_statistic": -70.3909859996999,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.004166666666666667,
+          "worst_day_bps": -422.98176783258737,
+          "max_drawdown_bps": -48165.71724148604,
+          "average_round_trips_per_day": 20.370833333333334
+        }
+      }
+    },
+    "momentum_30m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": 0.20615112674187397,
+          "annualized_sharpe": 0.05186120686813489,
+          "t_statistic": 0.05029403986365001,
+          "one_sided_p": 0.4799653067916293,
+          "positive_day_rate": 0.4430379746835443,
+          "worst_day_bps": -134.07255648383298,
+          "max_drawdown_bps": -645.5541608496774,
+          "average_round_trips_per_day": 14.949367088607595
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -29.692583050473313,
+          "annualized_sharpe": -7.021708401372304,
+          "t_statistic": -6.809523024550574,
+          "one_sided_p": 0.9999999999597705,
+          "positive_day_rate": 0.27848101265822783,
+          "worst_day_bps": -172.07255648383298,
+          "max_drawdown_bps": -7037.142182962174,
+          "average_round_trips_per_day": 14.949367088607595
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -89.4900514049037,
+          "annualized_sharpe": -18.501835862124743,
+          "t_statistic": -17.94273844737999,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.09282700421940929,
+          "worst_day_bps": -258.14074296344313,
+          "max_drawdown_bps": -21209.142182962165,
+          "average_round_trips_per_day": 14.949367088607595
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -149.28751975933403,
+          "annualized_sharpe": -26.939090404268374,
+          "t_statistic": -26.125031955537118,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.04219409282700422,
+          "worst_day_bps": -346.14074296344313,
+          "max_drawdown_bps": -35381.14218296217,
+          "average_round_trips_per_day": 14.949367088607595
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": -0.2576778112149723,
+          "annualized_sharpe": -0.0881628776771061,
+          "t_statistic": -0.08728386392166598,
+          "one_sided_p": 0.5347415568854372,
+          "positive_day_rate": 0.4939271255060729,
+          "worst_day_bps": -144.42955649313305,
+          "max_drawdown_bps": -856.4801110995824,
+          "average_round_trips_per_day": 14.20242914979757
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -28.66253611081012,
+          "annualized_sharpe": -8.833170780382147,
+          "t_statistic": -8.745101075482713,
+          "one_sided_p": 0.9999999999999998,
+          "positive_day_rate": 0.2631578947368421,
+          "worst_day_bps": -186.42955649313305,
+          "max_drawdown_bps": -7227.6255336974555,
+          "average_round_trips_per_day": 14.20242914979757
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -85.4722527100004,
+          "annualized_sharpe": -21.465290420514627,
+          "t_statistic": -21.251274203697683,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.06882591093117409,
+          "worst_day_bps": -271.89129655171917,
+          "max_drawdown_bps": -21199.62553369743,
+          "average_round_trips_per_day": 14.20242914979757
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -142.28196930919066,
+          "annualized_sharpe": -29.677470001723854,
+          "t_statistic": -29.381575572622765,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.016194331983805668,
+          "worst_day_bps": -383.89129655171917,
+          "max_drawdown_bps": -35171.62553369745,
+          "average_round_trips_per_day": 14.20242914979757
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": -2.9205091232525304,
+          "annualized_sharpe": -0.9446378633540984,
+          "t_statistic": -0.7456154610813743,
+          "one_sided_p": 0.7714891375501493,
+          "positive_day_rate": 0.445859872611465,
+          "worst_day_bps": -132.01971821995784,
+          "max_drawdown_bps": -633.524056306527,
+          "average_round_trips_per_day": 14.305732484076433
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -31.53197409140539,
+          "annualized_sharpe": -9.236290170971733,
+          "t_statistic": -7.290328941567061,
+          "one_sided_p": 0.9999999999927291,
+          "positive_day_rate": 0.2484076433121019,
+          "worst_day_bps": -174.01971821995784,
+          "max_drawdown_bps": -4950.519932350649,
+          "average_round_trips_per_day": 14.305732484076433
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -88.75490402771112,
+          "annualized_sharpe": -21.404386718399905,
+          "t_statistic": -16.89477236868006,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.10191082802547771,
+          "worst_day_bps": -258.9713732045614,
+          "max_drawdown_bps": -13934.519932350646,
+          "average_round_trips_per_day": 14.305732484076433
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -145.97783396401684,
+          "annualized_sharpe": -29.474868512225008,
+          "t_statistic": -23.264912966777263,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.044585987261146494,
+          "worst_day_bps": -350.9713732045614,
+          "max_drawdown_bps": -22918.519932350635,
+          "average_round_trips_per_day": 14.305732484076433
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": -4.900844772082488,
+          "annualized_sharpe": -1.6994891375764014,
+          "t_statistic": -1.6585315733360502,
+          "one_sided_p": 0.9507390040004396,
+          "positive_day_rate": 0.44166666666666665,
+          "worst_day_bps": -132.01971821995784,
+          "max_drawdown_bps": -1291.9135466606417,
+          "average_round_trips_per_day": 14.295833333333333
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -33.492511438749155,
+          "annualized_sharpe": -10.434074350097815,
+          "t_statistic": -10.182613919410874,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.22083333333333333,
+          "worst_day_bps": -174.01971821995784,
+          "max_drawdown_bps": -8071.9405842352435,
+          "average_round_trips_per_day": 14.295833333333333
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -90.67584477208248,
+          "annualized_sharpe": -22.9147407631091,
+          "t_statistic": -22.3624971823149,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.075,
+          "worst_day_bps": -271.89129655171917,
+          "max_drawdown_bps": -21762.202745299797,
+          "average_round_trips_per_day": 14.295833333333333
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -147.85917810541585,
+          "annualized_sharpe": -30.929721731735885,
+          "t_statistic": -30.184317694278878,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.03333333333333333,
+          "worst_day_bps": -383.89129655171917,
+          "max_drawdown_bps": -35486.20274529978,
+          "average_round_trips_per_day": 14.295833333333333
+        }
+      }
+    },
+    "reversal_30m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": -0.20615112674187397,
+          "annualized_sharpe": -0.05186120686813489,
+          "t_statistic": -0.05029403986365001,
+          "one_sided_p": 0.5200346932083707,
+          "positive_day_rate": 0.5569620253164557,
+          "worst_day_bps": -484.9628676662654,
+          "max_drawdown_bps": -900.6039494460438,
+          "average_round_trips_per_day": 14.949367088607595
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -30.104885303957065,
+          "annualized_sharpe": -7.997204698143805,
+          "t_statistic": -7.755541302941503,
+          "one_sided_p": 0.9999999999998685,
+          "positive_day_rate": 0.3037974683544304,
+          "worst_day_bps": -506.9628676662654,
+          "max_drawdown_bps": -7181.3173508158025,
+          "average_round_trips_per_day": 14.949367088607595
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -89.90235365838744,
+          "annualized_sharpe": -25.67356012365183,
+          "t_statistic": -24.897744080347074,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.029535864978902954,
+          "worst_day_bps": -550.9628676662654,
+          "max_drawdown_bps": -21306.857817037835,
+          "average_round_trips_per_day": 14.949367088607595
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -149.69982201281783,
+          "annualized_sharpe": -42.93680925132652,
+          "t_statistic": -41.63932400560841,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -594.9628676662654,
+          "max_drawdown_bps": -35478.85781703783,
+          "average_round_trips_per_day": 14.949367088607595
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": 0.2576778112149723,
+          "annualized_sharpe": 0.0881628776771061,
+          "t_statistic": 0.08728386392166598,
+          "one_sided_p": 0.4652584431145627,
+          "positive_day_rate": 0.5060728744939271,
+          "worst_day_bps": -211.80459633418636,
+          "max_drawdown_bps": -1023.7060986594847,
+          "average_round_trips_per_day": 14.20242914979757
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -28.147180488380165,
+          "annualized_sharpe": -10.633645174172164,
+          "t_statistic": -10.527624129659525,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.19838056680161945,
+          "worst_day_bps": -229.80459633418636,
+          "max_drawdown_bps": -6952.353580629898,
+          "average_round_trips_per_day": 14.20242914979757
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -84.95689708757047,
+          "annualized_sharpe": -36.94668608819981,
+          "t_statistic": -36.57831511228408,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.016194331983805668,
+          "worst_day_bps": -265.8045963341864,
+          "max_drawdown_bps": -20984.353580629922,
+          "average_round_trips_per_day": 14.20242914979757
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -141.76661368676073,
+          "annualized_sharpe": -61.1662425548638,
+          "t_statistic": -60.55639439664886,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -301.8045963341864,
+          "max_drawdown_bps": -35016.353580629904,
+          "average_round_trips_per_day": 14.20242914979757
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": 2.9205091232525304,
+          "annualized_sharpe": 0.9446378633540984,
+          "t_statistic": 0.7456154610813743,
+          "one_sided_p": 0.22851086244985078,
+          "positive_day_rate": 0.554140127388535,
+          "worst_day_bps": -168.72066743996328,
+          "max_drawdown_bps": -559.7209914376222,
+          "average_round_trips_per_day": 14.305732484076433
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -25.690955844900333,
+          "annualized_sharpe": -9.134204780888508,
+          "t_statistic": -7.209751560382794,
+          "one_sided_p": 0.9999999999886551,
+          "positive_day_rate": 0.2611464968152866,
+          "worst_day_bps": -184.72066743996328,
+          "max_drawdown_bps": -4045.960883786877,
+          "average_round_trips_per_day": 14.305732484076433
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -82.91388578120606,
+          "annualized_sharpe": -33.95765776933871,
+          "t_statistic": -26.80323924877232,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.006369426751592357,
+          "worst_day_bps": -216.72066743996328,
+          "max_drawdown_bps": -13017.480067649354,
+          "average_round_trips_per_day": 14.305732484076433
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -140.1368157175118,
+          "annualized_sharpe": -58.14852050491394,
+          "t_statistic": -45.897414881854,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -248.72066743996328,
+          "max_drawdown_bps": -22001.480067649365,
+          "average_round_trips_per_day": 14.305732484076433
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": 4.900844772082488,
+          "annualized_sharpe": 1.6994891375764014,
+          "t_statistic": 1.6585315733360502,
+          "one_sided_p": 0.04926099599956036,
+          "positive_day_rate": 0.5583333333333333,
+          "worst_day_bps": -168.72066743996328,
+          "max_drawdown_bps": -559.7209914376223,
+          "average_round_trips_per_day": 14.295833333333333
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -23.69082189458418,
+          "annualized_sharpe": -9.093091417976668,
+          "t_statistic": -8.873948578131111,
+          "one_sided_p": 0.9999999999999999,
+          "positive_day_rate": 0.25,
+          "worst_day_bps": -184.72066743996328,
+          "max_drawdown_bps": -5692.198276882758,
+          "average_round_trips_per_day": 14.295833333333333
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -80.87415522791751,
+          "annualized_sharpe": -35.77068807129746,
+          "t_statistic": -34.90861709819842,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008333333333333333,
+          "worst_day_bps": -216.72066743996328,
+          "max_drawdown_bps": -19409.797254700214,
+          "average_round_trips_per_day": 14.295833333333333
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -138.05748856125084,
+          "annualized_sharpe": -60.11101179862004,
+          "t_statistic": -58.662340799283434,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -248.72066743996328,
+          "max_drawdown_bps": -33133.79725470023,
+          "average_round_trips_per_day": 14.295833333333333
+        }
+      }
+    },
+    "momentum_60m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": 2.407152255186325,
+          "annualized_sharpe": 0.6963367628303475,
+          "t_statistic": 0.675294522114811,
+          "one_sided_p": 0.2500748798952856,
+          "positive_day_rate": 0.4810126582278481,
+          "worst_day_bps": -143.5411261790165,
+          "max_drawdown_bps": -714.9348603594595,
+          "average_round_trips_per_day": 10.291139240506329
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -18.175126225826336,
+          "annualized_sharpe": -4.782230928266021,
+          "t_statistic": -4.637719163669766,
+          "one_sided_p": 0.9999970813702855,
+          "positive_day_rate": 0.34177215189873417,
+          "worst_day_bps": -173.5411261790165,
+          "max_drawdown_bps": -4364.5722556127375,
+          "average_round_trips_per_day": 10.291139240506329
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -59.33968318785165,
+          "annualized_sharpe": -12.938679903463791,
+          "t_statistic": -12.54769262316664,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.1940928270042194,
+          "worst_day_bps": -251.06746238270813,
+          "max_drawdown_bps": -14063.504915520834,
+          "average_round_trips_per_day": 10.291139240506329
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -100.50424014987696,
+          "annualized_sharpe": -18.424200424258853,
+          "t_statistic": -17.867449034683002,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.12658227848101267,
+          "worst_day_bps": -359.06746238270813,
+          "max_drawdown_bps": -23819.504915520854,
+          "average_round_trips_per_day": 10.291139240506329
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": 0.34824070074025865,
+          "annualized_sharpe": 0.12420692729260271,
+          "t_statistic": 0.12296854215264602,
+          "one_sided_p": 0.45111620609046976,
+          "positive_day_rate": 0.4817813765182186,
+          "worst_day_bps": -137.71795932390418,
+          "max_drawdown_bps": -528.9504093436115,
+          "average_round_trips_per_day": 9.45344129554656
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -18.55864189035286,
+          "annualized_sharpe": -5.97609515795818,
+          "t_statistic": -5.916511464842994,
+          "one_sided_p": 0.9999999945182461,
+          "positive_day_rate": 0.3522267206477733,
+          "worst_day_bps": -155.71795932390418,
+          "max_drawdown_bps": -4802.391141925364,
+          "average_round_trips_per_day": 9.45344129554656
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -56.3724070725391,
+          "annualized_sharpe": -14.76629067487831,
+          "t_statistic": -14.619065754798191,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.16194331983805668,
+          "worst_day_bps": -207.2503205168456,
+          "max_drawdown_bps": -14000.261086593307,
+          "average_round_trips_per_day": 9.45344129554656
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -94.18617225472532,
+          "annualized_sharpe": -20.39663424959948,
+          "t_statistic": -20.19327289681171,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.07692307692307693,
+          "worst_day_bps": -267.9212077218594,
+          "max_drawdown_bps": -23274.535784899137,
+          "average_round_trips_per_day": 9.45344129554656
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": -1.1432111351955225,
+          "annualized_sharpe": -0.34822443497928446,
+          "t_statistic": -0.27485826338251845,
+          "one_sided_p": 0.6081055939891926,
+          "positive_day_rate": 0.5159235668789809,
+          "worst_day_bps": -117.04218819216905,
+          "max_drawdown_bps": -540.2932854854824,
+          "average_round_trips_per_day": 9.707006369426752
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -20.557223874049026,
+          "annualized_sharpe": -5.819852677670117,
+          "t_statistic": -4.593688550953264,
+          "one_sided_p": 0.9999955381766867,
+          "positive_day_rate": 0.3184713375796178,
+          "worst_day_bps": -144.13617994836756,
+          "max_drawdown_bps": -3227.484148225697,
+          "average_round_trips_per_day": 9.707006369426752
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -59.38524935175604,
+          "annualized_sharpe": -14.439554096534028,
+          "t_statistic": -11.397335638515356,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.18471337579617833,
+          "worst_day_bps": -204.13617994836756,
+          "max_drawdown_bps": -9323.484148225698,
+          "average_round_trips_per_day": 9.707006369426752
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -98.21327482946303,
+          "annualized_sharpe": -20.596865269699823,
+          "t_statistic": -16.257384750987335,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.10191082802547771,
+          "worst_day_bps": -273.03830040300556,
+          "max_drawdown_bps": -15419.484148225698,
+          "average_round_trips_per_day": 9.707006369426752
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": -1.4605445034769897,
+          "annualized_sharpe": -0.497470481079213,
+          "t_statistic": -0.4854814787749458,
+          "one_sided_p": 0.6861102059121075,
+          "positive_day_rate": 0.5083333333333333,
+          "worst_day_bps": -117.04218819216905,
+          "max_drawdown_bps": -709.5353749315159,
+          "average_round_trips_per_day": 9.616666666666667
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -20.693877836810323,
+          "annualized_sharpe": -6.4305327023724965,
+          "t_statistic": -6.275557333343247,
+          "one_sided_p": 0.9999999991882615,
+          "positive_day_rate": 0.3333333333333333,
+          "worst_day_bps": -144.13617994836756,
+          "max_drawdown_bps": -4966.530680834475,
+          "average_round_trips_per_day": 9.616666666666667
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -59.16054450347699,
+          "annualized_sharpe": -15.234680978855096,
+          "t_statistic": -14.867526278612319,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.16666666666666666,
+          "worst_day_bps": -204.13617994836756,
+          "max_drawdown_bps": -14198.530680834478,
+          "average_round_trips_per_day": 9.616666666666667
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -97.62721117014365,
+          "annualized_sharpe": -21.06829984682895,
+          "t_statistic": -20.56055535742194,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.08333333333333333,
+          "worst_day_bps": -273.03830040300556,
+          "max_drawdown_bps": -23430.530680834494,
+          "average_round_trips_per_day": 9.616666666666667
+        }
+      }
+    },
+    "reversal_60m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": -2.407152255186325,
+          "annualized_sharpe": -0.6963367628303475,
+          "t_statistic": -0.675294522114811,
+          "one_sided_p": 0.7499251201047143,
+          "positive_day_rate": 0.5189873417721519,
+          "worst_day_bps": -218.58163120523244,
+          "max_drawdown_bps": -1005.5441643840979,
+          "average_round_trips_per_day": 10.291139240506329
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -22.989430736198983,
+          "annualized_sharpe": -7.273738257020721,
+          "t_statistic": -7.053936920259579,
+          "one_sided_p": 0.9999999999904259,
+          "positive_day_rate": 0.3291139240506329,
+          "worst_day_bps": -234.58163120523244,
+          "max_drawdown_bps": -5474.993610701985,
+          "average_round_trips_per_day": 10.291139240506329
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -64.1539876982243,
+          "annualized_sharpe": -23.16596472671645,
+          "t_statistic": -22.465924412593385,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.029535864978902954,
+          "worst_day_bps": -266.58163120523244,
+          "max_drawdown_bps": -15204.495084479166,
+          "average_round_trips_per_day": 10.291139240506329
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -105.31854466024961,
+          "annualized_sharpe": -38.49976734855794,
+          "t_statistic": -37.33636277869483,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008438818565400843,
+          "worst_day_bps": -298.58163120523244,
+          "max_drawdown_bps": -24960.495084479153,
+          "average_round_trips_per_day": 10.291139240506329
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": -0.34824070074025865,
+          "annualized_sharpe": -0.12420692729260271,
+          "t_statistic": -0.12296854215264602,
+          "one_sided_p": 0.5488837939095302,
+          "positive_day_rate": 0.5182186234817814,
+          "worst_day_bps": -137.17759434753063,
+          "max_drawdown_bps": -634.1503507148261,
+          "average_round_trips_per_day": 9.45344129554656
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -19.255123291833375,
+          "annualized_sharpe": -7.533792557026086,
+          "t_statistic": -7.4586780931752985,
+          "one_sided_p": 0.9999999999992519,
+          "positive_day_rate": 0.3360323886639676,
+          "worst_day_bps": -149.17759434753063,
+          "max_drawdown_bps": -4778.130250491406,
+          "average_round_trips_per_day": 9.45344129554656
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -57.0688884740196,
+          "annualized_sharpe": -24.93246975617438,
+          "t_statistic": -24.683884586880808,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.024291497975708502,
+          "worst_day_bps": -173.17759434753063,
+          "max_drawdown_bps": -14096.015453082833,
+          "average_round_trips_per_day": 9.45344129554656
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -94.88265365620585,
+          "annualized_sharpe": -39.517774900841076,
+          "t_statistic": -39.12376929851209,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.016194331983805668,
+          "worst_day_bps": -197.17759434753063,
+          "max_drawdown_bps": -23436.015453082866,
+          "average_round_trips_per_day": 9.45344129554656
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": 1.1432111351955225,
+          "annualized_sharpe": 0.34822443497928446,
+          "t_statistic": 0.27485826338251845,
+          "one_sided_p": 0.39189440601080733,
+          "positive_day_rate": 0.4840764331210191,
+          "worst_day_bps": -187.04096236460188,
+          "max_drawdown_bps": -791.3046668767265,
+          "average_round_trips_per_day": 9.707006369426752
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -18.27080160365798,
+          "annualized_sharpe": -5.951234932178312,
+          "t_statistic": -4.697390344067094,
+          "one_sided_p": 0.9999971296372413,
+          "positive_day_rate": 0.2929936305732484,
+          "worst_day_bps": -203.04096236460188,
+          "max_drawdown_bps": -2868.515851774304,
+          "average_round_trips_per_day": 9.707006369426752
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -57.098827081364995,
+          "annualized_sharpe": -20.49747218501154,
+          "t_statistic": -16.178932442919756,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.10828025477707007,
+          "worst_day_bps": -235.04096236460188,
+          "max_drawdown_bps": -8964.515851774302,
+          "average_round_trips_per_day": 9.707006369426752
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -95.926852559072,
+          "annualized_sharpe": -35.07399440407676,
+          "t_statistic": -27.68437887584254,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.012738853503184714,
+          "worst_day_bps": -267.0409623646019,
+          "max_drawdown_bps": -15060.515851774298,
+          "average_round_trips_per_day": 9.707006369426752
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": 1.4605445034769897,
+          "annualized_sharpe": 0.497470481079213,
+          "t_statistic": 0.4854814787749458,
+          "one_sided_p": 0.3138897940878925,
+          "positive_day_rate": 0.49166666666666664,
+          "worst_day_bps": -187.04096236460188,
+          "max_drawdown_bps": -791.3046668767264,
+          "average_round_trips_per_day": 9.616666666666667
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -17.772788829856342,
+          "annualized_sharpe": -6.5776697009398895,
+          "t_statistic": -6.4191483409785945,
+          "one_sided_p": 0.9999999996346401,
+          "positive_day_rate": 0.3125,
+          "worst_day_bps": -203.04096236460188,
+          "max_drawdown_bps": -4271.065114881825,
+          "average_round_trips_per_day": 9.616666666666667
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -56.239455496523014,
+          "annualized_sharpe": -23.125499558147066,
+          "t_statistic": -22.56817670576699,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.07083333333333333,
+          "worst_day_bps": -235.04096236460188,
+          "max_drawdown_bps": -13497.469319165522,
+          "average_round_trips_per_day": 9.616666666666667
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -94.70612216318969,
+          "annualized_sharpe": -38.0456896653117,
+          "t_statistic": -37.128791319754946,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008333333333333333,
+          "worst_day_bps": -267.0409623646019,
+          "max_drawdown_bps": -22729.469319165513,
+          "average_round_trips_per_day": 9.616666666666667
+        }
+      }
+    },
+    "session_momentum": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": 0.1627348933555991,
+          "annualized_sharpe": 0.03879336365804384,
+          "t_statistic": 0.03762108705305755,
+          "one_sided_p": 0.4850107991377255,
+          "positive_day_rate": 0.46835443037974683,
+          "worst_day_bps": -231.76358124674223,
+          "max_drawdown_bps": -610.1208695009675,
+          "average_round_trips_per_day": 4.409282700421941
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -8.655830507488284,
+          "annualized_sharpe": -1.9230276376035143,
+          "t_statistic": -1.8649166593914657,
+          "one_sided_p": 0.9682828628412826,
+          "positive_day_rate": 0.41350210970464135,
+          "worst_day_bps": -263.7635812467422,
+          "max_drawdown_bps": -2151.1834108333906,
+          "average_round_trips_per_day": 4.409282700421941
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -26.292961309176047,
+          "annualized_sharpe": -5.078781155501025,
+          "t_statistic": -4.925308092867937,
+          "one_sided_p": 0.9999992078076109,
+          "positive_day_rate": 0.35864978902953587,
+          "worst_day_bps": -327.7635812467422,
+          "max_drawdown_bps": -6231.431830274725,
+          "average_round_trips_per_day": 4.409282700421941
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -43.93009211086381,
+          "annualized_sharpe": -7.429461423893262,
+          "t_statistic": -7.204954369242117,
+          "one_sided_p": 0.9999999999961173,
+          "positive_day_rate": 0.31645569620253167,
+          "worst_day_bps": -391.7635812467422,
+          "max_drawdown_bps": -10411.431830274729,
+          "average_round_trips_per_day": 4.409282700421941
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": 5.7973746729870035,
+          "annualized_sharpe": 1.8161976811879932,
+          "t_statistic": 1.7980895750731987,
+          "one_sided_p": 0.03669442669006123,
+          "positive_day_rate": 0.5546558704453441,
+          "worst_day_bps": -103.52597231946703,
+          "max_drawdown_bps": -471.9536233144872,
+          "average_round_trips_per_day": 3.6558704453441297
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -1.5143662177012567,
+          "annualized_sharpe": -0.4335055572159511,
+          "t_statistic": -0.4291833599613632,
+          "one_sided_p": 0.665917291065966,
+          "positive_day_rate": 0.4939271255060729,
+          "worst_day_bps": -138.92608719769913,
+          "max_drawdown_bps": -837.3655378708997,
+          "average_round_trips_per_day": 3.6558704453441297
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -16.137847999077774,
+          "annualized_sharpe": -3.8792583750475784,
+          "t_statistic": -3.8405808549572993,
+          "one_sided_p": 0.9999218947532513,
+          "positive_day_rate": 0.43724696356275305,
+          "worst_day_bps": -214.92608719769913,
+          "max_drawdown_bps": -4297.742225189961,
+          "average_round_trips_per_day": 3.6558704453441297
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -30.761329780454293,
+          "annualized_sharpe": -6.299976135762711,
+          "t_statistic": -6.2371632395847785,
+          "one_sided_p": 0.9999999990354006,
+          "positive_day_rate": 0.3967611336032389,
+          "worst_day_bps": -290.92608719769913,
+          "max_drawdown_bps": -7861.742225189959,
+          "average_round_trips_per_day": 3.6558704453441297
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": 0.28237158564751447,
+          "annualized_sharpe": 0.07460062351811328,
+          "t_statistic": 0.058883282641154916,
+          "one_sided_p": 0.4765602171812865,
+          "positive_day_rate": 0.5095541401273885,
+          "worst_day_bps": -136.0399882651997,
+          "max_drawdown_bps": -689.2721478008923,
+          "average_round_trips_per_day": 4.280254777070064
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -8.278137968492612,
+          "annualized_sharpe": -2.0276192935952597,
+          "t_statistic": -1.6004273734312628,
+          "one_sided_p": 0.9442364945357694,
+          "positive_day_rate": 0.4713375796178344,
+          "worst_day_bps": -154.0399882651997,
+          "max_drawdown_bps": -1299.66766105334,
+          "average_round_trips_per_day": 4.280254777070064
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -25.399157076772866,
+          "annualized_sharpe": -5.340757195351076,
+          "t_statistic": -4.215531997199489,
+          "one_sided_p": 0.9999789691955226,
+          "positive_day_rate": 0.42038216560509556,
+          "worst_day_bps": -206.3327720782119,
+          "max_drawdown_bps": -3987.6676610533395,
+          "average_round_trips_per_day": 4.280254777070064
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -42.520176185053124,
+          "annualized_sharpe": -7.73050563708846,
+          "t_statistic": -6.101792812458164,
+          "one_sided_p": 0.9999999960192758,
+          "positive_day_rate": 0.39490445859872614,
+          "worst_day_bps": -282.33277207821186,
+          "max_drawdown_bps": -6675.667661053342,
+          "average_round_trips_per_day": 4.280254777070064
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": -0.05707526289248482,
+          "annualized_sharpe": -0.016840672394397183,
+          "t_statistic": -0.01643481341819456,
+          "one_sided_p": 0.5065493911712828,
+          "positive_day_rate": 0.5125,
+          "worst_day_bps": -136.0399882651997,
+          "max_drawdown_bps": -689.2721478008923,
+          "average_round_trips_per_day": 4.191666666666666
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -8.440408596225819,
+          "annualized_sharpe": -2.2908519109539465,
+          "t_statistic": -2.235642547014243,
+          "one_sided_p": 0.9868503591260569,
+          "positive_day_rate": 0.4625,
+          "worst_day_bps": -154.0399882651997,
+          "max_drawdown_bps": -2069.7703093917453,
+          "average_round_trips_per_day": 4.191666666666666
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -25.207075262892488,
+          "annualized_sharpe": -5.794021819952074,
+          "t_statistic": -5.654386316756621,
+          "one_sided_p": 0.9999999777754299,
+          "positive_day_rate": 0.4083333333333333,
+          "worst_day_bps": -206.3327720782119,
+          "max_drawdown_bps": -6089.770309391749,
+          "average_round_trips_per_day": 4.191666666666666
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -41.973741929559154,
+          "annualized_sharpe": -8.25614980402416,
+          "t_statistic": -8.057177196021195,
+          "one_sided_p": 0.9999999999999815,
+          "positive_day_rate": 0.36666666666666664,
+          "worst_day_bps": -282.33277207821186,
+          "max_drawdown_bps": -10109.770309391746,
+          "average_round_trips_per_day": 4.191666666666666
+        }
+      }
+    },
+    "session_reversal": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": -0.1627348933555991,
+          "annualized_sharpe": -0.03879336365804384,
+          "t_statistic": -0.03762108705305755,
+          "one_sided_p": 0.5149892008622745,
+          "positive_day_rate": 0.5316455696202531,
+          "worst_day_bps": -394.62420428707287,
+          "max_drawdown_bps": -932.4020967573432,
+          "average_round_trips_per_day": 4.409282700421941
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -8.981300294199482,
+          "annualized_sharpe": -2.293164922232383,
+          "t_statistic": -2.2238689567315713,
+          "one_sided_p": 0.9864477758131498,
+          "positive_day_rate": 0.4641350210970464,
+          "worst_day_bps": -396.62420428707287,
+          "max_drawdown_bps": -2628.4020967573433,
+          "average_round_trips_per_day": 4.409282700421941
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -26.618431095887242,
+          "annualized_sharpe": -7.671711451174814,
+          "t_statistic": -7.4398839681627065,
+          "one_sided_p": 0.9999999999990679,
+          "positive_day_rate": 0.2911392405063291,
+          "worst_day_bps": -400.62420428707287,
+          "max_drawdown_bps": -6420.422850332116,
+          "average_round_trips_per_day": 4.409282700421941
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -44.25556189757501,
+          "annualized_sharpe": -13.750630838744076,
+          "t_statistic": -13.335107632812427,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.12658227848101267,
+          "worst_day_bps": -404.62420428707287,
+          "max_drawdown_bps": -10498.216458159588,
+          "average_round_trips_per_day": 4.409282700421941
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": -5.7973746729870035,
+          "annualized_sharpe": -1.8161976811879932,
+          "t_statistic": -1.7980895750731987,
+          "one_sided_p": 0.9633055733099387,
+          "positive_day_rate": 0.44534412955465585,
+          "worst_day_bps": -162.04113364169714,
+          "max_drawdown_bps": -1812.6697054158926,
+          "average_round_trips_per_day": 3.6558704453441297
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -13.109115563675262,
+          "annualized_sharpe": -4.487614501560455,
+          "t_statistic": -4.442871464809415,
+          "one_sided_p": 0.9999932864355232,
+          "positive_day_rate": 0.3724696356275304,
+          "worst_day_bps": -164.04113364169714,
+          "max_drawdown_bps": -3260.95524555063,
+          "average_round_trips_per_day": 3.6558704453441297
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -27.73259734505178,
+          "annualized_sharpe": -11.05225382372281,
+          "t_statistic": -10.942059109171304,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.22672064777327935,
+          "worst_day_bps": -168.71750716315103,
+          "max_drawdown_bps": -6849.951544227791,
+          "average_round_trips_per_day": 3.6558704453441297
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -42.35607912642829,
+          "annualized_sharpe": -18.073873832302464,
+          "t_statistic": -17.893671187705618,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0931174089068826,
+          "worst_day_bps": -176.71750716315103,
+          "max_drawdown_bps": -10461.951544227793,
+          "average_round_trips_per_day": 3.6558704453441297
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": -0.28237158564751447,
+          "annualized_sharpe": -0.07460062351811328,
+          "t_statistic": -0.058883282641154916,
+          "one_sided_p": 0.5234397828187135,
+          "positive_day_rate": 0.49044585987261147,
+          "worst_day_bps": -182.3443351177012,
+          "max_drawdown_bps": -810.5246074324768,
+          "average_round_trips_per_day": 4.280254777070064
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -8.842881139787643,
+          "annualized_sharpe": -2.510423487847038,
+          "t_statistic": -1.9815112637496846,
+          "one_sided_p": 0.9753543616676322,
+          "positive_day_rate": 0.4394904458598726,
+          "worst_day_bps": -184.3443351177012,
+          "max_drawdown_bps": -1527.9271453444762,
+          "average_round_trips_per_day": 4.280254777070064
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -25.963900248067894,
+          "annualized_sharpe": -8.279027631854518,
+          "t_statistic": -6.534748652899065,
+          "one_sided_p": 0.9999999995716644,
+          "positive_day_rate": 0.267515923566879,
+          "worst_day_bps": -188.3443351177012,
+          "max_drawdown_bps": -4087.37446257234,
+          "average_round_trips_per_day": 4.280254777070064
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -43.08491935634815,
+          "annualized_sharpe": -14.401288602347279,
+          "t_statistic": -11.367132165630784,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.1464968152866242,
+          "worst_day_bps": -194.86822812096563,
+          "max_drawdown_bps": -6764.332338946656,
+          "average_round_trips_per_day": 4.280254777070064
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": 0.05707526289248482,
+          "annualized_sharpe": 0.016840672394397183,
+          "t_statistic": 0.01643481341819456,
+          "one_sided_p": 0.4934506088287171,
+          "positive_day_rate": 0.4875,
+          "worst_day_bps": -182.3443351177012,
+          "max_drawdown_bps": -810.5246074324768,
+          "average_round_trips_per_day": 4.191666666666666
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -8.326258070440849,
+          "annualized_sharpe": -2.6611672404145215,
+          "t_statistic": -2.5970333040487783,
+          "one_sided_p": 0.9950067454635655,
+          "positive_day_rate": 0.425,
+          "worst_day_bps": -184.3443351177012,
+          "max_drawdown_bps": -2142.453459285348,
+          "average_round_trips_per_day": 4.191666666666666
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -25.092924737107516,
+          "annualized_sharpe": -9.11961878853244,
+          "t_statistic": -8.899836640991621,
+          "one_sided_p": 0.9999999999999999,
+          "positive_day_rate": 0.25,
+          "worst_day_bps": -188.3443351177012,
+          "max_drawdown_bps": -6033.344060531481,
+          "average_round_trips_per_day": 4.191666666666666
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -41.85959140377418,
+          "annualized_sharpe": -15.913298762864315,
+          "t_statistic": -15.529789423531085,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.12083333333333333,
+          "worst_day_bps": -194.86822812096563,
+          "max_drawdown_bps": -10046.301936905802,
+          "average_round_trips_per_day": 4.191666666666666
+        }
+      }
+    },
+    "gap_continuation": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": -1.7677147912234266,
+          "annualized_sharpe": -0.3838294160258496,
+          "t_statistic": -0.37223067329554876,
+          "one_sided_p": 0.6449724284345121,
+          "positive_day_rate": 0.45569620253164556,
+          "worst_day_bps": -220.39594143711483,
+          "max_drawdown_bps": -1926.288867673094,
+          "average_round_trips_per_day": 0.9957805907172996
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -3.759275972658026,
+          "annualized_sharpe": -0.8162597191774184,
+          "t_statistic": -0.7915935886294435,
+          "one_sided_p": 0.785303715459068,
+          "positive_day_rate": 0.42616033755274263,
+          "worst_day_bps": -222.39594143711483,
+          "max_drawdown_bps": -2080.21566667934,
+          "average_round_trips_per_day": 0.9957805907172996
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -7.742398335527223,
+          "annualized_sharpe": -1.6810930330594995,
+          "t_statistic": -1.6302929516117421,
+          "one_sided_p": 0.947813265939621,
+          "positive_day_rate": 0.4050632911392405,
+          "worst_day_bps": -226.39594143711483,
+          "max_drawdown_bps": -2412.2156666793403,
+          "average_round_trips_per_day": 0.9957805907172996
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -11.725520698396421,
+          "annualized_sharpe": -2.545862654339506,
+          "t_statistic": -2.468930546685787,
+          "one_sided_p": 0.9928693905255662,
+          "positive_day_rate": 0.39662447257383965,
+          "worst_day_bps": -230.39594143711483,
+          "max_drawdown_bps": -3192.7196834610486,
+          "average_round_trips_per_day": 0.9957805907172996
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": 1.1656974889394822,
+          "annualized_sharpe": 0.33400594907485137,
+          "t_statistic": 0.3306757966187246,
+          "one_sided_p": 0.37058542703106195,
+          "positive_day_rate": 0.4979757085020243,
+          "worst_day_bps": -213.32814942658374,
+          "max_drawdown_bps": -517.1746126439025,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -0.8343025110605178,
+          "annualized_sharpe": -0.2390517305444473,
+          "t_statistic": -0.23666830381262116,
+          "one_sided_p": 0.5934444609419125,
+          "positive_day_rate": 0.48582995951417,
+          "worst_day_bps": -215.32814942658374,
+          "max_drawdown_bps": -683.1746126439025,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -4.8343025110605184,
+          "annualized_sharpe": -1.385167089783045,
+          "t_statistic": -1.371356504675313,
+          "one_sided_p": 0.9142432770633794,
+          "positive_day_rate": 0.46558704453441296,
+          "worst_day_bps": -219.32814942658374,
+          "max_drawdown_bps": -1353.6589307206652,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -8.834302511060518,
+          "annualized_sharpe": -2.531282449021642,
+          "t_statistic": -2.506044705538004,
+          "one_sided_p": 0.9935721790103009,
+          "positive_day_rate": 0.43724696356275305,
+          "worst_day_bps": -223.32814942658374,
+          "max_drawdown_bps": -2329.658930720664,
+          "average_round_trips_per_day": 1.0
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": 1.9415900254164338,
+          "annualized_sharpe": 0.4814932519895515,
+          "t_statistic": 0.3800491458335553,
+          "one_sided_p": 0.3522129306125339,
+          "positive_day_rate": 0.5286624203821656,
+          "worst_day_bps": -206.16716578034655,
+          "max_drawdown_bps": -988.6553025035382,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -0.058409974583566227,
+          "annualized_sharpe": -0.014485039705967944,
+          "t_statistic": -0.011433238046164165,
+          "one_sided_p": 0.5045537984962991,
+          "positive_day_rate": 0.5159235668789809,
+          "worst_day_bps": -208.16716578034655,
+          "max_drawdown_bps": -1046.6553025035382,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -4.058409974583566,
+          "annualized_sharpe": -1.006441623097007,
+          "t_statistic": -0.794398005805603,
+          "one_sided_p": 0.7859147016408722,
+          "positive_day_rate": 0.49044585987261147,
+          "worst_day_bps": -212.16716578034655,
+          "max_drawdown_bps": -1174.1625484318909,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -8.058409974583567,
+          "annualized_sharpe": -1.9983982064880461,
+          "t_statistic": -1.5773627735650422,
+          "one_sided_p": 0.9416311210921153,
+          "positive_day_rate": 0.4713375796178344,
+          "worst_day_bps": -216.16716578034655,
+          "max_drawdown_bps": -1525.323694842106,
+          "average_round_trips_per_day": 1.0
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": 1.2716169103401678,
+          "annualized_sharpe": 0.3541524042146775,
+          "t_statistic": 0.3456173571080022,
+          "one_sided_p": 0.3649671569300836,
+          "positive_day_rate": 0.5166666666666667,
+          "worst_day_bps": -206.16716578034655,
+          "max_drawdown_bps": -988.6553025035383,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -0.7283830896598322,
+          "annualized_sharpe": -0.20285875431094932,
+          "t_statistic": -0.197969873130304,
+          "one_sided_p": 0.5783815426515211,
+          "positive_day_rate": 0.5083333333333333,
+          "worst_day_bps": -208.16716578034655,
+          "max_drawdown_bps": -1063.8738229699024,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -4.728383089659832,
+          "annualized_sharpe": -1.3168810713622028,
+          "t_statistic": -1.2851443336069162,
+          "one_sided_p": 0.9000070738055607,
+          "positive_day_rate": 0.48333333333333334,
+          "worst_day_bps": -212.16716578034655,
+          "max_drawdown_bps": -1471.3810688982549,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -8.728383089659832,
+          "annualized_sharpe": -2.4309033884134568,
+          "t_statistic": -2.3723187940835286,
+          "one_sided_p": 0.9907652195110807,
+          "positive_day_rate": 0.45416666666666666,
+          "worst_day_bps": -216.16716578034655,
+          "max_drawdown_bps": -2162.269586221188,
+          "average_round_trips_per_day": 1.0
+        }
+      }
+    },
+    "gap_fade": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": 1.7677147912234266,
+          "annualized_sharpe": 0.3838294160258496,
+          "t_statistic": 0.37223067329554876,
+          "one_sided_p": 0.3550275715654879,
+          "positive_day_rate": 0.540084388185654,
+          "worst_day_bps": -394.62420428707287,
+          "max_drawdown_bps": -1489.6908982136022,
+          "average_round_trips_per_day": 0.9957805907172996
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -0.22384639021117267,
+          "annualized_sharpe": -0.04860452309276758,
+          "t_statistic": -0.047135768131985695,
+          "one_sided_p": 0.5187775584924921,
+          "positive_day_rate": 0.5274261603375527,
+          "worst_day_bps": -396.62420428707287,
+          "max_drawdown_bps": -1785.6908982136028,
+          "average_round_trips_per_day": 0.9957805907172996
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -4.206968753080371,
+          "annualized_sharpe": -0.9134669236779802,
+          "t_statistic": -0.8858633388613679,
+          "one_sided_p": 0.8117035394583106,
+          "positive_day_rate": 0.5021097046413502,
+          "worst_day_bps": -400.62420428707287,
+          "max_drawdown_bps": -2377.690898213603,
+          "average_round_trips_per_day": 0.9957805907172996
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -8.19009111594957,
+          "annualized_sharpe": -1.7782947128540463,
+          "t_statistic": -1.7245573440858866,
+          "one_sided_p": 0.9570417020265597,
+          "positive_day_rate": 0.459915611814346,
+          "worst_day_bps": -404.62420428707287,
+          "max_drawdown_bps": -2969.6908982136024,
+          "average_round_trips_per_day": 0.9957805907172996
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": -1.1656974889394822,
+          "annualized_sharpe": -0.33400594907485137,
+          "t_statistic": -0.3306757966187246,
+          "one_sided_p": 0.629414572968938,
+          "positive_day_rate": 0.5020242914979757,
+          "worst_day_bps": -187.389249425447,
+          "max_drawdown_bps": -853.234156057212,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -3.1656974889394824,
+          "annualized_sharpe": -0.9070636286941501,
+          "t_statistic": -0.8980198970500703,
+          "one_sided_p": 0.8149734932422309,
+          "positive_day_rate": 0.46153846153846156,
+          "worst_day_bps": -189.389249425447,
+          "max_drawdown_bps": -1153.4169466418489,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -7.165697488939482,
+          "annualized_sharpe": -2.0531789879327476,
+          "t_statistic": -2.032708097912762,
+          "one_sided_p": 0.9784219521433056,
+          "positive_day_rate": 0.4251012145748988,
+          "worst_day_bps": -193.389249425447,
+          "max_drawdown_bps": -1879.0202777496256,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -11.165697488939482,
+          "annualized_sharpe": -3.199294347171345,
+          "t_statistic": -3.1673962987754534,
+          "one_sided_p": 0.9991337404766542,
+          "positive_day_rate": 0.4048582995951417,
+          "worst_day_bps": -197.389249425447,
+          "max_drawdown_bps": -2828.0065939267656,
+          "average_round_trips_per_day": 1.0
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": -1.9415900254164338,
+          "annualized_sharpe": -0.4814932519895515,
+          "t_statistic": -0.3800491458335553,
+          "one_sided_p": 0.6477870693874661,
+          "positive_day_rate": 0.4713375796178344,
+          "worst_day_bps": -195.46696576099976,
+          "max_drawdown_bps": -1031.0952486322656,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -3.941590025416434,
+          "annualized_sharpe": -0.977471543685071,
+          "t_statistic": -0.7715315297132748,
+          "one_sided_p": 0.7792204757330439,
+          "positive_day_rate": 0.4585987261146497,
+          "worst_day_bps": -197.46696576099976,
+          "max_drawdown_bps": -1272.8257291752423,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -7.941590025416433,
+          "annualized_sharpe": -1.9694281270761098,
+          "t_statistic": -1.5544962974727135,
+          "one_sided_p": 0.9389537569435289,
+          "positive_day_rate": 0.43312101910828027,
+          "worst_day_bps": -201.46696576099976,
+          "max_drawdown_bps": -1760.8257291752423,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -11.94159002541643,
+          "annualized_sharpe": -2.961384710467148,
+          "t_statistic": -2.337461065232152,
+          "one_sided_p": 0.9896571839966205,
+          "positive_day_rate": 0.4140127388535032,
+          "worst_day_bps": -205.46696576099976,
+          "max_drawdown_bps": -2248.8257291752425,
+          "average_round_trips_per_day": 1.0
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": -1.2716169103401678,
+          "annualized_sharpe": -0.3541524042146775,
+          "t_statistic": -0.3456173571080022,
+          "one_sided_p": 0.6350328430699164,
+          "positive_day_rate": 0.48333333333333334,
+          "worst_day_bps": -195.46696576099976,
+          "max_drawdown_bps": -1031.0952486322656,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -3.271616910340168,
+          "annualized_sharpe": -0.9111635627403043,
+          "t_statistic": -0.8892045873463084,
+          "one_sided_p": 0.8126063760327545,
+          "positive_day_rate": 0.4666666666666667,
+          "worst_day_bps": -197.46696576099976,
+          "max_drawdown_bps": -1272.8257291752423,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -7.271616910340168,
+          "annualized_sharpe": -2.0251858797915583,
+          "t_statistic": -1.9763790478229208,
+          "one_sided_p": 0.9753691400855885,
+          "positive_day_rate": 0.44166666666666665,
+          "worst_day_bps": -201.46696576099976,
+          "max_drawdown_bps": -1810.7450058761,
+          "average_round_trips_per_day": 1.0
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -11.271616910340168,
+          "annualized_sharpe": -3.1392081968428114,
+          "t_statistic": -3.063553508299533,
+          "one_sided_p": 0.9987810277169017,
+          "positive_day_rate": 0.425,
+          "worst_day_bps": -205.46696576099976,
+          "max_drawdown_bps": -2762.7450058760996,
+          "average_round_trips_per_day": 1.0
+        }
+      }
+    },
+    "breakout_15m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": -3.6718646806440574,
+          "annualized_sharpe": -1.8862319526602578,
+          "t_statistic": -1.8292328842326673,
+          "one_sided_p": 0.9656867425963158,
+          "positive_day_rate": 0.43037974683544306,
+          "worst_day_bps": -269.38585076747404,
+          "max_drawdown_bps": -1167.679155542167,
+          "average_round_trips_per_day": 8.683544303797468
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -21.038953288238996,
+          "annualized_sharpe": -10.283523606068616,
+          "t_statistic": -9.972771121533318,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.18565400843881857,
+          "worst_day_bps": -299.38585076747404,
+          "max_drawdown_bps": -4986.231929312638,
+          "average_round_trips_per_day": 8.683544303797468
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -55.77313050342887,
+          "annualized_sharpe": -23.37894442749053,
+          "t_statistic": -22.672468189874074,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.05063291139240506,
+          "worst_day_bps": -359.38585076747404,
+          "max_drawdown_bps": -13218.231929312642,
+          "average_round_trips_per_day": 8.683544303797468
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -90.50730771861875,
+          "annualized_sharpe": -31.708090676062433,
+          "t_statistic": -30.74992027310423,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.012658227848101266,
+          "worst_day_bps": -419.38585076747404,
+          "max_drawdown_bps": -21450.23192931265,
+          "average_round_trips_per_day": 8.683544303797468
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": -2.0315339534920187,
+          "annualized_sharpe": -1.502084793626243,
+          "t_statistic": -1.4871084994055548,
+          "one_sided_p": 0.930866625382616,
+          "positive_day_rate": 0.42105263157894735,
+          "worst_day_bps": -92.45889318281186,
+          "max_drawdown_bps": -682.922257644236,
+          "average_round_trips_per_day": 9.255060728744938
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -20.5416554109819,
+          "annualized_sharpe": -14.206580861744502,
+          "t_statistic": -14.064936438101913,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.1659919028340081,
+          "worst_day_bps": -110.45889318281186,
+          "max_drawdown_bps": -5089.213327729898,
+          "average_round_trips_per_day": 9.255060728744938
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -57.56189832596165,
+          "annualized_sharpe": -31.820971198007207,
+          "t_statistic": -31.503705335872404,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.024291497975708502,
+          "worst_day_bps": -146.45889318281186,
+          "max_drawdown_bps": -14217.788886512531,
+          "average_round_trips_per_day": 9.255060728744938
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -94.58214124094141,
+          "annualized_sharpe": -40.96128734115316,
+          "t_statistic": -40.552889430807284,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -182.45889318281186,
+          "max_drawdown_bps": -23361.788886512546,
+          "average_round_trips_per_day": 9.255060728744938
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": -3.361522811570594,
+          "annualized_sharpe": -1.9084939095443654,
+          "t_statistic": -1.506400094194089,
+          "one_sided_p": 0.9330066252329163,
+          "positive_day_rate": 0.40764331210191085,
+          "worst_day_bps": -71.33863213228508,
+          "max_drawdown_bps": -537.3945579339786,
+          "average_round_trips_per_day": 9.757961783439491
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -22.877446378449577,
+          "annualized_sharpe": -12.824184479585533,
+          "t_statistic": -10.122302518964858,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.17197452229299362,
+          "worst_day_bps": -100.66427347507664,
+          "max_drawdown_bps": -3591.7590814165837,
+          "average_round_trips_per_day": 9.757961783439491
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -61.90929351220755,
+          "annualized_sharpe": -31.663680583599792,
+          "t_statistic": -24.992571983137086,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.012738853503184714,
+          "worst_day_bps": -168.66427347507664,
+          "max_drawdown_bps": -9719.759081416587,
+          "average_round_trips_per_day": 9.757961783439491
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -100.94114064596549,
+          "annualized_sharpe": -44.68092903814702,
+          "t_statistic": -35.2672625126758,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.006369426751592357,
+          "worst_day_bps": -236.66427347507664,
+          "max_drawdown_bps": -15847.759081416587,
+          "average_round_trips_per_day": 9.757961783439491
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": -3.8994644607660187,
+          "annualized_sharpe": -2.4980530750309105,
+          "t_statistic": -2.4378501781519732,
+          "one_sided_p": 0.9922475925030785,
+          "positive_day_rate": 0.4083333333333333,
+          "worst_day_bps": -71.33863213228508,
+          "max_drawdown_bps": -945.949717677016,
+          "average_round_trips_per_day": 9.8375
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -23.57446446076602,
+          "annualized_sharpe": -14.660144668400887,
+          "t_statistic": -14.306836251328475,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.13333333333333333,
+          "worst_day_bps": -100.66427347507664,
+          "max_drawdown_bps": -5657.871470583844,
+          "average_round_trips_per_day": 9.8375
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -62.92446446076602,
+          "annualized_sharpe": -33.852562054790816,
+          "t_statistic": -33.03671777876511,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008333333333333333,
+          "worst_day_bps": -168.66427347507664,
+          "max_drawdown_bps": -15101.871470583852,
+          "average_round_trips_per_day": 9.8375
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -102.27446446076601,
+          "annualized_sharpe": -45.35264645293796,
+          "t_statistic": -44.25965098183119,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.004166666666666667,
+          "worst_day_bps": -236.66427347507664,
+          "max_drawdown_bps": -24545.871470583843,
+          "average_round_trips_per_day": 9.8375
+        }
+      }
+    },
+    "breakout_fade_15m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": 3.6718646806440574,
+          "annualized_sharpe": 1.8862319526602578,
+          "t_statistic": 1.8292328842326673,
+          "one_sided_p": 0.03431325740368415,
+          "positive_day_rate": 0.569620253164557,
+          "worst_day_bps": -88.84718222263999,
+          "max_drawdown_bps": -360.10620597274067,
+          "average_round_trips_per_day": 8.683544303797468
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -13.69522392695088,
+          "annualized_sharpe": -7.187054443057371,
+          "t_statistic": -6.96987255966552,
+          "one_sided_p": 0.9999999999842575,
+          "positive_day_rate": 0.2869198312236287,
+          "worst_day_bps": -104.5228574993584,
+          "max_drawdown_bps": -3245.768070687359,
+          "average_round_trips_per_day": 8.683544303797468
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -48.42940114214076,
+          "annualized_sharpe": -24.132142008837647,
+          "t_statistic": -23.402905282820942,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.02109704641350211,
+          "worst_day_bps": -144.5228574993584,
+          "max_drawdown_bps": -11477.76807068735,
+          "average_round_trips_per_day": 8.683544303797468
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -83.16357835733062,
+          "annualized_sharpe": -35.87218456397023,
+          "t_statistic": -34.78818156013756,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008438818565400843,
+          "worst_day_bps": -185.75020031581943,
+          "max_drawdown_bps": -19709.768070687354,
+          "average_round_trips_per_day": 8.683544303797468
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": 2.0315339534920187,
+          "annualized_sharpe": 1.502084793626243,
+          "t_statistic": 1.4871084994055548,
+          "one_sided_p": 0.06913337461738403,
+          "positive_day_rate": 0.5789473684210527,
+          "worst_day_bps": -76.38802664763134,
+          "max_drawdown_bps": -187.59013578465655,
+          "average_round_trips_per_day": 9.255060728744938
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -16.47858750399786,
+          "annualized_sharpe": -12.326363850835044,
+          "t_statistic": -12.203465827710994,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.17408906882591094,
+          "worst_day_bps": -94.38802664763134,
+          "max_drawdown_bps": -4070.21111348747,
+          "average_round_trips_per_day": 9.255060728744938
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -53.49883041897762,
+          "annualized_sharpe": -34.81233100933491,
+          "t_statistic": -34.46524027656399,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.012145748987854251,
+          "worst_day_bps": -134.55771484181525,
+          "max_drawdown_bps": -13214.211113487469,
+          "average_round_trips_per_day": 9.255060728744938
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -90.51907333395738,
+          "annualized_sharpe": -46.34878323284896,
+          "t_statistic": -45.886670163459364,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.004048582995951417,
+          "worst_day_bps": -194.55771484181525,
+          "max_drawdown_bps": -22358.211113487454,
+          "average_round_trips_per_day": 9.255060728744938
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": 3.361522811570594,
+          "annualized_sharpe": 1.9084939095443654,
+          "t_statistic": 1.506400094194089,
+          "one_sided_p": 0.06699337476708361,
+          "positive_day_rate": 0.5923566878980892,
+          "worst_day_bps": -143.90319985373878,
+          "max_drawdown_bps": -264.7037959803634,
+          "average_round_trips_per_day": 9.757961783439491
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -16.154400755308387,
+          "annualized_sharpe": -9.055513993593873,
+          "t_statistic": -7.14763985606976,
+          "one_sided_p": 0.9999999999840393,
+          "positive_day_rate": 0.2484076433121019,
+          "worst_day_bps": -161.90319985373878,
+          "max_drawdown_bps": -2536.2409185834163,
+          "average_round_trips_per_day": 9.757961783439491
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -55.18624788906635,
+          "annualized_sharpe": -28.225167108546426,
+          "t_statistic": -22.278506721097735,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.025477707006369428,
+          "worst_day_bps": -197.90319985373878,
+          "max_drawdown_bps": -8664.240918583413,
+          "average_round_trips_per_day": 9.757961783439491
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -94.21809502282431,
+          "annualized_sharpe": -41.70503009652837,
+          "t_statistic": -32.918345168194115,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -233.90319985373878,
+          "max_drawdown_bps": -14792.240918583413,
+          "average_round_trips_per_day": 9.757961783439491
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": 3.8994644607660187,
+          "annualized_sharpe": 2.4980530750309105,
+          "t_statistic": 2.4378501781519732,
+          "one_sided_p": 0.007752407496921565,
+          "positive_day_rate": 0.5916666666666667,
+          "worst_day_bps": -143.90319985373878,
+          "max_drawdown_bps": -264.70379598036345,
+          "average_round_trips_per_day": 9.8375
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -15.77553553923398,
+          "annualized_sharpe": -10.021766069174465,
+          "t_statistic": -9.780242237980495,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.21666666666666667,
+          "worst_day_bps": -161.90319985373878,
+          "max_drawdown_bps": -3786.128529416154,
+          "average_round_trips_per_day": 9.8375
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -55.12553553923398,
+          "annualized_sharpe": -31.15344645320428,
+          "t_statistic": -30.402650666280277,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.020833333333333332,
+          "worst_day_bps": -197.90319985373878,
+          "max_drawdown_bps": -13230.128529416152,
+          "average_round_trips_per_day": 9.8375
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -94.47553553923399,
+          "annualized_sharpe": -44.312893289176706,
+          "t_statistic": -43.244955793468115,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -233.90319985373878,
+          "max_drawdown_bps": -22674.12852941615,
+          "average_round_trips_per_day": 9.8375
+        }
+      }
+    },
+    "breakout_30m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": -1.7057278436234522,
+          "annualized_sharpe": -1.2300993593869707,
+          "t_statistic": -1.1929276226556813,
+          "one_sided_p": 0.8829521678932258,
+          "positive_day_rate": 0.4345991561181435,
+          "worst_day_bps": -133.77871766682148,
+          "max_drawdown_bps": -675.8346704437909,
+          "average_round_trips_per_day": 5.632911392405063
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -12.97155062843358,
+          "annualized_sharpe": -9.061966997656205,
+          "t_statistic": -8.788128100876046,
+          "one_sided_p": 0.9999999999999999,
+          "positive_day_rate": 0.189873417721519,
+          "worst_day_bps": -151.77871766682148,
+          "max_drawdown_bps": -3074.2574989387567,
+          "average_round_trips_per_day": 5.632911392405063
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -35.50319619805383,
+          "annualized_sharpe": -21.559700129984726,
+          "t_statistic": -20.908198695469125,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.05485232067510549,
+          "worst_day_bps": -187.77871766682148,
+          "max_drawdown_bps": -8414.257498938756,
+          "average_round_trips_per_day": 5.632911392405063
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -58.03484176767408,
+          "annualized_sharpe": -29.305435747058844,
+          "t_statistic": -28.419869931523213,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.016877637130801686,
+          "worst_day_bps": -223.77871766682148,
+          "max_drawdown_bps": -13754.257498938758,
+          "average_round_trips_per_day": 5.632911392405063
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": -2.5629860002515645,
+          "annualized_sharpe": -2.329751149386542,
+          "t_statistic": -2.3065227412285925,
+          "one_sided_p": 0.9890434341409731,
+          "positive_day_rate": 0.39271255060728744,
+          "worst_day_bps": -73.10662182376859,
+          "max_drawdown_bps": -685.6323259035337,
+          "average_round_trips_per_day": 6.048582995951417
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -14.6601519921544,
+          "annualized_sharpe": -12.607157204265455,
+          "t_statistic": -12.481459576289515,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.1659919028340081,
+          "worst_day_bps": -85.10662182376859,
+          "max_drawdown_bps": -3621.057542062138,
+          "average_round_trips_per_day": 6.048582995951417
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -38.854483975960065,
+          "annualized_sharpe": -26.973671884699066,
+          "t_statistic": -26.704735238730944,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.04048582995951417,
+          "worst_day_bps": -109.10662182376859,
+          "max_drawdown_bps": -9597.057542062132,
+          "average_round_trips_per_day": 6.048582995951417
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -63.04881595976574,
+          "annualized_sharpe": -34.28030888596563,
+          "t_statistic": -33.938522593986136,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.004048582995951417,
+          "worst_day_bps": -135.3380227960487,
+          "max_drawdown_bps": -15573.057542062132,
+          "average_round_trips_per_day": 6.048582995951417
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": -1.1219782391227635,
+          "annualized_sharpe": -0.80597785298595,
+          "t_statistic": -0.6361692366868729,
+          "one_sided_p": 0.737200808059125,
+          "positive_day_rate": 0.45222929936305734,
+          "worst_day_bps": -59.77499507467954,
+          "max_drawdown_bps": -217.39824823134413,
+          "average_round_trips_per_day": 6.375796178343949
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -13.873570595810662,
+          "annualized_sharpe": -9.767847214305183,
+          "t_statistic": -7.709894116044463,
+          "one_sided_p": 0.9999999999993079,
+          "positive_day_rate": 0.1910828025477707,
+          "worst_day_bps": -71.77499507467954,
+          "max_drawdown_bps": -2178.150583542273,
+          "average_round_trips_per_day": 6.375796178343949
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -39.37675530918646,
+          "annualized_sharpe": -24.545244375115498,
+          "t_statistic": -19.37389386142622,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.050955414012738856,
+          "worst_day_bps": -112.19524154559684,
+          "max_drawdown_bps": -6182.150583542271,
+          "average_round_trips_per_day": 6.375796178343949
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -64.87994002256227,
+          "annualized_sharpe": -33.91474998861555,
+          "t_statistic": -26.76937155624274,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.012738853503184714,
+          "worst_day_bps": -156.19524154559684,
+          "max_drawdown_bps": -10186.15058354228,
+          "average_round_trips_per_day": 6.375796178343949
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": -2.2774308293163066,
+          "annualized_sharpe": -1.8250303399913872,
+          "t_statistic": -1.7810472419308812,
+          "one_sided_p": 0.9619126275762923,
+          "positive_day_rate": 0.425,
+          "worst_day_bps": -59.77499507467954,
+          "max_drawdown_bps": -568.9591722970806,
+          "average_round_trips_per_day": 6.45
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -15.177430829316306,
+          "annualized_sharpe": -11.791241735395698,
+          "t_statistic": -11.507073669726452,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.16666666666666666,
+          "worst_day_bps": -71.77499507467954,
+          "max_drawdown_bps": -3642.6273518333523,
+          "average_round_trips_per_day": 6.45
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -40.977430829316305,
+          "annualized_sharpe": -27.248970249251034,
+          "t_statistic": -26.592272054016497,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.03333333333333333,
+          "worst_day_bps": -112.19524154559684,
+          "max_drawdown_bps": -9834.583399035913,
+          "average_round_trips_per_day": 6.45
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -66.7774308293163,
+          "annualized_sharpe": -36.17975658317766,
+          "t_statistic": -35.30782708878325,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008333333333333333,
+          "worst_day_bps": -156.19524154559684,
+          "max_drawdown_bps": -16026.58339903591,
+          "average_round_trips_per_day": 6.45
+        }
+      }
+    },
+    "breakout_fade_30m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": 1.7057278436234522,
+          "annualized_sharpe": 1.2300993593869707,
+          "t_statistic": 1.1929276226556813,
+          "one_sided_p": 0.1170478321067742,
+          "positive_day_rate": 0.5611814345991561,
+          "worst_day_bps": -84.5862747656767,
+          "max_drawdown_bps": -284.3076196429628,
+          "average_round_trips_per_day": 5.632911392405063
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -9.560094941186673,
+          "annualized_sharpe": -6.875326881934426,
+          "t_statistic": -6.667564932587354,
+          "one_sided_p": 0.9999999999087448,
+          "positive_day_rate": 0.29535864978902954,
+          "worst_day_bps": -98.5862747656767,
+          "max_drawdown_bps": -2265.742501061243,
+          "average_round_trips_per_day": 5.632911392405063
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -32.09174051080693,
+          "annualized_sharpe": -20.866937887031412,
+          "t_statistic": -20.236370676662766,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.046413502109704644,
+          "worst_day_bps": -126.5862747656767,
+          "max_drawdown_bps": -7605.742501061243,
+          "average_round_trips_per_day": 5.632911392405063
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -54.62338608042718,
+          "annualized_sharpe": -29.869849563617645,
+          "t_statistic": -28.967228018691916,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.012658227848101266,
+          "worst_day_bps": -154.5862747656767,
+          "max_drawdown_bps": -12945.742501061242,
+          "average_round_trips_per_day": 5.632911392405063
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": 2.5629860002515645,
+          "annualized_sharpe": 2.329751149386542,
+          "t_statistic": 2.3065227412285925,
+          "one_sided_p": 0.010956565859026879,
+          "positive_day_rate": 0.6032388663967612,
+          "worst_day_bps": -65.11364904019601,
+          "max_drawdown_bps": -180.72199067729497,
+          "average_round_trips_per_day": 6.048582995951417
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -9.534179991651268,
+          "annualized_sharpe": -8.651180366421714,
+          "t_statistic": -8.564925167598357,
+          "one_sided_p": 0.9999999999999994,
+          "positive_day_rate": 0.27530364372469635,
+          "worst_day_bps": -79.11364904019601,
+          "max_drawdown_bps": -2354.942457937862,
+          "average_round_trips_per_day": 6.048582995951417
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -33.72851197545694,
+          "annualized_sharpe": -26.16293897584664,
+          "t_statistic": -25.902085611613938,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.024291497975708502,
+          "worst_day_bps": -107.11364904019601,
+          "max_drawdown_bps": -8330.942457937865,
+          "average_round_trips_per_day": 6.048582995951417
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -57.92284395926261,
+          "annualized_sharpe": -35.28707811623538,
+          "t_statistic": -34.93525399398902,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.004048582995951417,
+          "worst_day_bps": -135.113649040196,
+          "max_drawdown_bps": -14306.942457937872,
+          "average_round_trips_per_day": 6.048582995951417
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": 1.1219782391227635,
+          "annualized_sharpe": 0.80597785298595,
+          "t_statistic": 0.6361692366868729,
+          "one_sided_p": 0.26279919194087503,
+          "positive_day_rate": 0.5477707006369427,
+          "worst_day_bps": -105.51864754477336,
+          "max_drawdown_bps": -196.4546307267412,
+          "average_round_trips_per_day": 6.375796178343949
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -11.629614117565135,
+          "annualized_sharpe": -8.242301617706389,
+          "t_statistic": -6.505760312461907,
+          "one_sided_p": 0.9999999995014284,
+          "positive_day_rate": 0.2356687898089172,
+          "worst_day_bps": -121.51864754477336,
+          "max_drawdown_bps": -1838.3507813722867,
+          "average_round_trips_per_day": 6.375796178343949
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -37.13279883094093,
+          "annualized_sharpe": -23.512648822453116,
+          "t_statistic": -18.558852204748174,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.025477707006369428,
+          "worst_day_bps": -153.51864754477336,
+          "max_drawdown_bps": -5829.849416457729,
+          "average_round_trips_per_day": 6.375796178343949
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -62.63598354431672,
+          "annualized_sharpe": -33.35133691412661,
+          "t_statistic": -26.324661984870342,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -185.51864754477336,
+          "max_drawdown_bps": -9833.849416457724,
+          "average_round_trips_per_day": 6.375796178343949
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": 2.2774308293163066,
+          "annualized_sharpe": 1.8250303399913872,
+          "t_statistic": 1.7810472419308812,
+          "one_sided_p": 0.038087372423707744,
+          "positive_day_rate": 0.575,
+          "worst_day_bps": -105.51864754477336,
+          "max_drawdown_bps": -196.45463072674102,
+          "average_round_trips_per_day": 6.45
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -10.622569170683693,
+          "annualized_sharpe": -8.416960459398261,
+          "t_statistic": -8.214112326331682,
+          "one_sided_p": 0.9999999999999932,
+          "positive_day_rate": 0.24583333333333332,
+          "worst_day_bps": -121.51864754477336,
+          "max_drawdown_bps": -2561.917965878647,
+          "average_round_trips_per_day": 6.45
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -36.422569170683694,
+          "annualized_sharpe": -25.320095681462046,
+          "t_statistic": -24.709883222602656,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.025,
+          "worst_day_bps": -153.51864754477336,
+          "max_drawdown_bps": -8741.416600964087,
+          "average_round_trips_per_day": 6.45
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -62.22256917068369,
+          "annualized_sharpe": -35.418497954813596,
+          "t_statistic": -34.56491473783006,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -185.51864754477336,
+          "max_drawdown_bps": -14933.41660096409,
+          "average_round_trips_per_day": 6.45
+        }
+      }
+    },
+    "breakout_60m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": -1.219471607255921,
+          "annualized_sharpe": -0.9577640232371347,
+          "t_statistic": -0.9288218472650949,
+          "one_sided_p": 0.8230347815850756,
+          "positive_day_rate": 0.4345991561181435,
+          "worst_day_bps": -165.9540769861323,
+          "max_drawdown_bps": -599.4508694238475,
+          "average_round_trips_per_day": 3.5738396624472575
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -8.367150932150436,
+          "annualized_sharpe": -6.314296043037615,
+          "t_statistic": -6.123487594627246,
+          "one_sided_p": 0.9999999981039434,
+          "positive_day_rate": 0.21940928270042195,
+          "worst_day_bps": -179.9540769861323,
+          "max_drawdown_bps": -2022.0650011490886,
+          "average_round_trips_per_day": 3.5738396624472575
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -22.662509581939467,
+          "annualized_sharpe": -14.888967877215457,
+          "t_statistic": -14.439045852698435,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.08016877637130802,
+          "worst_day_bps": -207.9540769861323,
+          "max_drawdown_bps": -5371.0147709196535,
+          "average_round_trips_per_day": 3.5738396624472575
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -36.9578682317285,
+          "annualized_sharpe": -20.44987828054893,
+          "t_statistic": -19.831913978860072,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.02109704641350211,
+          "worst_day_bps": -235.9540769861323,
+          "max_drawdown_bps": -8759.014770919652,
+          "average_round_trips_per_day": 3.5738396624472575
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": -1.4433443047873802,
+          "annualized_sharpe": -1.796016060596766,
+          "t_statistic": -1.77810917207575,
+          "one_sided_p": 0.9616894556892013,
+          "positive_day_rate": 0.38461538461538464,
+          "worst_day_bps": -55.67091110767919,
+          "max_drawdown_bps": -415.6016994622646,
+          "average_round_trips_per_day": 3.611336032388664
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -8.666016369564709,
+          "annualized_sharpe": -10.16965488727967,
+          "t_statistic": -10.068259983103136,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.16194331983805668,
+          "worst_day_bps": -67.67091110767919,
+          "max_drawdown_bps": -2151.211408130462,
+          "average_round_trips_per_day": 3.611336032388664
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -23.111360499119364,
+          "annualized_sharpe": -21.54126690943686,
+          "t_statistic": -21.326493181288477,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0728744939271255,
+          "worst_day_bps": -91.67091110767919,
+          "max_drawdown_bps": -5708.506043282478,
+          "average_round_trips_per_day": 3.611336032388664
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -37.55670462867402,
+          "annualized_sharpe": -27.044935327864412,
+          "t_statistic": -26.775288161227582,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008097165991902834,
+          "worst_day_bps": -115.67091110767919,
+          "max_drawdown_bps": -9276.506043282483,
+          "average_round_trips_per_day": 3.611336032388664
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": 0.45725735098031983,
+          "annualized_sharpe": 0.404762188852069,
+          "t_statistic": 0.31948427834308907,
+          "one_sided_p": 0.37489337331235956,
+          "positive_day_rate": 0.4713375796178344,
+          "worst_day_bps": -38.514861715572835,
+          "max_drawdown_bps": -152.31155909933847,
+          "average_round_trips_per_day": 4.050955414012739
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -7.644653477045157,
+          "annualized_sharpe": -6.573048564718303,
+          "t_statistic": -5.18819626697048,
+          "one_sided_p": 0.9999996742398114,
+          "positive_day_rate": 0.27388535031847133,
+          "worst_day_bps": -45.57612293692003,
+          "max_drawdown_bps": -1200.2243097817232,
+          "average_round_trips_per_day": 4.050955414012739
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -23.848475133096116,
+          "annualized_sharpe": -17.918373553911216,
+          "t_statistic": -14.143214958365188,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.05732484076433121,
+          "worst_day_bps": -80.59516852837385,
+          "max_drawdown_bps": -3744.2105958960897,
+          "average_round_trips_per_day": 4.050955414012739
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -40.052296789147064,
+          "annualized_sharpe": -25.10736354941104,
+          "t_statistic": -19.817582139849534,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.03821656050955414,
+          "worst_day_bps": -116.59516852837385,
+          "max_drawdown_bps": -6288.210595896089,
+          "average_round_trips_per_day": 4.050955414012739
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": -0.46650880904386405,
+          "annualized_sharpe": -0.4765661166399344,
+          "t_statistic": -0.4650809079937112,
+          "one_sided_p": 0.6788515129181025,
+          "positive_day_rate": 0.4375,
+          "worst_day_bps": -38.514861715572835,
+          "max_drawdown_bps": -223.4579346243315,
+          "average_round_trips_per_day": 4.029166666666667
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -8.524842142377198,
+          "annualized_sharpe": -8.418463889330127,
+          "t_statistic": -8.215579523711861,
+          "one_sided_p": 0.9999999999999933,
+          "positive_day_rate": 0.21666666666666667,
+          "worst_day_bps": -45.57612293692003,
+          "max_drawdown_bps": -2045.9621141705259,
+          "average_round_trips_per_day": 4.029166666666667
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -24.641508809043863,
+          "annualized_sharpe": -20.59828389316402,
+          "t_statistic": -20.101866753953363,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.04583333333333333,
+          "worst_day_bps": -80.59516852837385,
+          "max_drawdown_bps": -5913.962114170532,
+          "average_round_trips_per_day": 4.029166666666667
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -40.75817547571053,
+          "annualized_sharpe": -27.488522767551686,
+          "t_statistic": -26.826051374101105,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.025,
+          "worst_day_bps": -116.59516852837385,
+          "max_drawdown_bps": -9781.962114170532,
+          "average_round_trips_per_day": 4.029166666666667
+        }
+      }
+    },
+    "breakout_fade_60m": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": 1.219471607255921,
+          "annualized_sharpe": 0.9577640232371347,
+          "t_statistic": 0.9288218472650949,
+          "one_sided_p": 0.17696521841492438,
+          "positive_day_rate": 0.5358649789029536,
+          "worst_day_bps": -83.94219550549309,
+          "max_drawdown_bps": -312.46323550313093,
+          "average_round_trips_per_day": 3.5738396624472575
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -5.928207717638593,
+          "annualized_sharpe": -4.7109889521086865,
+          "t_statistic": -4.568630011966594,
+          "one_sided_p": 0.9999960427252859,
+          "positive_day_rate": 0.3037974683544304,
+          "worst_day_bps": -87.94219550549309,
+          "max_drawdown_bps": -1409.6688387753306,
+          "average_round_trips_per_day": 3.5738396624472575
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -20.223566367427622,
+          "annualized_sharpe": -15.075541921916841,
+          "t_statistic": -14.619981912778815,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0759493670886076,
+          "worst_day_bps": -95.94219550549309,
+          "max_drawdown_bps": -4792.985229080346,
+          "average_round_trips_per_day": 3.5738396624472575
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -34.51892501721665,
+          "annualized_sharpe": -22.26289369064692,
+          "t_statistic": -21.59014281338622,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.016877637130801686,
+          "worst_day_bps": -110.68576020238027,
+          "max_drawdown_bps": -8180.985229080345,
+          "average_round_trips_per_day": 3.5738396624472575
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": 1.4433443047873802,
+          "annualized_sharpe": 1.796016060596766,
+          "t_statistic": 1.77810917207575,
+          "one_sided_p": 0.03831054431079875,
+          "positive_day_rate": 0.6072874493927125,
+          "worst_day_bps": -59.66421129894428,
+          "max_drawdown_bps": -152.1958549349378,
+          "average_round_trips_per_day": 3.611336032388664
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -5.779327759989948,
+          "annualized_sharpe": -7.148531427297923,
+          "t_statistic": -7.077258147416967,
+          "one_sided_p": 0.9999999999923622,
+          "positive_day_rate": 0.29959514170040485,
+          "worst_day_bps": -63.66421129894428,
+          "max_drawdown_bps": -1427.4939567175172,
+          "average_round_trips_per_day": 3.611336032388664
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -20.224671889544602,
+          "annualized_sharpe": -20.932910702847252,
+          "t_statistic": -20.72420249215802,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.04048582995951417,
+          "worst_day_bps": -76.43449689214995,
+          "max_drawdown_bps": -4995.493956717521,
+          "average_round_trips_per_day": 3.611336032388664
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -34.67001601909926,
+          "annualized_sharpe": -27.707285767296597,
+          "t_statistic": -27.431034742408734,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.004048582995951417,
+          "worst_day_bps": -100.43449689214995,
+          "max_drawdown_bps": -8563.493956717519,
+          "average_round_trips_per_day": 3.611336032388664
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": -0.45725735098031983,
+          "annualized_sharpe": -0.404762188852069,
+          "t_statistic": -0.31948427834308907,
+          "one_sided_p": 0.6251066266876404,
+          "positive_day_rate": 0.5286624203821656,
+          "worst_day_bps": -89.84411379632462,
+          "max_drawdown_bps": -252.80820467433074,
+          "average_round_trips_per_day": 4.050955414012739
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -8.559168179005798,
+          "annualized_sharpe": -7.54054545867656,
+          "t_statistic": -5.951854670543355,
+          "one_sided_p": 0.9999999915563619,
+          "positive_day_rate": 0.2929936305732484,
+          "worst_day_bps": -97.84411379632462,
+          "max_drawdown_bps": -1354.2572069326247,
+          "average_round_trips_per_day": 4.050955414012739
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -24.762989835056757,
+          "annualized_sharpe": -19.70802288480323,
+          "t_statistic": -15.555809416826806,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.050955414012738856,
+          "worst_day_bps": -113.84411379632462,
+          "max_drawdown_bps": -3887.7894041039103,
+          "average_round_trips_per_day": 4.050955414012739
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -40.96681149110771,
+          "annualized_sharpe": -27.472235341567398,
+          "t_statistic": -21.68420747862873,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.012738853503184714,
+          "worst_day_bps": -129.84411379632462,
+          "max_drawdown_bps": -6431.789404103909,
+          "average_round_trips_per_day": 4.050955414012739
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": 0.46650880904386405,
+          "annualized_sharpe": 0.4765661166399344,
+          "t_statistic": 0.4650809079937112,
+          "one_sided_p": 0.3211484870818975,
+          "positive_day_rate": 0.5625,
+          "worst_day_bps": -89.84411379632462,
+          "max_drawdown_bps": -252.80820467433074,
+          "average_round_trips_per_day": 4.029166666666667
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -7.591824524289469,
+          "annualized_sharpe": -7.663144696641278,
+          "t_statistic": -7.478463468467388,
+          "one_sided_p": 0.999999999999288,
+          "positive_day_rate": 0.2833333333333333,
+          "worst_day_bps": -97.84411379632462,
+          "max_drawdown_bps": -1832.5056886581879,
+          "average_round_trips_per_day": 4.029166666666667
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -23.708491190956135,
+          "annualized_sharpe": -20.79988385786277,
+          "t_statistic": -20.2986081742093,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.05,
+          "worst_day_bps": -113.84411379632462,
+          "max_drawdown_bps": -5690.03788582947,
+          "average_round_trips_per_day": 4.029166666666667
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -39.825157857622806,
+          "annualized_sharpe": -28.311777193859385,
+          "t_statistic": -27.62946542878999,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008333333333333333,
+          "worst_day_bps": -129.84411379632462,
+          "max_drawdown_bps": -9558.037885829468,
+          "average_round_trips_per_day": 4.029166666666667
+        }
+      }
+    },
+    "opening_range_breakout": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": 2.6914993331851713,
+          "annualized_sharpe": 0.8642904177763375,
+          "t_statistic": 0.8381728723733638,
+          "one_sided_p": 0.20139085457507874,
+          "positive_day_rate": 0.4641350210970464,
+          "worst_day_bps": -120.78034914347668,
+          "max_drawdown_bps": -378.9174900904868,
+          "average_round_trips_per_day": 3.6582278481012658
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -4.624956363017361,
+          "annualized_sharpe": -1.3924018124370092,
+          "t_statistic": -1.3503255417674003,
+          "one_sided_p": 0.9108974591091172,
+          "positive_day_rate": 0.41350210970464135,
+          "worst_day_bps": -138.78034914347668,
+          "max_drawdown_bps": -1387.5541764352201,
+          "average_round_trips_per_day": 3.6582278481012658
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -19.257867755422424,
+          "annualized_sharpe": -5.089880585692297,
+          "t_statistic": -4.9360721151153,
+          "one_sided_p": 0.999999246402927,
+          "positive_day_rate": 0.3291139240506329,
+          "worst_day_bps": -174.78034914347668,
+          "max_drawdown_bps": -4620.067080706211,
+          "average_round_trips_per_day": 3.6582278481012658
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -33.89077914782748,
+          "annualized_sharpe": -7.8977687243733765,
+          "t_statistic": -7.65911013346628,
+          "one_sided_p": 0.9999999999997596,
+          "positive_day_rate": 0.2911392405063291,
+          "worst_day_bps": -218.125034042843,
+          "max_drawdown_bps": -8032.114658035116,
+          "average_round_trips_per_day": 3.6582278481012658
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": 3.418456884980023,
+          "annualized_sharpe": 1.419368803891407,
+          "t_statistic": 1.4052172161082521,
+          "one_sided_p": 0.0806091348679314,
+          "positive_day_rate": 0.4534412955465587,
+          "worst_day_bps": -90.12339706977457,
+          "max_drawdown_bps": -323.62747263613653,
+          "average_round_trips_per_day": 3.4008097165991904
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -3.3831625482183583,
+          "annualized_sharpe": -1.3147323381374751,
+          "t_statistic": -1.3016240113632813,
+          "one_sided_p": 0.9028687270536453,
+          "positive_day_rate": 0.3765182186234818,
+          "worst_day_bps": -102.12339706977457,
+          "max_drawdown_bps": -1232.566619290792,
+          "average_round_trips_per_day": 3.4008097165991904
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -16.986401414615116,
+          "annualized_sharpe": -5.743960679105133,
+          "t_statistic": -5.686691445379205,
+          "one_sided_p": 0.9999999816976972,
+          "positive_day_rate": 0.3117408906882591,
+          "worst_day_bps": -126.12339706977457,
+          "max_drawdown_bps": -4548.5666192907875,
+          "average_round_trips_per_day": 3.4008097165991904
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -30.58964028101188,
+          "annualized_sharpe": -9.016128895839111,
+          "t_statistic": -8.926235036551875,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.2834008097165992,
+          "worst_day_bps": -165.49113569787934,
+          "max_drawdown_bps": -7864.566619290794,
+          "average_round_trips_per_day": 3.4008097165991904
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": -0.5217905395361896,
+          "annualized_sharpe": -0.18229841901576221,
+          "t_statistic": -0.1438906114415315,
+          "one_sided_p": 0.5571137200632912,
+          "positive_day_rate": 0.36942675159235666,
+          "worst_day_bps": -143.46170153695326,
+          "max_drawdown_bps": -347.3884166110608,
+          "average_round_trips_per_day": 3.394904458598726
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -7.311599456733641,
+          "annualized_sharpe": -2.4354674758743546,
+          "t_statistic": -1.9223474681874442,
+          "one_sided_p": 0.97180779216752,
+          "positive_day_rate": 0.33121019108280253,
+          "worst_day_bps": -159.46170153695326,
+          "max_drawdown_bps": -1147.921114707182,
+          "average_round_trips_per_day": 3.394904458598726
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -20.891217291128548,
+          "annualized_sharpe": -6.298380275309017,
+          "t_statistic": -4.9713968656367555,
+          "one_sided_p": 0.9999991330815171,
+          "positive_day_rate": 0.2929936305732484,
+          "worst_day_bps": -191.46170153695326,
+          "max_drawdown_bps": -3279.9211147071824,
+          "average_round_trips_per_day": 3.394904458598726
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -34.47083512552345,
+          "annualized_sharpe": -9.396991054072066,
+          "t_statistic": -7.417172325362407,
+          "one_sided_p": 0.999999999996407,
+          "positive_day_rate": 0.2484076433121019,
+          "worst_day_bps": -223.46170153695326,
+          "max_drawdown_bps": -5411.921114707182,
+          "average_round_trips_per_day": 3.394904458598726
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": -0.3919469869471856,
+          "annualized_sharpe": -0.1553891062171923,
+          "t_statistic": -0.1516442400927653,
+          "one_sided_p": 0.5602022681779589,
+          "positive_day_rate": 0.3958333333333333,
+          "worst_day_bps": -143.46170153695326,
+          "max_drawdown_bps": -379.2085441136095,
+          "average_round_trips_per_day": 3.529166666666667
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -7.450280320280518,
+          "annualized_sharpe": -2.7879773374053944,
+          "t_statistic": -2.7207872869527816,
+          "one_sided_p": 0.9965042595137902,
+          "positive_day_rate": 0.3416666666666667,
+          "worst_day_bps": -159.46170153695326,
+          "max_drawdown_bps": -1848.6974225055933,
+          "average_round_trips_per_day": 3.529166666666667
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -21.566946986947187,
+          "annualized_sharpe": -7.141406314307769,
+          "t_statistic": -6.969298943088067,
+          "one_sided_p": 0.9999999999846018,
+          "positive_day_rate": 0.2833333333333333,
+          "worst_day_bps": -191.46170153695326,
+          "max_drawdown_bps": -5192.697422505593,
+          "average_round_trips_per_day": 3.529166666666667
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -35.683613653613854,
+          "annualized_sharpe": -10.449394785342669,
+          "t_statistic": -10.197565133283934,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.23333333333333334,
+          "worst_day_bps": -223.46170153695326,
+          "max_drawdown_bps": -8564.067276867328,
+          "average_round_trips_per_day": 3.529166666666667
+        }
+      }
+    },
+    "opening_range_fade": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": -2.6914993331851713,
+          "annualized_sharpe": -0.8642904177763375,
+          "t_statistic": -0.8381728723733638,
+          "one_sided_p": 0.7986091454249212,
+          "positive_day_rate": 0.5189873417721519,
+          "worst_day_bps": -187.32724254084232,
+          "max_drawdown_bps": -956.0357167895539,
+          "average_round_trips_per_day": 3.6582278481012658
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -10.007955029387704,
+          "annualized_sharpe": -3.419307933364087,
+          "t_statistic": -3.3159816342872697,
+          "one_sided_p": 0.9994713992664465,
+          "positive_day_rate": 0.45569620253164556,
+          "worst_day_bps": -189.32724254084232,
+          "max_drawdown_bps": -2499.729729224115,
+          "average_round_trips_per_day": 3.6582278481012658
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -24.64086642179277,
+          "annualized_sharpe": -9.369057118213457,
+          "t_statistic": -9.085938423807987,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.27848101265822783,
+          "worst_day_bps": -193.32724254084232,
+          "max_drawdown_bps": -5839.885341964884,
+          "average_round_trips_per_day": 3.6582278481012658
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -39.27377781419783,
+          "annualized_sharpe": -15.92266798118833,
+          "t_statistic": -15.441509107525125,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.08860759493670886,
+          "worst_day_bps": -197.32724254084232,
+          "max_drawdown_bps": -9307.885341964888,
+          "average_round_trips_per_day": 3.6582278481012658
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": -3.418456884980023,
+          "annualized_sharpe": -1.419368803891407,
+          "t_statistic": -1.4052172161082521,
+          "one_sided_p": 0.9193908651320686,
+          "positive_day_rate": 0.5303643724696356,
+          "worst_day_bps": -165.0898465208961,
+          "max_drawdown_bps": -941.1552780390232,
+          "average_round_trips_per_day": 3.4008097165991904
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -10.220076318178403,
+          "annualized_sharpe": -4.507952704533303,
+          "t_statistic": -4.463006889009098,
+          "one_sided_p": 0.9999938445341813,
+          "positive_day_rate": 0.44534412955465585,
+          "worst_day_bps": -171.0898465208961,
+          "max_drawdown_bps": -2524.3588505900666,
+          "average_round_trips_per_day": 3.4008097165991904
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -23.823315184575158,
+          "annualized_sharpe": -11.488953707494154,
+          "t_statistic": -11.374404947170232,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.21862348178137653,
+          "worst_day_bps": -183.0898465208961,
+          "max_drawdown_bps": -5884.358850590063,
+          "average_round_trips_per_day": 3.4008097165991904
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -37.42655405097193,
+          "annualized_sharpe": -18.48036499243674,
+          "t_statistic": -18.296109493275285,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0728744939271255,
+          "worst_day_bps": -195.0898465208961,
+          "max_drawdown_bps": -9244.358850590064,
+          "average_round_trips_per_day": 3.4008097165991904
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": 0.5217905395361896,
+          "annualized_sharpe": 0.18229841901576221,
+          "t_statistic": 0.1438906114415315,
+          "one_sided_p": 0.44288627993670876,
+          "positive_day_rate": 0.6178343949044586,
+          "worst_day_bps": -152.6702057857321,
+          "max_drawdown_bps": -549.8995382190764,
+          "average_round_trips_per_day": 3.394904458598726
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -6.268018377661262,
+          "annualized_sharpe": -2.2904555518003913,
+          "t_statistic": -1.8078875922654738,
+          "one_sided_p": 0.963724827283766,
+          "positive_day_rate": 0.5222929936305732,
+          "worst_day_bps": -158.6702057857321,
+          "max_drawdown_bps": -1111.5012704320316,
+          "average_round_trips_per_day": 3.394904458598726
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -19.847636212056166,
+          "annualized_sharpe": -7.82704411726713,
+          "t_statistic": -6.17799194251943,
+          "one_sided_p": 0.9999999972945973,
+          "positive_day_rate": 0.31210191082802546,
+          "worst_day_bps": -170.6702057857321,
+          "max_drawdown_bps": -3121.301767945588,
+          "average_round_trips_per_day": 3.394904458598726
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -33.42725404645107,
+          "annualized_sharpe": -13.836249757630732,
+          "t_statistic": -10.921139351795954,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.12738853503184713,
+          "worst_day_bps": -182.6702057857321,
+          "max_drawdown_bps": -5249.30176794559,
+          "average_round_trips_per_day": 3.394904458598726
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": 0.3919469869471856,
+          "annualized_sharpe": 0.1553891062171923,
+          "t_statistic": 0.1516442400927653,
+          "one_sided_p": 0.43979773182204107,
+          "positive_day_rate": 0.5958333333333333,
+          "worst_day_bps": -152.6702057857321,
+          "max_drawdown_bps": -549.8995382190764,
+          "average_round_trips_per_day": 3.529166666666667
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -6.666386346386148,
+          "annualized_sharpe": -2.7863916892465173,
+          "t_statistic": -2.7192398527988626,
+          "one_sided_p": 0.9964883647265063,
+          "positive_day_rate": 0.5,
+          "worst_day_bps": -158.6702057857321,
+          "max_drawdown_bps": -1695.7755883905797,
+          "average_round_trips_per_day": 3.529166666666667
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -20.783053013052815,
+          "annualized_sharpe": -9.418845134434404,
+          "t_statistic": -9.191851653785474,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.2708333333333333,
+          "worst_day_bps": -170.6702057857321,
+          "max_drawdown_bps": -4993.155605785446,
+          "average_round_trips_per_day": 3.529166666666667
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -34.89971967971948,
+          "annualized_sharpe": -16.315239488004252,
+          "t_statistic": -15.922043406516137,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.09166666666666666,
+          "worst_day_bps": -182.6702057857321,
+          "max_drawdown_bps": -8377.155605785441,
+          "average_round_trips_per_day": 3.529166666666667
+        }
+      }
+    },
+    "ridge_return": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": 5.05485248536863,
+          "annualized_sharpe": 2.242742938332189,
+          "t_statistic": 2.174970648700896,
+          "one_sided_p": 0.015312911049549299,
+          "positive_day_rate": 0.5569620253164557,
+          "worst_day_bps": -137.70247917195277,
+          "max_drawdown_bps": -273.28766400284303,
+          "average_round_trips_per_day": 5.590717299578059
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": -6.126582113787488,
+          "annualized_sharpe": -2.9448638088784276,
+          "t_statistic": -2.8558744915702032,
+          "one_sided_p": 0.9976628485191152,
+          "positive_day_rate": 0.37130801687763715,
+          "worst_day_bps": -169.70247917195277,
+          "max_drawdown_bps": -1520.361595600194,
+          "average_round_trips_per_day": 5.590717299578059
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -28.48945131209972,
+          "annualized_sharpe": -12.436971311216432,
+          "t_statistic": -12.061144903546788,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0970464135021097,
+          "worst_day_bps": -233.70247917195277,
+          "max_drawdown_bps": -6751.999960967637,
+          "average_round_trips_per_day": 5.590717299578059
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -50.85232051041196,
+          "annualized_sharpe": -16.58913638707185,
+          "t_statistic": -16.08783784913342,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -297.70247917195275,
+          "max_drawdown_bps": -12051.999960967634,
+          "average_round_trips_per_day": 5.590717299578059
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": 0.9195067541270361,
+          "annualized_sharpe": 0.6207997775615014,
+          "t_statistic": 0.6146101934845241,
+          "one_sided_p": 0.2696901116716905,
+          "positive_day_rate": 0.48582995951417,
+          "worst_day_bps": -218.76727767352833,
+          "max_drawdown_bps": -274.5229300134788,
+          "average_round_trips_per_day": 4.036437246963563
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -7.153367739800089,
+          "annualized_sharpe": -4.609245497118569,
+          "t_statistic": -4.5632897581395575,
+          "one_sided_p": 0.9999960226680205,
+          "positive_day_rate": 0.291497975708502,
+          "worst_day_bps": -246.76727767352833,
+          "max_drawdown_bps": -1767.0807994673294,
+          "average_round_trips_per_day": 4.036437246963563
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -23.29911672765434,
+          "annualized_sharpe": -11.13776594685817,
+          "t_statistic": -11.026718647471945,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.06477732793522267,
+          "worst_day_bps": -302.7672776735283,
+          "max_drawdown_bps": -5754.881831730625,
+          "average_round_trips_per_day": 4.036437246963563
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -39.44486571550859,
+          "annualized_sharpe": -13.614469932573423,
+          "t_statistic": -13.478729055471067,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.012145748987854251,
+          "worst_day_bps": -358.7672776735283,
+          "max_drawdown_bps": -9742.881831730621,
+          "average_round_trips_per_day": 4.036437246963563
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": 2.6217622172378365,
+          "annualized_sharpe": 1.3429194324821294,
+          "t_statistic": 1.0599844984934312,
+          "one_sided_p": 0.14539502458529005,
+          "positive_day_rate": 0.47770700636942676,
+          "worst_day_bps": -109.83345740408268,
+          "max_drawdown_bps": -250.20526675447752,
+          "average_round_trips_per_day": 5.2993630573248405
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -7.976963897411844,
+          "annualized_sharpe": -4.134069528531112,
+          "t_statistic": -3.2630770766624826,
+          "one_sided_p": 0.9993229378927361,
+          "positive_day_rate": 0.28662420382165604,
+          "worst_day_bps": -143.83345740408268,
+          "max_drawdown_bps": -1262.8739757741803,
+          "average_round_trips_per_day": 5.2993630573248405
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -29.174416126711208,
+          "annualized_sharpe": -12.046829313771998,
+          "t_statistic": -9.508725556970079,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.08917197452229299,
+          "worst_day_bps": -211.83345740408268,
+          "max_drawdown_bps": -4580.383331893661,
+          "average_round_trips_per_day": 5.2993630573248405
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -50.37186835601057,
+          "annualized_sharpe": -15.121010554866073,
+          "t_statistic": -11.93521845170476,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -279.83345740408265,
+          "max_drawdown_bps": -7908.383331893658,
+          "average_round_trips_per_day": 5.2993630573248405
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": 1.8456547430360328,
+          "annualized_sharpe": 1.1404134750261496,
+          "t_statistic": 1.1129295934695096,
+          "one_sided_p": 0.13342839099450363,
+          "positive_day_rate": 0.4791666666666667,
+          "worst_day_bps": -109.83345740408268,
+          "max_drawdown_bps": -250.20526675447752,
+          "average_round_trips_per_day": 4.170833333333333
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -6.4960119236306335,
+          "annualized_sharpe": -4.033721903825171,
+          "t_statistic": -3.936509500197081,
+          "one_sided_p": 0.9999457648915973,
+          "positive_day_rate": 0.2875,
+          "worst_day_bps": -143.83345740408268,
+          "max_drawdown_bps": -1569.5335055518733,
+          "average_round_trips_per_day": 4.170833333333333
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -23.17934525696397,
+          "annualized_sharpe": -11.060760860541018,
+          "t_statistic": -10.794197330668261,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.07916666666666666,
+          "worst_day_bps": -211.83345740408268,
+          "max_drawdown_bps": -5563.042861671351,
+          "average_round_trips_per_day": 4.170833333333333
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -39.8626785902973,
+          "annualized_sharpe": -13.548800649744933,
+          "t_statistic": -13.222275542451214,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.0,
+          "worst_day_bps": -279.83345740408265,
+          "max_drawdown_bps": -9567.042861671345,
+          "average_round_trips_per_day": 4.170833333333333
+        }
+      }
+    },
+    "hist_return": {
+      "selection_2024": {
+        "cost_0bps": {
+          "days": 237,
+          "mean_daily_bps": 15.151849850631255,
+          "annualized_sharpe": 8.331192738681374,
+          "t_statistic": 8.079436731512793,
+          "one_sided_p": 1.6800055199541165e-14,
+          "positive_day_rate": 0.759493670886076,
+          "worst_day_bps": -54.32492137007472,
+          "max_drawdown_bps": -59.526849760107325,
+          "average_round_trips_per_day": 5.540084388185654
+        },
+        "cost_2bps": {
+          "days": 237,
+          "mean_daily_bps": 4.0716810742599465,
+          "annualized_sharpe": 2.4795213778308636,
+          "t_statistic": 2.4045940029216815,
+          "one_sided_p": 0.008480949312733023,
+          "positive_day_rate": 0.5232067510548524,
+          "worst_day_bps": -80.32492137007472,
+          "max_drawdown_bps": -336.3763632859234,
+          "average_round_trips_per_day": 5.540084388185654
+        },
+        "cost_6bps": {
+          "days": 237,
+          "mean_daily_bps": -18.08865647848267,
+          "annualized_sharpe": -11.77825817961697,
+          "t_statistic": -11.422337083597485,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.09282700421940929,
+          "worst_day_bps": -132.32492137007472,
+          "max_drawdown_bps": -4292.546439180609,
+          "average_round_trips_per_day": 5.540084388185654
+        },
+        "cost_10bps": {
+          "days": 237,
+          "mean_daily_bps": -40.24899403122528,
+          "annualized_sharpe": -22.50189215929612,
+          "t_statistic": -21.82191911084411,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.016877637130801686,
+          "worst_day_bps": -184.32492137007472,
+          "max_drawdown_bps": -9539.011585400389,
+          "average_round_trips_per_day": 5.540084388185654
+        }
+      },
+      "holdout_2025": {
+        "cost_0bps": {
+          "days": 247,
+          "mean_daily_bps": 1.6212290295399927,
+          "annualized_sharpe": 1.388570973559448,
+          "t_statistic": 1.3747264505774062,
+          "one_sided_p": 0.0852335811401381,
+          "positive_day_rate": 0.5425101214574899,
+          "worst_day_bps": -64.30651513257502,
+          "max_drawdown_bps": -186.93580818304412,
+          "average_round_trips_per_day": 4.724696356275303
+        },
+        "cost_2bps": {
+          "days": 247,
+          "mean_daily_bps": -7.828163683010616,
+          "annualized_sharpe": -6.591106324880905,
+          "t_statistic": -6.525390762097691,
+          "one_sided_p": 0.9999999998080997,
+          "positive_day_rate": 0.2631578947368421,
+          "worst_day_bps": -84.30651513257502,
+          "max_drawdown_bps": -1933.5564297036233,
+          "average_round_trips_per_day": 4.724696356275303
+        },
+        "cost_6bps": {
+          "days": 247,
+          "mean_daily_bps": -26.72694910811183,
+          "annualized_sharpe": -18.293010384569634,
+          "t_statistic": -18.11062287431461,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.044534412955465584,
+          "worst_day_bps": -124.30651513257502,
+          "max_drawdown_bps": -6601.556429703623,
+          "average_round_trips_per_day": 4.724696356275303
+        },
+        "cost_10bps": {
+          "days": 247,
+          "mean_daily_bps": -45.625734533213034,
+          "annualized_sharpe": -23.727125072579486,
+          "t_statistic": -23.49055759808947,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.004048582995951417,
+          "worst_day_bps": -164.30651513257502,
+          "max_drawdown_bps": -11269.55642970363,
+          "average_round_trips_per_day": 4.724696356275303
+        }
+      },
+      "current_2026": {
+        "cost_0bps": {
+          "days": 157,
+          "mean_daily_bps": 1.7428708294085462,
+          "annualized_sharpe": 1.4258471584969807,
+          "t_statistic": 1.1254404759295331,
+          "one_sided_p": 0.131065469484783,
+          "positive_day_rate": 0.5414012738853503,
+          "worst_day_bps": -64.69807464329236,
+          "max_drawdown_bps": -150.00876391122017,
+          "average_round_trips_per_day": 5.273885350318471
+        },
+        "cost_2bps": {
+          "days": 157,
+          "mean_daily_bps": -8.804899871228397,
+          "annualized_sharpe": -7.350924281727531,
+          "t_statistic": -5.8021841070751154,
+          "one_sided_p": 0.9999999823076631,
+          "positive_day_rate": 0.2356687898089172,
+          "worst_day_bps": -86.69807464329236,
+          "max_drawdown_bps": -1382.3692797828585,
+          "average_round_trips_per_day": 5.273885350318471
+        },
+        "cost_6bps": {
+          "days": 157,
+          "mean_daily_bps": -29.900441272502285,
+          "annualized_sharpe": -21.39683053651603,
+          "t_statistic": -16.888808171967305,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.025477707006369428,
+          "worst_day_bps": -130.69807464329236,
+          "max_drawdown_bps": -4694.369279782856,
+          "average_round_trips_per_day": 5.273885350318471
+        },
+        "cost_10bps": {
+          "days": 157,
+          "mean_daily_bps": -50.99598267377617,
+          "annualized_sharpe": -27.98743521281896,
+          "t_statistic": -22.090861715616793,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.012738853503184714,
+          "worst_day_bps": -174.69807464329236,
+          "max_drawdown_bps": -8006.36927978286,
+          "average_round_trips_per_day": 5.273885350318471
+        }
+      },
+      "tuesday_regime": {
+        "cost_0bps": {
+          "days": 240,
+          "mean_daily_bps": 1.7930693857384956,
+          "annualized_sharpe": 1.7119718325490116,
+          "t_statistic": 1.6707134362704144,
+          "one_sided_p": 0.04804362094535412,
+          "positive_day_rate": 0.5291666666666667,
+          "worst_day_bps": -64.69807464329236,
+          "max_drawdown_bps": -150.00876391122011,
+          "average_round_trips_per_day": 4.720833333333333
+        },
+        "cost_2bps": {
+          "days": 240,
+          "mean_daily_bps": -7.648597280928171,
+          "annualized_sharpe": -7.395749699969194,
+          "t_statistic": -7.217512671709029,
+          "one_sided_p": 0.999999999996502,
+          "positive_day_rate": 0.23333333333333334,
+          "worst_day_bps": -86.69807464329236,
+          "max_drawdown_bps": -1835.663347422761,
+          "average_round_trips_per_day": 4.720833333333333
+        },
+        "cost_6bps": {
+          "days": 240,
+          "mean_daily_bps": -26.53193061426151,
+          "annualized_sharpe": -21.07159984883126,
+          "t_statistic": -20.56377582961673,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.025,
+          "worst_day_bps": -130.69807464329236,
+          "max_drawdown_bps": -6367.663347422765,
+          "average_round_trips_per_day": 4.720833333333333
+        },
+        "cost_10bps": {
+          "days": 240,
+          "mean_daily_bps": -45.41526394759483,
+          "annualized_sharpe": -26.843901307434923,
+          "t_statistic": -26.196965244148966,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.008333333333333333,
+          "worst_day_bps": -174.69807464329236,
+          "max_drawdown_bps": -10899.66334742276,
+          "average_round_trips_per_day": 4.720833333333333
+        }
+      }
+    }
+  },
+  "summary": {
+    "strategies_tested": 22,
+    "holm_significant_2025": [],
+    "survivors": [],
+    "verdict": "no directional proxy survived costs, correction, and both holdouts"
+  }
+}

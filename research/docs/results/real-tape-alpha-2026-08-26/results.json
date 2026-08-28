@@ -1,0 +1,799 @@
+{
+  "final_inspected": false,
+  "protocol": {
+    "candidate_count": 480,
+    "cost_model": "observed entry ask/bid and exact-horizon exit bid/ask",
+    "discovery_end_ns": 1787732220000000000,
+    "discovery_shortlist_count": 20,
+    "final_role": "sample_role=test",
+    "multiple_testing": "Holm correction across the 20 discovery-shortlisted candidates",
+    "position_limit": "one option per timestamp; 30-second strategies sampled non-overlapping",
+    "validation_alpha": 0.05,
+    "validation_start_ns": 1787732250000000000
+  },
+  "selected": null,
+  "shortlist": [
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_depth_imbalance",
+        "horizon_seconds": 30,
+        "moneyness": 0.005,
+        "quantile": 0.75
+      },
+      "discovery": {
+        "gross_mean_bps": 44.05108978279097,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -196.32871664828775,
+        "minute_mean_bps": 37.821112649643204,
+        "minute_standard_error_bps": 21.59580422289768,
+        "minutes": 34,
+        "net_mean_bps": 24.26260056769565,
+        "net_total_bps": 1285.9178300878693,
+        "p_value": 0.044591129450828666,
+        "trades": 53,
+        "win_rate": 0.5471698113207547
+      },
+      "holm_pass": false,
+      "name": "option_depth_imbalance__q75__follow__near__m50bp__h30",
+      "threshold": 0.2530454762214419,
+      "validation": {
+        "gross_mean_bps": -12.981922041681623,
+        "max_trade_bps": 279.9129036867918,
+        "min_trade_bps": -328.6247793490748,
+        "minute_mean_bps": -48.807235001406056,
+        "minute_standard_error_bps": 28.003385269259894,
+        "minutes": 30,
+        "net_mean_bps": -30.504521875878794,
+        "net_total_bps": -1464.217050042182,
+        "p_value": 0.9540268612655884,
+        "trades": 48,
+        "win_rate": 0.3541666666666667
+      }
+    },
+    {
+      "candidate": {
+        "direction": -1,
+        "expiry": "near",
+        "feature": "lead_lag_5s",
+        "horizon_seconds": 30,
+        "moneyness": 0.01,
+        "quantile": 0.75
+      },
+      "discovery": {
+        "gross_mean_bps": 39.34484702843295,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -236.50364683751081,
+        "minute_mean_bps": 27.454966875086065,
+        "minute_standard_error_bps": 25.75896562767017,
+        "minutes": 25,
+        "net_mean_bps": 22.141102318617794,
+        "net_total_bps": 686.3741718771516,
+        "p_value": 0.14855049049949323,
+        "trades": 31,
+        "win_rate": 0.4838709677419355
+      },
+      "holm_pass": false,
+      "name": "lead_lag_5s__q75__fade__near__m100bp__h30",
+      "threshold": 0.003948299665458181,
+      "validation": {
+        "gross_mean_bps": -23.122720919492156,
+        "max_trade_bps": 222.13431723168603,
+        "min_trade_bps": -392.5417016783994,
+        "minute_mean_bps": -66.49303445418717,
+        "minute_standard_error_bps": 24.858715427182727,
+        "minutes": 26,
+        "net_mean_bps": -42.16631453192357,
+        "net_total_bps": -1728.8188958088663,
+        "p_value": 0.9935039680358622,
+        "trades": 41,
+        "win_rate": 0.4146341463414634
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_return_5s",
+        "horizon_seconds": 30,
+        "moneyness": 0.005,
+        "quantile": 0.75
+      },
+      "discovery": {
+        "gross_mean_bps": 29.941707037125074,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -236.50364683751081,
+        "minute_mean_bps": 14.628574054489395,
+        "minute_standard_error_bps": 27.6136186965387,
+        "minutes": 25,
+        "net_mean_bps": 11.428573480069836,
+        "net_total_bps": 365.71435136223477,
+        "p_value": 0.30057284633159265,
+        "trades": 32,
+        "win_rate": 0.46875
+      },
+      "holm_pass": false,
+      "name": "option_return_5s__q75__follow__near__m50bp__h30",
+      "threshold": 0.0038874044129767497,
+      "validation": {
+        "gross_mean_bps": -11.708970416303114,
+        "max_trade_bps": 170.76866592146672,
+        "min_trade_bps": -315.3952277498418,
+        "minute_mean_bps": -43.39886853268374,
+        "minute_standard_error_bps": 21.332390336868773,
+        "minutes": 24,
+        "net_mean_bps": -29.759224136697426,
+        "net_total_bps": -1041.5728447844099,
+        "p_value": 0.9732008134555995,
+        "trades": 35,
+        "win_rate": 0.45714285714285713
+      }
+    },
+    {
+      "candidate": {
+        "direction": -1,
+        "expiry": "near",
+        "feature": "lead_lag_5s",
+        "horizon_seconds": 30,
+        "moneyness": 0.005,
+        "quantile": 0.5
+      },
+      "discovery": {
+        "gross_mean_bps": 28.8519338518701,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -283.6139239494469,
+        "minute_mean_bps": 14.600472123004268,
+        "minute_standard_error_bps": 25.23706188349467,
+        "minutes": 29,
+        "net_mean_bps": 10.85676132223394,
+        "net_total_bps": 423.41369156712364,
+        "p_value": 0.2837645844826636,
+        "trades": 39,
+        "win_rate": 0.48717948717948717
+      },
+      "holm_pass": false,
+      "name": "lead_lag_5s__q50__fade__near__m50bp__h30",
+      "threshold": 0.0022046678996416507,
+      "validation": {
+        "gross_mean_bps": -20.020475663025643,
+        "max_trade_bps": 170.76866592146672,
+        "min_trade_bps": -328.6247793490748,
+        "minute_mean_bps": -60.52442397062698,
+        "minute_standard_error_bps": 24.094136342479555,
+        "minutes": 27,
+        "net_mean_bps": -37.139987436521096,
+        "net_total_bps": -1634.1594472069282,
+        "p_value": 0.9907267622655518,
+        "trades": 44,
+        "win_rate": 0.45454545454545453
+      }
+    },
+    {
+      "candidate": {
+        "direction": -1,
+        "expiry": "near",
+        "feature": "lead_lag_10s",
+        "horizon_seconds": 30,
+        "moneyness": 0.005,
+        "quantile": 0.5
+      },
+      "discovery": {
+        "gross_mean_bps": 28.31495984876685,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -283.6139239494469,
+        "minute_mean_bps": 13.872574169771624,
+        "minute_standard_error_bps": 26.921418935966003,
+        "minutes": 27,
+        "net_mean_bps": 10.40443062732871,
+        "net_total_bps": 374.55950258383353,
+        "p_value": 0.3053490428507938,
+        "trades": 36,
+        "win_rate": 0.4722222222222222
+      },
+      "holm_pass": false,
+      "name": "lead_lag_10s__q50__fade__near__m50bp__h30",
+      "threshold": 0.0022106918957377868,
+      "validation": {
+        "gross_mean_bps": -21.56745170054414,
+        "max_trade_bps": 170.76866592146672,
+        "min_trade_bps": -328.6247793490748,
+        "minute_mean_bps": -64.34227020052427,
+        "minute_standard_error_bps": 24.44276206668803,
+        "minutes": 26,
+        "net_mean_bps": -38.904628493340255,
+        "net_total_bps": -1672.899025213631,
+        "p_value": 0.9928375407464343,
+        "trades": 43,
+        "win_rate": 0.4418604651162791
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_return_5s",
+        "horizon_seconds": 30,
+        "moneyness": 0.01,
+        "quantile": 0.75
+      },
+      "discovery": {
+        "gross_mean_bps": 27.792274907858463,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -236.50364683751081,
+        "minute_mean_bps": 13.334851170395583,
+        "minute_standard_error_bps": 27.184573565074096,
+        "minutes": 26,
+        "net_mean_bps": 10.197239130302501,
+        "net_total_bps": 346.70613043028504,
+        "p_value": 0.31401838954082384,
+        "trades": 34,
+        "win_rate": 0.4411764705882353
+      },
+      "holm_pass": false,
+      "name": "option_return_5s__q75__follow__near__m100bp__h30",
+      "threshold": 0.0038907357492871,
+      "validation": {
+        "gross_mean_bps": -21.902575351847794,
+        "max_trade_bps": 222.13431723168603,
+        "min_trade_bps": -392.5417016783994,
+        "minute_mean_bps": -65.86699184433698,
+        "minute_standard_error_bps": 25.58054341539028,
+        "minutes": 27,
+        "net_mean_bps": -41.358343716211586,
+        "net_total_bps": -1778.4087797970983,
+        "p_value": 0.9919652201575614,
+        "trades": 43,
+        "win_rate": 0.4418604651162791
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_depth_imbalance",
+        "horizon_seconds": 30,
+        "moneyness": 0.01,
+        "quantile": 0.75
+      },
+      "discovery": {
+        "gross_mean_bps": 27.8545210558776,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -387.0127434162196,
+        "minute_mean_bps": 14.440771839435936,
+        "minute_standard_error_bps": 25.57745361158491,
+        "minutes": 36,
+        "net_mean_bps": 9.120487477538486,
+        "net_total_bps": 519.8677862196937,
+        "p_value": 0.2879767945837441,
+        "trades": 57,
+        "win_rate": 0.5789473684210527
+      },
+      "holm_pass": false,
+      "name": "option_depth_imbalance__q75__follow__near__m100bp__h30",
+      "threshold": 0.2641526926797807,
+      "validation": {
+        "gross_mean_bps": -1.412617530379244,
+        "max_trade_bps": 279.9129036867918,
+        "min_trade_bps": -328.6247793490748,
+        "minute_mean_bps": -31.736376337338253,
+        "minute_standard_error_bps": 27.776659104198256,
+        "minutes": 30,
+        "net_mean_bps": -18.668456669022508,
+        "net_total_bps": -952.0912901201478,
+        "p_value": 0.8687156094332202,
+        "trades": 51,
+        "win_rate": 0.47058823529411764
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_depth_imbalance",
+        "horizon_seconds": 30,
+        "moneyness": 0.005,
+        "quantile": 0.5
+      },
+      "discovery": {
+        "gross_mean_bps": 25.8939670253085,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -341.54750506928053,
+        "minute_mean_bps": 11.14988925621872,
+        "minute_standard_error_bps": 25.53113313036498,
+        "minutes": 36,
+        "net_mean_bps": 7.042035319717084,
+        "net_total_bps": 401.3960132238738,
+        "p_value": 0.33249941381694614,
+        "trades": 57,
+        "win_rate": 0.5263157894736842
+      },
+      "holm_pass": false,
+      "name": "option_depth_imbalance__q50__follow__near__m50bp__h30",
+      "threshold": 0.13928515616279324,
+      "validation": {
+        "gross_mean_bps": 20.197268834134565,
+        "max_trade_bps": 303.33669906111425,
+        "min_trade_bps": -328.6247793490748,
+        "minute_mean_bps": 5.143326923742035,
+        "minute_standard_error_bps": 32.472738591219176,
+        "minutes": 30,
+        "net_mean_bps": 2.9673039944665573,
+        "net_total_bps": 154.29980771226099,
+        "p_value": 0.43762402401587397,
+        "trades": 52,
+        "win_rate": 0.5
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_microprice_dislocation",
+        "horizon_seconds": 30,
+        "moneyness": 0.01,
+        "quantile": 0.75
+      },
+      "discovery": {
+        "gross_mean_bps": 23.14306413103844,
+        "max_trade_bps": 226.41530372266482,
+        "min_trade_bps": -229.5232301332435,
+        "minute_mean_bps": 7.033655209654841,
+        "minute_standard_error_bps": 23.006167476783205,
+        "minutes": 35,
+        "net_mean_bps": 4.396034506034276,
+        "net_total_bps": 246.17793233791946,
+        "p_value": 0.38083751293098156,
+        "trades": 56,
+        "win_rate": 0.5357142857142857
+      },
+      "holm_pass": false,
+      "name": "option_microprice_dislocation__q75__follow__near__m100bp__h30",
+      "threshold": 0.34615384615387745,
+      "validation": {
+        "gross_mean_bps": 11.932143531291718,
+        "max_trade_bps": 346.07086469640535,
+        "min_trade_bps": -356.82985732592346,
+        "minute_mean_bps": -9.470107573199963,
+        "minute_standard_error_bps": 32.17383534179715,
+        "minutes": 30,
+        "net_mean_bps": -5.463523599923055,
+        "net_total_bps": -284.10322719599884,
+        "p_value": 0.6147033432604357,
+        "trades": 52,
+        "win_rate": 0.5384615384615384
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_depth_imbalance",
+        "horizon_seconds": 30,
+        "moneyness": 0.01,
+        "quantile": 0.9
+      },
+      "discovery": {
+        "gross_mean_bps": 22.12203096078027,
+        "max_trade_bps": 253.5827346214362,
+        "min_trade_bps": -387.0127434162196,
+        "minute_mean_bps": 3.4383390435417254,
+        "minute_standard_error_bps": 27.01613660705243,
+        "minutes": 30,
+        "net_mean_bps": 2.292226029027821,
+        "net_total_bps": 103.15017130625193,
+        "p_value": 0.449802619992973,
+        "trades": 45,
+        "win_rate": 0.5555555555555556
+      },
+      "holm_pass": false,
+      "name": "option_depth_imbalance__q90__follow__near__m100bp__h30",
+      "threshold": 0.38147878787878786,
+      "validation": {
+        "gross_mean_bps": -6.696482558226178,
+        "max_trade_bps": 157.8808693056938,
+        "min_trade_bps": -328.6247793490748,
+        "minute_mean_bps": -40.15236890934996,
+        "minute_standard_error_bps": 28.37048100544163,
+        "minutes": 29,
+        "net_mean_bps": -25.31344996459019,
+        "net_total_bps": -1164.4186983711488,
+        "p_value": 0.9159944255371775,
+        "trades": 46,
+        "win_rate": 0.5217391304347826
+      }
+    },
+    {
+      "candidate": {
+        "direction": -1,
+        "expiry": "near",
+        "feature": "lead_lag_5s",
+        "horizon_seconds": 30,
+        "moneyness": 0.01,
+        "quantile": 0.5
+      },
+      "discovery": {
+        "gross_mean_bps": 20.90634670627494,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -283.6139239494469,
+        "minute_mean_bps": 2.3565769990150605,
+        "minute_standard_error_bps": 21.81914053442047,
+        "minutes": 35,
+        "net_mean_bps": 1.718337395115147,
+        "net_total_bps": 82.48019496552706,
+        "p_value": 0.45731328025150025,
+        "trades": 48,
+        "win_rate": 0.5
+      },
+      "holm_pass": false,
+      "name": "lead_lag_5s__q50__fade__near__m100bp__h30",
+      "threshold": 0.0022046678996416507,
+      "validation": {
+        "gross_mean_bps": -16.611715933553377,
+        "max_trade_bps": 359.61982764584474,
+        "min_trade_bps": -328.6247793490748,
+        "minute_mean_bps": -56.71833694930785,
+        "minute_standard_error_bps": 29.039445643002463,
+        "minutes": 28,
+        "net_mean_bps": -33.7896475442685,
+        "net_total_bps": -1588.1134345806195,
+        "p_value": 0.9693809527851519,
+        "trades": 47,
+        "win_rate": 0.44680851063829785
+      }
+    },
+    {
+      "candidate": {
+        "direction": -1,
+        "expiry": "near",
+        "feature": "lead_lag_10s",
+        "horizon_seconds": 30,
+        "moneyness": 0.01,
+        "quantile": 0.5
+      },
+      "discovery": {
+        "gross_mean_bps": 20.73332033060092,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -283.6139239494469,
+        "minute_mean_bps": 1.9971636001692032,
+        "minute_standard_error_bps": 23.297447851128602,
+        "minutes": 33,
+        "net_mean_bps": 1.4645866401240837,
+        "net_total_bps": 65.90639880558376,
+        "p_value": 0.46610975087910334,
+        "trades": 45,
+        "win_rate": 0.4888888888888889
+      },
+      "holm_pass": false,
+      "name": "lead_lag_10s__q50__fade__near__m100bp__h30",
+      "threshold": 0.002221030335185296,
+      "validation": {
+        "gross_mean_bps": -14.277310784098479,
+        "max_trade_bps": 359.61982764584474,
+        "min_trade_bps": -328.6247793490748,
+        "minute_mean_bps": -51.97308253717096,
+        "minute_standard_error_bps": 30.404790971945015,
+        "minutes": 26,
+        "net_mean_bps": -31.42558478991732,
+        "net_total_bps": -1351.3001459664447,
+        "p_value": 0.9501156318969979,
+        "trades": 43,
+        "win_rate": 0.46511627906976744
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_depth_imbalance",
+        "horizon_seconds": 30,
+        "moneyness": 0.005,
+        "quantile": 0.9
+      },
+      "discovery": {
+        "gross_mean_bps": 21.096498497102562,
+        "max_trade_bps": 192.7980594731941,
+        "min_trade_bps": -230.20257611257676,
+        "minute_mean_bps": 1.5225572403707968,
+        "minute_standard_error_bps": 21.66764771349686,
+        "minutes": 24,
+        "net_mean_bps": 1.0747462873205644,
+        "net_total_bps": 36.54137376889919,
+        "p_value": 0.47229360436298073,
+        "trades": 34,
+        "win_rate": 0.5
+      },
+      "holm_pass": false,
+      "name": "option_depth_imbalance__q90__follow__near__m50bp__h30",
+      "threshold": 0.37344632768361596,
+      "validation": {
+        "gross_mean_bps": -12.359795567172018,
+        "max_trade_bps": 144.31391697303917,
+        "min_trade_bps": -328.6247793490748,
+        "minute_mean_bps": -44.414936802548574,
+        "minute_standard_error_bps": 27.912884694781216,
+        "minutes": 27,
+        "net_mean_bps": -31.557981412337156,
+        "net_total_bps": -1199.203293668812,
+        "p_value": 0.9381740692237712,
+        "trades": 38,
+        "win_rate": 0.47368421052631576
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_microprice_dislocation",
+        "horizon_seconds": 30,
+        "moneyness": 0.005,
+        "quantile": 0.75
+      },
+      "discovery": {
+        "gross_mean_bps": 20.30016021463423,
+        "max_trade_bps": 203.48822273219713,
+        "min_trade_bps": -322.24302350210667,
+        "minute_mean_bps": 0.9028704774456043,
+        "minute_standard_error_bps": 23.494903478599774,
+        "minutes": 35,
+        "net_mean_bps": 0.5851938279740007,
+        "net_total_bps": 31.600466710596038,
+        "p_value": 0.484785455664209,
+        "trades": 54,
+        "win_rate": 0.5185185185185185
+      },
+      "holm_pass": false,
+      "name": "option_microprice_dislocation__q75__follow__near__m50bp__h30",
+      "threshold": 0.3571428571428875,
+      "validation": {
+        "gross_mean_bps": -8.540521600917407,
+        "max_trade_bps": 166.0610793419827,
+        "min_trade_bps": -385.8527473691223,
+        "minute_mean_bps": -45.84898544795736,
+        "minute_standard_error_bps": 29.423797414190442,
+        "minutes": 30,
+        "net_mean_bps": -26.969991439974912,
+        "net_total_bps": -1375.4695634387206,
+        "p_value": 0.9349866477435923,
+        "trades": 51,
+        "win_rate": 0.45098039215686275
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_depth_imbalance",
+        "horizon_seconds": 30,
+        "moneyness": 0.01,
+        "quantile": 0.5
+      },
+      "discovery": {
+        "gross_mean_bps": 16.864420894269667,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -387.0127434162196,
+        "minute_mean_bps": -1.0353710225301522,
+        "minute_standard_error_bps": 28.515986521131754,
+        "minutes": 36,
+        "net_mean_bps": -0.6539185405453593,
+        "net_total_bps": -37.27335681108548,
+        "p_value": 0.5143786413437652,
+        "trades": 57,
+        "win_rate": 0.5789473684210527
+      },
+      "holm_pass": false,
+      "name": "option_depth_imbalance__q50__follow__near__m100bp__h30",
+      "threshold": 0.1483562213899292,
+      "validation": {
+        "gross_mean_bps": 13.555426513874739,
+        "max_trade_bps": 346.07086469640535,
+        "min_trade_bps": -328.6247793490748,
+        "minute_mean_bps": -5.23674644432529,
+        "minute_standard_error_bps": 29.881871064979318,
+        "minutes": 30,
+        "net_mean_bps": -3.0211998717261275,
+        "net_total_bps": -157.10239332975863,
+        "p_value": 0.5689487787931737,
+        "trades": 52,
+        "win_rate": 0.5192307692307693
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_microprice_dislocation",
+        "horizon_seconds": 30,
+        "moneyness": 0.005,
+        "quantile": 0.5
+      },
+      "discovery": {
+        "gross_mean_bps": 18.320572000738075,
+        "max_trade_bps": 219.04416660480638,
+        "min_trade_bps": -341.54750506928053,
+        "minute_mean_bps": -1.420797866594913,
+        "minute_standard_error_bps": 24.786457291785002,
+        "minutes": 36,
+        "net_mean_bps": -0.8973460210073155,
+        "net_total_bps": -51.148723197416984,
+        "p_value": 0.5226924641579072,
+        "trades": 57,
+        "win_rate": 0.49122807017543857
+      },
+      "holm_pass": false,
+      "name": "option_microprice_dislocation__q50__follow__near__m50bp__h30",
+      "threshold": 0.22804314329736552,
+      "validation": {
+        "gross_mean_bps": 3.5772119737772945,
+        "max_trade_bps": 164.8703885887097,
+        "min_trade_bps": -385.8527473691223,
+        "minute_mean_bps": -23.276316037997624,
+        "minute_standard_error_bps": 28.195826461935493,
+        "minutes": 30,
+        "net_mean_bps": -13.428643868075556,
+        "net_total_bps": -698.2894811399289,
+        "p_value": 0.7920929189089355,
+        "trades": 52,
+        "win_rate": 0.5384615384615384
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_microprice_dislocation",
+        "horizon_seconds": 30,
+        "moneyness": 0.01,
+        "quantile": 0.9
+      },
+      "discovery": {
+        "gross_mean_bps": 15.467589393716125,
+        "max_trade_bps": 212.25544539208084,
+        "min_trade_bps": -233.21576337511044,
+        "minute_mean_bps": -6.175395467536513,
+        "minute_standard_error_bps": 23.533143681781695,
+        "minutes": 32,
+        "net_mean_bps": -4.0329113257381275,
+        "net_total_bps": -197.61265496116823,
+        "p_value": 0.6026303392129138,
+        "trades": 49,
+        "win_rate": 0.5306122448979592
+      },
+      "holm_pass": false,
+      "name": "option_microprice_dislocation__q90__follow__near__m100bp__h30",
+      "threshold": 0.4285714285714692,
+      "validation": {
+        "gross_mean_bps": 13.679151684076285,
+        "max_trade_bps": 346.07086469640535,
+        "min_trade_bps": -356.82985732592346,
+        "minute_mean_bps": -10.315196696389737,
+        "minute_standard_error_bps": 30.946765159418746,
+        "minutes": 30,
+        "net_mean_bps": -6.315426548810041,
+        "net_total_bps": -309.455900891692,
+        "p_value": 0.6293548760930285,
+        "trades": 49,
+        "win_rate": 0.5510204081632653
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_microprice_dislocation",
+        "horizon_seconds": 30,
+        "moneyness": 0.005,
+        "quantile": 0.9
+      },
+      "discovery": {
+        "gross_mean_bps": 12.185631795071972,
+        "max_trade_bps": 203.48822273219713,
+        "min_trade_bps": -229.5232301332435,
+        "minute_mean_bps": -10.519505698796925,
+        "minute_standard_error_bps": 21.053753740406044,
+        "minutes": 25,
+        "net_mean_bps": -7.5139326419978065,
+        "net_total_bps": -262.98764246992323,
+        "p_value": 0.6890641944810474,
+        "trades": 35,
+        "win_rate": 0.45714285714285713
+      },
+      "holm_pass": false,
+      "name": "option_microprice_dislocation__q90__follow__near__m50bp__h30",
+      "threshold": 0.4356063699469361,
+      "validation": {
+        "gross_mean_bps": 11.01563202813583,
+        "max_trade_bps": 179.0283263708605,
+        "min_trade_bps": -356.82985732592346,
+        "minute_mean_bps": -13.41490130545985,
+        "minute_standard_error_bps": 25.474588106670485,
+        "minutes": 28,
+        "net_mean_bps": -8.943267536973233,
+        "net_total_bps": -375.6172365528758,
+        "p_value": 0.6986141939458654,
+        "trades": 42,
+        "win_rate": 0.5238095238095238
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_return_5s",
+        "horizon_seconds": 30,
+        "moneyness": 0.01,
+        "quantile": 0.5
+      },
+      "discovery": {
+        "gross_mean_bps": 11.000470376120278,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -297.6851769487447,
+        "minute_mean_bps": -11.682567331958182,
+        "minute_standard_error_bps": 23.42846514130609,
+        "minutes": 36,
+        "net_mean_bps": -8.087931229817203,
+        "net_total_bps": -420.5724239504945,
+        "p_value": 0.689426700037757,
+        "trades": 52,
+        "win_rate": 0.4807692307692308
+      },
+      "holm_pass": false,
+      "name": "option_return_5s__q50__follow__near__m100bp__h30",
+      "threshold": 0.00220415613694105,
+      "validation": {
+        "gross_mean_bps": -15.491306828871553,
+        "max_trade_bps": 359.61982764584474,
+        "min_trade_bps": -328.6247793490748,
+        "minute_mean_bps": -55.77918109083948,
+        "minute_standard_error_bps": 29.179470061814108,
+        "minutes": 29,
+        "net_mean_bps": -33.012168400700915,
+        "net_total_bps": -1617.5962516343448,
+        "p_value": 0.9668934009670923,
+        "trades": 49,
+        "win_rate": 0.4489795918367347
+      }
+    },
+    {
+      "candidate": {
+        "direction": 1,
+        "expiry": "near",
+        "feature": "option_return_5s",
+        "horizon_seconds": 30,
+        "moneyness": 0.005,
+        "quantile": 0.5
+      },
+      "discovery": {
+        "gross_mean_bps": 10.028220665861069,
+        "max_trade_bps": 262.43437913359423,
+        "min_trade_bps": -283.6139239494469,
+        "minute_mean_bps": -11.865736636473446,
+        "minute_standard_error_bps": 27.514532114195443,
+        "minutes": 31,
+        "net_mean_bps": -8.359950812060838,
+        "net_total_bps": -367.8378357306769,
+        "p_value": 0.6653163483145905,
+        "trades": 44,
+        "win_rate": 0.4318181818181818
+      },
+      "holm_pass": false,
+      "name": "option_return_5s__q50__follow__near__m50bp__h30",
+      "threshold": 0.0021806540708392,
+      "validation": {
+        "gross_mean_bps": -18.788547699841356,
+        "max_trade_bps": 170.76866592146672,
+        "min_trade_bps": -328.6247793490748,
+        "minute_mean_bps": -59.600471608500406,
+        "minute_standard_error_bps": 24.50726004827669,
+        "minutes": 28,
+        "net_mean_bps": -36.27854793560894,
+        "net_total_bps": -1668.8132050380113,
+        "p_value": 0.9890360808688008,
+        "trades": 46,
+        "win_rate": 0.45652173913043476
+      }
+    }
+  ],
+  "validation_survivor_count": 0,
+  "verdict": "cash"
+}

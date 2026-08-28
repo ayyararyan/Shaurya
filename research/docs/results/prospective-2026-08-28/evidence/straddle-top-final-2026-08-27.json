@@ -1,0 +1,15 @@
+{
+  "candidate": "base__hist_gradient_boosting__abs_straddle_change_bps__h300",
+  "final_p_value": 0.0004997501249375312,
+  "final_samples": 3681,
+  "final_session": "2026-08-27",
+  "final_skill_vs_discovery_constant": 0.2592776676356734,
+  "selection_sessions": {
+    "conditional_final": "2026-08-27",
+    "discovery": "2026-08-21",
+    "validation": "2026-08-26"
+  },
+  "status": "frozen_candidate_final_evaluation_complete",
+  "training_refit_after_selection": false,
+  "validation_skill_reproduced": 0.2923743793690545
+}

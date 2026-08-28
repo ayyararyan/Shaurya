@@ -1,0 +1,1051 @@
+{
+  "data_audit": {
+    "raw_index_rows": 587456,
+    "duplicate_index_timestamps": 376,
+    "invalid_index_rows": 12,
+    "rejected_sessions": 51,
+    "accepted_sessions": 1339,
+    "clean_index_rows": 502125,
+    "raw_atm_option_rows": 994058,
+    "duplicate_atm_option_rows": 0,
+    "negative_atm_volume_rows": 10,
+    "matched_rows": 476245,
+    "sample_rows": 78740,
+    "first_sample": "2021-01-01T09:20:00",
+    "last_sample": "2026-05-14T14:25:00"
+  },
+  "protocol": {
+    "development": "2021-2023",
+    "model_selection": "2024 only",
+    "frozen_evaluation": [
+      "2025",
+      "2026 through archive end"
+    ],
+    "regime_break": "Tuesday-expiry regime begins 2025-09-01",
+    "sampling_minutes": 5,
+    "bootstrap_unit": "trading session",
+    "bootstrap_samples": 1000,
+    "seed": 20260826,
+    "execution_claim": false
+  },
+  "tasks": {
+    "abs_move_15m": {
+      "target": "abs_move_15",
+      "selection_candidates": {
+        "ridge_index": {
+          "n": 14694,
+          "days": 237,
+          "mae": 8.499741429286441,
+          "rmse": 72.50886333277194,
+          "spearman": 0.36118978952980196,
+          "r2_vs_seasonal": -49.54257281763733,
+          "mae_skill_vs_seasonal": -0.3049399856179418,
+          "top_quintile_lift": 1.6916049646083335,
+          "top_quintile_precision": 0.4164681864579789
+        },
+        "ridge_index_options": {
+          "n": 14694,
+          "days": 237,
+          "mae": 7.163986930160657,
+          "rmse": 39.259836060995404,
+          "spearman": 0.36263550678985706,
+          "r2_vs_seasonal": -13.817403749761064,
+          "mae_skill_vs_seasonal": -0.09986557583973354,
+          "top_quintile_lift": 1.6821099882315562,
+          "top_quintile_precision": 0.4127254168084382
+        },
+        "hist_index": {
+          "n": 14694,
+          "days": 237,
+          "mae": 5.58689026221669,
+          "rmse": 9.683118454504081,
+          "spearman": 0.3629060766247865,
+          "r2_vs_seasonal": 0.0986247259272166,
+          "mae_skill_vs_seasonal": 0.14226137829252616,
+          "top_quintile_lift": 1.683305875542202,
+          "top_quintile_precision": 0.40660088465464445
+        },
+        "hist_index_options": {
+          "n": 14694,
+          "days": 237,
+          "mae": 5.565450252571893,
+          "rmse": 9.672430288594814,
+          "spearman": 0.3730543365509064,
+          "r2_vs_seasonal": 0.10061349256673568,
+          "mae_skill_vs_seasonal": 0.1455529991153819,
+          "top_quintile_lift": 1.6915358998347552,
+          "top_quintile_precision": 0.41714869003062266
+        }
+      },
+      "selected_model": "hist_index_options",
+      "evaluations": {
+        "holdout_2025": {
+          "metric": {
+            "n": 15314,
+            "days": 247,
+            "mae": 4.761033999392376,
+            "rmse": 7.454839103462618,
+            "spearman": 0.34476257855231623,
+            "r2_vs_seasonal": 0.08511086856753469,
+            "mae_skill_vs_seasonal": 0.17609024393066763,
+            "top_quintile_lift": 1.6778736905150269,
+            "top_quintile_precision": 0.4267058439438459
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.17609024393066763,
+            "lower_95": 0.14919872217010496,
+            "upper_95": 0.20194303361299953,
+            "samples": 1000
+          },
+          "date_start": "2025-01-01",
+          "date_end": "2025-12-31"
+        },
+        "current_2026": {
+          "metric": {
+            "n": 5456,
+            "days": 88,
+            "mae": 6.169516014823064,
+            "rmse": 9.25827906936443,
+            "spearman": 0.31637134581461207,
+            "r2_vs_seasonal": -0.0007201392936051487,
+            "mae_skill_vs_seasonal": 0.052541859570035876,
+            "top_quintile_lift": 1.467645570329665,
+            "top_quintile_precision": 0.3663003663003663
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.052541859570035654,
+            "lower_95": 0.030645870711830045,
+            "upper_95": 0.07618341560215394,
+            "samples": 1000
+          },
+          "date_start": "2026-01-01",
+          "date_end": "2026-05-14"
+        },
+        "tuesday_regime": {
+          "metric": {
+            "n": 10602,
+            "days": 171,
+            "mae": 5.006015968900444,
+            "rmse": 7.655320765559516,
+            "spearman": 0.35310481666718124,
+            "r2_vs_seasonal": 0.05511533895680065,
+            "mae_skill_vs_seasonal": 0.14129585954649526,
+            "top_quintile_lift": 1.6325079887389602,
+            "top_quintile_precision": 0.42102781706742104
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.14129585954649526,
+            "lower_95": 0.11357831588062893,
+            "upper_95": 0.17111449363397208,
+            "samples": 1000
+          },
+          "date_start": "2025-09-01",
+          "date_end": "2026-05-14"
+        }
+      },
+      "option_feature_increment": {
+        "ridge": {
+          "selection": {
+            "index_mae": 8.499741429286441,
+            "index_options_mae": 7.163986930160657,
+            "option_mae_increment": 0.15715236872069427
+          },
+          "holdout_2025": {
+            "index_mae": 4.816688543646669,
+            "index_options_mae": 4.829983876263175,
+            "option_mae_increment": -0.0027602641308503983
+          },
+          "current_2026": {
+            "index_mae": 6.208973201005394,
+            "index_options_mae": 6.246659266806382,
+            "option_mae_increment": -0.006069613216382663
+          },
+          "tuesday_regime": {
+            "index_mae": 5.016370853549025,
+            "index_options_mae": 5.063869098740447,
+            "option_mae_increment": -0.009468647071382064
+          }
+        },
+        "histogram": {
+          "selection": {
+            "index_mae": 5.58689026221669,
+            "index_options_mae": 5.565450252571893,
+            "option_mae_increment": 0.0038375569661340814
+          },
+          "holdout_2025": {
+            "index_mae": 4.767465341373136,
+            "index_options_mae": 4.761033999392376,
+            "option_mae_increment": 0.0013490065517512972
+          },
+          "current_2026": {
+            "index_mae": 6.155286419574019,
+            "index_options_mae": 6.169516014823064,
+            "option_mae_increment": -0.0023117681743931584
+          },
+          "tuesday_regime": {
+            "index_mae": 4.992161542194061,
+            "index_options_mae": 5.006015968900444,
+            "option_mae_increment": -0.00277523605542096
+          }
+        }
+      },
+      "gate": {
+        "holdout_skill_ci_above_zero": true,
+        "current_skill_ci_above_zero": true,
+        "current_point_skill_above_zero": true,
+        "passed": true
+      }
+    },
+    "abs_move_30m": {
+      "target": "abs_move_30",
+      "selection_candidates": {
+        "ridge_index": {
+          "n": 14694,
+          "days": 237,
+          "mae": 13.001690072644886,
+          "rmse": 128.7762608914885,
+          "spearman": 0.35107171109966295,
+          "r2_vs_seasonal": -76.90515316596844,
+          "mae_skill_vs_seasonal": -0.3980068894484361,
+          "top_quintile_lift": 1.6337056855182535,
+          "top_quintile_precision": 0.38924804355222864
+        },
+        "ridge_index_options": {
+          "n": 14694,
+          "days": 237,
+          "mae": 10.54356803763013,
+          "rmse": 66.13447169514525,
+          "spearman": 0.3529644422179995,
+          "r2_vs_seasonal": -19.54709084894653,
+          "mae_skill_vs_seasonal": -0.13369728655412816,
+          "top_quintile_lift": 1.642120722529812,
+          "top_quintile_precision": 0.39809458999659747
+        },
+        "hist_index": {
+          "n": 14694,
+          "days": 237,
+          "mae": 8.002207922722064,
+          "rmse": 13.960514493860861,
+          "spearman": 0.34762442749259237,
+          "r2_vs_seasonal": 0.08441765077078567,
+          "mae_skill_vs_seasonal": 0.13956249193313175,
+          "top_quintile_lift": 1.6073755524713706,
+          "top_quintile_precision": 0.37325620959510036
+        },
+        "hist_index_options": {
+          "n": 14694,
+          "days": 237,
+          "mae": 7.9608917146575005,
+          "rmse": 13.939482884733414,
+          "spearman": 0.36136914402363307,
+          "r2_vs_seasonal": 0.08717423475291042,
+          "mae_skill_vs_seasonal": 0.14400501772765684,
+          "top_quintile_lift": 1.641509205855432,
+          "top_quintile_precision": 0.3878870364069411
+        }
+      },
+      "selected_model": "hist_index_options",
+      "evaluations": {
+        "holdout_2025": {
+          "metric": {
+            "n": 15314,
+            "days": 247,
+            "mae": 6.683637274777538,
+            "rmse": 10.43059882057846,
+            "spearman": 0.3378823776151856,
+            "r2_vs_seasonal": 0.0839932943049716,
+            "mae_skill_vs_seasonal": 0.18131966317741388,
+            "top_quintile_lift": 1.6783261258062812,
+            "top_quintile_precision": 0.4302970943519425
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.18131966317741388,
+            "lower_95": 0.1511345454453392,
+            "upper_95": 0.2133888062940504,
+            "samples": 1000
+          },
+          "date_start": "2025-01-01",
+          "date_end": "2025-12-31"
+        },
+        "current_2026": {
+          "metric": {
+            "n": 5456,
+            "days": 88,
+            "mae": 8.629553339253114,
+            "rmse": 12.921843272916314,
+            "spearman": 0.30652613157112035,
+            "r2_vs_seasonal": -0.004329276755148825,
+            "mae_skill_vs_seasonal": 0.05698898593348711,
+            "top_quintile_lift": 1.4663158044026523,
+            "top_quintile_precision": 0.38186813186813184
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.05698898593348711,
+            "lower_95": 0.032973885514378035,
+            "upper_95": 0.08686114887062743,
+            "samples": 1000
+          },
+          "date_start": "2026-01-01",
+          "date_end": "2026-05-14"
+        },
+        "tuesday_regime": {
+          "metric": {
+            "n": 10602,
+            "days": 171,
+            "mae": 6.9708512377841805,
+            "rmse": 10.620077278402457,
+            "spearman": 0.33829440446189335,
+            "r2_vs_seasonal": 0.05712598511355249,
+            "mae_skill_vs_seasonal": 0.14534774728222266,
+            "top_quintile_lift": 1.586115591580122,
+            "top_quintile_precision": 0.4097123998114097
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.14534774728222266,
+            "lower_95": 0.11409809703622265,
+            "upper_95": 0.17834037371094574,
+            "samples": 1000
+          },
+          "date_start": "2025-09-01",
+          "date_end": "2026-05-14"
+        }
+      },
+      "option_feature_increment": {
+        "ridge": {
+          "selection": {
+            "index_mae": 13.001690072644886,
+            "index_options_mae": 10.54356803763013,
+            "option_mae_increment": 0.18906173130419102
+          },
+          "holdout_2025": {
+            "index_mae": 6.754085913295556,
+            "index_options_mae": 6.783558065489764,
+            "option_mae_increment": -0.004363603390977078
+          },
+          "current_2026": {
+            "index_mae": 8.683186165571115,
+            "index_options_mae": 8.772297315960476,
+            "option_mae_increment": -0.010262494514132081
+          },
+          "tuesday_regime": {
+            "index_mae": 6.989877321838599,
+            "index_options_mae": 7.072340843322954,
+            "option_mae_increment": -0.011797563488948892
+          }
+        },
+        "histogram": {
+          "selection": {
+            "index_mae": 8.002207922722064,
+            "index_options_mae": 7.9608917146575005,
+            "option_mae_increment": 0.005163101042057083
+          },
+          "holdout_2025": {
+            "index_mae": 6.687053832332629,
+            "index_options_mae": 6.683637274777538,
+            "option_mae_increment": 0.0005109211979978934
+          },
+          "current_2026": {
+            "index_mae": 8.608588952077005,
+            "index_options_mae": 8.629553339253114,
+            "option_mae_increment": -0.002435287280275089
+          },
+          "tuesday_regime": {
+            "index_mae": 6.961083315915116,
+            "index_options_mae": 6.9708512377841805,
+            "option_mae_increment": -0.0014032186408015068
+          }
+        }
+      },
+      "gate": {
+        "holdout_skill_ci_above_zero": true,
+        "current_skill_ci_above_zero": true,
+        "current_point_skill_above_zero": true,
+        "passed": true
+      }
+    },
+    "abs_move_60m": {
+      "target": "abs_move_60",
+      "selection_candidates": {
+        "ridge_index": {
+          "n": 14694,
+          "days": 237,
+          "mae": 17.164320329437064,
+          "rmse": 150.07369944392175,
+          "spearman": 0.33715354542132697,
+          "r2_vs_seasonal": -51.67118173984842,
+          "mae_skill_vs_seasonal": -0.26600903768300443,
+          "top_quintile_lift": 1.6240405101855202,
+          "top_quintile_precision": 0.3776794828172848
+        },
+        "ridge_index_options": {
+          "n": 14694,
+          "days": 237,
+          "mae": 14.15659037101577,
+          "rmse": 71.3462534542296,
+          "spearman": 0.3364013994777831,
+          "r2_vs_seasonal": -10.904364886979607,
+          "mae_skill_vs_seasonal": -0.044164348398056275,
+          "top_quintile_lift": 1.6224901286694604,
+          "top_quintile_precision": 0.3838040149710786
+        },
+        "hist_index": {
+          "n": 14694,
+          "days": 237,
+          "mae": 11.649001796613142,
+          "rmse": 20.002569835320017,
+          "spearman": 0.3324966542887297,
+          "r2_vs_seasonal": 0.06430248462226118,
+          "mae_skill_vs_seasonal": 0.14079082238955898,
+          "top_quintile_lift": 1.5988555015510102,
+          "top_quintile_precision": 0.3661109220823409
+        },
+        "hist_index_options": {
+          "n": 14694,
+          "days": 237,
+          "mae": 11.547552534430084,
+          "rmse": 19.888296507607432,
+          "spearman": 0.3529706235858635,
+          "r2_vs_seasonal": 0.07496309886136565,
+          "mae_skill_vs_seasonal": 0.14827353538517674,
+          "top_quintile_lift": 1.6411059910620265,
+          "top_quintile_precision": 0.3787002381762504
+        }
+      },
+      "selected_model": "hist_index_options",
+      "evaluations": {
+        "holdout_2025": {
+          "metric": {
+            "n": 15314,
+            "days": 247,
+            "mae": 9.382228655510128,
+            "rmse": 14.416687362971098,
+            "spearman": 0.33070096975390756,
+            "r2_vs_seasonal": 0.0978207606226994,
+            "mae_skill_vs_seasonal": 0.19318912108098052,
+            "top_quintile_lift": 1.6291563062256273,
+            "top_quintile_precision": 0.4120143650016324
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.1931891210809804,
+            "lower_95": 0.1590171920344773,
+            "upper_95": 0.2265819795296129,
+            "samples": 1000
+          },
+          "date_start": "2025-01-01",
+          "date_end": "2025-12-31"
+        },
+        "current_2026": {
+          "metric": {
+            "n": 5456,
+            "days": 88,
+            "mae": 12.450141722229766,
+            "rmse": 18.290606117945458,
+            "spearman": 0.2953732407261952,
+            "r2_vs_seasonal": -0.02073653923802965,
+            "mae_skill_vs_seasonal": 0.04894223530845543,
+            "top_quintile_lift": 1.381931655394597,
+            "top_quintile_precision": 0.33882783882783885
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.04894223530845532,
+            "lower_95": 0.01816144568094886,
+            "upper_95": 0.08251086373668913,
+            "samples": 1000
+          },
+          "date_start": "2026-01-01",
+          "date_end": "2026-05-14"
+        },
+        "tuesday_regime": {
+          "metric": {
+            "n": 10602,
+            "days": 171,
+            "mae": 10.000789270645388,
+            "rmse": 14.957508218250961,
+            "spearman": 0.32721183093717165,
+            "r2_vs_seasonal": 0.05369973181221599,
+            "mae_skill_vs_seasonal": 0.14131953562534405,
+            "top_quintile_lift": 1.5696834215807758,
+            "top_quintile_precision": 0.3988684582743989
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.14131953562534416,
+            "lower_95": 0.10200688950725798,
+            "upper_95": 0.18200095086536328,
+            "samples": 1000
+          },
+          "date_start": "2025-09-01",
+          "date_end": "2026-05-14"
+        }
+      },
+      "option_feature_increment": {
+        "ridge": {
+          "selection": {
+            "index_mae": 17.164320329437064,
+            "index_options_mae": 14.15659037101577,
+            "option_mae_increment": 0.1752315210094857
+          },
+          "holdout_2025": {
+            "index_mae": 9.548207719505049,
+            "index_options_mae": 9.572587767092529,
+            "option_mae_increment": -0.0025533637624657324
+          },
+          "current_2026": {
+            "index_mae": 12.453810945442711,
+            "index_options_mae": 12.610910743894566,
+            "option_mae_increment": -0.012614596378576204
+          },
+          "tuesday_regime": {
+            "index_mae": 9.97736296355897,
+            "index_options_mae": 10.11434452003064,
+            "option_mae_increment": -0.013729234565483583
+          }
+        },
+        "histogram": {
+          "selection": {
+            "index_mae": 11.649001796613142,
+            "index_options_mae": 11.547552534430084,
+            "option_mae_increment": 0.00870883737116035
+          },
+          "holdout_2025": {
+            "index_mae": 9.389115247694983,
+            "index_options_mae": 9.382228655510128,
+            "option_mae_increment": 0.0007334655080036834
+          },
+          "current_2026": {
+            "index_mae": 12.366210371519132,
+            "index_options_mae": 12.450141722229766,
+            "option_mae_increment": -0.006787152101498828
+          },
+          "tuesday_regime": {
+            "index_mae": 9.925409419229638,
+            "index_options_mae": 10.000789270645388,
+            "option_mae_increment": -0.007594633957336727
+          }
+        }
+      },
+      "gate": {
+        "holdout_skill_ci_above_zero": true,
+        "current_skill_ci_above_zero": true,
+        "current_point_skill_above_zero": true,
+        "passed": true
+      }
+    },
+    "realized_vol_15m": {
+      "target": "realized_vol_15",
+      "selection_candidates": {
+        "ridge_index": {
+          "n": 14694,
+          "days": 237,
+          "mae": 9.071353360652816,
+          "rmse": 149.59483649647473,
+          "spearman": 0.7592981666105292,
+          "r2_vs_seasonal": -395.2838692146753,
+          "mae_skill_vs_seasonal": -1.0411731618192435,
+          "top_quintile_lift": 1.702378100784712,
+          "top_quintile_precision": 0.6219802653963933
+        },
+        "ridge_index_options": {
+          "n": 14694,
+          "days": 237,
+          "mae": 6.777255004954286,
+          "rmse": 88.63696297766789,
+          "spearman": 0.7612398325279324,
+          "r2_vs_seasonal": -138.12427754802872,
+          "mae_skill_vs_seasonal": -0.5249710243811192,
+          "top_quintile_lift": 1.6974465998045885,
+          "top_quintile_precision": 0.619938754678462
+        },
+        "hist_index": {
+          "n": 14694,
+          "days": 237,
+          "mae": 2.891619482120263,
+          "rmse": 5.517966271360483,
+          "spearman": 0.7675285789576456,
+          "r2_vs_seasonal": 0.46082310811249827,
+          "mae_skill_vs_seasonal": 0.34934779338451605,
+          "top_quintile_lift": 1.7016192410357986,
+          "top_quintile_precision": 0.620279006464784
+        },
+        "hist_index_options": {
+          "n": 14694,
+          "days": 237,
+          "mae": 2.8375434822783383,
+          "rmse": 5.464391793888663,
+          "spearman": 0.7758688230914308,
+          "r2_vs_seasonal": 0.4712421247364581,
+          "mae_skill_vs_seasonal": 0.3615156006771575,
+          "top_quintile_lift": 1.7078090649489728,
+          "top_quintile_precision": 0.6291255529091527
+        }
+      },
+      "selected_model": "hist_index_options",
+      "evaluations": {
+        "holdout_2025": {
+          "metric": {
+            "n": 15314,
+            "days": 247,
+            "mae": 2.3118127644395994,
+            "rmse": 3.4616017240199266,
+            "spearman": 0.7435727539172015,
+            "r2_vs_seasonal": 0.5696601369417518,
+            "mae_skill_vs_seasonal": 0.44017675556874225,
+            "top_quintile_lift": 1.6816814038217345,
+            "top_quintile_precision": 0.6666666666666666
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.44017675556874225,
+            "lower_95": 0.4070372012204853,
+            "upper_95": 0.4707439465498294,
+            "samples": 1000
+          },
+          "date_start": "2025-01-01",
+          "date_end": "2025-12-31"
+        },
+        "current_2026": {
+          "metric": {
+            "n": 5456,
+            "days": 88,
+            "mae": 2.677520282704389,
+            "rmse": 3.775895886912437,
+            "spearman": 0.7584788138173635,
+            "r2_vs_seasonal": 0.4769005666002082,
+            "mae_skill_vs_seasonal": 0.3029515826809257,
+            "top_quintile_lift": 1.4995876599239475,
+            "top_quintile_precision": 0.597985347985348
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.3029515826809256,
+            "lower_95": 0.25044903646376365,
+            "upper_95": 0.353080607210008,
+            "samples": 1000
+          },
+          "date_start": "2026-01-01",
+          "date_end": "2026-05-14"
+        },
+        "tuesday_regime": {
+          "metric": {
+            "n": 10602,
+            "days": 171,
+            "mae": 2.2675878349754117,
+            "rmse": 3.198782231124579,
+            "spearman": 0.7793261322321374,
+            "r2_vs_seasonal": 0.5772464972750607,
+            "mae_skill_vs_seasonal": 0.4247035175668612,
+            "top_quintile_lift": 1.6390256890436248,
+            "top_quintile_precision": 0.6808109382366808
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.4247035175668611,
+            "lower_95": 0.38521429736175805,
+            "upper_95": 0.4630319166861037,
+            "samples": 1000
+          },
+          "date_start": "2025-09-01",
+          "date_end": "2026-05-14"
+        }
+      },
+      "option_feature_increment": {
+        "ridge": {
+          "selection": {
+            "index_mae": 9.071353360652816,
+            "index_options_mae": 6.777255004954286,
+            "option_mae_increment": 0.25289482886304804
+          },
+          "holdout_2025": {
+            "index_mae": 2.5636547463142585,
+            "index_options_mae": 2.531065967501092,
+            "option_mae_increment": 0.012711843847155735
+          },
+          "current_2026": {
+            "index_mae": 2.8087291585569982,
+            "index_options_mae": 3.0839484845970015,
+            "option_mae_increment": -0.09798713599761921
+          },
+          "tuesday_regime": {
+            "index_mae": 2.394953859700189,
+            "index_options_mae": 2.536191239851678,
+            "option_mae_increment": -0.058972902371142055
+          }
+        },
+        "histogram": {
+          "selection": {
+            "index_mae": 2.891619482120263,
+            "index_options_mae": 2.8375434822783383,
+            "option_mae_increment": 0.01870093910222037
+          },
+          "holdout_2025": {
+            "index_mae": 2.32272937870118,
+            "index_options_mae": 2.3118127644395994,
+            "option_mae_increment": 0.004699907945231674
+          },
+          "current_2026": {
+            "index_mae": 2.5519733888259415,
+            "index_options_mae": 2.677520282704389,
+            "option_mae_increment": -0.04919600432675608
+          },
+          "tuesday_regime": {
+            "index_mae": 2.172225225587526,
+            "index_options_mae": 2.2675878349754117,
+            "option_mae_increment": -0.04390088479986809
+          }
+        }
+      },
+      "gate": {
+        "holdout_skill_ci_above_zero": true,
+        "current_skill_ci_above_zero": true,
+        "current_point_skill_above_zero": true,
+        "passed": true
+      }
+    },
+    "realized_vol_30m": {
+      "target": "realized_vol_30",
+      "selection_candidates": {
+        "ridge_index": {
+          "n": 14694,
+          "days": 237,
+          "mae": 12.841273358079523,
+          "rmse": 220.74833520113123,
+          "spearman": 0.775859528951775,
+          "r2_vs_seasonal": -478.0742928960593,
+          "mae_skill_vs_seasonal": -1.1572297440933323,
+          "top_quintile_lift": 1.6586931773383784,
+          "top_quintile_precision": 0.6304865600544403
+        },
+        "ridge_index_options": {
+          "n": 14694,
+          "days": 237,
+          "mae": 9.235589564763611,
+          "rmse": 125.43467907516525,
+          "spearman": 0.7802518337456765,
+          "r2_vs_seasonal": -153.6832325475313,
+          "mae_skill_vs_seasonal": -0.5515041193956549,
+          "top_quintile_lift": 1.6613472691799747,
+          "top_quintile_precision": 0.6417148690030623
+        },
+        "hist_index": {
+          "n": 14694,
+          "days": 237,
+          "mae": 3.7744278522241017,
+          "rmse": 7.416280180975387,
+          "spearman": 0.7851077516304897,
+          "r2_vs_seasonal": 0.4592702669079116,
+          "mae_skill_vs_seasonal": 0.3659267424107021,
+          "top_quintile_lift": 1.6608725460625389,
+          "top_quintile_precision": 0.6260632868322559
+        },
+        "hist_index_options": {
+          "n": 14694,
+          "days": 237,
+          "mae": 3.664343360277463,
+          "rmse": 7.294102772016372,
+          "spearman": 0.7964176433304452,
+          "r2_vs_seasonal": 0.47693971086440645,
+          "mae_skill_vs_seasonal": 0.3844200439524278,
+          "top_quintile_lift": 1.6700457797636792,
+          "top_quintile_precision": 0.6379720993535216
+        }
+      },
+      "selected_model": "hist_index_options",
+      "evaluations": {
+        "holdout_2025": {
+          "metric": {
+            "n": 15314,
+            "days": 247,
+            "mae": 2.9086523676911233,
+            "rmse": 4.263751085294408,
+            "spearman": 0.764944195616013,
+            "r2_vs_seasonal": 0.6224176163102202,
+            "mae_skill_vs_seasonal": 0.47107987198012835,
+            "top_quintile_lift": 1.6370200378529645,
+            "top_quintile_precision": 0.6725432582435521
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.47107987198012846,
+            "lower_95": 0.43679920642692666,
+            "upper_95": 0.5026020348737613,
+            "samples": 1000
+          },
+          "date_start": "2025-01-01",
+          "date_end": "2025-12-31"
+        },
+        "current_2026": {
+          "metric": {
+            "n": 5456,
+            "days": 88,
+            "mae": 3.3089791737882304,
+            "rmse": 4.604002757121409,
+            "spearman": 0.7898908200129907,
+            "r2_vs_seasonal": 0.5423547330161992,
+            "mae_skill_vs_seasonal": 0.3467337713698788,
+            "top_quintile_lift": 1.4648646934037628,
+            "top_quintile_precision": 0.61996336996337
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.3467337713698788,
+            "lower_95": 0.27993740899385383,
+            "upper_95": 0.4022604174697892,
+            "samples": 1000
+          },
+          "date_start": "2026-01-01",
+          "date_end": "2026-05-14"
+        },
+        "tuesday_regime": {
+          "metric": {
+            "n": 10602,
+            "days": 171,
+            "mae": 2.8236703103429477,
+            "rmse": 3.9248934283817376,
+            "spearman": 0.8063242777365479,
+            "r2_vs_seasonal": 0.6345315985226159,
+            "mae_skill_vs_seasonal": 0.46375557956444724,
+            "top_quintile_lift": 1.6141890936492522,
+            "top_quintile_precision": 0.7114568599717115
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.46375557956444746,
+            "lower_95": 0.42181949818388964,
+            "upper_95": 0.5026541850338229,
+            "samples": 1000
+          },
+          "date_start": "2025-09-01",
+          "date_end": "2026-05-14"
+        }
+      },
+      "option_feature_increment": {
+        "ridge": {
+          "selection": {
+            "index_mae": 12.841273358079523,
+            "index_options_mae": 9.235589564763611,
+            "option_mae_increment": 0.2807886486621105
+          },
+          "holdout_2025": {
+            "index_mae": 3.238838060968826,
+            "index_options_mae": 3.201400916214043,
+            "option_mae_increment": 0.01155881956740512
+          },
+          "current_2026": {
+            "index_mae": 3.419200959821381,
+            "index_options_mae": 4.027089773858462,
+            "option_mae_increment": -0.17778680492322896
+          },
+          "tuesday_regime": {
+            "index_mae": 2.945858135071752,
+            "index_options_mae": 3.2738020711966955,
+            "option_mae_increment": -0.11132373695142528
+          }
+        },
+        "histogram": {
+          "selection": {
+            "index_mae": 3.7744278522241017,
+            "index_options_mae": 3.664343360277463,
+            "option_mae_increment": 0.02916587526816039
+          },
+          "holdout_2025": {
+            "index_mae": 2.9115789110439385,
+            "index_options_mae": 2.9086523676911233,
+            "option_mae_increment": 0.0010051396311858696
+          },
+          "current_2026": {
+            "index_mae": 3.012027283725253,
+            "index_options_mae": 3.3089791737882304,
+            "option_mae_increment": -0.09858871188434581
+          },
+          "tuesday_regime": {
+            "index_mae": 2.5937327624437954,
+            "index_options_mae": 2.8236703103429477,
+            "option_mae_increment": -0.08865121003541887
+          }
+        }
+      },
+      "gate": {
+        "holdout_skill_ci_above_zero": true,
+        "current_skill_ci_above_zero": true,
+        "current_point_skill_above_zero": true,
+        "passed": true
+      }
+    },
+    "realized_vol_60m": {
+      "target": "realized_vol_60",
+      "selection_candidates": {
+        "ridge_index": {
+          "n": 14694,
+          "days": 237,
+          "mae": 17.33380761743525,
+          "rmse": 296.98514245941846,
+          "spearman": 0.755479735171473,
+          "r2_vs_seasonal": -468.41260312647,
+          "mae_skill_vs_seasonal": -1.1426750919379383,
+          "top_quintile_lift": 1.60150872143397,
+          "top_quintile_precision": 0.6036066689350119
+        },
+        "ridge_index_options": {
+          "n": 14694,
+          "days": 237,
+          "mae": 12.165149174432937,
+          "rmse": 160.9926574730346,
+          "spearman": 0.7650596819530056,
+          "r2_vs_seasonal": -136.94229210475712,
+          "mae_skill_vs_seasonal": -0.5037643604367872,
+          "top_quintile_lift": 1.60829453285664,
+          "top_quintile_precision": 0.6189179993194964
+        },
+        "hist_index": {
+          "n": 14694,
+          "days": 237,
+          "mae": 5.242942739663376,
+          "rmse": 10.370401996205931,
+          "spearman": 0.767993324985417,
+          "r2_vs_seasonal": 0.42763050063221597,
+          "mae_skill_vs_seasonal": 0.3519068017442455,
+          "top_quintile_lift": 1.6001232161373338,
+          "top_quintile_precision": 0.5998638992854712
+        },
+        "hist_index_options": {
+          "n": 14694,
+          "days": 237,
+          "mae": 5.033655063307545,
+          "rmse": 10.112985422756799,
+          "spearman": 0.783808414857265,
+          "r2_vs_seasonal": 0.4556928213550072,
+          "mae_skill_vs_seasonal": 0.377777372196761,
+          "top_quintile_lift": 1.6115872382930436,
+          "top_quintile_precision": 0.617216740387887
+        }
+      },
+      "selected_model": "hist_index_options",
+      "evaluations": {
+        "holdout_2025": {
+          "metric": {
+            "n": 15314,
+            "days": 247,
+            "mae": 3.8538396745994823,
+            "rmse": 5.513347021924924,
+            "spearman": 0.7627706849300551,
+            "r2_vs_seasonal": 0.6477232992571571,
+            "mae_skill_vs_seasonal": 0.48225318035544784,
+            "top_quintile_lift": 1.5817551064246484,
+            "top_quintile_precision": 0.6758080313418218
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.48225318035544795,
+            "lower_95": 0.4434021247518353,
+            "upper_95": 0.5182288032519267,
+            "samples": 1000
+          },
+          "date_start": "2025-01-01",
+          "date_end": "2025-12-31"
+        },
+        "current_2026": {
+          "metric": {
+            "n": 5456,
+            "days": 88,
+            "mae": 4.587062853453711,
+            "rmse": 6.1925719805234225,
+            "spearman": 0.7834853973610624,
+            "r2_vs_seasonal": 0.5432597029718458,
+            "mae_skill_vs_seasonal": 0.33625857447508756,
+            "top_quintile_lift": 1.4219307068856397,
+            "top_quintile_precision": 0.5833333333333334
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.3362585744750879,
+            "lower_95": 0.2506332911197173,
+            "upper_95": 0.4035054848454449,
+            "samples": 1000
+          },
+          "date_start": "2026-01-01",
+          "date_end": "2026-05-14"
+        },
+        "tuesday_regime": {
+          "metric": {
+            "n": 10602,
+            "days": 171,
+            "mae": 3.910853137444239,
+            "rmse": 5.3123304405718725,
+            "spearman": 0.802101393870185,
+            "r2_vs_seasonal": 0.6359963525309271,
+            "mae_skill_vs_seasonal": 0.45671780651662897,
+            "top_quintile_lift": 1.580304533281621,
+            "top_quintile_precision": 0.7157001414427157
+          },
+          "mae_skill_daily_bootstrap": {
+            "estimate": 0.45671780651662885,
+            "lower_95": 0.40556365579708686,
+            "upper_95": 0.5048687985189231,
+            "samples": 1000
+          },
+          "date_start": "2025-09-01",
+          "date_end": "2026-05-14"
+        }
+      },
+      "option_feature_increment": {
+        "ridge": {
+          "selection": {
+            "index_mae": 17.33380761743525,
+            "index_options_mae": 12.165149174432937,
+            "option_mae_increment": 0.2981836741861267
+          },
+          "holdout_2025": {
+            "index_mae": 4.276822159081996,
+            "index_options_mae": 4.216966774636945,
+            "option_mae_increment": 0.013995294220486953
+          },
+          "current_2026": {
+            "index_mae": 4.434222475568401,
+            "index_options_mae": 5.695331016008134,
+            "option_mae_increment": -0.2844035335141992
+          },
+          "tuesday_regime": {
+            "index_mae": 3.8586343344777494,
+            "index_options_mae": 4.550961345972965,
+            "option_mae_increment": -0.17942280907758512
+          }
+        },
+        "histogram": {
+          "selection": {
+            "index_mae": 5.242942739663376,
+            "index_options_mae": 5.033655063307545,
+            "option_mae_increment": 0.039917978652055264
+          },
+          "holdout_2025": {
+            "index_mae": 3.847032434124795,
+            "index_options_mae": 3.8538396745994823,
+            "option_mae_increment": -0.0017694783164041716
+          },
+          "current_2026": {
+            "index_mae": 3.902330002116493,
+            "index_options_mae": 4.587062853453711,
+            "option_mae_increment": -0.1754676951887313
+          },
+          "tuesday_regime": {
+            "index_mae": 3.3857084182383703,
+            "index_options_mae": 3.910853137444239,
+            "option_mae_increment": -0.15510630400922376
+          }
+        }
+      },
+      "gate": {
+        "holdout_skill_ci_above_zero": true,
+        "current_skill_ci_above_zero": true,
+        "current_point_skill_above_zero": true,
+        "passed": true
+      }
+    }
+  },
+  "summary": {
+    "tasks_tested": 6,
+    "tasks_passing_gate": 6,
+    "passing_tasks": [
+      "abs_move_15m",
+      "abs_move_30m",
+      "abs_move_60m",
+      "realized_vol_15m",
+      "realized_vol_30m",
+      "realized_vol_60m"
+    ],
+    "option_tasks_improved_in_2026": 0,
+    "option_feature_verdict": "rolling-ATM option fields were not stable incremental predictors",
+    "prospective_recommendation": "freeze an index-only model for prospective validation",
+    "overall_verdict": "incremental forecast signal found"
+  }
+}
