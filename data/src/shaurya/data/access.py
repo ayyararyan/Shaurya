@@ -37,7 +37,7 @@ from .catalog import (
 from .catalog import (
     DatasetUnavailableError as DatasetUnavailableError,
 )
-from .metadata import ParquetCaptureManifest
+from .metadata import ParquetCaptureManifest, decode_mapping_fields
 from .parquet import (
     ROW_SCHEMA_VERSION,
     STORAGE_FORMAT_VERSION,
@@ -669,7 +669,12 @@ class DataAccess:
             loaded = table.to_pylist()[0]
             if not isinstance(loaded, dict):
                 raise TapeIntegrityError(f"operational artifact is not a record: {kind}")
-            return dict(loaded)
+            try:
+                return decode_mapping_fields(dict(loaded), metadata)
+            except (TypeError, ValueError) as exc:
+                raise TapeIntegrityError(
+                    f"malformed operational artifact JSON fields: {kind}"
+                ) from exc
         manifest_path = Path(handle.manifest_path)
         if not manifest_path.is_file():
             raise FileNotFoundError(manifest_path)

@@ -7,7 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from shaurya.contracts.instruments import InstrumentKind, KotakInstrumentMaster, OptionType
+from shaurya.contracts.instruments import (
+    DhanInstrumentMaster,
+    ExchangeSegment,
+    InstrumentKind,
+    KotakInstrumentMaster,
+    OptionType,
+)
 from shaurya.data.instrument_master import (
     DailyInstrumentMasterStore,
     DhanDailyInstrumentMaster,
@@ -24,6 +30,46 @@ def _master_payload() -> bytes:
         b"NSE,D,58072,FUTIDX,NIFTY-Aug2026-FUT,2026-08-25 14:30:00,"
         b"-0.01000,XX,65,10.0000,NIFTY\n"
     )
+
+
+def _colliding_master_payload() -> str:
+    header = (
+        "SEM_EXM_EXCH_ID,SEM_SEGMENT,SEM_SMST_SECURITY_ID,SEM_INSTRUMENT_NAME,"
+        "SEM_TRADING_SYMBOL,SEM_EXPIRY_DATE,SEM_STRIKE_PRICE,SEM_OPTION_TYPE,"
+        "SEM_LOT_UNITS,SEM_TICK_SIZE,SM_SYMBOL_NAME\n"
+    )
+    return header + "".join(
+        (
+            "NSE,E,13,EQUITY,ABB,,0,XX,1,5,ABB\n",
+            "NSE,I,13,INDEX,NIFTY,,0,XX,1,5,NIFTY\n",
+            "NSE,E,25,EQUITY,ADANIENT,,0,XX,1,5,ADANIENT\n",
+            "NSE,I,25,INDEX,BANKNIFTY,,0,XX,1,5,BANKNIFTY\n",
+        )
+    )
+
+
+def test_dhan_security_id_collisions_require_segment_or_kind(tmp_path: Path) -> None:
+    path = tmp_path / "security_id_list.csv"
+    path.write_text(_colliding_master_payload(), encoding="utf-8")
+    trading_date = date(2026, 8, 28)
+    master = DhanInstrumentMaster(path, as_of_date=trading_date)
+
+    with pytest.raises(ValueError, match=r"13 is ambiguous.*ABB.*NIFTY"):
+        master.find_by_security_id("13")
+    assert (
+        master.find_by_security_id("13", exchange_segment=ExchangeSegment.IDX_I).trading_symbol
+        == "NIFTY"
+    )
+    assert (
+        master.find_by_security_id("25", instrument_kind=InstrumentKind.INDEX).trading_symbol
+        == "BANKNIFTY"
+    )
+
+    index = DhanInstrumentIndex(master.mappings(), trading_date=trading_date)
+    with pytest.raises(ValueError, match=r"25 is ambiguous.*ADANIENT.*BANKNIFTY"):
+        index.by_security_id("25")
+    assert index.by_security_id("13", exchange_segment="IDX_I").trading_symbol == "NIFTY"
+    assert index.by_security_id("25", instrument_kind="index").trading_symbol == "BANKNIFTY"
 
 
 def test_dhan_master_refreshes_once_per_day_and_indexes_same_day(tmp_path: Path) -> None:

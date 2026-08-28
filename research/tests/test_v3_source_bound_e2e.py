@@ -271,7 +271,6 @@ def test_installed_cli_derives_mining_and_evaluation_from_canonical_tapes(tmp_pa
             "install",
             "--python",
             str(installed_environment / "bin" / "python"),
-            "--no-deps",
             str(data_repository),
             str(repository),
         ],

@@ -14,7 +14,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from shaurya.contracts.instruments import DhanInstrumentMaster
+from shaurya.contracts.instruments import (
+    DhanInstrumentMaster,
+    ExchangeSegment,
+    InstrumentKind,
+)
 from shaurya.contracts.timing import IST
 from shaurya.data.dhan_client import DhanCredentials
 from shaurya.data.dhan_stream import (
@@ -37,6 +41,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--credentials", required=True, type=Path)
     parser.add_argument("--security-master", required=True, type=Path)
     parser.add_argument("--security-ids", required=True, type=_csv_ids)
+    parser.add_argument("--exchange-segment", type=ExchangeSegment, choices=tuple(ExchangeSegment))
+    parser.add_argument("--instrument-kind", type=InstrumentKind, choices=tuple(InstrumentKind))
     parser.add_argument("--duration-seconds", type=float, default=90.0)
     parser.add_argument("--output", required=True, type=Path)
     return parser
@@ -91,7 +97,14 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("duration-seconds must be positive")
     credentials = DhanCredentials.from_env_file(args.credentials)
     master = DhanInstrumentMaster(args.security_master)
-    mappings = [master.find_by_security_id(value) for value in args.security_ids]
+    mappings = [
+        master.find_by_security_id(
+            value,
+            exchange_segment=args.exchange_segment,
+            instrument_kind=args.instrument_kind,
+        )
+        for value in args.security_ids
+    ]
     from websockets.asyncio.client import connect
 
     url = (

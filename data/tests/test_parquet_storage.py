@@ -28,6 +28,7 @@ from shaurya.data import (
     TapeIntegrityError,
     iter_parquet_rows,
 )
+from shaurya.data.metadata import ParquetCaptureManifest, decode_mapping_fields
 from shaurya.data.parquet import (
     human_dataset_name,
     inventory_recovery,
@@ -36,6 +37,35 @@ from shaurya.data.parquet import (
 
 RUN_ID = RunId("sha-20260827T034500.000000Z-1234abcd")
 INSTRUMENT = "NSE:NSE_FNO:NIFTY:future:2026-08-27"
+
+
+def test_operational_parquet_round_trip_preserves_empty_and_populated_mappings(
+    tmp_path: Path,
+) -> None:
+    payloads = (
+        {"run_id": "empty", "reconnect_attempts": {}, "source_packets": {}},
+        {
+            "run_id": "populated",
+            "reconnect_attempts": {"depth20": 2},
+            "source_packets": {"standard": 17},
+        },
+    )
+    tables: list[pa.Table] = []
+    for payload in payloads:
+        manifest = ParquetCaptureManifest(
+            tmp_path / str(payload["run_id"]), run_id=str(payload["run_id"])
+        )
+        path = manifest.write_record("capture_metrics", payload)
+        table = pq.read_table(path)
+        tables.append(table)
+        restored = decode_mapping_fields(table.to_pylist()[0], table.schema.metadata or {})
+        assert restored == payload
+
+    assert tables[0].schema.field("reconnect_attempts").type == pa.string()
+    assert (
+        tables[0].schema.field("reconnect_attempts").type
+        == tables[1].schema.field("reconnect_attempts").type
+    )
 
 
 def _request(*, allow_active: bool = True) -> DatasetRequest:

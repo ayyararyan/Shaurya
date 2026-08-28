@@ -13,7 +13,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from shaurya.contracts.instruments import DhanInstrumentMaster
+from shaurya.contracts.instruments import (
+    DhanInstrumentMaster,
+    ExchangeSegment,
+    InstrumentKind,
+)
 from shaurya.data.dhan_client import DhanCredentials
 from shaurya.data.dhan_stream import ParsedDeepPacket, ParsedDisconnect, parse_deep_packets
 
@@ -40,7 +44,14 @@ async def _capture(args: argparse.Namespace) -> dict[str, Any]:
 
     credentials = DhanCredentials.from_env_file(args.credentials)
     master = DhanInstrumentMaster(args.security_master)
-    mappings = [master.find_by_security_id(value) for value in args.security_ids]
+    mappings = [
+        master.find_by_security_id(
+            value,
+            exchange_segment=args.exchange_segment,
+            instrument_kind=args.instrument_kind,
+        )
+        for value in args.security_ids
+    ]
     writer = JsonlWriter(args.output)
     counts: Counter[str] = Counter()
     books: dict[str, dict[str, list[dict[str, int | float]]]] = {}
@@ -135,6 +146,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--credentials", type=Path, required=True)
     parser.add_argument("--security-master", type=Path, required=True)
     parser.add_argument("--security-ids", required=True, type=lambda value: value.split(","))
+    parser.add_argument("--exchange-segment", type=ExchangeSegment, choices=tuple(ExchangeSegment))
+    parser.add_argument("--instrument-kind", type=InstrumentKind, choices=tuple(InstrumentKind))
     parser.add_argument("--duration-seconds", type=float, default=600.0)
     parser.add_argument("--output", type=Path, required=True)
     return parser
