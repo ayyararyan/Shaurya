@@ -17,6 +17,8 @@ from shaurya.contracts.base import ContractModel
 from shaurya.contracts.instruments import (
     DhanInstrumentMapping,
     DhanInstrumentMaster,
+    ExchangeSegment,
+    InstrumentKind,
     KotakInstrumentMapping,
 )
 from shaurya.contracts.timing import IST
@@ -163,22 +165,53 @@ class DhanInstrumentIndex:
         if any(mapping.as_of_date != trading_date for mapping in values):
             raise ValueError("instrument mapping is stale for the requested trading date")
         self.trading_date = trading_date
-        self._by_security_id: dict[str, DhanInstrumentMapping] = {}
+        self._by_security_id: dict[
+            tuple[str, ExchangeSegment], DhanInstrumentMapping
+        ] = {}
         self._by_instrument_id: dict[str, DhanInstrumentMapping] = {}
         for mapping in values:
             canonical = mapping.instrument.canonical
-            if mapping.security_id in self._by_security_id:
-                raise ValueError(f"duplicate Dhan security_id {mapping.security_id}")
+            security_key = (mapping.security_id, mapping.exchange_segment)
+            if security_key in self._by_security_id:
+                raise ValueError(
+                    "duplicate Dhan security_id within exchange segment "
+                    f"{mapping.security_id}/{mapping.exchange_segment.value}"
+                )
             if canonical in self._by_instrument_id:
                 raise ValueError(f"duplicate canonical instrument_id {canonical}")
-            self._by_security_id[mapping.security_id] = mapping
+            self._by_security_id[security_key] = mapping
             self._by_instrument_id[canonical] = mapping
 
-    def by_security_id(self, security_id: str) -> DhanInstrumentMapping:
-        try:
-            return self._by_security_id[str(security_id)]
-        except KeyError as exc:
-            raise KeyError(f"unmapped Dhan security_id {security_id}") from exc
+    def by_security_id(
+        self,
+        security_id: str,
+        *,
+        exchange_segment: ExchangeSegment | str | None = None,
+        instrument_kind: InstrumentKind | str | None = None,
+    ) -> DhanInstrumentMapping:
+        wanted = str(security_id)
+        segment = ExchangeSegment(exchange_segment) if exchange_segment is not None else None
+        kind = InstrumentKind(instrument_kind) if instrument_kind is not None else None
+        matches = [
+            mapping
+            for (mapped_id, mapped_segment), mapping in self._by_security_id.items()
+            if mapped_id == wanted
+            and (segment is None or mapped_segment is segment)
+            and (kind is None or mapping.instrument.kind is kind)
+        ]
+        if not matches:
+            raise KeyError(f"unmapped Dhan security_id {wanted}")
+        if len(matches) > 1:
+            identities = ", ".join(
+                f"{mapping.exchange_segment.value}/{mapping.instrument.kind.value}/"
+                f"{mapping.trading_symbol}"
+                for mapping in matches
+            )
+            raise ValueError(
+                f"Dhan security_id {wanted} is ambiguous: {identities}; "
+                "pass exchange_segment or instrument_kind"
+            )
+        return matches[0]
 
     def by_instrument_id(self, instrument_id: str) -> DhanInstrumentMapping:
         try:

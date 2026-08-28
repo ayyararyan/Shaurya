@@ -16,6 +16,7 @@ from shaurya.contracts.data import DataChannel, DatasetRequest
 from shaurya.contracts.instruments import (
     DhanInstrumentMapping,
     DhanInstrumentMaster,
+    ExchangeSegment,
     InstrumentKind,
 )
 from shaurya.contracts.timing import (
@@ -46,7 +47,9 @@ SIG21_REGISTERED_FAMILY_SIZE = 384
 SIG21_FULL_SESSION_SECONDS = float(NSE_EQUITY_DERIVATIVES_CURRENT_SESSION_SECONDS)
 
 OFI_FULL_SESSION_PROTOCOL_ID = "R-OFI-FULLSESSION-2026-08-20"
-OFI_FULL_SESSION_SOURCE_SPEC = "research/docs/live-evidence/OFI-FULL-SESSION-REPLICATION-SPEC-2026-08-20.md"
+OFI_FULL_SESSION_SOURCE_SPEC = (
+    "research/docs/live-evidence/OFI-FULL-SESSION-REPLICATION-SPEC-2026-08-20.md"
+)
 OFI_FULL_SESSION_SOURCE_AMENDMENT = (
     "research/docs/live-evidence/OFI-FULL-SESSION-REPLICATION-SPEC-AMENDMENT-1-2026-08-19.md"
 )
@@ -62,6 +65,18 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--credentials", required=True, type=Path)
     parser.add_argument("--security-master", required=True, type=Path)
     parser.add_argument("--security-id", required=True)
+    parser.add_argument(
+        "--exchange-segment",
+        type=ExchangeSegment,
+        choices=tuple(ExchangeSegment),
+        help="Disambiguate security IDs reused across Dhan exchange segments.",
+    )
+    parser.add_argument(
+        "--instrument-kind",
+        type=InstrumentKind,
+        choices=tuple(InstrumentKind),
+        help="Disambiguate security IDs reused across Dhan instrument kinds.",
+    )
     parser.add_argument(
         "--expected-symbol",
         required=True,
@@ -250,7 +265,11 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         raise ValueError("duration-seconds must be positive")
     _validate_sig21_protocol(args)
     _validate_ofi_full_session_protocol(args)
-    mapping = DhanInstrumentMaster(args.security_master).find_by_security_id(args.security_id)
+    mapping = DhanInstrumentMaster(args.security_master).find_by_security_id(
+        args.security_id,
+        exchange_segment=args.exchange_segment,
+        instrument_kind=args.instrument_kind,
+    )
     if mapping.trading_symbol != args.expected_symbol:
         raise ValueError(
             f"security-ID identity check failed: expected {args.expected_symbol!r}, "

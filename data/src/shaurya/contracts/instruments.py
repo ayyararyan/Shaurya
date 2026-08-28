@@ -230,12 +230,42 @@ class DhanInstrumentMaster:
                     source=str(self.path),
                 )
 
-    def find_by_security_id(self, security_id: str) -> DhanInstrumentMapping:
+    def find_by_security_id(
+        self,
+        security_id: str,
+        *,
+        exchange_segment: ExchangeSegment | str | None = None,
+        instrument_kind: InstrumentKind | str | None = None,
+    ) -> DhanInstrumentMapping:
         wanted = str(security_id)
-        for mapping in self.mappings():
-            if mapping.security_id == wanted:
-                return mapping
-        raise KeyError(f"Dhan security_id {wanted} was not found in {self.path}")
+        segment = ExchangeSegment(exchange_segment) if exchange_segment is not None else None
+        kind = InstrumentKind(instrument_kind) if instrument_kind is not None else None
+        matches = [
+            mapping
+            for mapping in self.mappings()
+            if mapping.security_id == wanted
+            and (segment is None or mapping.exchange_segment is segment)
+            and (kind is None or mapping.instrument.kind is kind)
+        ]
+        if not matches:
+            filters = []
+            if segment is not None:
+                filters.append(f"segment={segment.value}")
+            if kind is not None:
+                filters.append(f"kind={kind.value}")
+            suffix = f" with {', '.join(filters)}" if filters else ""
+            raise KeyError(f"Dhan security_id {wanted}{suffix} was not found in {self.path}")
+        if len(matches) > 1:
+            identities = ", ".join(
+                f"{mapping.exchange_segment.value}/{mapping.instrument.kind.value}/"
+                f"{mapping.trading_symbol}"
+                for mapping in matches
+            )
+            raise ValueError(
+                f"Dhan security_id {wanted} is ambiguous in {self.path}: {identities}; "
+                "pass exchange_segment or instrument_kind"
+            )
+        return matches[0]
 
 
 def _kotak_expiry(row: dict[str, str]) -> date | None:

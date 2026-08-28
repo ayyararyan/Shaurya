@@ -19,7 +19,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Protocol
 
-from shaurya.contracts.instruments import DhanInstrumentMapping, DhanInstrumentMaster
+from shaurya.contracts.instruments import (
+    DhanInstrumentMapping,
+    DhanInstrumentMaster,
+    ExchangeSegment,
+    InstrumentKind,
+)
 from shaurya.contracts.timing import IST
 from shaurya.data.dhan_client import DhanCredentials
 from shaurya.data.dhan_stream import ParsedDeepPacket, parse_deep_packets
@@ -396,10 +401,21 @@ class DhanDepthProbeClient:
 
 
 def _load_mappings(
-    master_path: Path, security_ids: Iterable[str]
+    master_path: Path,
+    security_ids: Iterable[str],
+    *,
+    exchange_segment: ExchangeSegment | None = None,
+    instrument_kind: InstrumentKind | None = None,
 ) -> tuple[DhanInstrumentMapping, ...]:
     master = DhanInstrumentMaster(master_path)
-    return tuple(master.find_by_security_id(value) for value in security_ids)
+    return tuple(
+        master.find_by_security_id(
+            value,
+            exchange_segment=exchange_segment,
+            instrument_kind=instrument_kind,
+        )
+        for value in security_ids
+    )
 
 
 def _csv_ids(value: str) -> tuple[str, ...]:
@@ -424,6 +440,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--security-master", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--duration-seconds", type=float, default=40.0)
+    parser.add_argument("--exchange-segment", type=ExchangeSegment, choices=tuple(ExchangeSegment))
+    parser.add_argument("--instrument-kind", type=InstrumentKind, choices=tuple(InstrumentKind))
     commands = parser.add_subparsers(dest="command", required=True)
     ceiling = commands.add_parser("ceiling")
     ceiling.add_argument("--ordered-security-ids", type=_csv_ids, required=True)
@@ -445,8 +463,17 @@ def _parser() -> argparse.ArgumentParser:
 async def _run(args: argparse.Namespace) -> dict[str, Any]:
     credentials = DhanCredentials.from_env_file(args.credentials)
     client = DhanDepthProbeClient(credentials)
+
+    def load_mappings(security_ids: Iterable[str]) -> tuple[DhanInstrumentMapping, ...]:
+        return _load_mappings(
+            args.security_master,
+            security_ids,
+            exchange_segment=args.exchange_segment,
+            instrument_kind=args.instrument_kind,
+        )
+
     if args.command == "ceiling":
-        universe = _load_mappings(args.security_master, args.ordered_security_ids)
+        universe = load_mappings(args.ordered_security_ids)
         controls = tuple(args.control_security_ids)
 
         async def probe(count: int) -> ProbeObservation:
@@ -477,8 +504,8 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         )
         return {"task": "DAT-11", **ceiling_result.to_dict()}
     if args.command == "reconnect":
-        first = _load_mappings(args.security_master, args.first_security_ids)
-        second = _load_mappings(args.security_master, args.second_security_ids)
+        first = load_mappings(args.first_security_ids)
+        second = load_mappings(args.second_security_ids)
         same_counts = await client.observe_twenty(
             (first, second), duration_seconds=args.duration_seconds
         )
@@ -495,7 +522,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
     if args.command == "solo-rate":
         if args.runs < 2:
             raise ValueError("solo-rate requires at least two runs")
-        mapping = _load_mappings(args.security_master, (args.security_id,))[0]
+        mapping = load_mappings((args.security_id,))[0]
         observations: list[ProbeObservation] = []
         for _ in range(args.runs):
             started_at = datetime.now(IST)
@@ -519,7 +546,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             tuple(observations),
         )
         return {"task": "DAT-11-addendum", **result.to_dict()}
-    instruments = _load_mappings(args.security_master, args.comparable_liquid_security_ids)
+    instruments = load_mappings(args.comparable_liquid_security_ids)
     counts = await client.observe_200(instruments, duration_seconds=args.duration_seconds)
     control_result = Depth200Control(tuple(args.comparable_liquid_security_ids), counts)
     return {"task": "DAT-13", **control_result.to_dict()}
