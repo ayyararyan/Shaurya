@@ -100,6 +100,7 @@ class MispricingPolicy:
     exit_slippage_ticks: float = 1.0
     hedge_slippage_ticks: float = 1.0
     recent_episode_limit: int = 100
+    include_atm_strikes: bool = False
 
     def __post_init__(self) -> None:
         if self.cross_fit_folds < 2:
@@ -183,6 +184,7 @@ class MispricingPolicy:
             "exit_slippage_ticks": self.exit_slippage_ticks,
             "hedge_slippage_ticks": self.hedge_slippage_ticks,
             "order_authority": "none_read_only_research_monitor",
+            "include_atm_strikes": self.include_atm_strikes,
         }
 
 
@@ -756,6 +758,7 @@ class SurfaceMispricingDetector:
             risk_free_rate=risk_free_rate,
             min_quotes_per_slice=self.min_quotes_per_slice,
             previous_surface=None,
+            include_atm_strikes=self.policy.include_atm_strikes,
         )
         try:
             return ESSVISurface.fit(request), bands

@@ -73,6 +73,10 @@ class SurfaceFitRequest:
     risk_free_rate: float = 0.0
     min_quotes_per_slice: int = 5
     previous_surface: VolatilitySurface | None = None
+    # Off by default: an ATM contract's own quote would otherwise both calibrate the curve
+    # and be priced off that same curve, which is circular for anything read at or near
+    # k = 0 (the displayed ATM IV, and any mispricing check on an ATM contract).
+    include_atm_strikes: bool = False
 
     def __post_init__(self) -> None:
         valuation = require_ist(self.valuation_timestamp, "valuation_timestamp")

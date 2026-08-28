@@ -139,6 +139,7 @@ def _detector(
     lot_size: int = 75,
     raw_gap_max_points: float = 5.0,
     smoothing_min_frames: int = 2,
+    include_atm_strikes: bool = True,
 ) -> SurfaceMispricingDetector:
     metadata = {
         _instrument(strike, option_type): InstrumentMetadata(
@@ -163,6 +164,7 @@ def _detector(
             sell_turnover_rate=0.0,
             exit_slippage_ticks=0.0,
             hedge_slippage_ticks=0.0,
+            include_atm_strikes=include_atm_strikes,
         ),
         instrument_metadata=metadata,
         min_quotes_per_slice=5,

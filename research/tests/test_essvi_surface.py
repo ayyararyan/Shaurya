@@ -86,6 +86,7 @@ def _request(
     rows: tuple[TapeRow, ...] | None = None,
     theta_shift: float = 0.0,
     previous_surface: ESSVISurface | None = None,
+    include_atm_strikes: bool = True,
 ) -> SurfaceFitRequest:
     return SurfaceFitRequest(
         tape_rows=rows or _synthetic_chain(theta_shift=theta_shift),
@@ -94,6 +95,7 @@ def _request(
         expiry_timestamp_by_expiry=EXPIRIES,
         risk_free_rate=0.05,
         previous_surface=previous_surface,
+        include_atm_strikes=include_atm_strikes,
     )
 
 
@@ -122,6 +124,42 @@ def test_joint_essvi_fit_recovers_synthetic_surface_and_passes_arb_gates() -> No
         )
         assert evaluation.status is EvaluationStatus.FITTED
         assert evaluation.total_variance == pytest.approx(fitted_slice.theta)
+
+
+def test_atm_strikes_are_excluded_from_calibration_by_default() -> None:
+    """The default request excludes ATM strikes so the ATM point is genuinely fitted."""
+
+    request = SurfaceFitRequest(
+        tape_rows=_synthetic_chain(),
+        valuation_timestamp=VALUATION,
+        forward_by_expiry=FORWARDS,
+        expiry_timestamp_by_expiry=EXPIRIES,
+        risk_free_rate=0.05,
+    )
+    assert request.include_atm_strikes is False
+    surface = ESSVISurface.fit(request)
+    diagnostics = _diagnostics(surface)
+
+    # 9 synthetic strikes per expiry at k in {-0.08..0.08}; k in [-0.025, 0.025] (3 points:
+    # -0.02, 0.0, 0.02) are ATM and dropped, leaving 6.
+    for support in diagnostics["support"]:
+        assert support["quote_count"] == 6
+    excluded = diagnostics["input"]["excluded_latest_row_counts"]
+    assert excluded["atm_strike_excluded_by_policy"] == 6
+
+    evaluation = surface.evaluate(
+        log_moneyness=0.0, maturity_years=surface.slices[0].maturity_years
+    )
+    assert evaluation.status is EvaluationStatus.FITTED
+
+
+def test_atm_strikes_enter_calibration_when_flag_is_set() -> None:
+    surface = ESSVISurface.fit(_request(include_atm_strikes=True))
+    diagnostics = _diagnostics(surface)
+    for support in diagnostics["support"]:
+        assert support["quote_count"] == 9
+    excluded = diagnostics["input"]["excluded_latest_row_counts"]
+    assert "atm_strike_excluded_by_policy" not in excluded
 
 
 def test_surface_frame_round_trip_contains_fit_arb_support_and_policy_diagnostics() -> None:
