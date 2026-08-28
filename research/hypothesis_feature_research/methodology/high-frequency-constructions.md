@@ -62,7 +62,8 @@ liquidity/range, and historical post-fill replication. Gates route or shrink con
 not become standalone direction models. Fast OFI, historical parity/order-count agreement, and
 reconstructed-fill alignments are quarantined from automatic live weight.
 
-The three cited sessions support construction freeze and shadow evaluation only. Software tests
-verify identities, boundaries, missingness, causality, target separation, registry resolution, and
-determinism; they are not empirical evidence. Fresh session-level walk-forward results, costs,
-fills, capacity, Dhan executability, and broad-regime stability are required before promotion.
+The v2 policy labels three-session features shadow-only, but no v2 empirical result artifact was
+located in the repository. Software tests verify identities, boundaries, missingness, causality,
+target separation, registry resolution, and determinism; they are not empirical evidence. Fresh
+session-level walk-forward results, costs, fills, capacity, Dhan executability, and broad-regime
+stability are required before promotion.

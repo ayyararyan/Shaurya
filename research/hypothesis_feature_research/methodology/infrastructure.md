@@ -8,7 +8,8 @@ dashboards, and fixtures preserve reproducible read-only research interfaces.
 ## 2. Source tests and entry points
 
 `conftest.py`, both JSON fixtures, `test_release_metadata.py`, `test_remaining_contracts.py`,
-`test_architecture_boundary.py`, `test_research_cli.py`, and dashboard server write-method tests.
+`test_architecture_boundary.py`, `test_research_cli.py`, `test_hypothesis_catalogue.py`, and
+dashboard server write-method tests.
 
 ## 3. Input lineage
 
@@ -52,7 +53,10 @@ fixtures/tests. AST checks cannot prove all runtime dynamic-import behavior.
 
 ```bash
 cd research
-PYTHONDONTWRITEBYTECODE=1 uv run pytest -q tests/test_release_metadata.py tests/test_remaining_contracts.py tests/test_architecture_boundary.py tests/research/test_research_cli.py
+PYTHONDONTWRITEBYTECODE=1 uv run pytest -q \
+  tests/test_release_metadata.py tests/test_remaining_contracts.py \
+  tests/test_architecture_boundary.py tests/test_research_cli.py \
+  tests/test_hypothesis_catalogue.py
 ```
 
 ## 11. Researcher decisions

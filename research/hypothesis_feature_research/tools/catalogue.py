@@ -30,7 +30,7 @@ ID_PATTERNS = {
 }
 
 REQUIRED_COLUMNS = {
-    "hypotheses.csv": {
+    "hypotheses.csv": (
         "hypothesis_id",
         "family_id",
         "title",
@@ -47,8 +47,8 @@ REQUIRED_COLUMNS = {
         "source_paths",
         "unresolved_questions",
         "statement_basis",
-    },
-    "features.csv": {
+    ),
+    "features.csv": (
         "feature_id",
         "canonical_name",
         "aliases",
@@ -73,8 +73,8 @@ REQUIRED_COLUMNS = {
         "test_ids",
         "leakage_or_survivorship_risk",
         "verification_status",
-    },
-    "test_traceability.csv": {
+    ),
+    "test_traceability.csv": (
         "test_id",
         "repository_relative_path",
         "entry_points_or_functions",
@@ -87,8 +87,8 @@ REQUIRED_COLUMNS = {
         "implementation_status",
         "evidence_result_location",
         "notes_or_unresolved_classification",
-    },
-    "feature_data/manifest.csv": {
+    ),
+    "feature_data/manifest.csv": (
         "artifact_id",
         "repository_relative_path",
         "disposition",
@@ -103,7 +103,7 @@ REQUIRED_COLUMNS = {
         "source_pipeline",
         "quality_status",
         "notes",
-    },
+    ),
 }
 
 IMPLEMENTATION_STATUSES = {
@@ -123,6 +123,12 @@ EVIDENCE_STATUSES = {
     "mixed",
     "unable to determine",
 }
+STATEMENT_BASES = {
+    "Verified from code",
+    "Verified from existing documentation",
+    "Inferred",
+    "Unknown / researcher input required",
+}
 
 
 def _read_csv(relative_path: str) -> list[dict[str, str]]:
@@ -131,13 +137,18 @@ def _read_csv(relative_path: str) -> list[dict[str, str]]:
         reader = csv.DictReader(handle)
         if reader.fieldnames is None:
             raise ValueError(f"{relative_path}: missing CSV header")
-        missing = REQUIRED_COLUMNS[relative_path] - set(reader.fieldnames)
-        if missing:
-            raise ValueError(f"{relative_path}: missing columns {sorted(missing)}")
+        expected = list(REQUIRED_COLUMNS[relative_path])
+        if reader.fieldnames != expected:
+            raise ValueError(
+                f"{relative_path}: header mismatch; expected {expected}, got {reader.fieldnames}"
+            )
         rows = list(reader)
         for number, row in enumerate(rows, start=2):
             if None in row or any(value is None for value in row.values()):
                 raise ValueError(f"{relative_path}:{number}: malformed row shape")
+            empty = [field for field, value in row.items() if value == ""]
+            if empty:
+                raise ValueError(f"{relative_path}:{number}: empty required fields {empty}")
         return rows
 
 
@@ -234,6 +245,9 @@ def validate() -> list[str]:
             errors.append(f"{row['hypothesis_id']}: invalid implementation status")
         if row["evidence_status"] not in EVIDENCE_STATUSES:
             errors.append(f"{row['hypothesis_id']}: invalid evidence status")
+        for value in _split(row["statement_basis"]):
+            if value not in STATEMENT_BASES:
+                errors.append(f"{row['hypothesis_id']}: invalid statement basis {value}")
         for value in _split(row["feature_ids"]):
             if value not in feature_ids:
                 errors.append(f"{row['hypothesis_id']}: unknown feature {value}")
@@ -244,6 +258,9 @@ def validate() -> list[str]:
         _check_paths(_split(row["output_locations"]), row["hypothesis_id"], errors)
 
     for row in features:
+        for value in _split(row["verification_status"]):
+            if value not in STATEMENT_BASES:
+                errors.append(f"{row['feature_id']}: invalid verification status {value}")
         for value in _split(row["hypothesis_ids"]):
             if value not in hypothesis_ids:
                 errors.append(f"{row['feature_id']}: unknown hypothesis {value}")
@@ -284,8 +301,13 @@ def validate() -> list[str]:
         errors.append("tools/test_inventory.csv is stale; run --update-inventory")
 
     manifest = tables["feature_data/manifest.csv"]
+    artifact_ids: set[str] = set()
     for row in manifest:
         label = row["artifact_id"]
+        if label in artifact_ids:
+            errors.append(f"duplicate feature-data artifact ID: {label}")
+        artifact_ids.add(label)
+        _check_paths((row["repository_relative_path"],), label, errors)
         path = REPO_ROOT / row["repository_relative_path"]
         if not path.is_file():
             errors.append(

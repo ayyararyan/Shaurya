@@ -218,6 +218,18 @@ def semantic_text(constructor: str) -> tuple[str, str, str, str]:
             "real",
             "Sign aligned to reconstructed filled position benefit.",
         ),
+        "direction_alignment": (
+            "(1 if bid buy else -1)*(1 if call else -1).",
+            "dimensionless",
+            "{-1,+1}",
+            "Positive aligns a reconstructed position with positive call delta or negative put delta.",
+        ),
+        "calendar_dte": (
+            "IST calendar date(expiry)-IST calendar date(anchor), for timezone-aware expiry at or after anchor.",
+            "calendar days",
+            "nonnegative integer or missing",
+            "Support metadata only.",
+        ),
     }
     if constructor.endswith("_gate"):
         return (
@@ -268,7 +280,9 @@ def main() -> None:
             "boolean"
             if is_gate or canonical.startswith("interaction.")
             else "categorical"
-            if canonical.startswith("state.")
+            if constructor in {"relative_tertile_state", "ist_clock_bucket"}
+            else "integer"
+            if constructor == "calendar_dte"
             else "float"
         )
         hypothesis_refs = feature_hypotheses.get(canonical) or hypothesis_ids
@@ -330,11 +344,11 @@ def main() -> None:
                 ),
                 "test_ids": "T-high-frequency-features|T-high-frequency-registries",
                 "implementation_status": "implemented",
-                "evidence_status": "result located but not validated",
+                "evidence_status": "no result located",
                 "input_data": "Canonical complete Shaurya futures and option-chain snapshots with one-second policy anchors",
                 "output_locations": "not_generated:fresh_v2_walk_forward_and_shadow_validation_required",
                 "source_paths": "data/src/shaurya/data/high_frequency.py|research/registries/alpha_hypotheses_v2.yaml",
-                "unresolved_questions": "Three sessions freeze construction and shadow candidacy only; regime breadth, costs, fills, and promotion remain unresolved.",
+                "unresolved_questions": "Policy labels three-session features shadow-only, but no v2 empirical result artifact was located; regime breadth, costs, fills, and promotion remain unresolved.",
                 "statement_basis": "Verified from code|Verified from existing documentation",
             }
         )

@@ -19,6 +19,7 @@ never empirical support.
 | `HF-surface-alpha` | Incremental futures forecasting from option-surface state |
 | `HF-feature-selection` | Quality/redundancy/usefulness/stability and post-close option markouts |
 | `HF-infrastructure` | Packaging, schemas, public boundaries, CLI/dashboard read-only contracts |
+| `HF-high-frequency` | Frozen one-second futures, parity, option, volatility, state, and target constructions |
 
 ## `H-research-integrity-001` — Completed-source and causal-boundary integrity
 
@@ -459,7 +460,8 @@ never empirical support.
   ([source](../tests/test_remaining_contracts.py)), `T-architecture-boundary`
   ([source](../tests/test_architecture_boundary.py)), `T-anl03-dashboard`
   ([source](../tests/test_anl03_dashboard.py)), and `T-research-research-cli`
-  ([source](../tests/test_research_cli.py)).
+  ([source](../tests/test_research_cli.py)); catalogue self-validation is
+  `T-hypothesis-catalogue` ([source](../tests/test_hypothesis_catalogue.py)).
 - **Evaluation / outputs:** Boolean round-trip/refusal/import/package assertions; no durable empirical
   result.
 - **Status:** implementation `implemented`; evidence `unable to determine`.
@@ -468,71 +470,226 @@ never empirical support.
 
 ## High-frequency construction freeze (`HF-high-frequency`)
 
-The entries below are implemented measurement contracts with `result located but not validated`
-evidence status. The cited three sessions freeze shadow candidates, not broad regime validity,
+The entries below are implemented measurement contracts with `no result located` evidence status.
+The v2 policy labels three-session features shadow-only, but no empirical v2 result artifact was
+located in the repository. The policy statement is not evidence of broad regime validity,
 executable profitability, or live promotion. Exact formulas and missingness rules are in
 [high-frequency constructions](methodology/high-frequency-constructions.md).
 
 ## `H-high-frequency-001` — Parity pressure convergence
 
-- **Question:** Does `parity.pressure.v1` predict sign-aligned displayed-futures midpoint movement
-  over ten seconds, with high-volatility/tight-spread and parity/L1 agreement as confidence states?
-- **Null / alternative:** No stable held-out association versus a positive sign-aligned
-  association after declared controls and costs.
-- **Implementation / evidence:** `implemented`; `result located but not validated`.
-- **Limits:** Three-session mechanism evidence; fresh v2 walk-forward and shadow scoring required.
+- **Family / basis:** `HF-high-frequency`; Verified from code and existing registry documentation.
+- **Question and rationale:** Does parity pressure predict sign-aligned displayed-futures midpoint
+  convergence over ten seconds? A futures-versus-ex-ATM synthetic-forward basis displaced from its
+  lagged level may encode temporary relative-value pressure.
+- **Null / alternative / direction:** H0: no stable held-out association after declared controls
+  and costs. H1: higher signed pressure associates with a same-sign future move. Positive pressure
+  points upward; the interaction requires strict nonzero agreement with L1 quantity imbalance.
+- **Scope and observation:** NSE NIFTY future plus fresh NIFTY CE/PE pairs, one-second decision
+  anchor within connection epoch; ten-second future midpoint target. Raw inputs are futures BBO,
+  strikes, CE/PE BBOs, expiry/type, receive time, epoch, and the past 30 raw-basis observations.
+- **Features:** `F-hf-parity-pressure-v1`, `F-hf-gate-parity-highvol-tightspread-v1`, and
+  `F-hf-interaction-parity-l1-quantity-agree-v1`.
+- **Method, filters, leakage:** Build the ex-ATM median from at least five fresh pairs, exclude ATM,
+  lag the slow-basis median by one observation, and use past-only 900-second relative states. Reject
+  stale/crossed/incomplete/cross-epoch inputs; target endpoints remain outside the feature registry.
+- **Tests:** `T-high-frequency-features`
+  ([source](../../data/tests/test_high_frequency_features.py)) and
+  `T-high-frequency-registries` ([source](../tests/test_high_frequency_registries.py)).
+- **Evaluation / outputs:** Frozen ridge design, 20-session fitting window, one-second cadence,
+  Pearson correlation, minimum 120 observations and effective N 60; compare expected ticks with
+  spread. Fresh v2 walk-forward/shadow output is `not_generated`.
+- **Status:** implementation `implemented`; evidence `no result located`.
+- **Limits / unresolved:** Regime breadth, costs, fills, capacity, shadow performance, and promotion
+  remain unknown; the registered model must be run on untouched completed sessions.
 
 ## `H-high-frequency-002` — Futures L1 quantity pressure
 
-- **Question:** Does current L1 displayed-quantity imbalance predict the next one-second midpoint
-  move, especially in low relative volatility and medium relative depth?
-- **Null / alternative:** No stable held-out association versus a positive sign-aligned
-  association. Microprice tilt is a redundant representation, not a second unconstrained head.
-- **Implementation / evidence:** `implemented`; `result located but not validated`.
+- **Family / basis:** `HF-high-frequency`; Verified from code and existing registry documentation.
+- **Question and rationale:** Does current L1 displayed-quantity imbalance predict the next
+  one-second futures midpoint move, especially in low relative volatility and medium relative
+  depth? Queue asymmetry may proxy immediate displayed pressure.
+- **Null / alternative / direction:** H0: no stable cost-aware held-out association. H1: positive
+  L1 quantity imbalance associates with a positive future move under the gate. Microprice tilt is a
+  registered redundant representation, not an independent unconstrained head.
+- **Scope and observation:** NSE NIFTY future, instrument x one-second decision anchor, same epoch;
+  one-second displayed-midpoint target. Raw inputs are L1 bid/ask prices and quantities plus the
+  past-only midpoint-volatility and depth histories used for causal relative states.
+- **Features:** `F-hf-futures-quantity-imbalance-cum1-v1` and
+  `F-hf-gate-l1-quantity-lowvol-middepth-v1`.
+- **Method, filters, leakage:** Divide bid-minus-ask L1 quantity by total L1 quantity; require valid
+  uncrossed depth and a nonzero denominator. Relative-state thresholds use `[t-900s,t)`, minimum
+  120 same-epoch observations, with the current value excluded.
+- **Tests:** `T-high-frequency-features`
+  ([source](../../data/tests/test_high_frequency_features.py)) and
+  `T-high-frequency-registries` ([source](../tests/test_high_frequency_registries.py)).
+- **Evaluation / outputs:** Frozen 20-session ridge evaluated by Pearson correlation at one-second
+  cadence, minimum 120 observations/effective N 60, with expected ticks assessed relative to
+  spread. Fresh v2 walk-forward/shadow output is `not_generated`.
+- **Status:** implementation `implemented`; evidence `no result located`.
+- **Limits / unresolved:** Displayed depth is not queue position or fill evidence. Costs, latency,
+  redundant-feature handling, cross-session stability, and promotion thresholds require evidence.
 
 ## `H-high-frequency-003` — Persistent order-count imbalance
 
-- **Question:** Does current five-level resting order-count imbalance predict the next ten-second
-  midpoint move conditionally when signal strength is high and the IST bucket is midday?
-- **Null / alternative:** No stable held-out conditional association versus positive sign
-  alignment. This is book state across depth, never cumulative flow through time.
-- **Implementation / evidence:** `implemented`; `result located but not validated`.
+- **Family / basis:** `HF-high-frequency`; Verified from code and existing registry documentation.
+- **Question and rationale:** Does five-level resting order-count imbalance predict the next
+  ten-second midpoint move when signal strength is high and the IST bucket is midday? Persistent
+  displayed order-count asymmetry may capture pressure not represented by L1 quantity alone.
+- **Null / alternative / direction:** H0: no stable held-out conditional association. H1: positive
+  five-level order-count imbalance associates with a positive future move. It is a cross-depth book
+  state, never cumulative flow through time.
+- **Scope and observation:** NSE NIFTY future, instrument x one-second decision anchor, same epoch;
+  ten-second displayed-mid target. Raw inputs are L1-L5 bid/ask order counts, decision time, and the
+  causal history used to classify signal strength.
+- **Features:** `F-hf-futures-order-count-imbalance-cum5-v1` and
+  `F-hf-gate-order-count-large-midday-v1`.
+- **Method, filters, leakage:** Compute `(bid count-ask count)/(bid count+ask count)` over exactly
+  five levels; require a valid nonzero denominator. Gate on past-only high signal strength and the
+  fixed 12:00-14:00 IST bucket; reject future/stale/cross-epoch inputs.
+- **Tests:** `T-high-frequency-features`
+  ([source](../../data/tests/test_high_frequency_features.py)) and
+  `T-high-frequency-registries` ([source](../tests/test_high_frequency_registries.py)).
+- **Evaluation / outputs:** Frozen 20-session ridge, one-second cadence, Pearson correlation,
+  minimum 120 observations/effective N 60, and expected-tick/spread relevance. Fresh v2
+  walk-forward/shadow output is `not_generated`.
+- **Status:** implementation `implemented`; evidence `no result located`.
+- **Limits / unresolved:** Order counts are anonymous displayed aggregates. Session-bucket support,
+  costs, capacity, regime portability, and multi-session stability remain unresolved.
 
 ## `H-high-frequency-004` — Five-second midpoint reversal
 
-- **Question:** Does negative prior five-second midpoint movement predict the next five-second move
-  when prior-move strength is high and parity dispersion is medium?
-- **Null / alternative:** No stable negative autocorrelation versus sign-aligned reversal.
-- **Implementation / evidence:** `implemented`; `result located but not validated`.
+- **Family / basis:** `HF-high-frequency`; Verified from code and existing registry documentation.
+- **Question and rationale:** Does the sign inverse of the prior five-second midpoint move predict
+  the next five-second move when move strength is high and parity dispersion is medium? Short-horizon
+  price pressure may partially mean-revert outside the noisiest parity state.
+- **Null / alternative / direction:** H0: no stable negative autocorrelation after controls/costs.
+  H1: reversal pressure is positively associated with the next move; a prior fall gives positive
+  pressure and a prior rise gives negative pressure.
+- **Scope and observation:** NSE NIFTY future, one-second decision anchor within epoch; exact prior
+  five-second endpoints and five-second future-mid target. Parity range supplies the conditioning
+  state.
+- **Features:** `F-hf-futures-mid-reversal-pressure-5s-v1` and
+  `F-hf-gate-reversal-large-move-mid-parity-dispersion-v1`.
+- **Method, filters, leakage:** Require exact same-epoch midpoint endpoints at `t-5s` and `t`, scale
+  by the 0.05 futures tick, and negate. Gate uses high past-only signal strength and medium
+  past-only parity-noise tertile; missing paths or current-in-threshold use fail closed.
+- **Tests:** `T-high-frequency-features`
+  ([source](../../data/tests/test_high_frequency_features.py)) and
+  `T-high-frequency-registries` ([source](../tests/test_high_frequency_registries.py)).
+- **Evaluation / outputs:** Frozen 20-session ridge at one-second cadence, Pearson correlation,
+  minimum 120 observations/effective N 60, with expected ticks assessed relative to spread. Fresh
+  v2 walk-forward/shadow output is `not_generated`.
+- **Status:** implementation `implemented`; evidence `no result located`.
+- **Limits / unresolved:** Overlapping five-second windows reduce effective independence; costs,
+  trend regimes, cross-session sign stability, and economic effect size require researcher review.
 
 ## `H-high-frequency-005` — Leave-ATM surface convergence
 
-- **Question:** Does the v2 CE-minus-PE leave-ATM residual difference predict actual-futures-hedged
-  option convergence under the large/noisy-parity confidence state?
-- **Null / alternative:** No stable costed hedged convergence versus convergence in the residual
-  direction. `change(F_exatm)` is prohibited as the hedge leg.
-- **Implementation / evidence:** `implemented`; `result located but not validated`.
-- **Limits:** V2 intentionally has no inherited legacy `surface_centered` statistics.
+- **Family / basis:** `HF-high-frequency`; Verified from code and existing registry documentation.
+- **Question and rationale:** Does the CE-minus-PE leave-ATM surface residual difference predict
+  actual-futures-hedged option convergence when the residual is large and parity is noisy? A
+  jointly fitted ex-ATM smile may expose relative call/put quote centering errors.
+- **Null / alternative / direction:** H0: no stable costed hedged convergence. H1: hedged option
+  markouts converge in the residual-difference direction. Change in synthetic forward is prohibited
+  as the hedge leg; the hedge uses actual futures midpoint change.
+- **Scope and observation:** Matched NSE NIFTY CE/PE contracts and NIFTY future at a one-second
+  decision anchor; two-second option/futures target. Inputs are fresh option BBOs across ex-ATM
+  strikes, expiry/type, parity forward, futures midpoints, maturity, and connection epoch.
+- **Features:** `F-hf-option-call-put-surface-residual-diff-v2` and
+  `F-hf-gate-surface-diff-large-noisy-parity-v1`.
+- **Method, filters, leakage:** Fit equal-weight eSSVI total variance excluding ATM, require fit and
+  static-arbitrage gates, compute fair-minus-observed residuals, and subtract PE from CE. Require
+  high past-only signal strength/high parity noise; failed inversion, stale quotes, or epoch breaks
+  are missing. The future hedged markout is a separate target.
+- **Tests:** `T-high-frequency-features`
+  ([source](../../data/tests/test_high_frequency_features.py)) and
+  `T-high-frequency-registries` ([source](../tests/test_high_frequency_registries.py)).
+- **Evaluation / outputs:** Frozen 20-session ridge, one-second cadence, Pearson correlation,
+  minimum 120 observations/effective N 60; economic interpretation is passive quote centering
+  after costs. Fresh v2 walk-forward/shadow output is `not_generated`.
+- **Status:** implementation `implemented`; evidence `no result located`.
+- **Limits / unresolved:** V2 inherits no legacy `surface_centered` statistics. Fit coverage,
+  hedge beta, transaction costs, fills, expiry breadth, and cross-session validation are unresolved.
 
 ## `H-high-frequency-006` — ATM-IV shock reversal
 
-- **Question:** Does the five-second ATM-IV shock mean-revert over ten seconds when trailing IV
-  vol-of-vol is in its causal medium tertile?
-- **Null / alternative:** No stable negative association versus shock reversal.
-- **Implementation / evidence:** `implemented`; `result located but not validated`.
+- **Family / basis:** `HF-high-frequency`; Verified from code and existing registry documentation.
+- **Question and rationale:** Does a five-second ATM-IV shock mean-revert over ten seconds when
+  trailing IV vol-of-vol is in its causal medium tertile? Fast option repricing may overshoot in
+  neither exceptionally calm nor exceptionally unstable volatility conditions.
+- **Null / alternative / direction:** H0: no stable negative association after controls/costs. H1:
+  positive IV shocks associate with negative subsequent IV change and vice versa.
+- **Scope and observation:** Fresh NSE NIFTY ATM CE/PE and ex-ATM parity inputs, option state x
+  one-second decision anchor within epoch; five-second past IV shock and ten-second future ATM-IV
+  target. Raw inputs include option BBOs, strike/expiry/type, exact expiry time, and futures/parity
+  forward.
+- **Features:** `F-hf-option-atm-iv-shock-5s-bp-v1` and
+  `F-hf-gate-atm-iv-reversal-mid-vov-v1`.
+- **Method, filters, leakage:** Invert CE/PE Black-76 IV with `r=0.055`, average the ATM pair,
+  difference exact same-epoch endpoints by 10,000, and compute sample SD of trailing 60 one-second
+  shocks with minimum 40. The causal 900-second tertile excludes the current state.
+- **Tests:** `T-high-frequency-features`
+  ([source](../../data/tests/test_high_frequency_features.py)) and
+  `T-high-frequency-registries` ([source](../tests/test_high_frequency_registries.py)).
+- **Evaluation / outputs:** Frozen 20-session ridge, one-second cadence, Pearson correlation,
+  minimum 120 observations/effective N 60; economics are option repricing after costs. Fresh v2
+  walk-forward/shadow output is `not_generated`.
+- **Status:** implementation `implemented`; evidence `no result located`.
+- **Limits / unresolved:** Quote freshness, inversion failures, expiry effects, vega scaling,
+  overlapping horizons, costs, and cross-session volatility-regime support require validation.
 
 ## `H-high-frequency-007` — Liquidity and future range
 
-- **Question:** Do displayed L1 depth and short midpoint volatility explain future ten-second
-  displayed-futures range after current spread control?
-- **Null / alternative:** No stable held-out magnitude information versus positive incremental
-  range information; no directional sign is asserted.
-- **Implementation / evidence:** `implemented`; `result located but not validated`.
+- **Family / basis:** `HF-high-frequency`; Verified from code and existing registry documentation.
+- **Question and rationale:** Do displayed L1 depth and short midpoint volatility explain the next
+  ten-second futures range after controlling for current spread? Liquidity support and recent risk
+  may inform quote width/cancellation urgency even without predicting direction.
+- **Null / alternative / direction:** H0: no stable held-out magnitude information. H1: depth and
+  volatility add positive incremental information about future range. No directional return sign
+  is asserted.
+- **Scope and observation:** NSE NIFTY future, one-second decision anchor within epoch; complete
+  one-second midpoint path through `t+10s`. Raw inputs are L1 BBO prices/quantities, current spread,
+  and exact trailing ten-second midpoint history.
+- **Features:** `F-hf-liquidity-log-l1-depth-v1`, `F-hf-risk-midpoint-vol-10s-v2`, and
+  `F-hf-liquidity-spread-ticks-v1`.
+- **Method, filters, leakage:** Compute `log(1+bid_qty+ask_qty)`, current spread/0.05, and population
+  SD of complete same-epoch one-second midpoint changes. The target requires every point from `t`
+  through `t+10s`; missing future points never become features or zero range.
+- **Tests:** `T-high-frequency-features`
+  ([source](../../data/tests/test_high_frequency_features.py)) and
+  `T-high-frequency-registries` ([source](../tests/test_high_frequency_registries.py)).
+- **Evaluation / outputs:** Frozen 20-session ridge, one-second cadence, Pearson correlation,
+  minimum 120 observations/effective N 60; transaction relevance is quote width/cancellation
+  urgency. Fresh v2 walk-forward/shadow output is `not_generated`.
+- **Status:** implementation `implemented`; evidence `no result located`.
+- **Limits / unresolved:** Displayed depth is not executable capacity; volatility v2 requires fresh
+  estimation. Costs, range calibration, overlapping targets, and cross-regime stability are open.
 
 ## `H-high-frequency-008` — Fast OFI transportability diagnostic
 
-- **Question:** Does exact half-second M1 CCZ average OFI regain one-second directional
-  transportability under low-volatility/trending state on additional untouched sessions?
-- **Null / alternative:** No transportable held-out association versus positive sign alignment.
-- **Implementation / evidence:** `implemented`; `result located but not validated`.
-- **Limits:** Diagnostic/quarantined; current policy assigns no automatic live weight.
+- **Family / basis:** `HF-high-frequency`; Verified from code and existing registry documentation.
+- **Question and rationale:** Does exact half-second M1 CCZ average OFI regain one-second
+  directional transportability under low-volatility/trending state on untouched sessions? The
+  diagnostic asks whether a historically non-transportable fast flow signal is conditionally useful.
+- **Null / alternative / direction:** H0: no transportable held-out association. H1: positive OFI
+  associates with a positive future midpoint move within the registered state. The field remains
+  diagnostic and has zero live weight regardless of an isolated score.
+- **Scope and observation:** NSE NIFTY future sub-second valid transitions aggregated at a
+  one-second decision anchor, same epoch; one-second future-mid target. Raw inputs are consecutive
+  futures BBO/depth events, exact receive timestamps, trailing volatility, and midpoint path.
+- **Features:** `F-hf-futures-ccz-ofi-0p5s-m1-average-v1` and
+  `F-hf-gate-fast-ofi-lowvol-trending-v1`.
+- **Method, filters, leakage:** Sum exact CCZ event flow over `(t-0.5s,t]`, divide by the one common
+  M=1 depth denominator, and require low causal relative volatility plus trend efficiency state.
+  Reject invalid/stale/cross-epoch/incomplete inputs; target endpoints stay separate.
+- **Tests:** `T-high-frequency-features`
+  ([source](../../data/tests/test_high_frequency_features.py)) and
+  `T-high-frequency-registries` ([source](../tests/test_high_frequency_registries.py)).
+- **Evaluation / outputs:** Frozen 20-session ridge, one-second cadence, Pearson correlation,
+  minimum 120 observations/effective N 60. Transaction relevance is explicitly diagnostic only;
+  fresh v2 walk-forward/shadow output is `not_generated`.
+- **Status:** implementation `implemented`; evidence `no result located`.
+- **Limits / unresolved:** Quarantined/no automatic live weight. New untouched sessions, costs,
+  dependence-adjusted support, regime portability, and a researcher-approved promotion amendment
+  would be required before any change in use.
