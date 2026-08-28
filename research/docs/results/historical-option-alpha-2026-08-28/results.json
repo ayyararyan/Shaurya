@@ -1,0 +1,1966 @@
+{
+  "audit": {
+    "first_decision": "2021-01-01T10:00:00",
+    "index": {
+      "accepted_sessions": 1339,
+      "clean_index_rows": 502125,
+      "duplicate_index_timestamps": 376,
+      "invalid_index_rows": 12,
+      "raw_index_rows": 587456,
+      "rejected_sessions": 51
+    },
+    "last_decision": "2026-05-14T14:30:00",
+    "matched_decisions": 12693,
+    "matched_sessions": 1270,
+    "options": {
+      "duplicate_rows": 0,
+      "first_grid_row": "2021-01-01T09:15:00",
+      "grid_rows": 497084,
+      "last_grid_row": "2026-05-14T15:29:00",
+      "raw_selected_rows": 4969824,
+      "selected_files": 660
+    }
+  },
+  "calibrations": [
+    {
+      "month": "2022-01",
+      "thresholds": {
+        "atm_richness": 0.008912445246037822,
+        "atm_shock": 0.056622085051797465,
+        "index_momentum": 0.0022814339797314178,
+        "premium_skew": 0.15932380732781126,
+        "volume_imbalance": 0.3200723923920738
+      },
+      "training_end": "2021-12-31",
+      "training_sessions": 220,
+      "training_start": "2021-01-01"
+    },
+    {
+      "month": "2022-02",
+      "thresholds": {
+        "atm_richness": 0.008424163700294857,
+        "atm_shock": 0.05698273172023569,
+        "index_momentum": 0.0022709314344943722,
+        "premium_skew": 0.15558394529710545,
+        "volume_imbalance": 0.3176863843693928
+      },
+      "training_end": "2022-01-31",
+      "training_sessions": 239,
+      "training_start": "2021-01-01"
+    },
+    {
+      "month": "2022-03",
+      "thresholds": {
+        "atm_richness": 0.008006177017845175,
+        "atm_shock": 0.0575345388109037,
+        "index_momentum": 0.0023315840748381338,
+        "premium_skew": 0.15228263712008375,
+        "volume_imbalance": 0.3169581537418672
+      },
+      "training_end": "2022-02-28",
+      "training_sessions": 252,
+      "training_start": "2021-01-12"
+    },
+    {
+      "month": "2022-04",
+      "thresholds": {
+        "atm_richness": 0.007512788498516719,
+        "atm_shock": 0.0561004896188191,
+        "index_momentum": 0.002333716127136043,
+        "premium_skew": 0.14932468784183137,
+        "volume_imbalance": 0.3133099270578018
+      },
+      "training_end": "2022-03-31",
+      "training_sessions": 252,
+      "training_start": "2021-02-08"
+    },
+    {
+      "month": "2022-05",
+      "thresholds": {
+        "atm_richness": 0.007405303343988364,
+        "atm_shock": 0.05657443724849855,
+        "index_momentum": 0.0023130239050317414,
+        "premium_skew": 0.15050311247273973,
+        "volume_imbalance": 0.31529771798998035
+      },
+      "training_end": "2022-04-29",
+      "training_sessions": 252,
+      "training_start": "2021-03-04"
+    },
+    {
+      "month": "2022-06",
+      "thresholds": {
+        "atm_richness": 0.0071282427152506754,
+        "atm_shock": 0.0557342174570966,
+        "index_momentum": 0.002277849260450893,
+        "premium_skew": 0.1495507279440966,
+        "volume_imbalance": 0.31203622728736546
+      },
+      "training_end": "2022-05-31",
+      "training_sessions": 252,
+      "training_start": "2021-04-07"
+    },
+    {
+      "month": "2022-07",
+      "thresholds": {
+        "atm_richness": 0.006886949958906976,
+        "atm_shock": 0.05455441453972903,
+        "index_momentum": 0.0022925562451355575,
+        "premium_skew": 0.1498687568355815,
+        "volume_imbalance": 0.3101465719543045
+      },
+      "training_end": "2022-06-30",
+      "training_sessions": 252,
+      "training_start": "2021-05-11"
+    },
+    {
+      "month": "2022-08",
+      "thresholds": {
+        "atm_richness": 0.006690610938170926,
+        "atm_shock": 0.054399174659050156,
+        "index_momentum": 0.0023168754915893434,
+        "premium_skew": 0.14842468795054836,
+        "volume_imbalance": 0.31131871418178475
+      },
+      "training_end": "2022-07-29",
+      "training_sessions": 252,
+      "training_start": "2021-06-10"
+    },
+    {
+      "month": "2022-09",
+      "thresholds": {
+        "atm_richness": 0.006510116878583055,
+        "atm_shock": 0.05493623583658049,
+        "index_momentum": 0.0023594438484810356,
+        "premium_skew": 0.14499114981811695,
+        "volume_imbalance": 0.31179329229645436
+      },
+      "training_end": "2022-08-30",
+      "training_sessions": 252,
+      "training_start": "2021-07-08"
+    },
+    {
+      "month": "2022-10",
+      "thresholds": {
+        "atm_richness": 0.005532766864499274,
+        "atm_shock": 0.054172961863910275,
+        "index_momentum": 0.002447898836914675,
+        "premium_skew": 0.1375563291276719,
+        "volume_imbalance": 0.31352325871989595
+      },
+      "training_end": "2022-09-30",
+      "training_sessions": 252,
+      "training_start": "2021-09-16"
+    },
+    {
+      "month": "2022-11",
+      "thresholds": {
+        "atm_richness": 0.0052969071401522015,
+        "atm_shock": 0.05343745569037015,
+        "index_momentum": 0.002437609929399898,
+        "premium_skew": 0.13520028464473743,
+        "volume_imbalance": 0.31146680502895263
+      },
+      "training_end": "2022-10-28",
+      "training_sessions": 252,
+      "training_start": "2021-10-12"
+    },
+    {
+      "month": "2022-12",
+      "thresholds": {
+        "atm_richness": 0.005263227641061911,
+        "atm_shock": 0.05214319580295222,
+        "index_momentum": 0.0023454499432009612,
+        "premium_skew": 0.13904398934748446,
+        "volume_imbalance": 0.30670018493792556
+      },
+      "training_end": "2022-11-30",
+      "training_sessions": 252,
+      "training_start": "2021-11-12"
+    },
+    {
+      "month": "2023-01",
+      "thresholds": {
+        "atm_richness": 0.0053197853206008285,
+        "atm_shock": 0.05051827204819156,
+        "index_momentum": 0.0022840657027224155,
+        "premium_skew": 0.14808050279833676,
+        "volume_imbalance": 0.30551997513957346
+      },
+      "training_end": "2022-12-30",
+      "training_sessions": 252,
+      "training_start": "2021-12-14"
+    },
+    {
+      "month": "2023-02",
+      "thresholds": {
+        "atm_richness": 0.005419654003163959,
+        "atm_shock": 0.049816205296095005,
+        "index_momentum": 0.002293311450333846,
+        "premium_skew": 0.15361292048373149,
+        "volume_imbalance": 0.3039943283358334
+      },
+      "training_end": "2023-01-31",
+      "training_sessions": 252,
+      "training_start": "2022-01-11"
+    },
+    {
+      "month": "2023-03",
+      "thresholds": {
+        "atm_richness": 0.00570611592065926,
+        "atm_shock": 0.04920092644532002,
+        "index_momentum": 0.002228040301522327,
+        "premium_skew": 0.15757068595948884,
+        "volume_imbalance": 0.3051574166131657
+      },
+      "training_end": "2023-02-28",
+      "training_sessions": 252,
+      "training_start": "2022-02-09"
+    },
+    {
+      "month": "2023-04",
+      "thresholds": {
+        "atm_richness": 0.006186858916704206,
+        "atm_shock": 0.048230815506711266,
+        "index_momentum": 0.0021342151404422083,
+        "premium_skew": 0.16587687699186926,
+        "volume_imbalance": 0.30217893366411785
+      },
+      "training_end": "2023-03-31",
+      "training_sessions": 252,
+      "training_start": "2022-03-14"
+    },
+    {
+      "month": "2023-05",
+      "thresholds": {
+        "atm_richness": 0.007088952734344703,
+        "atm_shock": 0.04913292994525431,
+        "index_momentum": 0.002068348610000115,
+        "premium_skew": 0.1705808228421573,
+        "volume_imbalance": 0.29753638291164375
+      },
+      "training_end": "2023-04-28",
+      "training_sessions": 252,
+      "training_start": "2022-04-06"
+    },
+    {
+      "month": "2023-06",
+      "thresholds": {
+        "atm_richness": 0.00788601845173874,
+        "atm_shock": 0.0485457079773461,
+        "index_momentum": 0.0019611815943289205,
+        "premium_skew": 0.18221601933827164,
+        "volume_imbalance": 0.2925990172850527
+      },
+      "training_end": "2023-05-31",
+      "training_sessions": 252,
+      "training_start": "2022-05-12"
+    },
+    {
+      "month": "2023-07",
+      "thresholds": {
+        "atm_richness": 0.009246275307471463,
+        "atm_shock": 0.048672391931907207,
+        "index_momentum": 0.0018466014576507205,
+        "premium_skew": 0.19764962101310535,
+        "volume_imbalance": 0.2887508267975219
+      },
+      "training_end": "2023-06-30",
+      "training_sessions": 252,
+      "training_start": "2022-06-10"
+    },
+    {
+      "month": "2023-08",
+      "thresholds": {
+        "atm_richness": 0.009998823702396653,
+        "atm_shock": 0.048341184911631356,
+        "index_momentum": 0.0017483583550749417,
+        "premium_skew": 0.20098753842686293,
+        "volume_imbalance": 0.2866487775059101
+      },
+      "training_end": "2023-07-31",
+      "training_sessions": 252,
+      "training_start": "2022-07-11"
+    },
+    {
+      "month": "2023-09",
+      "thresholds": {
+        "atm_richness": 0.01078998538781003,
+        "atm_shock": 0.050106906891652696,
+        "index_momentum": 0.0017117844538535822,
+        "premium_skew": 0.20861237918030948,
+        "volume_imbalance": 0.28678976132747785
+      },
+      "training_end": "2023-08-31",
+      "training_sessions": 252,
+      "training_start": "2022-08-11"
+    },
+    {
+      "month": "2023-10",
+      "thresholds": {
+        "atm_richness": 0.01142301455889113,
+        "atm_shock": 0.049816897630283206,
+        "index_momentum": 0.0016641275058205452,
+        "premium_skew": 0.21649224847074552,
+        "volume_imbalance": 0.28426855487474323
+      },
+      "training_end": "2023-09-29",
+      "training_sessions": 252,
+      "training_start": "2022-09-12"
+    },
+    {
+      "month": "2023-11",
+      "thresholds": {
+        "atm_richness": 0.012024188574407933,
+        "atm_shock": 0.05089021189065584,
+        "index_momentum": 0.0015356769499064171,
+        "premium_skew": 0.22208913882929077,
+        "volume_imbalance": 0.27537749942450884
+      },
+      "training_end": "2023-10-31",
+      "training_sessions": 252,
+      "training_start": "2022-10-12"
+    },
+    {
+      "month": "2023-12",
+      "thresholds": {
+        "atm_richness": 0.013906319325600358,
+        "atm_shock": 0.05261086192765792,
+        "index_momentum": 0.0014939071805361692,
+        "premium_skew": 0.23372180465938483,
+        "volume_imbalance": 0.2762603915001248
+      },
+      "training_end": "2023-11-30",
+      "training_sessions": 252,
+      "training_start": "2022-11-16"
+    },
+    {
+      "month": "2024-01",
+      "thresholds": {
+        "atm_richness": 0.01338979281277362,
+        "atm_shock": 0.05449577186460175,
+        "index_momentum": 0.001517150875665152,
+        "premium_skew": 0.23129253910281672,
+        "volume_imbalance": 0.2747717923176307
+      },
+      "training_end": "2023-12-29",
+      "training_sessions": 252,
+      "training_start": "2022-12-14"
+    },
+    {
+      "month": "2024-02",
+      "thresholds": {
+        "atm_richness": 0.014085444944898811,
+        "atm_shock": 0.05458199901034764,
+        "index_momentum": 0.0014795124338682797,
+        "premium_skew": 0.22891925644412092,
+        "volume_imbalance": 0.2745167382305569
+      },
+      "training_end": "2024-01-31",
+      "training_sessions": 252,
+      "training_start": "2023-01-16"
+    },
+    {
+      "month": "2024-03",
+      "thresholds": {
+        "atm_richness": 0.014684649438170444,
+        "atm_shock": 0.055492240585476624,
+        "index_momentum": 0.0014833501753102496,
+        "premium_skew": 0.2289992893572604,
+        "volume_imbalance": 0.27539577225368483
+      },
+      "training_end": "2024-02-29",
+      "training_sessions": 252,
+      "training_start": "2023-02-16"
+    },
+    {
+      "month": "2024-04",
+      "thresholds": {
+        "atm_richness": 0.0137809785214374,
+        "atm_shock": 0.055908074513374297,
+        "index_momentum": 0.0014851012869446123,
+        "premium_skew": 0.2318200254765857,
+        "volume_imbalance": 0.2725553462003635
+      },
+      "training_end": "2024-03-28",
+      "training_sessions": 252,
+      "training_start": "2023-03-15"
+    },
+    {
+      "month": "2024-05",
+      "thresholds": {
+        "atm_richness": 0.012257705147994352,
+        "atm_shock": 0.055399626450051025,
+        "index_momentum": 0.0014355863492514942,
+        "premium_skew": 0.2289992893572604,
+        "volume_imbalance": 0.2719003601869449
+      },
+      "training_end": "2024-04-30",
+      "training_sessions": 252,
+      "training_start": "2023-04-17"
+    },
+    {
+      "month": "2024-06",
+      "thresholds": {
+        "atm_richness": 0.010917246886426193,
+        "atm_shock": 0.055063487706771594,
+        "index_momentum": 0.001496513241192332,
+        "premium_skew": 0.22300366092106674,
+        "volume_imbalance": 0.27670996791115854
+      },
+      "training_end": "2024-05-31",
+      "training_sessions": 252,
+      "training_start": "2023-05-17"
+    },
+    {
+      "month": "2024-07",
+      "thresholds": {
+        "atm_richness": 0.010012361650136515,
+        "atm_shock": 0.05809453987658398,
+        "index_momentum": 0.001553020885767964,
+        "premium_skew": 0.2151853332325011,
+        "volume_imbalance": 0.28342446617841166
+      },
+      "training_end": "2024-06-28",
+      "training_sessions": 252,
+      "training_start": "2023-06-12"
+    },
+    {
+      "month": "2024-08",
+      "thresholds": {
+        "atm_richness": 0.009707332008713685,
+        "atm_shock": 0.059754897992052504,
+        "index_momentum": 0.001594396210250082,
+        "premium_skew": 0.2083067087589766,
+        "volume_imbalance": 0.2855794084267691
+      },
+      "training_end": "2024-07-31",
+      "training_sessions": 252,
+      "training_start": "2023-07-12"
+    },
+    {
+      "month": "2024-09",
+      "thresholds": {
+        "atm_richness": 0.008549907510173899,
+        "atm_shock": 0.06173489050897666,
+        "index_momentum": 0.0015991658165479094,
+        "premium_skew": 0.20638721530951076,
+        "volume_imbalance": 0.2831825263982094
+      },
+      "training_end": "2024-08-30",
+      "training_sessions": 252,
+      "training_start": "2023-08-08"
+    },
+    {
+      "month": "2024-10",
+      "thresholds": {
+        "atm_richness": 0.00739926264382235,
+        "atm_shock": 0.06360972601400743,
+        "index_momentum": 0.001624070546451506,
+        "premium_skew": 0.20184660121833456,
+        "volume_imbalance": 0.2855538683528911
+      },
+      "training_end": "2024-09-30",
+      "training_sessions": 252,
+      "training_start": "2023-09-07"
+    },
+    {
+      "month": "2024-11",
+      "thresholds": {
+        "atm_richness": 0.007235861993707389,
+        "atm_shock": 0.06469015303995942,
+        "index_momentum": 0.0017047384999116847,
+        "premium_skew": 0.19599863687646205,
+        "volume_imbalance": 0.28823993867087905
+      },
+      "training_end": "2024-10-31",
+      "training_sessions": 252,
+      "training_start": "2023-10-11"
+    },
+    {
+      "month": "2024-12",
+      "thresholds": {
+        "atm_richness": 0.007002883952268103,
+        "atm_shock": 0.06498947064356939,
+        "index_momentum": 0.0017742896439450818,
+        "premium_skew": 0.1900818952151185,
+        "volume_imbalance": 0.29815295070884823
+      },
+      "training_end": "2024-11-29",
+      "training_sessions": 252,
+      "training_start": "2023-11-07"
+    },
+    {
+      "month": "2025-01",
+      "thresholds": {
+        "atm_richness": 0.005695918600110126,
+        "atm_shock": 0.06498947064356939,
+        "index_momentum": 0.0018516197956579107,
+        "premium_skew": 0.17478183512220283,
+        "volume_imbalance": 0.3026402585489299
+      },
+      "training_end": "2024-12-31",
+      "training_sessions": 252,
+      "training_start": "2023-12-08"
+    },
+    {
+      "month": "2025-02",
+      "thresholds": {
+        "atm_richness": 0.005660916621275585,
+        "atm_shock": 0.07042593950527572,
+        "index_momentum": 0.0019272609050624114,
+        "premium_skew": 0.16766991388618507,
+        "volume_imbalance": 0.30661617838654665
+      },
+      "training_end": "2025-01-31",
+      "training_sessions": 252,
+      "training_start": "2024-01-11"
+    },
+    {
+      "month": "2025-03",
+      "thresholds": {
+        "atm_richness": 0.005741596988287059,
+        "atm_shock": 0.07144864924879127,
+        "index_momentum": 0.0019176322977084938,
+        "premium_skew": 0.1695266536606659,
+        "volume_imbalance": 0.3050443579598854
+      },
+      "training_end": "2025-02-28",
+      "training_sessions": 252,
+      "training_start": "2024-02-09"
+    },
+    {
+      "month": "2025-04",
+      "thresholds": {
+        "atm_richness": 0.006331227688963323,
+        "atm_shock": 0.0743278013017191,
+        "index_momentum": 0.001910402937516409,
+        "premium_skew": 0.17284541425687666,
+        "volume_imbalance": 0.3070612366159753
+      },
+      "training_end": "2025-03-28",
+      "training_sessions": 252,
+      "training_start": "2024-03-07"
+    },
+    {
+      "month": "2025-05",
+      "thresholds": {
+        "atm_richness": 0.006616259318651641,
+        "atm_shock": 0.07971615404254354,
+        "index_momentum": 0.0019467037898763808,
+        "premium_skew": 0.1676792907766872,
+        "volume_imbalance": 0.30745784966957046
+      },
+      "training_end": "2025-04-30",
+      "training_sessions": 252,
+      "training_start": "2024-04-08"
+    },
+    {
+      "month": "2025-06",
+      "thresholds": {
+        "atm_richness": 0.007063682888207731,
+        "atm_shock": 0.08428419236375952,
+        "index_momentum": 0.002020926973958126,
+        "premium_skew": 0.16536497528726019,
+        "volume_imbalance": 0.30945542650474467
+      },
+      "training_end": "2025-05-30",
+      "training_sessions": 252,
+      "training_start": "2024-05-15"
+    },
+    {
+      "month": "2025-07",
+      "thresholds": {
+        "atm_richness": 0.007063682888207731,
+        "atm_shock": 0.08409678642007919,
+        "index_momentum": 0.001929558543078258,
+        "premium_skew": 0.16426456762186215,
+        "volume_imbalance": 0.30285414447493
+      },
+      "training_end": "2025-06-30",
+      "training_sessions": 252,
+      "training_start": "2024-06-18"
+    },
+    {
+      "month": "2025-08",
+      "thresholds": {
+        "atm_richness": 0.00769430465692145,
+        "atm_shock": 0.08337739874755246,
+        "index_momentum": 0.0018943502598641972,
+        "premium_skew": 0.167713138645988,
+        "volume_imbalance": 0.30771558129859977
+      },
+      "training_end": "2025-07-31",
+      "training_sessions": 252,
+      "training_start": "2024-07-24"
+    },
+    {
+      "month": "2025-09",
+      "thresholds": {
+        "atm_richness": 0.008033620713413585,
+        "atm_shock": 0.0821274593969406,
+        "index_momentum": 0.0018606789624016074,
+        "premium_skew": 0.1709395608750207,
+        "volume_imbalance": 0.3054567772572351
+      },
+      "training_end": "2025-08-29",
+      "training_sessions": 252,
+      "training_start": "2024-08-23"
+    },
+    {
+      "month": "2025-10",
+      "thresholds": {
+        "atm_richness": 0.009708555763959001,
+        "atm_shock": 0.08190119744319234,
+        "index_momentum": 0.0018533958235753545,
+        "premium_skew": 0.18709068932678924,
+        "volume_imbalance": 0.30771558129859977
+      },
+      "training_end": "2025-09-30",
+      "training_sessions": 252,
+      "training_start": "2024-09-24"
+    },
+    {
+      "month": "2025-11",
+      "thresholds": {
+        "atm_richness": 0.009918591505673898,
+        "atm_shock": 0.08118017418272867,
+        "index_momentum": 0.0018160592954171051,
+        "premium_skew": 0.20221638591189994,
+        "volume_imbalance": 0.3119526173252185
+      },
+      "training_end": "2025-10-31",
+      "training_sessions": 252,
+      "training_start": "2024-10-23"
+    },
+    {
+      "month": "2025-12",
+      "thresholds": {
+        "atm_richness": 0.009382000138912975,
+        "atm_shock": 0.07741543580203986,
+        "index_momentum": 0.0017522553353181538,
+        "premium_skew": 0.20681986852016296,
+        "volume_imbalance": 0.31145854685467445
+      },
+      "training_end": "2025-11-28",
+      "training_sessions": 252,
+      "training_start": "2024-11-22"
+    },
+    {
+      "month": "2026-01",
+      "thresholds": {
+        "atm_richness": 0.01064490682348405,
+        "atm_shock": 0.07540409454054142,
+        "index_momentum": 0.0016868748316571926,
+        "premium_skew": 0.21873400785758115,
+        "volume_imbalance": 0.31371846291290073
+      },
+      "training_end": "2025-12-31",
+      "training_sessions": 252,
+      "training_start": "2024-12-24"
+    },
+    {
+      "month": "2026-02",
+      "thresholds": {
+        "atm_richness": 0.010536937038186206,
+        "atm_shock": 0.07401589995367015,
+        "index_momentum": 0.001666632309016336,
+        "premium_skew": 0.2194153252209441,
+        "volume_imbalance": 0.32138462504385
+      },
+      "training_end": "2026-01-30",
+      "training_sessions": 252,
+      "training_start": "2025-01-22"
+    },
+    {
+      "month": "2026-03",
+      "thresholds": {
+        "atm_richness": 0.010219817354395035,
+        "atm_shock": 0.07042503904984869,
+        "index_momentum": 0.0015867461970575647,
+        "premium_skew": 0.21641288872055606,
+        "volume_imbalance": 0.32452601544856174
+      },
+      "training_end": "2026-02-27",
+      "training_sessions": 252,
+      "training_start": "2025-02-19"
+    },
+    {
+      "month": "2026-04",
+      "thresholds": {
+        "atm_richness": 0.009036695778681516,
+        "atm_shock": 0.0697667846728372,
+        "index_momentum": 0.0016620390545181607,
+        "premium_skew": 0.21169277886340523,
+        "volume_imbalance": 0.3236436770582411
+      },
+      "training_end": "2026-03-30",
+      "training_sessions": 252,
+      "training_start": "2025-03-20"
+    },
+    {
+      "month": "2026-05",
+      "thresholds": {
+        "atm_richness": 0.00820011257746917,
+        "atm_shock": 0.0653677820173872,
+        "index_momentum": 0.001675726558234203,
+        "premium_skew": 0.205675824782081,
+        "volume_imbalance": 0.3217856443646828
+      },
+      "training_end": "2026-04-30",
+      "training_sessions": 252,
+      "training_start": "2025-04-23"
+    }
+  ],
+  "candidates": {
+    "negative_atm_richness": {
+      "costs": {
+        "cost_0bps": {
+          "annualized_sharpe": -0.7375201015559415,
+          "average_round_trips_per_day": 0.5419047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -1125.907234525076,
+          "mean_daily_bps": -1.0176322330647365,
+          "one_sided_p": 0.9337461189833982,
+          "positive_day_rate": 0.15047619047619049,
+          "t_statistic": -1.5054566032147387,
+          "worst_day_bps": -168.984035630384
+        },
+        "cost_1bps": {
+          "annualized_sharpe": -1.1222848947073263,
+          "average_round_trips_per_day": 0.5419047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -1680.2611299687608,
+          "mean_daily_bps": -1.5595369949694984,
+          "one_sided_p": 0.9889152725055496,
+          "positive_day_rate": 0.1438095238095238,
+          "t_statistic": -2.290854448388412,
+          "worst_day_bps": -172.984035630384
+        },
+        "cost_2bps": {
+          "annualized_sharpe": -1.4988422397363532,
+          "average_round_trips_per_day": 0.5419047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -2248.2611299687615,
+          "mean_daily_bps": -2.1014417568742605,
+          "one_sided_p": 0.9988633122458452,
+          "positive_day_rate": 0.1380952380952381,
+          "t_statistic": -3.0594989102369685,
+          "worst_day_bps": -176.984035630384
+        },
+        "cost_6bps": {
+          "annualized_sharpe": -2.8912847280038205,
+          "average_round_trips_per_day": 0.5419047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -4520.261129968757,
+          "mean_daily_bps": -4.269060804493308,
+          "one_sided_p": 0.9999999975757433,
+          "positive_day_rate": 0.11142857142857143,
+          "t_statistic": -5.901810237259174,
+          "worst_day_bps": -192.984035630384
+        }
+      },
+      "positive_month_rate_at_6bps": 0.1320754716981132,
+      "yearly_at_6bps": {
+        "2022": {
+          "annualized_sharpe": -2.8624453682573536,
+          "average_round_trips_per_day": 0.5210084033613446,
+          "days": 238,
+          "max_drawdown_bps": -1173.683777649313,
+          "mean_daily_bps": -4.4675843178749215,
+          "one_sided_p": 0.9970795422480183,
+          "positive_day_rate": 0.10084033613445378,
+          "t_statistic": -2.7817968739885615,
+          "worst_day_bps": -140.1950422453728
+        },
+        "2023": {
+          "annualized_sharpe": -3.3703139573727343,
+          "average_round_trips_per_day": 0.5916666666666667,
+          "days": 240,
+          "max_drawdown_bps": -1296.1225535727706,
+          "mean_daily_bps": -4.952953135698048,
+          "one_sided_p": 0.9994216908520478,
+          "positive_day_rate": 0.1375,
+          "t_statistic": -3.2890896368595106,
+          "worst_day_bps": -96.15323877193282
+        },
+        "2024": {
+          "annualized_sharpe": -2.8444838670160713,
+          "average_round_trips_per_day": 0.5232067510548524,
+          "days": 237,
+          "max_drawdown_bps": -1168.3708896645553,
+          "mean_daily_bps": -4.857917281663158,
+          "one_sided_p": 0.9968694261689814,
+          "positive_day_rate": 0.0759493670886076,
+          "t_statistic": -2.7585278792869055,
+          "worst_day_bps": -192.984035630384
+        },
+        "2025": {
+          "annualized_sharpe": -2.3898606278402674,
+          "average_round_trips_per_day": 0.5910931174089069,
+          "days": 247,
+          "max_drawdown_bps": -817.1184367343074,
+          "mean_daily_bps": -3.0212019647687653,
+          "one_sided_p": 0.990622126320261,
+          "positive_day_rate": 0.13765182186234817,
+          "t_statistic": -2.366032907820168,
+          "worst_day_bps": -89.83653816611013
+        },
+        "2026": {
+          "annualized_sharpe": -3.371450476631769,
+          "average_round_trips_per_day": 0.375,
+          "days": 88,
+          "max_drawdown_bps": -332.95674344415676,
+          "mean_daily_bps": -3.783599357319963,
+          "one_sided_p": 0.9752640916820922,
+          "positive_day_rate": 0.09090909090909091,
+          "t_statistic": -1.992314291839075,
+          "worst_day_bps": -63.23692700406201
+        }
+      }
+    },
+    "negative_atm_shock": {
+      "costs": {
+        "cost_0bps": {
+          "annualized_sharpe": -0.33503729189053943,
+          "average_round_trips_per_day": 1.2866666666666666,
+          "days": 1050,
+          "max_drawdown_bps": -1055.3886716195925,
+          "mean_daily_bps": -0.507611610036867,
+          "one_sided_p": 0.7529027993746845,
+          "positive_day_rate": 0.2733333333333333,
+          "t_statistic": -0.683892008279775,
+          "worst_day_bps": -190.6121989070364
+        },
+        "cost_1bps": {
+          "annualized_sharpe": -1.1765505810254766,
+          "average_round_trips_per_day": 1.2866666666666666,
+          "days": 1050,
+          "max_drawdown_bps": -1931.758874336576,
+          "mean_daily_bps": -1.7942782767035335,
+          "one_sided_p": 0.991752190237985,
+          "positive_day_rate": 0.24571428571428572,
+          "t_statistic": -2.401623816739578,
+          "worst_day_bps": -193.6121989070364
+        },
+        "cost_2bps": {
+          "annualized_sharpe": -1.999075374494386,
+          "average_round_trips_per_day": 1.2866666666666666,
+          "days": 1050,
+          "max_drawdown_bps": -3273.758874336573,
+          "mean_daily_bps": -3.0809449433702,
+          "one_sided_p": 0.9999758363702808,
+          "positive_day_rate": 0.2276190476190476,
+          "t_statistic": -4.080595520728699,
+          "worst_day_bps": -196.6121989070364
+        },
+        "cost_6bps": {
+          "annualized_sharpe": -4.946764972585993,
+          "average_round_trips_per_day": 1.2866666666666666,
+          "days": 1050,
+          "max_drawdown_bps": -8641.758874336574,
+          "mean_daily_bps": -8.227611610036865,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.15904761904761905,
+          "t_statistic": -10.097541716923748,
+          "worst_day_bps": -208.6121989070364
+        }
+      },
+      "positive_month_rate_at_6bps": 0.03773584905660377,
+      "yearly_at_6bps": {
+        "2022": {
+          "annualized_sharpe": -3.5458950136247562,
+          "average_round_trips_per_day": 1.1134453781512605,
+          "days": 238,
+          "max_drawdown_bps": -1691.159685975814,
+          "mean_daily_bps": -7.094088244445169,
+          "one_sided_p": 0.9996635443644261,
+          "positive_day_rate": 0.1638655462184874,
+          "t_statistic": -3.445990541436295,
+          "worst_day_bps": -208.6121989070364
+        },
+        "2023": {
+          "annualized_sharpe": -7.201685325871697,
+          "average_round_trips_per_day": 1.5625,
+          "days": 240,
+          "max_drawdown_bps": -2407.1015889772907,
+          "mean_daily_bps": -9.978794623052453,
+          "one_sided_p": 0.9999999999891311,
+          "positive_day_rate": 0.1625,
+          "t_statistic": -7.028125234870569,
+          "worst_day_bps": -99.37465324007897
+        },
+        "2024": {
+          "annualized_sharpe": -4.031687907400037,
+          "average_round_trips_per_day": 1.3924050632911393,
+          "days": 237,
+          "max_drawdown_bps": -1764.9913801151627,
+          "mean_daily_bps": -7.447221013144143,
+          "one_sided_p": 0.9999396294483659,
+          "positive_day_rate": 0.20675105485232068,
+          "t_statistic": -3.909856414412931,
+          "worst_day_bps": -147.7650433599351
+        },
+        "2025": {
+          "annualized_sharpe": -6.076684989468935,
+          "average_round_trips_per_day": 1.2469635627530364,
+          "days": 247,
+          "max_drawdown_bps": -2089.839893423359,
+          "mean_daily_bps": -8.292864518669829,
+          "one_sided_p": 0.9999999967824743,
+          "positive_day_rate": 0.12550607287449392,
+          "t_statistic": -6.016098381658983,
+          "worst_day_bps": -117.10377597835307
+        },
+        "2026": {
+          "annualized_sharpe": -5.230747174370326,
+          "average_round_trips_per_day": 0.8295454545454546,
+          "days": 88,
+          "max_drawdown_bps": -742.3595626015616,
+          "mean_daily_bps": -8.43590412047229,
+          "one_sided_p": 0.9986603232360776,
+          "positive_day_rate": 0.10227272727272728,
+          "t_statistic": -3.091041207553552,
+          "worst_day_bps": -128.57259113883333
+        }
+      }
+    },
+    "negative_index_momentum": {
+      "costs": {
+        "cost_0bps": {
+          "annualized_sharpe": -0.9059501815113266,
+          "average_round_trips_per_day": 1.6542857142857144,
+          "days": 1050,
+          "max_drawdown_bps": -2010.960260694112,
+          "mean_daily_bps": -1.7372212072399877,
+          "one_sided_p": 0.96764949363465,
+          "positive_day_rate": 0.3647619047619048,
+          "t_statistic": -1.849263064237127,
+          "worst_day_bps": -380.34067099637525
+        },
+        "cost_1bps": {
+          "annualized_sharpe": -1.770360295467911,
+          "average_round_trips_per_day": 1.6542857142857144,
+          "days": 1050,
+          "max_drawdown_bps": -3692.378515847988,
+          "mean_daily_bps": -3.391506921525702,
+          "one_sided_p": 0.9998419306274349,
+          "positive_day_rate": 0.3295238095238095,
+          "t_statistic": -3.6137328206493704,
+          "worst_day_bps": -384.34067099637525
+        },
+        "cost_2bps": {
+          "annualized_sharpe": -2.630493920779159,
+          "average_round_trips_per_day": 1.6542857142857144,
+          "days": 1050,
+          "max_drawdown_bps": -5415.216388970661,
+          "mean_daily_bps": -5.0457926358114165,
+          "one_sided_p": 0.9999999513914487,
+          "positive_day_rate": 0.29714285714285715,
+          "t_statistic": -5.36947323116838,
+          "worst_day_bps": -388.34067099637525
+        },
+        "cost_6bps": {
+          "annualized_sharpe": -5.9183699728147126,
+          "average_round_trips_per_day": 1.6542857142857144,
+          "days": 1050,
+          "max_drawdown_bps": -12315.7832111239,
+          "mean_daily_bps": -11.662935492954276,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.20476190476190476,
+          "t_statistic": -12.080822118671326,
+          "worst_day_bps": -404.34067099637525
+        }
+      },
+      "positive_month_rate_at_6bps": 0.018867924528301886,
+      "yearly_at_6bps": {
+        "2022": {
+          "annualized_sharpe": -5.781273568996478,
+          "average_round_trips_per_day": 1.6512605042016806,
+          "days": 238,
+          "max_drawdown_bps": -2930.9529040419866,
+          "mean_daily_bps": -12.312094212294763,
+          "one_sided_p": 0.9999999730627386,
+          "positive_day_rate": 0.21008403361344538,
+          "t_statistic": -5.618388011959844,
+          "worst_day_bps": -145.6345186388499
+        },
+        "2023": {
+          "annualized_sharpe": -5.901318213392546,
+          "average_round_trips_per_day": 1.0708333333333333,
+          "days": 240,
+          "max_drawdown_bps": -1803.057171708356,
+          "mean_daily_bps": -7.4777320662788345,
+          "one_sided_p": 0.9999999870624128,
+          "positive_day_rate": 0.1875,
+          "t_statistic": -5.759096874942292,
+          "worst_day_bps": -185.35200489321755
+        },
+        "2024": {
+          "annualized_sharpe": -6.018470628024125,
+          "average_round_trips_per_day": 2.1223628691983123,
+          "days": 237,
+          "max_drawdown_bps": -3689.931427081136,
+          "mean_daily_bps": -15.56933091595415,
+          "one_sided_p": 0.9999999912519187,
+          "positive_day_rate": 0.21518987341772153,
+          "t_statistic": -5.836601574924706,
+          "worst_day_bps": -404.34067099637525
+        },
+        "2025": {
+          "annualized_sharpe": -6.246615310304943,
+          "average_round_trips_per_day": 1.417004048582996,
+          "days": 247,
+          "max_drawdown_bps": -2252.015282885482,
+          "mean_daily_bps": -8.840277140652624,
+          "one_sided_p": 0.9999999987101162,
+          "positive_day_rate": 0.19433198380566802,
+          "t_statistic": -6.184334439632698,
+          "worst_day_bps": -111.21690236108182
+        },
+        "2026": {
+          "annualized_sharpe": -7.919050702438984,
+          "average_round_trips_per_day": 2.659090909090909,
+          "days": 88,
+          "max_drawdown_bps": -1716.694730352677,
+          "mean_daily_bps": -18.723503049392974,
+          "one_sided_p": 0.9999947629275021,
+          "positive_day_rate": 0.23863636363636365,
+          "t_statistic": -4.679658800158212,
+          "worst_day_bps": -159.887060125377
+        }
+      }
+    },
+    "negative_premium_skew": {
+      "costs": {
+        "cost_0bps": {
+          "annualized_sharpe": -1.4430180190766384,
+          "average_round_trips_per_day": 1.3523809523809525,
+          "days": 1050,
+          "max_drawdown_bps": -2084.451167652955,
+          "mean_daily_bps": -1.860065490975923,
+          "one_sided_p": 0.9983524906768928,
+          "positive_day_rate": 0.2695238095238095,
+          "t_statistic": -2.945548196982938,
+          "worst_day_bps": -141.7774078198697
+        },
+        "cost_1bps": {
+          "annualized_sharpe": -2.474457965251507,
+          "average_round_trips_per_day": 1.3523809523809525,
+          "days": 1050,
+          "max_drawdown_bps": -3417.278198372264,
+          "mean_daily_bps": -3.2124464433568756,
+          "one_sided_p": 0.9999997409148883,
+          "positive_day_rate": 0.25047619047619046,
+          "t_statistic": -5.050966170693082,
+          "worst_day_bps": -144.7774078198697
+        },
+        "cost_2bps": {
+          "annualized_sharpe": -3.4744195969034366,
+          "average_round_trips_per_day": 1.3523809523809525,
+          "days": 1050,
+          "max_drawdown_bps": -4819.27819837226,
+          "mean_daily_bps": -4.564827395737828,
+          "one_sided_p": 0.9999999999987877,
+          "positive_day_rate": 0.22952380952380952,
+          "t_statistic": -7.092129303949859,
+          "worst_day_bps": -147.7774078198697
+        },
+        "cost_6bps": {
+          "annualized_sharpe": -6.9534014842604215,
+          "average_round_trips_per_day": 1.3523809523809525,
+          "days": 1050,
+          "max_drawdown_bps": -10478.26519272027,
+          "mean_daily_bps": -9.974351205261637,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.14476190476190476,
+          "t_statistic": -14.193571344291023,
+          "worst_day_bps": -159.7774078198697
+        }
+      },
+      "positive_month_rate_at_6bps": 0.03773584905660377,
+      "yearly_at_6bps": {
+        "2022": {
+          "annualized_sharpe": -6.245661861786349,
+          "average_round_trips_per_day": 1.315126050420168,
+          "days": 238,
+          "max_drawdown_bps": -2196.9376623392427,
+          "mean_daily_bps": -9.208996786318062,
+          "one_sided_p": 0.9999999974780143,
+          "positive_day_rate": 0.13025210084033614,
+          "t_statistic": -6.06969231125769,
+          "worst_day_bps": -114.43081592340508
+        },
+        "2023": {
+          "annualized_sharpe": -7.6488737549285,
+          "average_round_trips_per_day": 1.9291666666666667,
+          "days": 240,
+          "max_drawdown_bps": -3025.7286627030217,
+          "mean_daily_bps": -12.60720276126259,
+          "one_sided_p": 0.9999999999992242,
+          "positive_day_rate": 0.23333333333333334,
+          "t_statistic": -7.464536455408844,
+          "worst_day_bps": -159.7774078198697
+        },
+        "2024": {
+          "annualized_sharpe": -5.873602418735999,
+          "average_round_trips_per_day": 0.7932489451476793,
+          "days": 237,
+          "max_drawdown_bps": -1792.7988120423747,
+          "mean_daily_bps": -7.427851793350528,
+          "one_sided_p": 0.9999999818444238,
+          "positive_day_rate": 0.07172995780590717,
+          "t_statistic": -5.696111063174016,
+          "worst_day_bps": -119.47329710948227
+        },
+        "2025": {
+          "annualized_sharpe": -8.279486305835528,
+          "average_round_trips_per_day": 1.6477732793522266,
+          "days": 247,
+          "max_drawdown_bps": -2943.010120704027,
+          "mean_daily_bps": -11.609447952329194,
+          "one_sided_p": 0.9999999999999932,
+          "positive_day_rate": 0.1700404858299595,
+          "t_statistic": -8.19693702270684,
+          "worst_day_bps": -96.87663609447725
+        },
+        "2026": {
+          "annualized_sharpe": -6.226556148121145,
+          "average_round_trips_per_day": 0.5568181818181818,
+          "days": 88,
+          "max_drawdown_bps": -627.6643484286127,
+          "mean_daily_bps": -7.1325494139615095,
+          "one_sided_p": 0.9997978267839562,
+          "positive_day_rate": 0.06818181818181818,
+          "t_statistic": -3.679501416029586,
+          "worst_day_bps": -95.47262169623448
+        }
+      }
+    },
+    "negative_volume_imbalance": {
+      "costs": {
+        "cost_0bps": {
+          "annualized_sharpe": 0.4059994590663282,
+          "average_round_trips_per_day": 1.579047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -800.5033453361149,
+          "mean_daily_bps": 0.7060103258056689,
+          "one_sided_p": 0.20371920626237977,
+          "positive_day_rate": 0.37142857142857144,
+          "t_statistic": 0.8287429254654081,
+          "worst_day_bps": -239.93086028832877
+        },
+        "cost_1bps": {
+          "annualized_sharpe": -0.5008735439659524,
+          "average_round_trips_per_day": 1.579047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -1504.9497238252081,
+          "mean_daily_bps": -0.8730372932419501,
+          "one_sided_p": 0.8465872385564518,
+          "positive_day_rate": 0.34285714285714286,
+          "t_statistic": -1.022403840313383,
+          "worst_day_bps": -242.93086028832877
+        },
+        "cost_2bps": {
+          "annualized_sharpe": -1.4014928606942343,
+          "average_round_trips_per_day": 1.579047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -3075.0646026525624,
+          "mean_daily_bps": -2.452084912289569,
+          "one_sided_p": 0.9978451009652245,
+          "positive_day_rate": 0.3161904761904762,
+          "t_statistic": -2.86078532237865,
+          "worst_day_bps": -245.93086028832877
+        },
+        "cost_6bps": {
+          "annualized_sharpe": -4.870235663690144,
+          "average_round_trips_per_day": 1.579047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -9363.064602652563,
+          "mean_daily_bps": -8.768275388480044,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.23047619047619047,
+          "t_statistic": -9.941326919288192,
+          "worst_day_bps": -257.93086028832874
+        }
+      },
+      "positive_month_rate_at_6bps": 0.05660377358490566,
+      "yearly_at_6bps": {
+        "2022": {
+          "annualized_sharpe": -3.4029278808777548,
+          "average_round_trips_per_day": 1.5084033613445378,
+          "days": 238,
+          "max_drawdown_bps": -1780.3060095316473,
+          "mean_daily_bps": -6.668615154965614,
+          "one_sided_p": 0.999455360043591,
+          "positive_day_rate": 0.29411764705882354,
+          "t_statistic": -3.307051462504341,
+          "worst_day_bps": -218.2939673605082
+        },
+        "2023": {
+          "annualized_sharpe": -6.667698014163151,
+          "average_round_trips_per_day": 1.3875,
+          "days": 240,
+          "max_drawdown_bps": -2093.8693447043215,
+          "mean_daily_bps": -8.662575818213364,
+          "one_sided_p": 0.9999999997771417,
+          "positive_day_rate": 0.17916666666666667,
+          "t_statistic": -6.507006978420609,
+          "worst_day_bps": -76.56428020560855
+        },
+        "2024": {
+          "annualized_sharpe": -4.541592033627759,
+          "average_round_trips_per_day": 1.8016877637130801,
+          "days": 237,
+          "max_drawdown_bps": -2151.533368180608,
+          "mean_daily_bps": -9.07819986574096,
+          "one_sided_p": 0.9999919518456611,
+          "positive_day_rate": 0.24050632911392406,
+          "t_statistic": -4.404352011407876,
+          "worst_day_bps": -149.70191732832092
+        },
+        "2025": {
+          "annualized_sharpe": -5.541982496752551,
+          "average_round_trips_per_day": 1.6518218623481782,
+          "days": 247,
+          "max_drawdown_bps": -2751.801804635122,
+          "mean_daily_bps": -11.008264440337312,
+          "one_sided_p": 0.9999999491874073,
+          "positive_day_rate": 0.21862348178137653,
+          "t_statistic": -5.486727053924386,
+          "worst_day_bps": -257.93086028832874
+        },
+        "2026": {
+          "annualized_sharpe": -5.554886963626241,
+          "average_round_trips_per_day": 1.4886363636363635,
+          "days": 88,
+          "max_drawdown_bps": -728.2256248381738,
+          "mean_daily_bps": -7.613248519398874,
+          "one_sided_p": 0.9992590080906034,
+          "positive_day_rate": 0.20454545454545456,
+          "t_statistic": -3.282587350427178,
+          "worst_day_bps": -80.34808086039934
+        }
+      }
+    },
+    "positive_atm_richness": {
+      "costs": {
+        "cost_0bps": {
+          "annualized_sharpe": 0.7375201015559415,
+          "average_round_trips_per_day": 0.5419047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -280.82601490446314,
+          "mean_daily_bps": 1.0176322330647365,
+          "one_sided_p": 0.06625388101660176,
+          "positive_day_rate": 0.16476190476190475,
+          "t_statistic": 1.5054566032147387,
+          "worst_day_bps": -135.56558699395538
+        },
+        "cost_1bps": {
+          "annualized_sharpe": 0.3465680424505729,
+          "average_round_trips_per_day": 0.5419047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -401.82601490446285,
+          "mean_daily_bps": 0.47572747115997444,
+          "one_sided_p": 0.2397285083270614,
+          "positive_day_rate": 0.15619047619047619,
+          "t_statistic": 0.7074290542992694,
+          "worst_day_bps": -137.56558699395538
+        },
+        "cost_2bps": {
+          "annualized_sharpe": -0.04836508261612476,
+          "average_round_trips_per_day": 0.5419047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -667.0713074356115,
+          "mean_daily_bps": -0.06617729074478745,
+          "one_sided_p": 0.5393121850908399,
+          "positive_day_rate": 0.15142857142857144,
+          "t_statistic": -0.09872481148088215,
+          "worst_day_bps": -139.56558699395538
+        },
+        "cost_6bps": {
+          "annualized_sharpe": -1.6207451583897978,
+          "average_round_trips_per_day": 0.5419047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -2568.0702787879145,
+          "mean_daily_bps": -2.233796338363835,
+          "one_sided_p": 0.9995147906064279,
+          "positive_day_rate": 0.12571428571428572,
+          "t_statistic": -3.3083322009510887,
+          "worst_day_bps": -147.56558699395538
+        }
+      },
+      "positive_month_rate_at_6bps": 0.3018867924528302,
+      "yearly_at_6bps": {
+        "2022": {
+          "annualized_sharpe": -1.2456412029947623,
+          "average_round_trips_per_day": 0.5210084033613446,
+          "days": 238,
+          "max_drawdown_bps": -552.7701353413217,
+          "mean_daily_bps": -1.7845165224612125,
+          "one_sided_p": 0.8863622764566694,
+          "positive_day_rate": 0.12184873949579832,
+          "t_statistic": -1.2105456554832814,
+          "worst_day_bps": -101.61143812030059
+        },
+        "2023": {
+          "annualized_sharpe": -1.4753678284642207,
+          "average_round_trips_per_day": 0.5916666666666667,
+          "days": 240,
+          "max_drawdown_bps": -542.040770530765,
+          "mean_daily_bps": -2.147046864301952,
+          "one_sided_p": 0.9243853721583123,
+          "positive_day_rate": 0.15,
+          "t_statistic": -1.439811571424152,
+          "worst_day_bps": -90.19931936169078
+        },
+        "2024": {
+          "annualized_sharpe": -0.9718193433105748,
+          "average_round_trips_per_day": 0.5232067510548524,
+          "days": 237,
+          "max_drawdown_bps": -619.9875849895733,
+          "mean_daily_bps": -1.42056373099507,
+          "one_sided_p": 0.8265375998599316,
+          "positive_day_rate": 0.10126582278481013,
+          "t_statistic": -0.9424524368861069,
+          "worst_day_bps": -147.56558699395538
+        },
+        "2025": {
+          "annualized_sharpe": -3.1686048213733646,
+          "average_round_trips_per_day": 0.5910931174089069,
+          "days": 247,
+          "max_drawdown_bps": -1005.7631147021146,
+          "mean_daily_bps": -4.071915444138117,
+          "one_sided_p": 0.9990426600830877,
+          "positive_day_rate": 0.12955465587044535,
+          "t_statistic": -3.1370127579456946,
+          "worst_day_bps": -109.62186490395331
+        },
+        "2026": {
+          "annualized_sharpe": -0.7263199358072536,
+          "average_round_trips_per_day": 0.375,
+          "days": 88,
+          "max_drawdown_bps": -194.15359528124026,
+          "mean_daily_bps": -0.7164006426800369,
+          "one_sided_p": 0.6655839981333616,
+          "positive_day_rate": 0.125,
+          "t_statistic": -0.429209207902145,
+          "worst_day_bps": -65.0625686336883
+        }
+      }
+    },
+    "positive_atm_shock": {
+      "costs": {
+        "cost_0bps": {
+          "annualized_sharpe": 0.33503729189053943,
+          "average_round_trips_per_day": 1.2866666666666666,
+          "days": 1050,
+          "max_drawdown_bps": -880.8192551909323,
+          "mean_daily_bps": 0.507611610036867,
+          "one_sided_p": 0.24709720062531548,
+          "positive_day_rate": 0.2619047619047619,
+          "t_statistic": 0.683892008279775,
+          "worst_day_bps": -140.86786680108432
+        },
+        "cost_1bps": {
+          "annualized_sharpe": -0.5154257819041943,
+          "average_round_trips_per_day": 1.2866666666666666,
+          "days": 1050,
+          "max_drawdown_bps": -1597.7246497540452,
+          "mean_daily_bps": -0.7790550566297998,
+          "one_sided_p": 0.853503960395771,
+          "positive_day_rate": 0.2419047619047619,
+          "t_statistic": -1.052108471616936,
+          "worst_day_bps": -143.86786680108432
+        },
+        "cost_2bps": {
+          "annualized_sharpe": -1.3641930673226457,
+          "average_round_trips_per_day": 1.2866666666666666,
+          "days": 1050,
+          "max_drawdown_bps": -2519.0740291696848,
+          "mean_daily_bps": -2.0657217232964666,
+          "one_sided_p": 0.9972724980031297,
+          "positive_day_rate": 0.2257142857142857,
+          "t_statistic": -2.7846474379856176,
+          "worst_day_bps": -146.86786680108432
+        },
+        "cost_6bps": {
+          "annualized_sharpe": -4.54392629992394,
+          "average_round_trips_per_day": 1.2866666666666666,
+          "days": 1050,
+          "max_drawdown_bps": -7650.725286549437,
+          "mean_daily_bps": -7.212388389963134,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.15523809523809523,
+          "t_statistic": -9.275250719688673,
+          "worst_day_bps": -158.86786680108432
+        }
+      },
+      "positive_month_rate_at_6bps": 0.07547169811320754,
+      "yearly_at_6bps": {
+        "2022": {
+          "annualized_sharpe": -3.3162890866344474,
+          "average_round_trips_per_day": 1.1134453781512605,
+          "days": 238,
+          "max_drawdown_bps": -1491.6069978220507,
+          "mean_daily_bps": -6.267256293369957,
+          "one_sided_p": 0.9992762482080023,
+          "positive_day_rate": 0.15126050420168066,
+          "t_statistic": -3.2228536889276533,
+          "worst_day_bps": -158.86786680108432
+        },
+        "2023": {
+          "annualized_sharpe": -7.01647097444717,
+          "average_round_trips_per_day": 1.5625,
+          "days": 240,
+          "max_drawdown_bps": -2147.5895435827624,
+          "mean_daily_bps": -8.771205376947547,
+          "one_sided_p": 0.9999999999684875,
+          "positive_day_rate": 0.17083333333333334,
+          "t_statistic": -6.847374535804259,
+          "worst_day_bps": -78.67159245274189
+        },
+        "2024": {
+          "annualized_sharpe": -5.035608189095044,
+          "average_round_trips_per_day": 1.3924050632911393,
+          "days": 237,
+          "max_drawdown_bps": -2345.059463453109,
+          "mean_daily_bps": -9.261639746349525,
+          "one_sided_p": 0.9999990386818576,
+          "positive_day_rate": 0.17721518987341772,
+          "t_statistic": -4.883439748018667,
+          "worst_day_bps": -131.067310114491
+        },
+        "2025": {
+          "annualized_sharpe": -5.1244337283823445,
+          "average_round_trips_per_day": 1.2469635627530364,
+          "days": 247,
+          "max_drawdown_bps": -1649.1459556144832,
+          "mean_daily_bps": -6.670698234366609,
+          "one_sided_p": 0.9999996147246509,
+          "positive_day_rate": 0.12550607287449392,
+          "t_statistic": -5.073341388218645,
+          "worst_day_bps": -98.5716861768031
+        },
+        "2026": {
+          "annualized_sharpe": -1.0303403820627388,
+          "average_round_trips_per_day": 0.8295454545454546,
+          "days": 88,
+          "max_drawdown_bps": -225.50718002915048,
+          "mean_daily_bps": -1.5186413340731635,
+          "one_sided_p": 0.7279001054121139,
+          "positive_day_rate": 0.14772727272727273,
+          "t_statistic": -0.608866089794482,
+          "worst_day_bps": -95.10995777511064
+        }
+      }
+    },
+    "positive_index_momentum": {
+      "costs": {
+        "cost_0bps": {
+          "annualized_sharpe": 0.9059501815113266,
+          "average_round_trips_per_day": 1.6542857142857144,
+          "days": 1050,
+          "max_drawdown_bps": -413.07247174749705,
+          "mean_daily_bps": 1.7372212072399877,
+          "one_sided_p": 0.03235050636535001,
+          "positive_day_rate": 0.3761904761904762,
+          "t_statistic": 1.849263064237127,
+          "worst_day_bps": -220.10344039674834
+        },
+        "cost_1bps": {
+          "annualized_sharpe": 0.04311165713671149,
+          "average_round_trips_per_day": 1.6542857142857144,
+          "days": 1050,
+          "max_drawdown_bps": -731.8505001456714,
+          "mean_daily_bps": 0.08293549295427359,
+          "one_sided_p": 0.46494621889027193,
+          "positive_day_rate": 0.3457142857142857,
+          "t_statistic": 0.0880013016256333,
+          "worst_day_bps": -226.10344039674834
+        },
+        "cost_2bps": {
+          "annualized_sharpe": -0.8124111022290772,
+          "average_round_trips_per_day": 1.6542857142857144,
+          "days": 1050,
+          "max_drawdown_bps": -2156.85050014567,
+          "mean_daily_bps": -1.5713502213314408,
+          "one_sided_p": 0.951224801155068,
+          "positive_day_rate": 0.3180952380952381,
+          "t_statistic": -1.6583272181944169,
+          "worst_day_bps": -232.10344039674834
+        },
+        "cost_6bps": {
+          "annualized_sharpe": -4.05979223392093,
+          "average_round_trips_per_day": 1.6542857142857144,
+          "days": 1050,
+          "max_drawdown_bps": -8597.917732398013,
+          "mean_daily_bps": -8.188493078474298,
+          "one_sided_p": 0.9999999999999998,
+          "positive_day_rate": 0.22,
+          "t_statistic": -8.287016195683433,
+          "worst_day_bps": -256.10344039674834
+        }
+      },
+      "positive_month_rate_at_6bps": 0.09433962264150944,
+      "yearly_at_6bps": {
+        "2022": {
+          "annualized_sharpe": -3.3334701411879597,
+          "average_round_trips_per_day": 1.6512605042016806,
+          "days": 238,
+          "max_drawdown_bps": -1787.4445186723485,
+          "mean_daily_bps": -7.5030318381254055,
+          "one_sided_p": 0.9993156149143272,
+          "positive_day_rate": 0.23529411764705882,
+          "t_statistic": -3.239550672695027,
+          "worst_day_bps": -256.10344039674834
+        },
+        "2023": {
+          "annualized_sharpe": -4.49087969094385,
+          "average_round_trips_per_day": 1.0708333333333333,
+          "days": 240,
+          "max_drawdown_bps": -1303.5317948125048,
+          "mean_daily_bps": -5.372267933721165,
+          "one_sided_p": 0.9999912166970608,
+          "positive_day_rate": 0.17916666666666667,
+          "t_statistic": -4.38264981799519,
+          "worst_day_bps": -89.66837541822346
+        },
+        "2024": {
+          "annualized_sharpe": -3.7675893501057103,
+          "average_round_trips_per_day": 2.1223628691983123,
+          "days": 237,
+          "max_drawdown_bps": -2357.1234017572133,
+          "mean_daily_bps": -9.899023514425597,
+          "one_sided_p": 0.9998407664317447,
+          "positive_day_rate": 0.2616033755274262,
+          "t_statistic": -3.6537385149150206,
+          "worst_day_bps": -174.66291163536104
+        },
+        "2025": {
+          "annualized_sharpe": -5.569845217988241,
+          "average_round_trips_per_day": 1.417004048582996,
+          "days": 247,
+          "max_drawdown_bps": -2039.040860613392,
+          "mean_daily_bps": -8.163771442343329,
+          "one_sided_p": 0.9999999557944569,
+          "positive_day_rate": 0.1902834008097166,
+          "t_statistic": -5.514311974390914,
+          "worst_day_bps": -126.17487957227056
+        },
+        "2026": {
+          "annualized_sharpe": -5.2552514379432225,
+          "average_round_trips_per_day": 2.659090909090909,
+          "days": 88,
+          "max_drawdown_bps": -1160.3317316534178,
+          "mean_daily_bps": -13.185587859697934,
+          "one_sided_p": 0.9987179275285119,
+          "positive_day_rate": 0.26136363636363635,
+          "t_statistic": -3.105521679642836,
+          "worst_day_bps": -129.1127150924027
+        }
+      }
+    },
+    "positive_premium_skew": {
+      "costs": {
+        "cost_0bps": {
+          "annualized_sharpe": 1.4430180190766384,
+          "average_round_trips_per_day": 1.3523809523809525,
+          "days": 1050,
+          "max_drawdown_bps": -448.13454118225184,
+          "mean_daily_bps": 1.860065490975923,
+          "one_sided_p": 0.0016475093231072104,
+          "positive_day_rate": 0.32285714285714284,
+          "t_statistic": 2.945548196982938,
+          "worst_day_bps": -80.0821249366912
+        },
+        "cost_1bps": {
+          "annualized_sharpe": 0.39469203363144206,
+          "average_round_trips_per_day": 1.3523809523809525,
+          "days": 1050,
+          "max_drawdown_bps": -699.3120547064725,
+          "mean_daily_bps": 0.5076845385949705,
+          "one_sided_p": 0.21031025062251044,
+          "positive_day_rate": 0.29523809523809524,
+          "t_statistic": 0.8056617399487086,
+          "worst_day_bps": -85.0821249366912
+        },
+        "cost_2bps": {
+          "annualized_sharpe": -0.654756444326612,
+          "average_round_trips_per_day": 1.3523809523809525,
+          "days": 1050,
+          "max_drawdown_bps": -1308.5903996946372,
+          "mean_daily_bps": -0.8446964137859818,
+          "one_sided_p": 0.9091647576044103,
+          "positive_day_rate": 0.259047619047619,
+          "t_statistic": -1.3365159953326842,
+          "worst_day_bps": -90.0821249366912
+        },
+        "cost_6bps": {
+          "annualized_sharpe": -4.570894682309023,
+          "average_round_trips_per_day": 1.3523809523809525,
+          "days": 1050,
+          "max_drawdown_bps": -6634.180338908231,
+          "mean_daily_bps": -6.254220223309792,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.18666666666666668,
+          "t_statistic": -9.330299699715102,
+          "worst_day_bps": -110.0821249366912
+        }
+      },
+      "positive_month_rate_at_6bps": 0.16981132075471697,
+      "yearly_at_6bps": {
+        "2022": {
+          "annualized_sharpe": -4.694073494688215,
+          "average_round_trips_per_day": 1.315126050420168,
+          "days": 238,
+          "max_drawdown_bps": -1631.4967795057391,
+          "mean_daily_bps": -6.572515818723955,
+          "one_sided_p": 0.9999959306568946,
+          "positive_day_rate": 0.15126050420168066,
+          "t_statistic": -4.561819456399226,
+          "worst_day_bps": -78.05237146617048
+        },
+        "2023": {
+          "annualized_sharpe": -6.534459304236185,
+          "average_round_trips_per_day": 1.9291666666666667,
+          "days": 240,
+          "max_drawdown_bps": -2534.0837505557206,
+          "mean_daily_bps": -10.54279723873741,
+          "one_sided_p": 0.9999999995375354,
+          "positive_day_rate": 0.25,
+          "t_statistic": -6.376979311683314,
+          "worst_day_bps": -97.78192627766043
+        },
+        "2024": {
+          "annualized_sharpe": -1.7889134832853608,
+          "average_round_trips_per_day": 0.7932489451476793,
+          "days": 237,
+          "max_drawdown_bps": -518.4248145389781,
+          "mean_daily_bps": -2.091135548421625,
+          "one_sided_p": 0.9579639988378116,
+          "positive_day_rate": 0.16033755274261605,
+          "t_statistic": -1.7348552313821353,
+          "worst_day_bps": -80.40444061052841
+        },
+        "2025": {
+          "annualized_sharpe": -6.094148368285647,
+          "average_round_trips_per_day": 1.6477732793522266,
+          "days": 247,
+          "max_drawdown_bps": -2016.4663557746887,
+          "mean_daily_bps": -8.163831399897525,
+          "one_sided_p": 0.999999997068598,
+          "positive_day_rate": 0.19838056680161945,
+          "t_statistic": -6.0333876446732075,
+          "worst_day_bps": -110.0821249366912
+        },
+        "2026": {
+          "annualized_sharpe": 0.5427736353813243,
+          "average_round_trips_per_day": 0.5568181818181818,
+          "days": 88,
+          "max_drawdown_bps": -102.91749088463808,
+          "mean_daily_bps": 0.4507312321433274,
+          "one_sided_p": 0.3745864309953296,
+          "positive_day_rate": 0.14772727272727273,
+          "t_statistic": 0.3207449370823938,
+          "worst_day_bps": -44.716718642710646
+        }
+      }
+    },
+    "positive_volume_imbalance": {
+      "costs": {
+        "cost_0bps": {
+          "annualized_sharpe": -0.4059994590663282,
+          "average_round_trips_per_day": 1.579047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -1235.9000248376442,
+          "mean_daily_bps": -0.7060103258056689,
+          "one_sided_p": 0.7962807937376202,
+          "positive_day_rate": 0.4685714285714286,
+          "t_statistic": -0.8287429254654081,
+          "worst_day_bps": -198.99332973457362
+        },
+        "cost_1bps": {
+          "annualized_sharpe": -1.3152281763713594,
+          "average_round_trips_per_day": 1.579047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -2505.0600732843895,
+          "mean_daily_bps": -2.285057944853288,
+          "one_sided_p": 0.996313009659079,
+          "positive_day_rate": 0.4342857142857143,
+          "t_statistic": -2.6846982728675575,
+          "worst_day_bps": -200.99332973457362
+        },
+        "cost_2bps": {
+          "annualized_sharpe": -2.222845821048895,
+          "average_round_trips_per_day": 1.579047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -4113.432701225368,
+          "mean_daily_bps": -3.864105563900907,
+          "one_sided_p": 0.9999968231154582,
+          "positive_day_rate": 0.3914285714285714,
+          "t_statistic": -4.537365032039767,
+          "worst_day_bps": -202.99332973457362
+        },
+        "cost_6bps": {
+          "annualized_sharpe": -5.760223998741744,
+          "average_round_trips_per_day": 1.579047619047619,
+          "days": 1050,
+          "max_drawdown_bps": -10691.155714954974,
+          "mean_daily_bps": -10.180296040091385,
+          "one_sided_p": 1.0,
+          "positive_day_rate": 0.26,
+          "t_statistic": -11.758008000876169,
+          "worst_day_bps": -210.99332973457362
+        }
+      },
+      "positive_month_rate_at_6bps": 0.018867924528301886,
+      "yearly_at_6bps": {
+        "2022": {
+          "annualized_sharpe": -5.8282170721318804,
+          "average_round_trips_per_day": 1.5084033613445378,
+          "days": 238,
+          "max_drawdown_bps": -2720.8695931181837,
+          "mean_daily_bps": -11.432225181168842,
+          "one_sided_p": 0.9999999786739276,
+          "positive_day_rate": 0.2773109243697479,
+          "t_statistic": -5.66400889671952,
+          "worst_day_bps": -138.72333469222252
+        },
+        "2023": {
+          "annualized_sharpe": -6.027436362733222,
+          "average_round_trips_per_day": 1.3875,
+          "days": 240,
+          "max_drawdown_bps": -1962.6247405813174,
+          "mean_daily_bps": -7.987424181786635,
+          "one_sided_p": 0.9999999932112883,
+          "positive_day_rate": 0.22083333333333333,
+          "t_statistic": -5.882175586083991,
+          "worst_day_bps": -155.1550912114865
+        },
+        "2024": {
+          "annualized_sharpe": -6.526046363931682,
+          "average_round_trips_per_day": 1.8016877637130801,
+          "days": 237,
+          "max_drawdown_bps": -3017.4271491028517,
+          "mean_daily_bps": -12.542053298816004,
+          "one_sided_p": 0.9999999993844155,
+          "positive_day_rate": 0.2742616033755274,
+          "t_statistic": -6.32883914202308,
+          "worst_day_bps": -163.22254599429397
+        },
+        "2025": {
+          "annualized_sharpe": -4.6396667831893765,
+          "average_round_trips_per_day": 1.6518218623481782,
+          "days": 247,
+          "max_drawdown_bps": -2349.4839525875395,
+          "mean_daily_bps": -8.813597907840826,
+          "one_sided_p": 0.9999965166377944,
+          "positive_day_rate": 0.27125506072874495,
+          "t_statistic": -4.593407733683089,
+          "worst_day_bps": -210.99332973457362
+        },
+        "2026": {
+          "annualized_sharpe": -7.280376541955948,
+          "average_round_trips_per_day": 1.4886363636363635,
+          "days": 88,
+          "max_drawdown_bps": -903.8790031519165,
+          "mean_daily_bps": -10.25038784423749,
+          "one_sided_p": 0.9999779577216594,
+          "positive_day_rate": 0.25,
+          "t_statistic": -4.302242709790512,
+          "worst_day_bps": -85.65154209654511
+        }
+      }
+    }
+  },
+  "protocol": {
+    "calibration": "trailing 252 sessions, minimum 120, before each test month",
+    "cost_ladder_round_trip_bps": [
+      0.0,
+      1.0,
+      2.0,
+      6.0
+    ],
+    "evaluation": "monthly pseudo-live from 2022 through archive end",
+    "multiple_testing": "Holm correction across ten fixed directional candidates",
+    "participation": 0.2,
+    "primary_cost_bps": 6.0,
+    "warning": "NIFTY index return is a futures proxy; rolling option buckets are predictors only"
+  },
+  "summary": {
+    "holm_passes": [],
+    "stable_candidates": [],
+    "verdict": "cash; no stable candidate"
+  },
+  "yearly_diagnostics": [
+    {
+      "samples": 2194,
+      "signal": "atm_shock_30m",
+      "spearman": 0.13461638402361942,
+      "target": "atm_forward_30m",
+      "year": 2021
+    },
+    {
+      "samples": 2194,
+      "signal": "atm_richness",
+      "spearman": 0.01681025491728761,
+      "target": "atm_relative_forward_30m",
+      "year": 2021
+    },
+    {
+      "samples": 2194,
+      "signal": "premium_skew",
+      "spearman": 0.02419156708513178,
+      "target": "forward_return_bps",
+      "year": 2021
+    },
+    {
+      "samples": 2194,
+      "signal": "volume_imbalance",
+      "spearman": -0.0008723624291864584,
+      "target": "forward_return_bps",
+      "year": 2021
+    },
+    {
+      "samples": 2380,
+      "signal": "atm_shock_30m",
+      "spearman": 0.17852705736463623,
+      "target": "atm_forward_30m",
+      "year": 2022
+    },
+    {
+      "samples": 2380,
+      "signal": "atm_richness",
+      "spearman": -0.04928625086303824,
+      "target": "atm_relative_forward_30m",
+      "year": 2022
+    },
+    {
+      "samples": 2380,
+      "signal": "premium_skew",
+      "spearman": 0.03568094156243124,
+      "target": "forward_return_bps",
+      "year": 2022
+    },
+    {
+      "samples": 2380,
+      "signal": "volume_imbalance",
+      "spearman": -0.013991904427466784,
+      "target": "forward_return_bps",
+      "year": 2022
+    },
+    {
+      "samples": 2400,
+      "signal": "atm_shock_30m",
+      "spearman": 0.05401308346040073,
+      "target": "atm_forward_30m",
+      "year": 2023
+    },
+    {
+      "samples": 2400,
+      "signal": "atm_richness",
+      "spearman": 0.1052442067081376,
+      "target": "atm_relative_forward_30m",
+      "year": 2023
+    },
+    {
+      "samples": 2400,
+      "signal": "premium_skew",
+      "spearman": -0.0075209505538492965,
+      "target": "forward_return_bps",
+      "year": 2023
+    },
+    {
+      "samples": 2400,
+      "signal": "volume_imbalance",
+      "spearman": 0.039499208280677836,
+      "target": "forward_return_bps",
+      "year": 2023
+    },
+    {
+      "samples": 2370,
+      "signal": "atm_shock_30m",
+      "spearman": 0.1364011260101721,
+      "target": "atm_forward_30m",
+      "year": 2024
+    },
+    {
+      "samples": 2370,
+      "signal": "atm_richness",
+      "spearman": -0.0919457917791278,
+      "target": "atm_relative_forward_30m",
+      "year": 2024
+    },
+    {
+      "samples": 2370,
+      "signal": "premium_skew",
+      "spearman": 0.015867136209293167,
+      "target": "forward_return_bps",
+      "year": 2024
+    },
+    {
+      "samples": 2370,
+      "signal": "volume_imbalance",
+      "spearman": 0.0019863548254818396,
+      "target": "forward_return_bps",
+      "year": 2024
+    },
+    {
+      "samples": 2470,
+      "signal": "atm_shock_30m",
+      "spearman": 0.11110651237711808,
+      "target": "atm_forward_30m",
+      "year": 2025
+    },
+    {
+      "samples": 2470,
+      "signal": "atm_richness",
+      "spearman": 0.075063072349951,
+      "target": "atm_relative_forward_30m",
+      "year": 2025
+    },
+    {
+      "samples": 2470,
+      "signal": "premium_skew",
+      "spearman": 0.027833549281165243,
+      "target": "forward_return_bps",
+      "year": 2025
+    },
+    {
+      "samples": 2470,
+      "signal": "volume_imbalance",
+      "spearman": 0.004713658674600662,
+      "target": "forward_return_bps",
+      "year": 2025
+    },
+    {
+      "samples": 879,
+      "signal": "atm_shock_30m",
+      "spearman": 0.2854476862980132,
+      "target": "atm_forward_30m",
+      "year": 2026
+    },
+    {
+      "samples": 879,
+      "signal": "atm_richness",
+      "spearman": -0.07157734929781727,
+      "target": "atm_relative_forward_30m",
+      "year": 2026
+    },
+    {
+      "samples": 879,
+      "signal": "premium_skew",
+      "spearman": 0.039933304685193564,
+      "target": "forward_return_bps",
+      "year": 2026
+    },
+    {
+      "samples": 879,
+      "signal": "volume_imbalance",
+      "spearman": -0.04916140538851944,
+      "target": "forward_return_bps",
+      "year": 2026
+    }
+  ]
+}
