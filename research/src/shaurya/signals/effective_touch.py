@@ -42,7 +42,7 @@ from shaurya.analytics.depth_thinning_analysis import parse_receive_ts_ns
 from shaurya.signals.deep_book_ofi import FUTURES_TICK_SIZE
 
 SPECIFICATION_ID: Final = "D38 / TOUCH-METRICS-2026-08-20"
-DESIGN_DOCUMENT: Final = "research/docs/TOUCH-METRICS-SPEC-2026-08-20.md"
+DESIGN_DOCUMENT: Final = "research/docs/legacy/TOUCH-METRICS-SPEC-2026-08-20.md"
 
 #: `TOUCH-02`.  Rolling causal windows over which the effective touch is estimated, in seconds.
 #: Every declared window is evaluated and reported; none is dropped.
@@ -385,7 +385,7 @@ def print_location_diagnostics(
         "id_cks_02_reference": {
             "tape_a_inside_share": 0.481,
             "tape_b_inside_share": 0.419,
-            "source": "research/docs/CKS-L1-OFI-SPEC-AMENDMENT-1-2026-08-19.md section A4",
+            "source": "research/docs/live-evidence/CKS-L1-OFI-SPEC-AMENDMENT-1-2026-08-19.md section A4",
         },
     }
 

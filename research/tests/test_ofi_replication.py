@@ -73,9 +73,9 @@ def _metrics() -> dict[str, object]:
             "depth200": True,
             "ofi_full_session_replication_protocol": {
                 "protocol_id": "R-OFI-FULLSESSION-2026-08-20",
-                "source_spec": "research/docs/OFI-FULL-SESSION-REPLICATION-SPEC-2026-08-20.md",
+                "source_spec": "research/docs/live-evidence/OFI-FULL-SESSION-REPLICATION-SPEC-2026-08-20.md",
                 "source_amendment": (
-                    "research/docs/OFI-FULL-SESSION-REPLICATION-SPEC-AMENDMENT-1-2026-08-19.md"
+                    "research/docs/live-evidence/OFI-FULL-SESSION-REPLICATION-SPEC-AMENDMENT-1-2026-08-19.md"
                 ),
                 "registration_commit": REGISTRATION_COMMIT,
                 "sample_role": "prospective_full_session_replication",

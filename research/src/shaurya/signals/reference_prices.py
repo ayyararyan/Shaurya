@@ -52,7 +52,7 @@ from shaurya.signals.effective_touch import (
 from shaurya.signals.microprice import simple_microprice
 
 SPECIFICATION_ID: Final = "D38 / TOUCH-METRICS-2026-08-20"
-DESIGN_DOCUMENT: Final = "research/docs/TOUCH-METRICS-SPEC-2026-08-20.md"
+DESIGN_DOCUMENT: Final = "research/docs/legacy/TOUCH-METRICS-SPEC-2026-08-20.md"
 
 
 class ReferencePrice(StrEnum):
