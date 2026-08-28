@@ -557,10 +557,31 @@ def test_human_name_is_safe_meaningful_and_internal_ids_remain_separate(tmp_path
         suffix="Morning control #1",
     )
 
+    assert name == "nifty-future-depth20-depth200-034500-morning-control-1"
     assert "nifty-future" in name
     assert "depth20-depth200" in name
     assert re.fullmatch(r"[a-z0-9-]+", name)
     assert "sha-" not in name
+    assert not name.startswith("dhan-")
+    assert "20260827" not in name
+
+
+def test_human_name_omits_redundant_producer_prefix_and_full_date(tmp_path: Path) -> None:
+    """Both were previously included but are always redundant with this name's own
+    placement on disk: the leaf directory's literal parent is already ``dhan/``, and
+    production captures already land under a date-partitioned ``YYYY-MM-DD/`` root."""
+
+    del tmp_path
+    name = human_dataset_name(
+        trading_date=datetime(2026, 8, 27, 3, 45, tzinfo=UTC),
+        channels=(DataChannel.STANDARD,),
+        instrument_ids=tuple(
+            f"NSE:NSE_FNO:NIFTY:option:2026-09-01:{strike}:CE" for strike in range(40)
+        ),
+        suffix="d49ec103",
+    )
+
+    assert name == "nse-fno-40-instruments-standard-034500-d49ec103"
 
 
 def test_terminal_failure_states_require_reasons() -> None:
