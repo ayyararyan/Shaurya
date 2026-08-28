@@ -1,0 +1,123 @@
+{
+  "artifact_sha256": {
+    "checkpoints/seed-1.pt": "a5b23cf163ffed377ea304ee0a52206efdc2f0272113ce7395a988082f898608",
+    "checkpoints/seed-101.pt": "faa7d0ce4bdb7ce5d48e9a1434140c1635c7a7225ef98b134284037b8b6fd827",
+    "checkpoints/seed-23.pt": "30611e603286f06880a63be2b23676a9f3babcd5ca8b3f85899f2f92cc57da58",
+    "checkpoints/seed-42.pt": "650cedb8512ba85fe2009b192a6a51dcdde54bbc44a626cc4dff6243c4304f2c",
+    "checkpoints/seed-7.pt": "e9ba74f7131658c6d801a178c7e4f3fdd7bd6aa2dbfe397ad36f9b35bbe8b129",
+    "normalization.npz": "0a82c76d4384472062991311f9d337eacf9cd51b2cfb3322fe4b081788712478",
+    "pca.npz": "fb9c5ea1e44eaeafdf724e21fc551c9c3e15a7d1aa6341424dafc98e32c201bf",
+    "probes/seed-1-300s-base_plus_jepa.npz": "9eda1790455222907a60cbcd2a7923c91221ec3fabf36cb086d2dcfc35d668f0",
+    "probes/seed-1-300s-base_plus_pca.npz": "df04357c08296c95a8a5ba98ff5855b0da72e97bf4476502dda6dce03725f6f2",
+    "probes/seed-1-300s-base_plus_random.npz": "163dd37045c34b64e82d2e7a38b149209376affc3fa577547625f5ffa344af72",
+    "probes/seed-1-300s-handcrafted_base.npz": "e39dd0a6a594889441527b699c5fe4cf6de24bda30d6db569b54b3e9e30f71fb",
+    "probes/seed-1-30s-base_plus_jepa.npz": "fe52f97d1fd274915ae318ee338c25d5c31fb7d057109d7c964f79def9d44af7",
+    "probes/seed-1-30s-base_plus_pca.npz": "944a980819aa9cd503d1e65f93cc5581c08006314691c732b950c2bec0020537",
+    "probes/seed-1-30s-base_plus_random.npz": "7ac3b32c45ea2f91540dd07f4d9f8828b6eddca1f225de71c3e4a40dbbb322ad",
+    "probes/seed-1-30s-handcrafted_base.npz": "8c18ad2101c3db6615571df7cfb7d03fe16d46fdc753b89f4be3056aaaa5c92c",
+    "probes/seed-101-300s-base_plus_jepa.npz": "b0ab95e8e9da85b12de4be4d515ae00ccf1fc7528ec74905c40af51207531bbc",
+    "probes/seed-101-300s-base_plus_pca.npz": "df04357c08296c95a8a5ba98ff5855b0da72e97bf4476502dda6dce03725f6f2",
+    "probes/seed-101-300s-base_plus_random.npz": "73ff9937acd71b06c3c617aaf26b49052fb92c292ba8cc46b6b1f8af16b8a343",
+    "probes/seed-101-300s-handcrafted_base.npz": "e39dd0a6a594889441527b699c5fe4cf6de24bda30d6db569b54b3e9e30f71fb",
+    "probes/seed-101-30s-base_plus_jepa.npz": "5c8d9e2d79dcb51cfd27fb4c2854c59cf8d221d82209c5df420352428fc2ffe1",
+    "probes/seed-101-30s-base_plus_pca.npz": "944a980819aa9cd503d1e65f93cc5581c08006314691c732b950c2bec0020537",
+    "probes/seed-101-30s-base_plus_random.npz": "0e0d9bc7011c92f48e0652cf8d115005fcf6bc92572e2c745da186f85b90a4cc",
+    "probes/seed-101-30s-handcrafted_base.npz": "8c18ad2101c3db6615571df7cfb7d03fe16d46fdc753b89f4be3056aaaa5c92c",
+    "probes/seed-23-300s-base_plus_jepa.npz": "82a77c7a5ea01fea92e7a183c58fec4c837a815bebd714bf69c15296037dd86c",
+    "probes/seed-23-300s-base_plus_pca.npz": "df04357c08296c95a8a5ba98ff5855b0da72e97bf4476502dda6dce03725f6f2",
+    "probes/seed-23-300s-base_plus_random.npz": "dee194ef47b1f674c2f3f97721e82214080e6d9c4c4b646ccd7d53994555a686",
+    "probes/seed-23-300s-handcrafted_base.npz": "e39dd0a6a594889441527b699c5fe4cf6de24bda30d6db569b54b3e9e30f71fb",
+    "probes/seed-23-30s-base_plus_jepa.npz": "158c2e62d33eb0a6970f812544eec9eb291033d9b52ebd84257e10ec10a047bb",
+    "probes/seed-23-30s-base_plus_pca.npz": "944a980819aa9cd503d1e65f93cc5581c08006314691c732b950c2bec0020537",
+    "probes/seed-23-30s-base_plus_random.npz": "7d722171b0f511715b355b0663f6f14096cc91d7029d112d7ff183a0802886f4",
+    "probes/seed-23-30s-handcrafted_base.npz": "8c18ad2101c3db6615571df7cfb7d03fe16d46fdc753b89f4be3056aaaa5c92c",
+    "probes/seed-42-300s-base_plus_jepa.npz": "63af75be60ad60fec8f16c5cfaf099c1cba2792f3f102fae4cd578f381be40d8",
+    "probes/seed-42-300s-base_plus_pca.npz": "df04357c08296c95a8a5ba98ff5855b0da72e97bf4476502dda6dce03725f6f2",
+    "probes/seed-42-300s-base_plus_random.npz": "79a403b2d7b1906fcbbaff59049989d4c7e0baee11af7fe3febaef8ed06b8627",
+    "probes/seed-42-300s-handcrafted_base.npz": "e39dd0a6a594889441527b699c5fe4cf6de24bda30d6db569b54b3e9e30f71fb",
+    "probes/seed-42-30s-base_plus_jepa.npz": "94bba6fb3f3a458cdd5f355ecc0ce1c1989535140f2814bdb34acbd090bf84a7",
+    "probes/seed-42-30s-base_plus_pca.npz": "944a980819aa9cd503d1e65f93cc5581c08006314691c732b950c2bec0020537",
+    "probes/seed-42-30s-base_plus_random.npz": "b7e5d314abe5a9100123ac041576fdb2cef939debb36ed4f2ec0b00427d1a1e1",
+    "probes/seed-42-30s-handcrafted_base.npz": "8c18ad2101c3db6615571df7cfb7d03fe16d46fdc753b89f4be3056aaaa5c92c",
+    "probes/seed-7-300s-base_plus_jepa.npz": "fe3b6053131bd4ab422e651b0baafc66950418c8ed524ab350ffa5f4bde4259d",
+    "probes/seed-7-300s-base_plus_pca.npz": "df04357c08296c95a8a5ba98ff5855b0da72e97bf4476502dda6dce03725f6f2",
+    "probes/seed-7-300s-base_plus_random.npz": "6792216d74853940b1a8fa6d3c75661313ff1f5b485b48dea90e223f7f5c1c7e",
+    "probes/seed-7-300s-handcrafted_base.npz": "e39dd0a6a594889441527b699c5fe4cf6de24bda30d6db569b54b3e9e30f71fb",
+    "probes/seed-7-30s-base_plus_jepa.npz": "4da710dc4456ed9453014acb82d511a9fd953c56d1a8254474d95c8d46b0027c",
+    "probes/seed-7-30s-base_plus_pca.npz": "944a980819aa9cd503d1e65f93cc5581c08006314691c732b950c2bec0020537",
+    "probes/seed-7-30s-base_plus_random.npz": "0199c01f74865760d9d2e8f96f8d91810a10cbb374483899db3b628145e2039a",
+    "probes/seed-7-30s-handcrafted_base.npz": "8c18ad2101c3db6615571df7cfb7d03fe16d46fdc753b89f4be3056aaaa5c92c",
+    "random-projection-seed-1.npy": "d1eb6826b7ce55d4b2a1aea539002eb5e88dc4f2491a194f60d70d2e97a9ff5f",
+    "random-projection-seed-101.npy": "7cc4f82f5e346ed86a3109cadbbd40e9ebb06fa5e234cf8fed87e2c1e112a6f8",
+    "random-projection-seed-23.npy": "0739c6c8e7c2ef85bde2cf69e546f3b49b1d596e75a36aa24417b78ed5881aa0",
+    "random-projection-seed-42.npy": "dc39991c93d151a5de727dc5c42ec032f8000db154e623e9494e68fd8613db4a",
+    "random-projection-seed-7.npy": "26f1e1309fa1202260b1b5555fea10407639ba4d465413c756340583b56cab57"
+  },
+  "config": {
+    "attention_heads": 4,
+    "batch_size": 128,
+    "context_steps": 24,
+    "ema_decay": 0.99,
+    "embargo_steps": 6,
+    "embedding_dim": 96,
+    "epochs": 80,
+    "feedforward_dim": 256,
+    "learning_rate": 0.0003,
+    "patience": 12,
+    "seed": 1,
+    "split_train": 0.5,
+    "split_validation": 0.25,
+    "transformer_layers": 3,
+    "variance_weight": 0.1,
+    "weight_decay": 0.0001
+  },
+  "decision_rule": {
+    "criterion": "base+JEPA MAE skill > handcrafted base and base+PCA MAE skill",
+    "failure_action": "drop JEPA from alpha research",
+    "required_horizons_seconds": [
+      30,
+      300
+    ],
+    "required_seeds_per_horizon": 4
+  },
+  "development_dates": {
+    "discovery": "2026-08-19",
+    "validation": "2026-08-21"
+  },
+  "freeze_cutoff": "2026-08-28",
+  "frozen_on": "2026-08-28",
+  "horizons_seconds": [
+    30,
+    300
+  ],
+  "prohibited_seen_dates": [
+    "2026-08-19",
+    "2026-08-21",
+    "2026-08-26",
+    "2026-08-27"
+  ],
+  "purpose": "one-shot prospective falsification of JEPA for signed near-ATM IV movement",
+  "representations": [
+    "handcrafted_base",
+    "base_plus_jepa",
+    "base_plus_pca",
+    "base_plus_random"
+  ],
+  "schema_version": 1,
+  "seeds": [
+    1,
+    7,
+    23,
+    42,
+    101
+  ],
+  "semantic_sha256": "c3350aa8ea7dfa984e19773975040caf6672af67756c2ce906ab5b907b836f28",
+  "source_sha256": {
+    "research/experiments/apply_market_jepa_outer_test.py": "c9e5f36f7aa6c3df50be6a28f5c40a989dd03f8927d03b4ffc56453ae8a3e716",
+    "research/experiments/market_jepa_20260826.py": "4a0205c464219f7b53f5e2090ddf951e39ed24c82a31a629e7db9478557c2bd9",
+    "research/experiments/market_jepa_regime_analysis.py": "6c959ef00aff3f2e6d220b39cc95492ee575b3d78bdf90ecd48d30ae5f7629c3",
+    "research/src/shaurya/research/market_jepa_outer_test.py": "0093981d6c5cfff4e8072f51f611e4cc70a5c1f46b37a59efaa16b35e556080f",
+    "research/src/shaurya/research/market_jepa_regimes.py": "20afb9c008d780995399403571e7f906ca40195ae30d7498ed81080937992178"
+  },
+  "target": "signed_atm_iv_change"
+}

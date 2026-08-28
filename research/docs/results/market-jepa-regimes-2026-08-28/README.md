@@ -155,6 +155,39 @@ survives those controls, but more full sessions are needed before excluding time
 - Do not promote parity/OFI interactions or any trading strategy from this retrospective run.
 - Freeze this implementation before the next completed, genuinely unseen session.
 
+## Prospective outer-test lock
+
+The implementation is now frozen. Bundle fingerprint:
+`c3350aa8ea7dfa984e19773975040caf6672af67756c2ce906ab5b907b836f28`.
+
+The bundle contains the five JEPA checkpoints, discovery normalization, discovery-fitted PCA,
+seeded random projections, and ridge probes whose regularization was selected on August 21. The
+probes were refitted once on August 19+21. Every artifact and every source file needed to apply the
+test is SHA-256 locked in `outer-test-freeze-manifest.json`.
+
+The apply-only runner accepts exactly one session and enforces all of the following:
+
+- trading date strictly after August 28, 2026 and strictly before the current date in India;
+- no development or retrospective-diagnostic date;
+- exact frozen input schema and at least 50 contiguous endpoints;
+- unchanged bundle artifacts and source code;
+- no overwrite and no second use after the bundle writes its consumption seal.
+
+The predeclared hurdle is intentionally hard: at both 30 seconds and 300 seconds, Base+JEPA must
+have higher signed ATM-IV MAE skill than both the handcrafted base and Base+PCA in at least four of
+five seeds. Passing means only that JEPA remains worth researching. Failing means JEPA is dropped
+from alpha research. Neither outcome is a trading-profit claim.
+
+After a genuinely unseen session is complete, run on the Office Mac:
+
+```bash
+cd /Users/maheit/Documents/Shaurya-2026-08-28-research/research
+/opt/homebrew/bin/uv run python experiments/apply_market_jepa_outer_test.py \
+  --bundle /Users/maheit/Documents/Shaurya-research/2026-08-28-market-jepa-outer-freeze \
+  --session /absolute/path/to/the/completed/surface-states-YYYY-MM-DD.npz \
+  --output /Users/maheit/Documents/Shaurya-research/market-jepa-outer-test-YYYY-MM-DD.json
+```
+
 ## Reproduction
 
 Machine artifacts are stored outside Git at:
@@ -163,3 +196,9 @@ Machine artifacts are stored outside Git at:
 
 The repository retains the reusable analysis module, deterministic runner, tests, compact JSON/CSV
 summaries, and this report. Raw model checkpoints and row-level regime labels remain outside Git.
+
+The prospective bundle is stored outside Git at:
+
+`/Users/maheit/Documents/Shaurya-research/2026-08-28-market-jepa-outer-freeze`
+
+Its compact, auditable manifest is retained beside this report.
