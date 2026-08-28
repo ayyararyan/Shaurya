@@ -149,11 +149,18 @@ expiries from Dhan and then prints (or, with `--launch`, starts in tmux) the mat
 `shaurya-chain-capture` invocation for NIFTY and BANKNIFTY:
 
 ```bash
-uv run shaurya-daily-chain-launch \
-  --credentials /absolute/external/path/dhan.env \
-  --security-master /absolute/external/path/security_id_list.csv \
-  --launch
+uv run shaurya-daily-chain-launch --launch
 ```
+
+`--credentials` and `--security-master` both default to this machine's live operational
+paths and only need overriding on another host or for a controlled test:
+
+- `--credentials` defaults to `~/Documents/Market-Making-Secrets/dhan.env`.
+- `--security-master` defaults to `data/instrument-masters/dhan_instrument_master_<date>.csv`
+  for the resolved trading date.
+- `--output-root` overrides where captures land; omitted, it falls through to the configured
+  NSE archive root (`/Volumes/Aryan/NSE`, or the `SHAURYA_NSE_ARCHIVE_ROOT` environment
+  override already honored by every capture command in this package).
 
 Omit `--launch` to review the resolved spot, expiries, and exact command before anything
 starts. See `shaurya-daily-chain-launch --help` for expiry count, strike-window, and
