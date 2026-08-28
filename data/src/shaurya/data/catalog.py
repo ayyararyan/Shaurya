@@ -318,6 +318,51 @@ def _record_handle(record: dict[str, Any]) -> DatasetHandle:
     )
 
 
+def _legacy_iso_datetime(value: Any) -> datetime | None:
+    if value is None or isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        return datetime.fromisoformat(value)
+    raise TypeError("legacy datetime field must be an ISO-8601 string")
+
+
+def _legacy_dataset_handle(payload: dict[str, Any]) -> DatasetHandle:
+    """Coerce a pre-Parquet legacy JSONL handle into the strict ``DatasetHandle`` types.
+
+    Legacy records were written with plain ``json.dumps`` before the segmented-Parquet
+    catalogue existed, so dates/datetimes arrive as ISO strings and channels/instrument_ids
+    as lists. The Parquet event path (``_read_event``/``_record_handle``) gets these already
+    typed from pyarrow; this mirrors that coercion for the still-active legacy JSONL log so
+    ``ContractModel``'s strict validation does not reject an otherwise-valid legacy record.
+    """
+    coerced = dict(payload)
+    coerced["status"] = DatasetStatus(str(coerced["status"]))
+    trading_date = coerced.get("trading_date")
+    if isinstance(trading_date, str):
+        coerced["trading_date"] = date.fromisoformat(trading_date)
+    for field in (
+        "started_at",
+        "completed_at",
+        "requested_coverage_start",
+        "requested_coverage_end",
+        "coverage_start",
+        "coverage_end",
+    ):
+        coerced[field] = _legacy_iso_datetime(coerced.get(field))
+    storage_format = coerced.get("storage_format")
+    coerced["storage_format"] = StorageFormat(str(storage_format)) if storage_format else None
+    coerced["channels"] = tuple(DataChannel(value) for value in coerced.get("channels") or [])
+    coerced["instrument_ids"] = tuple(str(value) for value in coerced.get("instrument_ids") or [])
+    coerced["segments"] = tuple(
+        DatasetSegment.model_validate(item) for item in (coerced.get("segments") or [])
+    )
+    coerced["operational_artifacts"] = tuple(
+        OperationalArtifact.model_validate(item)
+        for item in (coerced.get("operational_artifacts") or [])
+    )
+    return DatasetHandle.model_validate(coerced)
+
+
 def _read_event(path: Path) -> tuple[int, str, str | None, str, DatasetHandle]:
     try:
         table = pq.read_table(path, schema=CATALOG_EVENT_SCHEMA)
@@ -521,7 +566,7 @@ class DataCatalog:
                             raise TypeError("catalogue event is not an object")
                         if loaded.get("schema_version") != self.LEGACY_SCHEMA_VERSION:
                             raise ValueError("unsupported legacy catalogue schema")
-                        handle = DatasetHandle.model_validate(loaded["handle"])
+                        handle = _legacy_dataset_handle(loaded["handle"])
                     except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
                         raise ValueError(
                             f"invalid legacy data-catalogue record at line {line_number}: "
