@@ -86,8 +86,23 @@ MARKET_EVENT_SCHEMA = pa.schema(
 )
 
 
+_PRICE_QUANTUM = Decimal(1).scaleb(-PRICE_TYPE.scale)
+
+
 def _decimal(value: float | None) -> Decimal | None:
-    return Decimal(str(value)) if value is not None else None
+    """Convert a feed price to the schema's fixed ``decimal128(38, 12)`` scale.
+
+    Dhan's wire format carries prices as IEEE-754 single precision (float32).
+    Widened to Python's float64, the exact binary value can need more than 12
+    fractional digits to state precisely (e.g. ``71.55`` arrives as
+    ``71.55000305175781``) even though the schema's own metadata declares
+    ``shaurya.price_units: native-quote-currency-decimal-12``. Quantizing here
+    conforms every price to that declared contract instead of failing PyArrow's
+    Parquet rescale at segment-finalize time, potentially discarding an entire
+    in-memory segment of already-captured rows.
+    """
+
+    return Decimal(str(value)).quantize(_PRICE_QUANTUM) if value is not None else None
 
 
 def _utc(value: datetime | None) -> datetime | None:
@@ -281,6 +296,18 @@ def human_dataset_name(
     instrument_ids: tuple[str, ...],
     suffix: str | None = None,
 ) -> str:
+    """Build the leaf directory name for one capture run: ``{scope}-{channel}-{HHMMSS}-{suffix}``.
+
+    Deliberately omits two components that were previously included but are
+    always redundant with this name's own placement on disk: a ``dhan-``
+    producer prefix (the literal parent directory is already ``dhan/``) and the
+    full ``YYYYMMDD`` date (production captures already land under a
+    date-partitioned ``YYYY-MM-DD/`` root; a controlled test run's own
+    ``--output-root`` is the caller's responsibility to date if that matters).
+    ``HHMMSS`` is kept for same-day intra-scope ordering and the ``suffix``
+    (the dataset id's own trailing hex) for uniqueness.
+    """
+
     if len(instrument_ids) == 1:
         parts = instrument_ids[0].split(":")
         scope = "-".join(parts[2:4]) if len(parts) >= 4 else instrument_ids[0]
@@ -290,8 +317,8 @@ def human_dataset_name(
         scope = f"{segment}-{len(instrument_ids)}-instruments"
     channel_part = "-".join(str(channel) for channel in channels)
     base = (
-        f"dhan-{_safe_component(scope)}-{_safe_component(channel_part)}-"
-        f"{trading_date.astimezone(UTC).strftime('%Y%m%d-%H%M%S')}"
+        f"{_safe_component(scope)}-{_safe_component(channel_part)}-"
+        f"{trading_date.astimezone(UTC).strftime('%H%M%S')}"
     )
     return f"{base}-{_safe_component(suffix, max_length=20)}" if suffix else base
 

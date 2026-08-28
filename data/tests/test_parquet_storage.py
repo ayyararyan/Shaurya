@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import json
 import re
 from datetime import UTC, date, datetime, timedelta
@@ -66,6 +67,44 @@ def test_operational_parquet_round_trip_preserves_empty_and_populated_mappings(
         tables[0].schema.field("reconnect_attempts").type
         == tables[1].schema.field("reconnect_attempts").type
     )
+
+
+def test_operational_parquet_round_trip_preserves_list_and_list_of_struct_fields(
+    tmp_path: Path,
+) -> None:
+    """Regression for chain-capture's ``chain_coverage`` record.
+
+    PyArrow silently renames a Parquet list's child field from ``item`` to
+    ``element`` on every write/read round trip. Left un-encoded, any top-level
+    list payload field (flat or list-of-dict) previously failed
+    ``ParquetCaptureManifest.write_record``'s post-write schema-equality check.
+    """
+
+    payload = {
+        "run_id": "chain-shape",
+        "silent_instruments": ["NSE:NSE_FNO:NIFTY:option:2026-09-24:25000:CE"],
+        "universes": [
+            {
+                "underlying": "NIFTY",
+                "spot_reference": 25000.0,
+                "expiries": ["2026-09-24"],
+                "strike_window_fraction": 0.06,
+                "future_count": 1,
+                "option_count": 2,
+                "total_instruments": 3,
+                "futures": ["NSE:NSE_FNO:NIFTY:future:2026-09-24"],
+                "options": [
+                    "NSE:NSE_FNO:NIFTY:option:2026-09-24:25000:CE",
+                    "NSE:NSE_FNO:NIFTY:option:2026-09-24:25000:PE",
+                ],
+            }
+        ],
+    }
+    manifest = ParquetCaptureManifest(tmp_path / "chain-shape", run_id="chain-shape")
+    path = manifest.write_record("chain_coverage", payload)
+    table = pq.read_table(path)
+    restored = decode_mapping_fields(table.to_pylist()[0], table.schema.metadata or {})
+    assert restored == payload
 
 
 def _request(*, allow_active: bool = True) -> DatasetRequest:
@@ -192,6 +231,35 @@ def test_arrow_round_trip_preserves_every_tape_field_and_depth(
     assert len(restored[0].bids) == expected_depth
     assert restored[0].receive_ts.tzinfo is not None
     assert restored[0].last_price == original.last_price
+
+
+def test_float32_widened_prices_quantize_to_the_schema_scale_instead_of_crashing(
+    tmp_path: Path,
+) -> None:
+    """Regression for option-chain capture losing an entire in-memory segment.
+
+    Dhan's option-chain feed carries prices as IEEE-754 single precision. Widened
+    to Python's float64, the exact value can need more than the schema's declared
+    12 fractional digits (e.g. an on-wire ``71.55`` arrives as
+    ``71.55000305175781``) — PyArrow refuses to silently truncate that at
+    Parquet-write time, which previously crashed segment finalize and discarded
+    every row buffered in that segment.
+    """
+
+    writer = SegmentedParquetWriter(tmp_path / "float32-prices", dataset_id=str(RUN_ID), max_rows=1)
+    float32_widened = dataclasses.replace(
+        _row(1, event_type="full"),
+        last_price=71.55000305175781,
+        trade_quote_bid=109.8499984741211,
+        trade_quote_ask=109.90000152587891,
+    )
+    writer.write(float32_widened)
+    segment = writer.close()[0]
+
+    restored = tuple(iter_parquet_rows(Path(segment.path)))
+
+    assert restored[0].last_price == pytest.approx(71.55000305175781, abs=1e-12)
+    assert restored[0].trade_quote_bid == pytest.approx(109.8499984741211, abs=1e-12)
 
 
 def test_multiple_segments_replay_without_duplicate_or_missing_rows(tmp_path: Path) -> None:
@@ -489,10 +557,31 @@ def test_human_name_is_safe_meaningful_and_internal_ids_remain_separate(tmp_path
         suffix="Morning control #1",
     )
 
+    assert name == "nifty-future-depth20-depth200-034500-morning-control-1"
     assert "nifty-future" in name
     assert "depth20-depth200" in name
     assert re.fullmatch(r"[a-z0-9-]+", name)
     assert "sha-" not in name
+    assert not name.startswith("dhan-")
+    assert "20260827" not in name
+
+
+def test_human_name_omits_redundant_producer_prefix_and_full_date(tmp_path: Path) -> None:
+    """Both were previously included but are always redundant with this name's own
+    placement on disk: the leaf directory's literal parent is already ``dhan/``, and
+    production captures already land under a date-partitioned ``YYYY-MM-DD/`` root."""
+
+    del tmp_path
+    name = human_dataset_name(
+        trading_date=datetime(2026, 8, 27, 3, 45, tzinfo=UTC),
+        channels=(DataChannel.STANDARD,),
+        instrument_ids=tuple(
+            f"NSE:NSE_FNO:NIFTY:option:2026-09-01:{strike}:CE" for strike in range(40)
+        ),
+        suffix="d49ec103",
+    )
+
+    assert name == "nse-fno-40-instruments-standard-034500-d49ec103"
 
 
 def test_terminal_failure_states_require_reasons() -> None:

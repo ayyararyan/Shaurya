@@ -223,8 +223,8 @@ def test_registered_cutoff_and_forged_fold_are_rejected() -> None:
         plan_from_directory(
             Path("registries"),
             through=date(2026, 8, 25),
-            feature_version="microstructure_features_v1",
-            target_version="microstructure_targets_v1",
+            feature_version="microstructure_features_v2",
+            target_version="microstructure_targets_v2",
         )
 
 

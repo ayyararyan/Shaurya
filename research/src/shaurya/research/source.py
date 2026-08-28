@@ -16,9 +16,9 @@ from shaurya.data import (
     DataAccess,
     DataCatalog,
     TapeIntegrityError,
+    TimedValue,
     data_channel_for_row,
 )
-from shaurya.data.high_frequency import TimedValue
 
 from shaurya.analytics.depth_thinning_analysis import BookState
 from shaurya.research.construction import construct_v2_feature, construct_v2_target

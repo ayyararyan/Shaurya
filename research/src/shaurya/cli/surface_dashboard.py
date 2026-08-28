@@ -87,6 +87,13 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--min-quotes-per-slice", type=int, default=5)
     parser.add_argument("--risk-free-rate", type=float, default=0.0)
     parser.add_argument(
+        "--use-atm-strikes",
+        action="store_true",
+        help="Let at-the-money quotes enter eSSVI calibration (both the displayed surface "
+        "and the mispricing reference fits). Off by default: an ATM contract's own quote "
+        "would otherwise both calibrate the curve and be priced off it.",
+    )
+    parser.add_argument(
         "--disable-mispricing",
         action="store_true",
         help="Disable the approved read-only ANL-07 surface-relative mispricing monitor.",
@@ -206,9 +213,11 @@ def _engine(
         fit_interval_seconds=args.fit_interval_seconds,
         risk_free_rate=args.risk_free_rate,
         min_quotes_per_slice=args.min_quotes_per_slice,
+        include_atm_strikes=args.use_atm_strikes,
         wall_clock=source == "live",
         mispricing_policy=MispricingPolicy(
             enabled=not args.disable_mispricing,
+            include_atm_strikes=args.use_atm_strikes,
             cross_fit_folds=args.mispricing_cross_fit_folds,
             quote_max_age_seconds=args.mispricing_quote_max_age_seconds,
             fit_max_age_seconds=args.mispricing_fit_max_age_seconds,

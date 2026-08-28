@@ -60,8 +60,7 @@ From the `research/` directory:
 uv run shaurya-research daily \
   --date 2026-08-28 \
   --next-session 2026-08-31 \
-  --catalog /Volumes/Aryan/NSE/catalog \
-  --bundle high_frequency
+  --catalog /Volumes/Aryan/NSE/catalog
 ```
 
 The convenience wrapper provides one workspace switch:

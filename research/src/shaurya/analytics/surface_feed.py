@@ -288,6 +288,7 @@ class SurfaceEngine:
     fit_interval_seconds: float = 5.0
     risk_free_rate: float = 0.0
     min_quotes_per_slice: int = 5
+    include_atm_strikes: bool = False
     history_limit: int = 720
     health_sample_limit: int = 3600
     wall_clock: bool = True
@@ -647,6 +648,7 @@ class SurfaceEngine:
             risk_free_rate=self.risk_free_rate,
             min_quotes_per_slice=self.min_quotes_per_slice,
             previous_surface=self._previous_surface,
+            include_atm_strikes=self.include_atm_strikes,
         )
         try:
             raw = ESSVISurface.fit(request)

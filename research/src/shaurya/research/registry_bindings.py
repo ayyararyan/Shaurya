@@ -13,13 +13,6 @@ class RegistryBinding:
     policy_registry: str
 
 
-LEGACY_REGISTRY_BINDING = RegistryBinding(
-    "microstructure_features_v1",
-    "microstructure_targets_v1",
-    "alpha_hypotheses_v1",
-    "alpha_research_policy_v1",
-)
-
 HIGH_FREQUENCY_REGISTRY_BINDING = RegistryBinding(
     "microstructure_features_v2",
     "microstructure_targets_v2",

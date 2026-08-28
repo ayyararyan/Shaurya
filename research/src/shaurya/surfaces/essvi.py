@@ -29,6 +29,10 @@ _CALENDAR_GRID_POINTS = 31
 _ARBITRAGE_GRID_POINTS = 81
 _PARAMETER_TOLERANCE = 1e-8
 
+# Shared with the "atm" residual-diagnostics bucket below: one definition of "at-the-money"
+# for both what gets excluded from calibration and how residuals get reported.
+ATM_LOG_MONEYNESS_BAND = 0.025
+
 
 class SurfaceCalibrationError(RuntimeError):
     """Calibration failed or produced a surface that failed its acceptance gates."""
@@ -147,6 +151,11 @@ def _extract_observations(
             not identity.is_call and identity.strike > forward
         ):
             excluded["in_the_money_quote"] += 1
+            continue
+        if not request.include_atm_strikes and abs(
+            math.log(identity.strike / forward)
+        ) <= ATM_LOG_MONEYNESS_BAND:
+            excluded["atm_strike_excluded_by_policy"] += 1
             continue
         expiry_timestamp = request.expiry_timestamp_by_expiry[identity.expiry]
         maturity = (
@@ -438,9 +447,9 @@ class ESSVISurface(VolatilitySurface):
                 "deep_put"
                 if k < -0.10
                 else "put_wing"
-                if k < -0.025
+                if k < -ATM_LOG_MONEYNESS_BAND
                 else "atm"
-                if k <= 0.025
+                if k <= ATM_LOG_MONEYNESS_BAND
                 else "call_wing"
                 if k <= 0.10
                 else "deep_call"

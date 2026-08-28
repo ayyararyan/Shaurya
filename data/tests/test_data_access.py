@@ -400,6 +400,62 @@ def test_catalog_resolves_latest_completed_dataset_by_trading_date(tmp_path: Pat
     assert resolved.dataset_id == handle.dataset_id
 
 
+def test_catalog_reads_pre_parquet_legacy_jsonl_record(tmp_path: Path) -> None:
+    """Regression: the segmented-Parquet refactor must not break archived legacy catalogues.
+
+    Every dataset registered before the Parquet event-fragment catalogue existed is still on
+    disk as plain ``json.dumps`` JSONL, so dates/datetimes are ISO strings and
+    channels/instrument_ids are JSON lists rather than the strict tuple/date/datetime types
+    ``DatasetHandle`` requires. This reproduces one real archived record shape byte-for-byte.
+    """
+    legacy_path = tmp_path / "catalog" / "datasets.jsonl"
+    legacy_path.parent.mkdir(parents=True)
+    handle_payload = {
+        "acquisition_fingerprint": (
+            "29262212b9c8716b1e08e15cc72f12741f559311b3ef431f89f1fcd45111a71f"
+        ),
+        "archive_path": None,
+        "archive_sha256": None,
+        "bytes": 3286554,
+        "channels": ["depth20", "standard"],
+        "completed_at": "2026-08-21T08:11:57.828443+00:00",
+        "coverage_end": "2026-08-21T08:11:57.828443+00:00",
+        "coverage_start": "2026-08-21T03:03:35.531421+00:00",
+        "dataset_id": "sha-20260821T080612.138551Z-9b5bd89e",
+        "index_path": None,
+        "index_sha256": None,
+        "instrument_ids": [INSTRUMENT, "NSE:NSE_FNO:NIFTY:future:2026-09-29"],
+        "invalidation_reason": None,
+        "manifest_path": "manifest_sha-20260821T080612.138551Z-9b5bd89e.jsonl",
+        "producer": "DAT",
+        "producer_pid": 38211,
+        "requested_coverage_end": None,
+        "requested_coverage_start": None,
+        "rows": 3286554,
+        "schema_version": "1.0.0",
+        "source": "dhan",
+        "started_at": "2026-08-21T03:03:35.531421Z",
+        "status": "completed",
+        "tape_path": "tape_sha-20260821T080612.138551Z-9b5bd89e.jsonl",
+        "tape_sha256": None,
+        "trading_date": "2026-08-21",
+    }
+    legacy_path.write_text(
+        json.dumps({"schema_version": "1.0.0", "handle": handle_payload}) + "\n",
+        encoding="utf-8",
+    )
+
+    catalog = DataCatalog(legacy_path)
+    handle = catalog.get("sha-20260821T080612.138551Z-9b5bd89e")
+
+    assert handle.status is DatasetStatus.COMPLETED
+    assert handle.trading_date == date(2026, 8, 21)
+    assert handle.channels == (DataChannel.DEPTH20, DataChannel.STANDARD)
+    assert handle.instrument_ids == tuple(sorted(handle_payload["instrument_ids"]))
+    assert handle.started_at == datetime(2026, 8, 21, 3, 3, 35, 531421, tzinfo=UTC)
+    assert handle.rows == 3286554
+
+
 def test_data_source_never_imports_research() -> None:
     root = Path(__file__).parents[1] / "src"
     forbidden = ("shaurya.analytics", "shaurya.signals", "shaurya.surfaces")

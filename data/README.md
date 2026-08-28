@@ -141,18 +141,37 @@ datasets. Rollback disables new acquisition; it does not rewrite either represen
 
 ## Collection
 
-Credential and security-master files must live outside this repository:
+Credential and security-master files must live outside this repository.
+
+**Daily production capture always captures the whole option chain.** The canonical entry
+point is `shaurya-daily-chain-launch`, which resolves each underlying's live spot and nearest
+expiries from Dhan and then prints (or, with `--launch`, starts in tmux) the matching
+`shaurya-chain-capture` invocation for NIFTY and BANKNIFTY:
 
 ```bash
-uv run shaurya-dhan-capture \
-  --credentials /absolute/external/path/dhan.env \
-  --security-master /absolute/external/path/security_id_list.csv \
-  --security-id 58072 \
-  --expected-symbol NIFTY-AUG2026-FUT
+uv run shaurya-daily-chain-launch --launch
 ```
 
-For an option-chain capture, use `shaurya-chain-capture --help`. Production capture defaults to
-the date-partitioned NSE archive. Use non-archive overrides only for intentional isolated tests.
+`--credentials` and `--security-master` both default to this machine's live operational
+paths and only need overriding on another host or for a controlled test:
+
+- `--credentials` defaults to `~/Documents/Market-Making-Secrets/dhan.env`.
+- `--security-master` defaults to `data/instrument-masters/dhan_instrument_master_<date>.csv`
+  for the resolved trading date.
+- `--output-root` overrides where captures land; omitted, it falls through to the configured
+  NSE archive root (`/Volumes/Aryan/NSE`, or the `SHAURYA_NSE_ARCHIVE_ROOT` environment
+  override already honored by every capture command in this package).
+
+Omit `--launch` to review the resolved spot, expiries, and exact command before anything
+starts. See `shaurya-daily-chain-launch --help` for expiry count, strike-window, and
+max-options overrides; defaults reproduce the known-good full-chain shape (two expiries,
+6% strike window, up to 120 options per underlying).
+
+`shaurya-dhan-capture` (single instrument) and `shaurya-chain-capture` (one already-resolved
+chain) remain available directly for isolated diagnostics and controlled tests, but neither is
+the daily entry point — a manual single-instrument capture must not be used as a substitute for
+the whole-chain session. Production capture defaults to the date-partitioned NSE archive; use
+non-archive overrides only for intentional isolated tests.
 
 See [`SECURITY.md`](SECURITY.md) for the credential-handle and file-permission policy.
 ## High-frequency derived variables

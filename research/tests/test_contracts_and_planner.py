@@ -43,30 +43,26 @@ def test_feature_observation_is_deeply_immutable_target_blind_and_future_safe() 
 def test_plan_knows_the_complete_search_cardinality_before_outcomes() -> None:
     plan = plan_from_directory(
         REGISTRIES,
-        through=date(2026, 8, 26),
-        feature_version="microstructure_features_v1",
-        target_version="microstructure_targets_v1",
+        through=date(2026, 8, 27),
+        feature_version="microstructure_features_v2",
+        target_version="microstructure_targets_v2",
     )
-    assert plan.total_raw_hypothesis_count == 22_681
-    assert plan.total_effective_hypothesis_count == 7_561
-    assert plan.predictor_specifications == 64
-    assert plan.effective_family_count == 2
-    assert plan.horizons == 10
-    assert plan.regime_conditions == 3
+    assert plan.total_raw_hypothesis_count == 8
+    assert plan.total_effective_hypothesis_count == 8
+    assert plan.predictor_specifications == 8
+    assert plan.effective_family_count == 8
+    assert plan.horizons == 4
+    assert plan.regime_conditions == 2
     assert plan.interactions == 4
-    assert plan.sampling_clocks == 2
+    assert plan.sampling_clocks == 1
     assert plan.pooling_coordinates == 1
-    assert len(plan.excluded_before_target_inspection) == 15_120
-    assert {item["reason"] for item in plan.excluded_before_target_inspection} == {
-        "pooling_coordinate_has_no_executable_strategy",
-        "sampling_clock_has_no_executable_strategy",
-    }
+    assert plan.excluded_before_target_inspection == ()
     assert len(plan.plan_hash) == 64
 
 
 def test_semantic_hypothesis_identity_ignores_alias_and_duplicates_are_one_atom() -> None:
     original = expand_hypotheses(
-        registry_by_version(REGISTRIES, "alpha_hypotheses_v1", expected_type="hypotheses")
+        registry_by_version(REGISTRIES, "alpha_hypotheses_v2", expected_type="hypotheses")
     )[0]
     alias = HypothesisDefinition(
         display_name="a fresh attractive label",
@@ -84,6 +80,12 @@ def test_semantic_hypothesis_identity_ignores_alias_and_duplicates_are_one_atom(
         transaction_cost_relevance=original.transaction_cost_relevance,
         first_registration_date=date(2026, 8, 27),
         registry_version="later-registry-version",
+        sampling_clock=original.sampling_clock,
+        pooling_coordinate=original.pooling_coordinate,
+        selection_method=original.selection_method,
+        selection_threshold=original.selection_threshold,
+        minimum_observations=original.minimum_observations,
+        minimum_effective_sample_size=original.minimum_effective_sample_size,
     )
     assert alias.hypothesis_id == original.hypothesis_id
 
