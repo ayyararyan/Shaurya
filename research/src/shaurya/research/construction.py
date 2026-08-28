@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from shaurya.contracts.tape import TapeRow
-from shaurya.data.high_frequency import (
+from shaurya.data import (
     TimedValue,
     ccz_average,
     convergence,
