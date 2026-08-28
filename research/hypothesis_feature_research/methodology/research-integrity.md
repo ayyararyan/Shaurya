@@ -10,8 +10,8 @@ market-alpha claims.
 ## 2. Source tests and entry points
 
 Primary paths are `research/src/shaurya/research/{source,contracts,walkforward,nulls,multiplicity,
-evidence,ledger,state}.py` and the eight tests under `research/tests/research/`. Important symbols
-include `verify_completed_source`, `FeatureObservation`, `freeze_historical_folds`,
+evidence,ledger,state}.py` and the integrity-related tests registered in `test_traceability.csv`.
+Important symbols include `verify_completed_source`, `FeatureObservation`, `freeze_historical_folds`,
 `complete_miner_empirical_null`, `adjust_hierarchical`, and `assess_lifecycle`.
 
 ## 3. Input lineage
@@ -61,7 +61,11 @@ missingness, or provider failures. The tests cannot prove absence of every possi
 
 ```bash
 cd research
-PYTHONDONTWRITEBYTECODE=1 uv run pytest -q tests/research
+PYTHONDONTWRITEBYTECODE=1 uv run pytest -q \
+  tests/test_adversarial_acceptance.py tests/test_contracts_and_planner.py \
+  tests/test_ledger_state_lifecycle_executor.py tests/test_surfaces_nulls_multiplicity.py \
+  tests/test_walkforward_and_synthetic.py tests/test_v3_seeded_full_pipeline.py \
+  tests/test_v3_source_bound_e2e.py
 ```
 
 This is a bounded synthetic/temporary-file suite; it does not require live services.
