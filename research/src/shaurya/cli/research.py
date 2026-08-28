@@ -5,12 +5,12 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
-from shaurya.contracts.data import DatasetHandle
+from shaurya.contracts.data import DatasetHandle, DatasetStatus
 from shaurya.data import DataCatalog
 
 from shaurya.research.artifacts import build_candidate_gate_artifacts
@@ -42,10 +42,15 @@ from shaurya.research.planner import (
     validate_plan_registries,
 )
 from shaurya.research.registry import FrozenRegistry, expand_hypotheses, registry_by_version
+from shaurya.research.registry_bindings import (
+    HIGH_FREQUENCY_REGISTRY_BINDING,
+    LEGACY_REGISTRY_BINDING,
+)
 from shaurya.research.source import (
     DerivedResearchDataset,
     derivation_hash_for_sources,
     derive_research_dataset,
+    discover_completed_sources,
     verify_completed_source,
 )
 from shaurya.research.state import ResearchState, StateStore
@@ -61,6 +66,7 @@ DEFAULT_LEDGER = Path("derived/research/alpha-evidence-ledger.jsonl")
 DEFAULT_STATE_DIRECTORY = Path("derived/research/state")
 DEFAULT_REPORT_DIRECTORY = Path("derived/research/reports")
 DEFAULT_SNAPSHOT_DIRECTORY = Path("derived/research/snapshots")
+DEFAULT_PLAN_DIRECTORY = Path("derived/research/plans")
 
 
 def _common(parser: argparse.ArgumentParser) -> None:
@@ -107,6 +113,26 @@ def _parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--snapshot-dir", type=Path, default=DEFAULT_SNAPSHOT_DIRECTORY)
     evaluate.add_argument("--crash-after", help=argparse.SUPPRESS)
     evaluate.add_argument(
+        "--mode",
+        choices=(ResearchMode.CONFIRMATORY.value, ResearchMode.LIVE_SHADOW.value),
+        default=ResearchMode.CONFIRMATORY.value,
+    )
+
+    daily = commands.add_parser("daily")
+    _common(daily)
+    daily.add_argument("--date", type=date.fromisoformat, required=True)
+    daily.add_argument("--next-session", type=date.fromisoformat, required=True)
+    daily.add_argument("--catalog", type=Path, required=True)
+    daily.add_argument("--plan", type=Path)
+    daily.add_argument("--state", type=Path)
+    daily.add_argument("--plan-dir", type=Path, default=DEFAULT_PLAN_DIRECTORY)
+    daily.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIRECTORY)
+    daily.add_argument("--report-dir", type=Path, default=DEFAULT_REPORT_DIRECTORY)
+    daily.add_argument("--snapshot-dir", type=Path, default=DEFAULT_SNAPSHOT_DIRECTORY)
+    daily.add_argument(
+        "--bundle", choices=("high_frequency", "legacy"), default="high_frequency"
+    )
+    daily.add_argument(
         "--mode",
         choices=(ResearchMode.CONFIRMATORY.value, ResearchMode.LIVE_SHADOW.value),
         default=ResearchMode.CONFIRMATORY.value,
@@ -190,6 +216,103 @@ def _load_dataset(
     return derive_research_dataset(
         frozen, feature_registry=feature_registry, target_registry=target_registry
     )
+
+
+def _load_dataset_from_catalog(
+    catalog_path: Path,
+    *,
+    through: date,
+    feature_registry: FrozenRegistry,
+    target_registry: FrozenRegistry,
+) -> DerivedResearchDataset:
+    catalog = DataCatalog(catalog_path)
+    sources = discover_completed_sources(catalog, through=through)
+    return derive_research_dataset(
+        sources, feature_registry=feature_registry, target_registry=target_registry
+    )
+
+
+def _write_plan_artifact(plan: AlphaPlan, directory: Path) -> Path:
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    path = directory / f"plan-through-{plan.through.isoformat()}-{plan.plan_hash}.json"
+    encoded = (canonical_json(plan.to_dict()) + "\n").encode()
+    if path.exists():
+        if path.read_bytes() != encoded:
+            raise ValueError("existing plan artifact conflicts with its content hash")
+        return path
+    _atomic_create_once(path, encoded)
+    return path
+
+
+def _find_plan_by_hash(directory: Path, plan_hash: str) -> Path | None:
+    if not directory.exists():
+        return None
+    matches: list[Path] = []
+    for path in sorted(directory.glob("plan-through-*.json")):
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(raw, dict) and raw.get("plan_hash") == plan_hash:
+            matches.append(path)
+    if len(matches) > 1:
+        raise ValueError("multiple plan artifacts claim the same plan hash")
+    return matches[0] if matches else None
+
+
+def _bootstrap_state_from_catalog(
+    *,
+    plan: AlphaPlan,
+    intended_for_session: date,
+    catalog_path: Path,
+    registries: tuple[FrozenRegistry, FrozenRegistry, FrozenRegistry, FrozenRegistry],
+    ledger_path: Path,
+    state_directory: Path,
+    mode: str,
+) -> Path:
+    if plan.through >= intended_for_session:
+        raise ValueError("bootstrap plan must be frozen before its intended session")
+    dataset = _load_dataset_from_catalog(
+        catalog_path,
+        through=plan.through,
+        feature_registry=registries[0],
+        target_registry=registries[1],
+    )
+    if max(item.trading_date for item in dataset.sources) != plan.through:
+        raise ValueError("bootstrap catalogue prefix does not reach the frozen plan date")
+    envelopes = EvidenceLedger(ledger_path).read()
+    if envelopes:
+        raise ValueError(
+            "automatic bootstrap is allowed only before the evidence ledger has history; "
+            "supply the exact pre-session state instead"
+        )
+    state = ResearchState(
+        as_of_date=plan.through,
+        intended_for_session=intended_for_session,
+        active_hypotheses=plan.eligible_hypothesis_ids,
+        lifecycle=tuple((identity, "UNTESTED") for identity in plan.eligible_hypothesis_ids),
+        evidence_grades=tuple(
+            (identity, "E0_UNTESTED") for identity in plan.eligible_hypothesis_ids
+        ),
+        coefficient_estimates=(),
+        shrinkage_state=(),
+        regime_models=(),
+        performance_history_hash=canonical_sha256([]),
+        dormant_hypotheses=(),
+        parameter_surface_hashes=(),
+        model_weights=(),
+        source_ledger_hash="0" * 64,
+        plan_hash=plan.plan_hash,
+        planned_hypothesis_ids=plan.eligible_hypothesis_ids,
+        source_prefix_manifest=tuple(
+            (item.trading_date.isoformat(), item.dataset_id, item.source_identity_hash)
+            for item in dataset.sources
+        ),
+        derivation_prefixes=((plan.through.isoformat(), dataset.derivation_hash),),
+        policy_fingerprint=registries[3].fingerprint_sha256,
+        evidence_mode=mode,
+    ).with_hash()
+    return StateStore(state_directory).write(state)
 
 
 def _exact_hypotheses(
@@ -412,12 +535,22 @@ def _evaluate(args: argparse.Namespace) -> None:
         if datetime.now(UTC) >= intended_start:
             raise ValueError("live-shadow evidence must be durably run before its intended session")
     universe = freeze_daily_universe(plan=plan, evaluation_date=args.date, pre_session_state=state)
-    dataset = _load_dataset(
-        args.source_handle,
-        through=args.date,
-        feature_registry=registries[0],
-        target_registry=registries[1],
-        catalog_path=args.catalog,
+    source_handles = getattr(args, "source_handle", None)
+    dataset = (
+        _load_dataset(
+            source_handles,
+            through=args.date,
+            feature_registry=registries[0],
+            target_registry=registries[1],
+            catalog_path=args.catalog,
+        )
+        if source_handles
+        else _load_dataset_from_catalog(
+            args.catalog,
+            through=args.date,
+            feature_registry=registries[0],
+            target_registry=registries[1],
+        )
     )
     source_dates = {item.trading_date for item in dataset.sources}
     if args.date not in source_dates or any(value > args.date for value in source_dates):
@@ -687,6 +820,242 @@ def _evaluate(args: argparse.Namespace) -> None:
     _print(asdict(result))
 
 
+def _advance_warmup_state(
+    *,
+    evaluation_date: date,
+    next_session_date: date,
+    plan: AlphaPlan,
+    pre_session_state: ResearchState,
+    catalog_path: Path,
+    registries: tuple[FrozenRegistry, FrozenRegistry, FrozenRegistry, FrozenRegistry],
+    ledger_path: Path,
+    state_directory: Path,
+    prior_sessions: int,
+    required_prior_sessions: int,
+) -> Path:
+    """Advance immutable source/state lineage when a legal outer fold cannot exist yet."""
+
+    dataset = _load_dataset_from_catalog(
+        catalog_path,
+        through=evaluation_date,
+        feature_registry=registries[0],
+        target_registry=registries[1],
+    )
+    observed_dates = {item.trading_date for item in dataset.sources}
+    if evaluation_date not in observed_dates:
+        raise ValueError("warm-up day is not backed by a completed canonical source")
+    observed_manifest = tuple(
+        (item.trading_date.isoformat(), item.dataset_id, item.source_identity_hash)
+        for item in dataset.sources
+    )
+    historical_count = len(pre_session_state.source_prefix_manifest)
+    if observed_manifest[:historical_count] != pre_session_state.source_prefix_manifest:
+        raise ValueError("warm-up source history is not the immutable state prefix")
+    if pre_session_state.derivation_prefixes and derivation_hash_for_sources(
+        dataset, dataset.sources[:historical_count]
+    ) != pre_session_state.derivation_prefixes[-1][1]:
+        raise ValueError("warm-up historical rows were re-derived under different sources")
+
+    ledger = EvidenceLedger(ledger_path)
+    envelopes = ledger.read()
+    current_tail = envelopes[-1].event_hash if envelopes else "0" * 64
+    if current_tail != pre_session_state.source_ledger_hash:
+        raise ValueError("warm-up ledger tail differs from the exact pre-session state")
+    event = ledger.append(
+        "daily_warmup_skipped",
+        {
+            "evaluation_date": evaluation_date,
+            "next_session_date": next_session_date,
+            "plan_hash": plan.plan_hash,
+            "pre_session_state_hash": pre_session_state.state_hash,
+            "source_derivation_hash": dataset.derivation_hash,
+            "prior_sessions": prior_sessions,
+            "required_prior_sessions": required_prior_sessions,
+            "terminal_status": "skipped",
+            "terminal_reason": "insufficient_prior_sessions_for_prospective_fold",
+        },
+    )
+    state = replace(
+        pre_session_state,
+        as_of_date=evaluation_date,
+        intended_for_session=next_session_date,
+        source_ledger_hash=event.event_hash,
+        source_prefix_manifest=observed_manifest,
+        derivation_prefixes=(
+            *pre_session_state.derivation_prefixes,
+            (evaluation_date.isoformat(), dataset.derivation_hash),
+        ),
+        published_at=event.recorded_at,
+        publication_event_hash=event.event_hash,
+        report_path="",
+        report_sha256="",
+        report_manifest_sha256="",
+        state_hash="",
+    ).with_hash()
+    return StateStore(state_directory).write(state)
+
+
+def _daily(args: argparse.Namespace) -> None:
+    binding = (
+        HIGH_FREQUENCY_REGISTRY_BINDING
+        if args.bundle == "high_frequency"
+        else LEGACY_REGISTRY_BINDING
+    )
+    registries = _registries(
+        args.registry_dir,
+        feature=binding.feature_registry,
+        target=binding.target_registry,
+        hypothesis=binding.hypothesis_registry,
+        policy=binding.policy_registry,
+    )
+    store = StateStore(args.state_dir)
+    state_path = args.state
+    state: ResearchState | None = None
+    if state_path is not None:
+        state = store.load_exact(state_path)
+    else:
+        candidate = store.load_as_of(args.date)
+        if candidate is not None and candidate.as_of_date == args.date:
+            if candidate.intended_for_session != args.next_session:
+                raise ValueError(
+                    "evaluation date is already published for a different next session"
+                )
+            path = args.state_dir / (
+                f"{candidate.as_of_date.isoformat()}-{candidate.state_hash}.json"
+            )
+            _print(
+                {
+                    "status": "already_processed",
+                    "evaluation_date": args.date,
+                    "next_state_path": path,
+                    "next_state_hash": candidate.state_hash,
+                }
+            )
+            return
+        if candidate is not None and candidate.intended_for_session == args.date:
+            state = candidate
+            state_path = args.state_dir / (
+                f"{candidate.as_of_date.isoformat()}-{candidate.state_hash}.json"
+            )
+
+    plan_path = args.plan
+    if plan_path is None and state is not None:
+        plan_path = _find_plan_by_hash(args.plan_dir, state.plan_hash)
+        if plan_path is None:
+            raise ValueError(
+                "pre-session state exists but its frozen plan artifact is absent; supply --plan"
+            )
+
+    if plan_path is None:
+        catalog = DataCatalog(args.catalog)
+        prior_dates = sorted(
+            {
+                handle.trading_date
+                for handle in catalog.handles().values()
+                if handle.status is DatasetStatus.COMPLETED and handle.trading_date < args.date
+            }
+        )
+        if not prior_dates:
+            raise ValueError("daily research requires at least one completed pre-session source")
+        plan = plan_from_directory(
+            args.registry_dir,
+            through=prior_dates[-1],
+            feature_version=binding.feature_registry,
+            target_version=binding.target_registry,
+            hypothesis_version=binding.hypothesis_registry,
+            policy_version=binding.policy_registry,
+        )
+        plan_path = _write_plan_artifact(plan, args.plan_dir)
+    else:
+        plan = _load_plan(plan_path)
+    _validate_runtime(plan, registries)
+
+    if state is None:
+        state_path = _bootstrap_state_from_catalog(
+            plan=plan,
+            intended_for_session=args.date,
+            catalog_path=args.catalog,
+            registries=registries,
+            ledger_path=args.ledger,
+            state_directory=args.state_dir,
+            mode=args.mode,
+        )
+        state = store.load_exact(state_path)
+    assert state_path is not None
+    if state.intended_for_session != args.date:
+        raise ValueError("latest immutable state is not intended for this evaluation session")
+    if state.plan_hash != plan.plan_hash:
+        raise ValueError("daily state and frozen plan disagree")
+
+    catalog = DataCatalog(args.catalog)
+    completed_dates = sorted(
+        {
+            handle.trading_date
+            for handle in catalog.handles().values()
+            if handle.status is DatasetStatus.COMPLETED and handle.trading_date <= args.date
+        }
+    )
+    if args.date not in completed_dates:
+        raise ValueError("daily evaluation date has no completed canonical DAT source")
+    validation = registries[3].payload.get("validation")
+    if not isinstance(validation, Mapping):
+        raise ValueError("walk-forward validation policy is malformed")
+    # One distinct validation session is frozen in addition to the minimum training sessions.
+    required_prior_sessions = int(validation["minimum_inner_sessions"]) + 1
+    prior_sessions = sum(value < args.date for value in completed_dates)
+    if prior_sessions < required_prior_sessions:
+        path = _advance_warmup_state(
+            evaluation_date=args.date,
+            next_session_date=args.next_session,
+            plan=plan,
+            pre_session_state=state,
+            catalog_path=args.catalog,
+            registries=registries,
+            ledger_path=args.ledger,
+            state_directory=args.state_dir,
+            prior_sessions=prior_sessions,
+            required_prior_sessions=required_prior_sessions,
+        )
+        warmed = store.load_exact(path)
+        _print(
+            {
+                "status": "warmup_skipped",
+                "evaluation_date": args.date,
+                "prior_sessions": prior_sessions,
+                "required_prior_sessions": required_prior_sessions,
+                "next_state_path": path,
+                "next_state_hash": warmed.state_hash,
+            }
+        )
+        return
+
+    evaluation_args = argparse.Namespace(
+        command="evaluate-alpha",
+        registry_dir=args.registry_dir,
+        ledger=args.ledger,
+        feature_registry=binding.feature_registry,
+        target_registry=binding.target_registry,
+        hypothesis_registry=binding.hypothesis_registry,
+        policy=binding.policy_registry,
+        date=args.date,
+        next_session=args.next_session,
+        source_handle=None,
+        catalog=args.catalog,
+        plan=plan_path,
+        state=state_path,
+        state_dir=args.state_dir,
+        report_dir=args.report_dir,
+        snapshot_dir=args.snapshot_dir,
+        crash_after=None,
+        mode=args.mode,
+    )
+    try:
+        _evaluate(evaluation_args)
+    except Exception as exc:
+        _account_failed_command(evaluation_args, exc)
+        raise
+
+
 def _account_failed_command(args: argparse.Namespace, error: Exception) -> None:
     """Durably account every frozen candidate even when construction fails early."""
 
@@ -790,6 +1159,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         except Exception as exc:
             _account_failed_command(args, exc)
             raise
+    elif args.command == "daily":
+        _daily(args)
     elif args.command == "init-alpha-state":
         _initialize_state(args)
     elif args.command == "evaluate-alpha":

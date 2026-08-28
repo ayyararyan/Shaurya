@@ -66,3 +66,24 @@ both required.
 versions explicitly for the 2026-08-27 construction freeze; v1 remains the legacy default for
 backward-compatible historical workflows. The v2 policy keeps three-session candidates in shadow
 status and quarantines the non-transportable/replication-only fields from automatic live weight.
+
+## Prospective daily hypothesis testing
+
+The registry-driven evidence engine can now discover completed catalogue sources automatically and
+run one unseen session with the exact plan/state frozen before that session:
+
+```bash
+uv run shaurya-research daily \
+  --date 2026-08-28 \
+  --next-session 2026-08-31 \
+  --catalog /archive/NSE/metadata/datasets \
+  --bundle high_frequency
+```
+
+On a fresh research workspace the command creates the first content-addressed plan and pre-session
+state from completed data strictly before `--date`.  After evidence exists it reuses the plan hash
+bound into the immutable state; it will not silently re-plan from the evaluation day.  Source
+handles no longer need to be enumerated manually.
+
+See `docs/DAILY-AUTOMATION.md` for the orchestration contract and the current v2 construction
+boundary.

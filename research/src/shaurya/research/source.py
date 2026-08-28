@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict, deque
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from math import log, sqrt
 from pathlib import Path
 from types import MappingProxyType
@@ -18,8 +18,10 @@ from shaurya.data import (
     TapeIntegrityError,
     data_channel_for_row,
 )
+from shaurya.data.high_frequency import TimedValue
 
 from shaurya.analytics.depth_thinning_analysis import BookState
+from shaurya.research.construction import construct_v2_feature, construct_v2_target
 from shaurya.research.contracts import (
     EvaluationRow,
     FeatureObservation,
@@ -224,6 +226,34 @@ def derivation_hash_for_sources(
     )
 
 
+def discover_completed_sources(
+    catalog: DataCatalog,
+    *,
+    through: date,
+    include_dates: frozenset[date] | None = None,
+) -> tuple[VerifiedResearchSource, ...]:
+    """Discover and fully verify completed canonical datasets in deterministic order.
+
+    The catalogue, not filesystem naming, is the source authority.  All completed handles up to
+    ``through`` are considered; callers may restrict to an exact date set when constructing a
+    prospective prefix.  Duplicate dataset identities are impossible by catalogue contract.
+    """
+
+    handles = [
+        handle
+        for handle in catalog.handles().values()
+        if handle.status is DatasetStatus.COMPLETED
+        and handle.trading_date <= through
+        and (include_dates is None or handle.trading_date in include_dates)
+    ]
+    handles.sort(key=lambda item: (item.trading_date, item.dataset_id))
+    if not handles:
+        raise ValueError("no completed canonical DAT sources match the requested research prefix")
+    return tuple(
+        verify_completed_source(handle, through=through, catalog=catalog) for handle in handles
+    )
+
+
 def verify_completed_source(
     handle: DatasetHandle,
     *,
@@ -385,18 +415,23 @@ def _derive_source_features(
     raw_tick_sizes = registry.payload.get("instrument_tick_sizes")
     if not isinstance(raw_tick_sizes, Mapping) or not raw_tick_sizes:
         raise ValueError("feature registry requires canonical instrument tick-size metadata")
-    tick_by_instrument: dict[str, float] = {}
+    tick_by_instrument: dict[str, float | None] = {}
     for instrument_id in source.authorized_instrument_ids:
         matches = [
             float(value)
             for applicability, value in raw_tick_sizes.items()
             if _instrument_is_applicable(instrument_id, (applicability,))
         ]
-        if len(matches) != 1 or matches[0] <= 0:
+        if len(matches) == 1 and matches[0] > 0:
+            tick_by_instrument[instrument_id] = matches[0]
+        elif registry.version == "microstructure_features_v2" and ":option:" in instrument_id:
+            # v2 does not currently declare an options tick authority.  Do not invent one: book
+            # constructions that do not require a tick remain usable and tick metadata stays absent.
+            tick_by_instrument[instrument_id] = None
+        else:
             raise ValueError(
                 f"feature registry lacks one exact tick-size authority for {instrument_id}"
             )
-        tick_by_instrument[instrument_id] = matches[0]
     prior_stamp: int | None = None
     prior_sequence: int | None = None
     segment_by_partition: dict[tuple[str, str, str, int], int] = defaultdict(int)
@@ -441,7 +476,7 @@ def _derive_source_features(
         series_key = (*base, segment)
         first_ts.setdefault(series_key, stamp)
         values_history = trailing[series_key]
-        cutoff = stamp - 300_000_000_000
+        cutoff = stamp - 1_000_000_000_000
         while values_history and values_history[0][0] < cutoff:
             values_history.popleft()
         series, positions = state_series[series_key]
@@ -516,6 +551,35 @@ def _derive_source_features(
             elif feature_id.startswith("interaction."):
                 # Declared interactions are filled below after their causal inputs exist.
                 values[feature_id] = None
+            elif registry.version == "microstructure_features_v2":
+                history = tuple(
+                    TimedValue(
+                        datetime.fromtimestamp(history_stamp / 1_000_000_000, tz=UTC),
+                        row.connection_epoch,
+                        history_mid,
+                    )
+                    for history_stamp, history_mid in values_history
+                ) + (TimedValue(row.receive_ts, row.connection_epoch, mid),)
+                group_rows = grouped[series_key]
+                context_left = right
+                context_cutoff = row.receive_ts.timestamp() - 0.5
+                while (
+                    context_left > 0
+                    and group_rows[context_left].receive_ts.timestamp() > context_cutoff
+                ):
+                    context_left -= 1
+                context_left = max(0, context_left - 1)
+                current_rows = tuple(group_rows[context_left : right + 1])
+                result = construct_v2_feature(
+                    feature_id,
+                    row=row,
+                    tick_size=float(tick_by_instrument.get(row.instrument_id) or 1.0),
+                    partition_rows=current_rows,
+                    midpoint_history=history,
+                )
+                # Missing cross-instrument context is explicit.  Never substitute an alternate
+                # formula for a frozen semantic identity.
+                values[feature_id] = result.value if result.handled else None
             else:
                 raise ValueError(f"feature {feature_id} has no executable construction strategy")
         base_ofi = values.get("ofi.cumulative.depth=10.window=10s")
@@ -563,7 +627,11 @@ def _derive_source_features(
             break_segment=segment,
             reference_midpoint=mid,
             tick_size=tick_by_instrument[row.instrument_id],
-            spread_price=float(row.best_ask - row.best_bid),
+            spread_price=(
+                float(row.best_ask - row.best_bid)
+                if tick_by_instrument[row.instrument_id] is not None
+                else None
+            ),
             values=MappingProxyType(values),
             availability=MappingProxyType(availability),
         )
@@ -687,8 +755,59 @@ def derive_research_dataset(
                         and end_point is not None
                         and start_point.stamp_ns < end_point.stamp_ns
                     ):
-                        value = end_point.midpoint / start_point.midpoint - 1.0
                         availability_ts = end_point.stamp_ns
+                        if target_registry.version == "microstructure_targets_v2":
+                            constructor = str(raw.get("constructor", ""))
+                            feature = features_by_id[anchor.observation_id]
+                            horizon_seconds = int(float(raw["horizon_seconds"]))
+                            path: list[float] = []
+                            if constructor == "future_range_target":
+                                for offset in range(horizon_seconds + 1):
+                                    point = _exact_endpoint(
+                                        by_stamp,
+                                        start_expected + offset * 1_000_000_000,
+                                        tolerance_ns,
+                                    )
+                                    if point is None:
+                                        path = []
+                                        break
+                                    path.append(point.midpoint)
+                            start_feature = features_by_id.get(start_point.observation_id)
+                            end_feature = features_by_id.get(end_point.observation_id)
+                            result = construct_v2_target(
+                                constructor,
+                                anchor=datetime.fromtimestamp(
+                                    start_point.stamp_ns / 1_000_000_000, tz=UTC
+                                ),
+                                connection_epoch=anchor.connection_epoch,
+                                horizon_seconds=horizon_seconds,
+                                tick_size=feature.tick_size,
+                                current_mid=start_point.midpoint,
+                                future_mid=end_point.midpoint,
+                                path_midpoints=path,
+                                parity_pressure_value=feature.value_map.get(
+                                    "parity.pressure.v1"
+                                ),
+                                current_spread_ticks=(
+                                    None
+                                    if start_feature is None
+                                    else start_feature.value_map.get(
+                                        "liquidity.spread_ticks.v1"
+                                    )
+                                ),
+                                future_spread_ticks=(
+                                    None
+                                    if end_feature is None
+                                    else end_feature.value_map.get(
+                                        "liquidity.spread_ticks.v1"
+                                    )
+                                ),
+                            )
+                            value = result.value if result.handled else None
+                            # ATM-IV and actual-futures-hedged option outcomes need synchronized
+                            # cross-instrument state. Until that adapter exists they stay missing.
+                        else:
+                            value = end_point.midpoint / start_point.midpoint - 1.0
                     target = build_target_observation(
                         observation_id=anchor.observation_id,
                         session_date=source.trading_date,
