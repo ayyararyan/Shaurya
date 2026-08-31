@@ -143,17 +143,36 @@ datasets. Rollback disables new acquisition; it does not rewrite either represen
 
 Credential and security-master files must live outside this repository.
 
-**Daily production capture always captures the whole option chain.** The canonical entry
-point is `shaurya-daily-chain-launch`, which resolves each underlying's live spot and nearest
-expiries from Dhan and then prints (or, with `--launch`, starts in tmux) the matching
-`shaurya-chain-capture` invocation for NIFTY and BANKNIFTY:
+**Daily production capture records the configured NIFTY and BANKNIFTY research chains.** The
+canonical entry point is `shaurya-daily-chain-launch`. The default chain is the nearest two live
+expiries, strikes within 6% of live spot, and up to 120 options per underlying; it is intentionally
+not every exchange-listed strike.
+
+Before the session, run the production preflight:
+
+```bash
+uv run shaurya-daily-chain-launch --preflight
+```
+
+The preflight fails closed unless the credentials file and dated security master exist, the NSE
+archive is available, Dhan resolves a positive spot and the requested expiries, and the security
+master supplies selected options for every resolved expiry. It prints the resolved spot, expiries,
+and selected instrument counts, followed by the exact child commands that would be launched.
+
+Launch production capture with:
 
 ```bash
 uv run shaurya-daily-chain-launch --launch
 ```
 
-`--credentials` and `--security-master` both default to this machine's live operational
-paths and only need overriding on another host or for a controlled test:
+`--launch` always reruns the same preflight before creating any tmux window and pins the checked
+spot/expiries into each child capture. The child capture also enforces a default 95% instrument
+coverage floor: falling below that floor, or ending with a stream error, invalidates the dataset and
+returns nonzero instead of silently publishing a plausible-looking partial chain. Override the floor
+only deliberately with `--minimum-coverage-fraction`.
+
+`--credentials` and `--security-master` both default to this machine's live operational paths and
+only need overriding on another host or for a controlled test:
 
 - `--credentials` defaults to `~/Documents/Market-Making-Secrets/dhan.env`.
 - `--security-master` defaults to `data/instrument-masters/dhan_instrument_master_<date>.csv`
@@ -162,16 +181,10 @@ paths and only need overriding on another host or for a controlled test:
   NSE archive root (`/Volumes/Aryan/NSE`, or the `SHAURYA_NSE_ARCHIVE_ROOT` environment
   override already honored by every capture command in this package).
 
-Omit `--launch` to review the resolved spot, expiries, and exact command before anything
-starts. See `shaurya-daily-chain-launch --help` for expiry count, strike-window, and
-max-options overrides; defaults reproduce the known-good full-chain shape (two expiries,
-6% strike window, up to 120 options per underlying).
-
-`shaurya-dhan-capture` (single instrument) and `shaurya-chain-capture` (one already-resolved
-chain) remain available directly for isolated diagnostics and controlled tests, but neither is
-the daily entry point — a manual single-instrument capture must not be used as a substitute for
-the whole-chain session. Production capture defaults to the date-partitioned NSE archive; use
-non-archive overrides only for intentional isolated tests.
+Without `--preflight` or `--launch`, the launcher only prints auto-resolving child commands and does
+not claim that live spot/expiry or storage checks have passed. `shaurya-dhan-capture` (single
+instrument) and `shaurya-chain-capture` (one chain) remain available directly for isolated
+diagnostics and controlled tests, but neither is the normal daily entry point.
 
 See [`SECURITY.md`](SECURITY.md) for the credential-handle and file-permission policy.
 ## High-frequency derived variables
