@@ -39,6 +39,7 @@ from shaurya.data.storage import resolve_data_catalog, resolve_raw_capture_root
 from shaurya.data.universe import select_chain_universe
 
 UNDERLYING_INDEX_SECURITY_ID: dict[str, int] = {"NIFTY": 13, "BANKNIFTY": 25}
+DEFAULT_MINIMUM_COVERAGE_FRACTION = 0.95
 
 
 def resolve_live_spot_and_expiries(
@@ -71,6 +72,37 @@ def resolve_live_spot_and_expiries(
     if spot <= 0:
         raise ValueError(f"{normalized} option chain returned no positive underlying price")
     return spot, chosen
+
+
+def coverage_failure_reason(
+    *,
+    requested_count: int,
+    covered_count: int,
+    minimum_coverage_fraction: float,
+    stream_error_type: str | None = None,
+) -> str | None:
+    """Return the terminal invalidation reason for a chain capture, if any.
+
+    A capture is not considered successful merely because *some* rows arrived. Production
+    chain data is useful only when instrument coverage clears an explicit floor; otherwise a
+    silently ignored subscription batch could leave a plausible-looking but incomplete surface.
+    """
+
+    if not 0 < minimum_coverage_fraction <= 1:
+        raise ValueError("minimum-coverage-fraction must lie in (0, 1]")
+    if requested_count <= 0:
+        raise ValueError("requested_count must be positive")
+    if not 0 <= covered_count <= requested_count:
+        raise ValueError("covered_count must lie between zero and requested_count")
+    if stream_error_type is not None:
+        return f"stream failed: {stream_error_type}"
+    coverage_fraction = covered_count / requested_count
+    if coverage_fraction < minimum_coverage_fraction:
+        return (
+            f"instrument coverage {covered_count}/{requested_count} "
+            f"({coverage_fraction:.2%}) below required {minimum_coverage_fraction:.2%}"
+        )
+    return None
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -109,6 +141,15 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--strike-window-fraction", type=float, default=0.06)
     parser.add_argument("--max-options", type=int, default=120)
+    parser.add_argument(
+        "--minimum-coverage-fraction",
+        type=float,
+        default=DEFAULT_MINIMUM_COVERAGE_FRACTION,
+        help=(
+            "Minimum requested-instrument fraction that must emit at least one packet for the "
+            "dataset to be completed; lower coverage invalidates the run and returns nonzero."
+        ),
+    )
     parser.add_argument("--duration-seconds", type=float, default=120.0)
     parser.add_argument(
         "--output-root",
@@ -138,6 +179,8 @@ def _parser() -> argparse.ArgumentParser:
 async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     if args.duration_seconds <= 0:
         raise ValueError("duration-seconds must be positive")
+    if not 0 < args.minimum_coverage_fraction <= 1:
+        raise ValueError("minimum-coverage-fraction must lie in (0, 1]")
     master = DhanInstrumentMaster(args.security_master)
     underlyings = args.underlying or ["NIFTY"]
     mappings = list(master.mappings())
@@ -248,6 +291,14 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     requested = [mapping.instrument.canonical for mapping in instruments]
     covered = [name for name in requested if seen[name] > 0]
     silent = [name for name in requested if seen[name] == 0]
+    coverage_fraction = len(covered) / len(requested)
+    stream_error_type = type(stream_error).__name__ if stream_error else None
+    reason = coverage_failure_reason(
+        requested_count=len(requested),
+        covered_count=len(covered),
+        minimum_coverage_fraction=args.minimum_coverage_fraction,
+        stream_error_type=stream_error_type,
+    )
     report: dict[str, Any] = {
         "run_id": str(manifest.run_id),
         "dataset_id": session.dataset_id,
@@ -259,6 +310,9 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         "requested_instruments": len(requested),
         "instruments_with_packets": len(covered),
         "instruments_without_packets": len(silent),
+        "coverage_fraction": coverage_fraction,
+        "minimum_coverage_fraction": args.minimum_coverage_fraction,
+        "coverage_ok": reason is None,
         "first_silent_request_index": (requested.index(silent[0]) if silent else None),
         "silent_instruments": silent,
         "rows": metrics.rows,
@@ -267,23 +321,16 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         "heartbeat_timeouts": dict(metrics.heartbeat_timeouts),
         "packets_per_instrument": dict(seen),
         "first_packet_ist_per_instrument": first_seen,
-        "stream_error": type(stream_error).__name__ if stream_error else None,
+        "stream_error": stream_error_type,
         "dataset_directory": str(writer.dataset_dir),
     }
     manifest.write_record("chain_coverage", report)
-    reason = (
-        f"stream failed: {type(stream_error).__name__}"
-        if stream_error is not None
-        else "capture interval produced zero covered instruments"
-        if not covered
-        else None
-    )
     handle = session.close(
         invalidation_reason=reason,
         archive=args.archive_on_close,
     )
     report["dataset_handle"] = handle.model_dump(mode="json")
-    return (0 if covered else 1), report
+    return (0 if reason is None else 1), report
 
 
 def main(argv: list[str] | None = None) -> int:
