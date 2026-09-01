@@ -6,7 +6,6 @@ import fcntl
 import hashlib
 import json
 import os
-import re
 import socket
 from collections.abc import Iterator
 from contextlib import suppress
@@ -49,6 +48,7 @@ from .parquet import (
     inventory_recovery,
     iter_parquet_rows,
     new_dataset_id,
+    scope_key_for_instruments,
     segments_overlap_filter,
     validate_segment,
 )
@@ -65,13 +65,26 @@ from .tape import (
 
 
 def _scope_name(request: DatasetRequest) -> str:
-    if len(request.instrument_ids) == 1:
-        parts = request.instrument_ids[0].split(":")
-        raw = "-".join(parts[1:4]) if len(parts) >= 4 else request.instrument_ids[0]
-    else:
-        segments = {item.split(":")[1] for item in request.instrument_ids if ":" in item}
-        raw = f"{next(iter(segments)) if len(segments) == 1 else 'multi-market'}-universe"
-    return re.sub(r"[^a-z0-9]+", "-", raw.lower()).strip("-")[:64] or "market-events"
+    return scope_key_for_instruments(request.instrument_ids)
+
+
+def _prior_attempt_count(catalog: DataCatalog, request: DatasetRequest, *, scope: str) -> int:
+    """Count earlier capture attempts for the same trading date/channels/scope.
+
+    Used only to number retries in the human-readable dataset name (D51-follow-up); a
+    crashed-and-relaunched capture otherwise leaves sibling folders with no indication
+    they are the same logical capture. Not used for any concurrency or identity decision
+    — ``acquisition_fingerprint`` remains the sole correctness-critical identity.
+    """
+
+    channel_key = tuple(sorted(str(channel) for channel in request.channels))
+    return sum(
+        1
+        for handle in catalog.handles().values()
+        if handle.trading_date == request.trading_date
+        and tuple(sorted(str(channel) for channel in handle.channels)) == channel_key
+        and scope_key_for_instruments(handle.instrument_ids) == scope
+    )
 
 
 class _ExclusiveFileLease:
@@ -137,13 +150,7 @@ class DataCaptureSession:
             month=request.trading_date.month,
             day=request.trading_date.day,
         )
-        dataset_name = human_dataset_name(
-            trading_date=naming_stamp,
-            channels=request.channels,
-            instrument_ids=request.instrument_ids,
-            suffix=dataset_name_suffix or dataset_id[-8:],
-        )
-        dataset_dir = output_root / "dhan" / _scope_name(request) / dataset_name
+        scope = _scope_name(request)
         with catalog.acquisition_lock():
             existing = catalog.active_satisfying(request)
             if existing is not None:
@@ -151,6 +158,15 @@ class DataCaptureSession:
             claimed = catalog.claim_handle(request)
             if claimed is not None:
                 raise DatasetAlreadyActiveError(claimed)
+            attempt = 1 + _prior_attempt_count(catalog, request, scope=scope)
+            dataset_name = human_dataset_name(
+                trading_date=naming_stamp,
+                channels=request.channels,
+                instrument_ids=request.instrument_ids,
+                suffix=dataset_name_suffix or dataset_id[-8:],
+                attempt=attempt,
+            )
+            dataset_dir = output_root / "dhan" / scope / dataset_name
             try:
                 claim = catalog.acquire_claim(
                     request, dataset_id=dataset_id, producer_pid=os.getpid()

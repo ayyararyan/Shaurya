@@ -557,7 +557,7 @@ def test_human_name_is_safe_meaningful_and_internal_ids_remain_separate(tmp_path
         suffix="Morning control #1",
     )
 
-    assert name == "nifty-future-depth20-depth200-034500-morning-control-1"
+    assert name == "nifty-future-depth20-depth200-09-15-00-morning-control-1"
     assert "nifty-future" in name
     assert "depth20-depth200" in name
     assert re.fullmatch(r"[a-z0-9-]+", name)
@@ -581,7 +581,66 @@ def test_human_name_omits_redundant_producer_prefix_and_full_date(tmp_path: Path
         suffix="d49ec103",
     )
 
-    assert name == "nse-fno-40-instruments-standard-034500-d49ec103"
+    assert name == "nse-fno-nifty-40-instruments-standard-09-15-00-d49ec103"
+
+
+def test_human_name_uses_ist_not_utc_for_the_time_component() -> None:
+    """The time component is read against NSE trading hours, so it must be IST, not the
+    UTC wall-clock the capture process actually runs on."""
+
+    name = human_dataset_name(
+        trading_date=datetime(2026, 8, 27, 3, 45, tzinfo=UTC),
+        channels=(DataChannel.STANDARD,),
+        instrument_ids=(INSTRUMENT,),
+    )
+
+    assert "09-15-00" in name
+    assert "03-45-00" not in name
+    assert "034500" not in name
+
+
+def test_human_name_distinguishes_underlyings_instead_of_a_generic_universe_scope() -> None:
+    """A NIFTY option-chain capture and a BANKNIFTY option-chain capture previously both
+    collapsed to the same generic ``nse-fno-N-instruments`` scope, making it impossible to
+    tell them apart without opening a file. The underlying must now appear in the name."""
+
+    nifty_name = human_dataset_name(
+        trading_date=datetime(2026, 8, 27, 3, 45, tzinfo=UTC),
+        channels=(DataChannel.STANDARD,),
+        instrument_ids=tuple(
+            f"NSE:NSE_FNO:NIFTY:option:2026-09-01:{strike}:CE" for strike in range(40)
+        ),
+    )
+    banknifty_name = human_dataset_name(
+        trading_date=datetime(2026, 8, 27, 3, 45, tzinfo=UTC),
+        channels=(DataChannel.STANDARD,),
+        instrument_ids=tuple(
+            f"NSE:NSE_FNO:BANKNIFTY:option:2026-09-01:{strike}:CE" for strike in range(40)
+        ),
+    )
+
+    assert "nifty" in nifty_name and "banknifty" not in nifty_name
+    assert "banknifty" in banknifty_name
+    assert nifty_name != banknifty_name
+
+
+def test_human_name_marks_retries_of_the_same_capture(tmp_path: Path) -> None:
+    """A crash-and-relaunch sequence must read as ``retry2``, ``retry3``... instead of
+    unrelated-looking sibling folders; the first attempt is unmarked."""
+
+    del tmp_path
+    kwargs = {
+        "trading_date": datetime(2026, 8, 27, 3, 45, tzinfo=UTC),
+        "channels": (DataChannel.STANDARD,),
+        "instrument_ids": (INSTRUMENT,),
+    }
+    first = human_dataset_name(**kwargs)
+    second = human_dataset_name(**kwargs, attempt=2)
+    third = human_dataset_name(**kwargs, attempt=3)
+
+    assert "retry" not in first
+    assert "retry2" in second
+    assert "retry3" in third
 
 
 def test_terminal_failure_states_require_reasons() -> None:

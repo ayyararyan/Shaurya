@@ -21,6 +21,7 @@ import pyarrow.parquet as pq
 from shaurya.contracts.artifacts import sha256_file
 from shaurya.contracts.data import DataChannel, DatasetSegment
 from shaurya.contracts.tape import TapeRow
+from shaurya.contracts.timing import IST
 
 from .tape import TapeIntegrityError, data_channel_for_row
 
@@ -289,14 +290,44 @@ def _safe_component(value: str, *, max_length: int = 64) -> str:
     return (cleaned or "dataset")[:max_length].rstrip("-")
 
 
+def resolve_shared_underlying(instrument_ids: tuple[str, ...]) -> str | None:
+    """Return the underlying symbol (e.g. ``NIFTY``) shared by every ID, or ``None``.
+
+    Canonical instrument IDs are ``exchange:segment:underlying:...``; a multi-instrument
+    capture (an option chain, say) has one underlying per instrument at index 2. When
+    every instrument agrees, callers use this to name the capture after that underlying
+    instead of the generic exchange segment — without it, a NIFTY chain and a BANKNIFTY
+    chain are indistinguishable in both the scope directory and the dataset name.
+    """
+
+    underlyings = {item.split(":")[2] for item in instrument_ids if item.count(":") >= 2}
+    return next(iter(underlyings)) if len(underlyings) == 1 else None
+
+
+def scope_key_for_instruments(instrument_ids: tuple[str, ...]) -> str:
+    """Human scope label for a set of canonical instrument IDs, underlying-aware."""
+
+    if len(instrument_ids) == 1:
+        parts = instrument_ids[0].split(":")
+        raw = "-".join(parts[1:4]) if len(parts) >= 4 else instrument_ids[0]
+    else:
+        segments = {item.split(":")[1] for item in instrument_ids if ":" in item}
+        segment = next(iter(segments)) if len(segments) == 1 else "multi-market"
+        underlying = resolve_shared_underlying(instrument_ids)
+        raw = f"{segment}-{underlying}" if underlying else f"{segment}-universe"
+    return _safe_component(raw)
+
+
 def human_dataset_name(
     *,
     trading_date: datetime,
     channels: tuple[DataChannel, ...],
     instrument_ids: tuple[str, ...],
     suffix: str | None = None,
+    attempt: int = 1,
 ) -> str:
-    """Build the leaf directory name for one capture run: ``{scope}-{channel}-{HHMMSS}-{suffix}``.
+    """Build the leaf directory name for one capture run:
+    ``{scope}-{channel}-[retry{N}-]{HH-MM-SS}-{suffix}``.
 
     Deliberately omits two components that were previously included but are
     always redundant with this name's own placement on disk: a ``dhan-``
@@ -304,8 +335,13 @@ def human_dataset_name(
     full ``YYYYMMDD`` date (production captures already land under a
     date-partitioned ``YYYY-MM-DD/`` root; a controlled test run's own
     ``--output-root`` is the caller's responsibility to date if that matters).
-    ``HHMMSS`` is kept for same-day intra-scope ordering and the ``suffix``
-    (the dataset id's own trailing hex) for uniqueness.
+    ``HH-MM-SS`` is the capture's IST start time (kept for same-day intra-scope
+    ordering; NSE trading hours are conventionally read in IST, not UTC) and
+    the ``suffix`` (the dataset id's own trailing hex) is for uniqueness.
+    ``attempt`` numbers repeated starts of the same logical capture (same
+    trading date, channels and scope) so a crash-and-retry sequence reads as
+    ``retry2``, ``retry3``, ... instead of unrelated-looking sibling folders;
+    the first attempt omits the marker.
     """
 
     if len(instrument_ids) == 1:
@@ -314,12 +350,14 @@ def human_dataset_name(
     else:
         segments = {item.split(":")[1] for item in instrument_ids if ":" in item}
         segment = next(iter(segments)) if len(segments) == 1 else "multi-market"
-        scope = f"{segment}-{len(instrument_ids)}-instruments"
+        underlying = resolve_shared_underlying(instrument_ids)
+        scope_prefix = f"{segment}-{underlying}" if underlying else segment
+        scope = f"{scope_prefix}-{len(instrument_ids)}-instruments"
     channel_part = "-".join(str(channel) for channel in channels)
-    base = (
-        f"{_safe_component(scope)}-{_safe_component(channel_part)}-"
-        f"{trading_date.astimezone(UTC).strftime('%H%M%S')}"
-    )
+    base = f"{_safe_component(scope)}-{_safe_component(channel_part)}"
+    if attempt > 1:
+        base += f"-retry{attempt}"
+    base += f"-{trading_date.astimezone(IST).strftime('%H-%M-%S')}"
     return f"{base}-{_safe_component(suffix, max_length=20)}" if suffix else base
 
 

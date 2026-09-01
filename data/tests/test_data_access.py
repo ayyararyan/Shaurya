@@ -163,6 +163,30 @@ def test_capture_claim_is_published_and_duplicate_is_blocked(tmp_path: Path) -> 
     session.close(invalidation_reason="test cleanup")
 
 
+def test_relaunched_capture_is_numbered_as_a_retry_in_its_dataset_name(tmp_path: Path) -> None:
+    """A crashed-and-relaunched capture (same trading date/channels/scope) previously left
+    sibling folders with no indication they were the same logical capture — only a random
+    hex suffix distinguished them. The relaunch must now read as ``retry2``."""
+
+    catalog = DataCatalog(tmp_path / "catalog" / "datasets.jsonl")
+    first = DataCaptureSession.create(
+        catalog=catalog,
+        request=_request("SUR-09"),
+        output_root=tmp_path / "raw",
+        run_id=RUN_ID,
+    )
+    assert "retry" not in first.handle.dataset_name
+    first.close(invalidation_reason="simulated crash")
+
+    second = DataCaptureSession.create(
+        catalog=catalog,
+        request=_request("SUR-09"),
+        output_root=tmp_path / "raw",
+    )
+    assert "retry2" in second.handle.dataset_name
+    second.close(invalidation_reason="test cleanup")
+
+
 def test_concurrent_exact_acquisitions_create_only_one_active_dataset(tmp_path: Path) -> None:
     catalog = DataCatalog(tmp_path / "catalog" / "datasets")
 
