@@ -32,6 +32,7 @@ from shaurya.analytics.surface_feed import (
     expiry_timestamp,
 )
 from shaurya.analytics.universe import select_chain_universe
+from shaurya.cli.surface_dashboard import _fit_expiries
 from shaurya.cli.surface_dashboard import _parser as surface_dashboard_parser
 from shaurya.surfaces.essvi import ESSVISurface, black76_price
 
@@ -52,6 +53,50 @@ def test_surface_dashboard_cli_uses_owner_amendment_five_smoothing_defaults() ->
     assert args.mispricing_reference_max_raw_smoothed_iv_gap_points == 0.50
     assert not hasattr(args, "mispricing_reference_stability_frames")
     assert not hasattr(args, "mispricing_reference_max_iv_range_points")
+
+
+def test_fit_expiries_drops_0dte_by_default() -> None:
+    """A 0DTE fit calibrates on tick-floor-pinned OTM prices, not real time value —
+    confirmed live 2026-09-01 (~47-49% displayed ATM IV against a true level near 15%)."""
+
+    args = surface_dashboard_parser().parse_args(
+        [
+            "--mode",
+            "replay",
+            "--expiry",
+            NEAR.isoformat(),
+            "--expiry",
+            FAR.isoformat(),
+            "--trading-date",
+            NEAR.isoformat(),
+        ]
+    )
+    assert _fit_expiries(args) == (FAR,)
+
+
+def test_fit_expiries_keeps_0dte_when_explicitly_included() -> None:
+    args = surface_dashboard_parser().parse_args(
+        [
+            "--mode",
+            "replay",
+            "--expiry",
+            NEAR.isoformat(),
+            "--expiry",
+            FAR.isoformat(),
+            "--trading-date",
+            NEAR.isoformat(),
+            "--include-0dte-expiries",
+        ]
+    )
+    assert _fit_expiries(args) == (NEAR, FAR)
+
+
+def test_fit_expiries_refuses_to_leave_nothing_fittable() -> None:
+    args = surface_dashboard_parser().parse_args(
+        ["--mode", "replay", "--expiry", NEAR.isoformat(), "--trading-date", NEAR.isoformat()]
+    )
+    with pytest.raises(SystemExit, match="0DTE"):
+        _fit_expiries(args)
 
 
 def test_expiry_close_is_date_versioned_at_the_2026_extension_boundary() -> None:

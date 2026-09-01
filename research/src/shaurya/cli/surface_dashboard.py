@@ -94,6 +94,16 @@ def _parser() -> argparse.ArgumentParser:
         "would otherwise both calibrate the curve and be priced off it.",
     )
     parser.add_argument(
+        "--include-0dte-expiries",
+        action="store_true",
+        help="Fit and display an expiry that falls on --trading-date (0DTE). Off by "
+        "default: with ATM strikes excluded from calibration (see --use-atm-strikes), a "
+        "0DTE fit is left calibrating on OTM strikes whose prices are pinned to the "
+        "exchange tick floor rather than carrying real time value — confirmed live "
+        "2026-09-01, where this produced a ~47-49%% displayed ATM IV against a true level "
+        "near 15%%. Pass this flag only to inspect that failure mode deliberately.",
+    )
+    parser.add_argument(
         "--disable-mispricing",
         action="store_true",
         help="Disable the approved read-only ANL-07 surface-relative mispricing monitor.",
@@ -189,6 +199,29 @@ def _metadata_from_mappings(
     return result
 
 
+def _fit_expiries(args: argparse.Namespace) -> tuple[date, ...]:
+    """Requested expiries, minus 0DTE unless the caller opted in.
+
+    A 0DTE fit calibrates on OTM strikes only (ATM is excluded by policy — see
+    ``--use-atm-strikes``); this close to expiry those OTM prices are pinned to the
+    exchange tick floor rather than carrying real time value, so the fitted curve
+    reflects tick granularity, not market-implied volatility. Confirmed live 2026-09-01.
+    """
+
+    requested = tuple(date.fromisoformat(value) for value in args.expiry)
+    if args.include_0dte_expiries:
+        return requested
+    fittable = tuple(expiry for expiry in requested if expiry != args.trading_date)
+    if not fittable:
+        raise SystemExit(
+            "every --expiry is 0DTE for --trading-date "
+            f"{args.trading_date.isoformat()}; a 0DTE eSSVI fit calibrates on tick-floor "
+            "OTM prices, not real time value (confirmed live 2026-09-01). Pass "
+            "--include-0dte-expiries to fit anyway, or supply a later expiry."
+        )
+    return fittable
+
+
 def _engine(
     args: argparse.Namespace,
     run_id: str,
@@ -205,7 +238,7 @@ def _engine(
     return SurfaceEngine(
         run_id=run_id,
         surface_id=f"anl03-{source}",
-        expiries=tuple(date.fromisoformat(value) for value in args.expiry),
+        expiries=_fit_expiries(args),
         log_moneyness_grid=default_log_moneyness_grid(
             half_width=args.moneyness_half_width, points=args.moneyness_points
         ),
