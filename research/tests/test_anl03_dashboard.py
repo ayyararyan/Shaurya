@@ -32,7 +32,7 @@ from shaurya.analytics.surface_feed import (
     expiry_timestamp,
 )
 from shaurya.analytics.universe import select_chain_universe
-from shaurya.cli.surface_dashboard import _available_expiries, _fit_expiries, _instrument_expiries
+from shaurya.cli.surface_dashboard import _fit_expiries, _instrument_expiries
 from shaurya.cli.surface_dashboard import _parser as surface_dashboard_parser
 from shaurya.surfaces.essvi import ESSVISurface, black76_price
 
@@ -53,6 +53,20 @@ def test_surface_dashboard_cli_uses_owner_amendment_five_smoothing_defaults() ->
     assert args.mispricing_reference_max_raw_smoothed_iv_gap_points == 0.50
     assert not hasattr(args, "mispricing_reference_stability_frames")
     assert not hasattr(args, "mispricing_reference_max_iv_range_points")
+
+
+def test_surface_dashboard_cli_defaults_match_the_segmented_parquet_transport() -> None:
+    """Confirmed live 2026-09-01: the 1s/2s feed thresholds tuned for the old always-live
+    tick feed reported DEAD against a feed that was actually fine, worsening as tracked
+    instrument count grew (up to ~55s of jitter with 180 instruments). Temporal smoothing
+    is off by default too, so the display shows each fit's own current state."""
+
+    args = surface_dashboard_parser().parse_args(
+        ["--mode", "replay", "--expiry", NEAR.isoformat()]
+    )
+    assert args.feed_slow_seconds == 35.0
+    assert args.feed_dead_seconds == 90.0
+    assert args.enable_temporal_smoothing is False
 
 
 def test_fit_expiries_drops_0dte_by_default() -> None:
@@ -158,35 +172,6 @@ def test_instrument_expiries_reads_both_option_and_future_ids() -> None:
             "not-a-canonical-id",
         ]
     ) == (date(2026, 9, 8), date(2026, 9, 29))
-
-
-def _mapping(*, underlying: str, expiry: date, strike: int, index: int) -> DhanInstrumentMapping:
-    return DhanInstrumentMapping(
-        instrument=InstrumentId(
-            exchange="NSE",
-            segment=ExchangeSegment.NSE_FNO,
-            underlying=underlying,
-            kind=InstrumentKind.OPTION,
-            expiry=expiry,
-            strike=Decimal(strike),
-            option_type=OptionType.CALL,
-        ),
-        security_id=str(80_000 + index),
-        exchange_segment=ExchangeSegment.NSE_FNO,
-        trading_symbol=f"{underlying}-{expiry}-{strike}-CE",
-        lot_size=75,
-        tick_size_paise=None,
-        as_of_date=date(2026, 8, 19),
-        source="fixture",
-    )
-
-
-def test_available_expiries_filters_by_underlying() -> None:
-    mappings = [
-        _mapping(underlying="NIFTY", expiry=NEAR, strike=24_000, index=0),
-        _mapping(underlying="BANKNIFTY", expiry=FAR, strike=51_000, index=1),
-    ]
-    assert _available_expiries(mappings, underlying="NIFTY") == (NEAR,)
 
 
 def test_expiry_close_is_date_versioned_at_the_2026_extension_boundary() -> None:
@@ -537,6 +522,30 @@ def test_engine_smooths_when_source_timestamp_stays_fixed_across_fit_decisions()
     assert smoothing["is_temporally_smoothed"] is True
 
 
+def test_smoothing_enabled_false_displays_each_fit_as_its_own_current_state() -> None:
+    """Off by default for the dashboard as of 2026-09-01: the display shows each fit's own
+    current state, not a lagged blend with recent fits. SurfaceEngine's own default stays
+    True — this is a CLI-level choice (--enable-temporal-smoothing), not a class-level one."""
+
+    engine = SurfaceEngine(
+        run_id="sha-20260819T053000.000000Z-anl03test",
+        surface_id="anl03-test",
+        expiries=(NEAR, FAR),
+        log_moneyness_grid=default_log_moneyness_grid(half_width=0.06, points=13),
+        fit_interval_seconds=5.0,
+        smoothing_enabled=False,
+    )
+    for row in _chain():
+        engine.ingest(row)
+    first = engine.fit(VALUATION)
+    second = engine.fit(VALUATION + timedelta(seconds=5))
+    assert first.frame is not None and second.frame is not None
+    for snapshot in (first, second):
+        smoothing = snapshot.diagnostics["temporal_smoothing"]
+        assert smoothing["status"] == "disabled"
+        assert smoothing["is_temporally_smoothed"] is False
+
+
 def test_the_server_serves_state_and_refuses_every_write_method() -> None:
     engine = _engine()
     for row in _chain():
@@ -798,11 +807,30 @@ def test_the_shell_shows_atm_big_and_states_what_it_is() -> None:
 
 
 def test_the_camera_survives_a_refresh_and_the_view_can_be_driven() -> None:
+    """Camera persistence is scene-scoped uirevision, not a manual plotly_relayout
+    capture-and-reapply: the latter forced Plotly.react on every one-second poll, which
+    interrupted an in-progress zoom/pan/rotate before the viewer could finish it —
+    confirmed live 2026-09-01. RESET VIEW bumps the revision to force one redraw back to
+    DEFAULT_CAMERA; every other redraw lets Plotly retain whatever the viewer left it at."""
+
     html = _rendered_shell()
-    assert "cameraState" in html and "plotly_relayout" in html
-    assert "cameraState || DEFAULT_CAMERA" in html, "the held camera must win over the default"
+    assert "cameraRevision" in html
+    assert "'anl03-surface-camera-' + cameraRevision" in html
+    assert "holder.on('plotly_relayout'" not in html  # no manual capture-and-reapply
     assert "scrollZoom: true" in html
     for mode in ("turntable", "pan", "zoom"):
         assert f'data-drag="{mode}"' in html
     assert "function resetView()" in html
     assert "dragmode: sceneDragMode" in html
+
+
+def test_the_surface_chart_only_redraws_when_the_fit_actually_advances() -> None:
+    """A live surface only advances roughly every --fit-interval-seconds, but the page
+    polls every second for health/feed-age freshness. Redrawing the 3D chart on every
+    poll regardless interrupted in-progress zoom/pan/rotate — confirmed live 2026-09-01."""
+
+    html = _rendered_shell()
+    assert "snapshot.sequence === lastSurfaceSequence" in html
+    assert "let lastSurfaceSequence" in html
+    assert "render(lastPayload, true)" in html  # theme toggle forces a redraw
+    assert "renderSurface(stabiliseAxes(lastPayload), true)" in html  # drag-mode, RESET VIEW

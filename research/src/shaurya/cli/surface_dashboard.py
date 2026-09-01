@@ -80,8 +80,25 @@ def _parser() -> argparse.ArgumentParser:
         default=0.0,
         help="live mode: keep serving after the stream stops, so feed death is observable.",
     )
-    parser.add_argument("--feed-slow-seconds", type=float, default=1.0)
-    parser.add_argument("--feed-dead-seconds", type=float, default=2.0)
+    parser.add_argument(
+        "--feed-slow-seconds",
+        type=float,
+        default=35.0,
+        help="The standard capture transport (SegmentedParquetWriter) rotates roughly "
+        "every 30s, and DAT-follow only sees a segment once it closes and is published "
+        "to the catalogue, so feed age routinely oscillates 0-30s+ even when healthy. "
+        "35s/90s (see --feed-dead-seconds) replace the 1s/2s defaults tuned for the old "
+        "always-live tick feed, which live-verified 2026-09-01 as reporting DEAD on a "
+        "feed that was actually fine.",
+    )
+    parser.add_argument(
+        "--feed-dead-seconds",
+        type=float,
+        default=90.0,
+        help="3x the ~30s segment-rotation interval, to comfortably absorb catalogue-"
+        "publish jitter that grows with instrument count (observed up to ~55s with 180 "
+        "tracked instruments live 2026-09-01) without still false-reporting DEAD.",
+    )
     parser.add_argument("--moneyness-half-width", type=float, default=0.08)
     parser.add_argument("--moneyness-points", type=int, default=33)
     parser.add_argument("--min-quotes-per-slice", type=int, default=5)
@@ -107,6 +124,15 @@ def _parser() -> argparse.ArgumentParser:
         "--disable-mispricing",
         action="store_true",
         help="Disable the approved read-only ANL-07 surface-relative mispricing monitor.",
+    )
+    parser.add_argument(
+        "--enable-temporal-smoothing",
+        action="store_true",
+        help="Blend the displayed surface with a time-decayed EWMA of recent fits "
+        "(SUR-07). Off by default as of 2026-09-01: the display shows each fit's own "
+        "current state, not a lagged blend. Does not affect ANL-07's separate "
+        "mispricing reference-fit smoothing (--mispricing-reference-*), which is "
+        "unrelated and stays on.",
     )
     parser.add_argument("--mispricing-cross-fit-folds", type=int, default=5)
     parser.add_argument("--mispricing-quote-max-age-seconds", type=float, default=3.0)
@@ -214,24 +240,6 @@ def _instrument_expiries(instrument_ids: Iterable[str]) -> tuple[date, ...]:
     return tuple(sorted(expiries))
 
 
-def _available_expiries(
-    mappings: Iterable[DhanInstrumentMapping], *, underlying: str
-) -> tuple[date, ...]:
-    """Distinct expiry dates the security master carries for ``underlying``."""
-
-    target = underlying.upper()
-    return tuple(
-        sorted(
-            {
-                mapping.instrument.expiry
-                for mapping in mappings
-                if mapping.instrument.underlying.upper() == target
-                and mapping.instrument.expiry is not None
-            }
-        )
-    )
-
-
 def _fit_expiries(
     args: argparse.Namespace, *, available: tuple[date, ...] = ()
 ) -> tuple[date, ...]:
@@ -298,6 +306,7 @@ def _engine(
         min_quotes_per_slice=args.min_quotes_per_slice,
         include_atm_strikes=args.use_atm_strikes,
         wall_clock=source == "live",
+        smoothing_enabled=args.enable_temporal_smoothing,
         mispricing_policy=MispricingPolicy(
             enabled=not args.disable_mispricing,
             include_atm_strikes=args.use_atm_strikes,
@@ -413,11 +422,18 @@ def _resolve_dataset(
             "dataset selection requires --dataset-id, --tape, or both "
             "--security-master and --spot for a DAT request"
         )
-    available = _available_expiries(mappings, underlying=args.underlying)
+    # Deliberately the raw --expiry list, not _fit_expiries(): this read-only dashboard
+    # never triggers a capture (D43), it only attaches to one already running, so the
+    # requested universe must mirror the capture's own select_chain_universe inputs
+    # exactly. select_chain_universe's per-expiry share of max_options depends on how
+    # many expiries are interleaved, so requesting a *different* expiry set here (e.g.
+    # the fit's 0DTE-dropped-and-extended set) computes a selection that is not a subset
+    # of what the capture actually captured, and the request fails to resolve. 0DTE
+    # exclusion is applied only at fit time, from the resolved handle's real instruments.
     universe = select_chain_universe(
         mappings,
         underlying=args.underlying,
-        expiries=_fit_expiries(args, available=available),
+        expiries=[date.fromisoformat(value) for value in args.expiry],
         spot_reference=args.spot,
         strike_window_fraction=args.strike_window_fraction,
         max_options=args.max_options,

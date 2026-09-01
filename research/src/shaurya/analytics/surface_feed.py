@@ -292,6 +292,7 @@ class SurfaceEngine:
     history_limit: int = 720
     health_sample_limit: int = 3600
     wall_clock: bool = True
+    smoothing_enabled: bool = True
     smoother: ESSVITemporalSmoother = field(default_factory=ESSVITemporalSmoother)
     mispricing_policy: MispricingPolicy = field(default_factory=MispricingPolicy)
     instrument_metadata: dict[str, InstrumentMetadata] = field(default_factory=dict)
@@ -570,6 +571,8 @@ class SurfaceEngine:
         smoothed.
         """
 
+        if not self.smoothing_enabled:
+            return raw, "disabled"
         try:
             return self.smoother.update(raw, observation_timestamp=now), "smoothed"
         except ValueError as error:

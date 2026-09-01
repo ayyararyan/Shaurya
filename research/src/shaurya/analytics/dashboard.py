@@ -17,6 +17,13 @@ sustained-latency chart and the forward-source table were removed from the scree
 Aryan's explicit instruction; both remain fully present in `/api/state`, so nothing
 measured was dropped, only two panels stopped being drawn. Every remaining number, label
 and threshold is byte-for-byte the same field it was before.
+
+2026-09-01: the page polls every second, but a live surface only advances roughly every
+--fit-interval-seconds; the 3D chart used to call `Plotly.react` on every poll regardless,
+which interrupted an in-progress zoom/pan/rotate before the viewer could finish it. It now
+redraws only when `snapshot.sequence` actually advances (or a caller explicitly forces a
+redraw: theme toggle, drag-mode toggle, RESET VIEW), and camera persistence is `scene`-
+scoped `uirevision` alone — no separate `plotly_relayout` capture-and-reapply needed.
 """
 
 from __future__ import annotations
@@ -307,7 +314,7 @@ function applyTheme(name) {
 
 function toggleTheme() {
   applyTheme(themeName() === 'dark' ? 'light' : 'dark');
-  if (lastPayload) render(lastPayload);
+  if (lastPayload) render(lastPayload, true);
 }
 
 function initTheme() {
@@ -324,37 +331,22 @@ function rampToScale(ramp) {
   return ramp.map((hex, index) => [index / (ramp.length - 1), hex]);
 }
 
-// The camera is held here rather than left to `uirevision` alone. `Plotly.react` is handed
-// an explicit camera on every refresh (the axis ranges move as the session widens them), and
-// an explicit camera in the layout wins over the retained one — so the view would snap back
-// to the default once a second while the surface is live. Capturing the viewer's own camera
-// off `plotly_relayout` and feeding it straight back makes zoom, pan and rotate survive every
-// update until they press RESET.
 const DEFAULT_CAMERA = {eye: {x: 1.16, y: 1.16, z: 0.88}};
-let cameraState = null;
 let sceneDragMode = 'turntable';
-let surfaceWired = false;
-
-function wireSurface(holder) {
-  if (surfaceWired || typeof holder.on !== 'function') return;
-  surfaceWired = true;
-  holder.on('plotly_relayout', (event) => {
-    const camera = event['scene.camera'];
-    if (camera && camera.eye) cameraState = camera;
-  });
-}
+let cameraRevision = 0;
+let lastSurfaceSequence = null;
 
 function setDragMode(mode) {
   sceneDragMode = mode;
   document.querySelectorAll('[data-drag]').forEach((button) => {
     button.classList.toggle('on', button.getAttribute('data-drag') === mode);
   });
-  if (lastPayload) renderSurface(stabiliseAxes(lastPayload));
+  if (lastPayload) renderSurface(stabiliseAxes(lastPayload), true);
 }
 
 function resetView() {
-  cameraState = null;
-  if (lastPayload) renderSurface(stabiliseAxes(lastPayload));
+  cameraRevision += 1;
+  if (lastPayload) renderSurface(stabiliseAxes(lastPayload), true);
 }
 """
 
@@ -413,16 +405,25 @@ function renderHealth(payload) {
     : '<li>feed live, surface fresh, last fit converged</li>';
 }
 
-function renderSurface(payload) {
-  const t = theme();
+function renderSurface(payload, force) {
   const snapshot = payload.snapshot;
   const holder = document.getElementById('surfaceChart');
   if (!snapshot || !snapshot.grid) {
-    Plotly.purge(holder);
+    if (lastSurfaceSequence !== null) Plotly.purge(holder);
+    lastSurfaceSequence = null;
     holder.innerHTML = '<div class="empty">NO SURFACE \\u2014 ' +
       ((snapshot && snapshot.failure_reason) || 'no fit yet') + '</div>';
     return;
   }
+  // The page polls every second (health/feed-age need that granularity) but a new fit
+  // only lands roughly every --fit-interval-seconds (5s by default). Re-drawing the 3D
+  // chart on every poll interrupted in-progress zoom/pan/rotate before the viewer could
+  // finish it, even with the camera correctly restored afterwards — confirmed live
+  // 2026-09-01. Redraw only when the fit actually advanced, or a caller (theme toggle,
+  // drag-mode toggle, RESET VIEW) explicitly forces it.
+  if (!force && snapshot.sequence === lastSurfaceSequence) return;
+  lastSurfaceSequence = snapshot.sequence;
+  const t = theme();
   const grid = snapshot.grid;
   const arb = payload.arbitrage;
   const violated = arb.passed === false;
@@ -489,7 +490,6 @@ function renderSurface(payload) {
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
     font: {family: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: t.ink2},
-    uirevision: 'anl03-surface-camera',
     hoverlabel: {bgcolor: t.panel, bordercolor: t.rule,
       font: {color: t.ink, size: 11,
         family: 'ui-monospace, SFMono-Regular, Menlo, monospace'}},
@@ -502,13 +502,19 @@ function renderSurface(payload) {
         {range: [payload.axis_iv_min, payload.axis_iv_max]}),
       aspectmode: 'cube',
       dragmode: sceneDragMode,
-      camera: cameraState || DEFAULT_CAMERA,
+      camera: DEFAULT_CAMERA,
+      // Plotly's own camera-preservation contract: while uirevision stays the same
+      // across Plotly.react calls, the *given* camera above is ignored in favour of
+      // whatever the viewer left it at. RESET VIEW bumps the revision to force it back
+      // to DEFAULT_CAMERA for exactly one redraw. Nothing here needs to read the
+      // camera back out (no plotly_relayout listener) — Plotly already owns that state.
+      uirevision: 'anl03-surface-camera-' + cameraRevision,
     },
   };
   Plotly.react(holder, traces, layout, {
     displaylogo: false, responsive: true, scrollZoom: true,
     modeBarButtonsToRemove: ['toImage'],
-  }).then(() => wireSurface(holder));
+  });
 }
 
 function renderAtm(payload) {
@@ -672,11 +678,11 @@ function renderMispricing(payload) {
       'no corrected, invalidated, or censored episodes yet</td></tr>';
 }
 
-function render(payload) {
+function render(payload, forceSurfaceRedraw) {
   document.getElementById('sourceLabel').textContent = payload.source;
   renderHealth(payload);
   renderAtm(payload);
-  renderSurface(payload);
+  renderSurface(payload, forceSurfaceRedraw);
   renderArbitrage(payload);
   renderDiagnostics(payload);
   renderMispricing(payload);
