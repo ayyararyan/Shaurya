@@ -32,7 +32,7 @@ from shaurya.analytics.surface_feed import (
     expiry_timestamp,
 )
 from shaurya.analytics.universe import select_chain_universe
-from shaurya.cli.surface_dashboard import _fit_expiries
+from shaurya.cli.surface_dashboard import _available_expiries, _fit_expiries, _instrument_expiries
 from shaurya.cli.surface_dashboard import _parser as surface_dashboard_parser
 from shaurya.surfaces.essvi import ESSVISurface, black76_price
 
@@ -97,6 +97,96 @@ def test_fit_expiries_refuses_to_leave_nothing_fittable() -> None:
     )
     with pytest.raises(SystemExit, match="0DTE"):
         _fit_expiries(args)
+
+
+def test_fit_expiries_pulls_in_the_next_expiry_when_0dte_would_leave_a_smile() -> None:
+    """A single remaining maturity has no calendar/term-structure dimension — it is a
+    smile, not a surface. Confirmed live 2026-09-01: dropping the 0DTE 2026-09-01
+    expiry alone left only 2026-09-08 by itself."""
+
+    later = FAR + timedelta(days=7)
+    args = surface_dashboard_parser().parse_args(
+        [
+            "--mode",
+            "replay",
+            "--expiry",
+            NEAR.isoformat(),
+            "--expiry",
+            FAR.isoformat(),
+            "--trading-date",
+            NEAR.isoformat(),
+        ]
+    )
+    assert _fit_expiries(args, available=(NEAR, FAR, later)) == (FAR, later)
+
+
+def test_fit_expiries_falls_back_to_a_smile_when_no_extension_is_available() -> None:
+    """Dropping 0DTE is still strictly safer than fitting on tick-floor OTM prices, even
+    when nothing is available to restore a second maturity."""
+
+    args = surface_dashboard_parser().parse_args(
+        [
+            "--mode",
+            "replay",
+            "--expiry",
+            NEAR.isoformat(),
+            "--expiry",
+            FAR.isoformat(),
+            "--trading-date",
+            NEAR.isoformat(),
+        ]
+    )
+    assert _fit_expiries(args, available=()) == (FAR,)
+
+
+def test_fit_expiries_does_not_extend_when_no_expiry_was_actually_0dte() -> None:
+    """Extension is compensation for a dropped 0DTE expiry, not a general floor of two —
+    a deliberate single-expiry request (no 0DTE involved) is left alone."""
+
+    args = surface_dashboard_parser().parse_args(
+        ["--mode", "replay", "--expiry", FAR.isoformat(), "--trading-date", NEAR.isoformat()]
+    )
+    assert _fit_expiries(args, available=(NEAR, FAR, FAR + timedelta(days=7))) == (FAR,)
+
+
+def test_instrument_expiries_reads_both_option_and_future_ids() -> None:
+    assert _instrument_expiries(
+        [
+            "NSE:NSE_FNO:NIFTY:option:2026-09-08:24050:CE",
+            "NSE:NSE_FNO:NIFTY:future:2026-09-29",
+            "NSE:NSE_FNO:NIFTY:option:2026-09-08:24100:PE",
+            "not-a-canonical-id",
+        ]
+    ) == (date(2026, 9, 8), date(2026, 9, 29))
+
+
+def _mapping(*, underlying: str, expiry: date, strike: int, index: int) -> DhanInstrumentMapping:
+    return DhanInstrumentMapping(
+        instrument=InstrumentId(
+            exchange="NSE",
+            segment=ExchangeSegment.NSE_FNO,
+            underlying=underlying,
+            kind=InstrumentKind.OPTION,
+            expiry=expiry,
+            strike=Decimal(strike),
+            option_type=OptionType.CALL,
+        ),
+        security_id=str(80_000 + index),
+        exchange_segment=ExchangeSegment.NSE_FNO,
+        trading_symbol=f"{underlying}-{expiry}-{strike}-CE",
+        lot_size=75,
+        tick_size_paise=None,
+        as_of_date=date(2026, 8, 19),
+        source="fixture",
+    )
+
+
+def test_available_expiries_filters_by_underlying() -> None:
+    mappings = [
+        _mapping(underlying="NIFTY", expiry=NEAR, strike=24_000, index=0),
+        _mapping(underlying="BANKNIFTY", expiry=FAR, strike=51_000, index=1),
+    ]
+    assert _available_expiries(mappings, underlying="NIFTY") == (NEAR,)
 
 
 def test_expiry_close_is_date_versioned_at_the_2026_extension_boundary() -> None:
