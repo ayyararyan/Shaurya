@@ -195,17 +195,54 @@ def build_capture_command(
     return command
 
 
+# Live-observed 2026-09-01: after market close, --duration-seconds' own internal
+# asyncio.wait(timeout=...) deadline did not stop the capture, and it kept running for
+# 7+ minutes; a direct SIGINT (both via tmux and kill -INT) did not stop it either.
+# SIGTERM did, instantly. Root cause not yet found (needs catching a live instance in
+# that state with a profiler attached; both processes had already been asked to stop by
+# the time this was noticed, so it could not be diagnosed after the fact). Until it is
+# fixed, this OS-level watchdog is the backstop that actually satisfies "capture stops
+# itself at close without a human having to intervene": an in-process bug cannot defeat
+# a signal sent by a separate supervising shell.
+WATCHDOG_GRACE_BUFFER_SECONDS = 180.0
+WATCHDOG_KILL_AFTER_SECONDS = 30.0
+
+
+def _watchdog_wrapped_command(command: Sequence[str], *, grace_buffer_seconds: float) -> list[str]:
+    """Run `command`, force-stopping it if it has not exited by `grace_buffer_seconds`
+    after its own --duration-seconds deadline: SIGTERM first, then SIGKILL if it is
+    still alive after a further `WATCHDOG_KILL_AFTER_SECONDS`. The buffer gives the
+    command's ordinary graceful shutdown (including --archive-on-close) a fair chance
+    first; the watchdog only acts if that does not happen. Reads --duration-seconds
+    out of `command` itself rather than taking a separate value, so there is exactly
+    one source of truth for how long this capture is meant to run.
+    """
+    duration_index = command.index("--duration-seconds") + 1
+    grace_seconds = float(command[duration_index]) + grace_buffer_seconds
+    quoted = " ".join(shlex.quote(part) for part in command)
+    script = (
+        f"{quoted} & child=$!; "
+        f"(sleep {int(grace_seconds)}; kill -TERM $child 2>/dev/null; "
+        f"sleep {int(WATCHDOG_KILL_AFTER_SECONDS)}; kill -KILL $child 2>/dev/null) "
+        "& watchdog=$!; wait $child; kill $watchdog 2>/dev/null"
+    )
+    return ["zsh", "-c", script]
+
+
 def _launch_tmux(session: str, commands: Sequence[tuple[str, list[str]]]) -> None:
     for index, (underlying, command) in enumerate(commands):
         window = underlying.lower()
+        watchdog_command = _watchdog_wrapped_command(
+            command, grace_buffer_seconds=WATCHDOG_GRACE_BUFFER_SECONDS
+        )
         if index == 0:
             subprocess.run(
-                ["tmux", "new-session", "-d", "-s", session, "-n", window, *command],
+                ["tmux", "new-session", "-d", "-s", session, "-n", window, *watchdog_command],
                 check=True,
             )
         else:
             subprocess.run(
-                ["tmux", "new-window", "-t", session, "-n", window, *command],
+                ["tmux", "new-window", "-t", session, "-n", window, *watchdog_command],
                 check=True,
             )
 
