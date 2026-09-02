@@ -1,0 +1,158 @@
+{
+  "status": "passive_maker_research_complete",
+  "inputs": {
+    "surface_sessions": [
+      {
+        "path": "/Users/maheit/Documents/Shaurya-research/2026-08-26-surface-alpha/normalized/surface-states-2026-08-21.npz",
+        "sha256": "e0ec824e7c137ec4084cb58af0b062305dcdcf7ec3d675cfa354079eee0a15af"
+      },
+      {
+        "path": "/Users/maheit/Documents/Shaurya-research/2026-08-26-surface-alpha/normalized/surface-states-2026-08-26.npz",
+        "sha256": "e6e1a907bcd8110299d52f18af303d674e933f65ae87eb2d35719fdfc9659e03"
+      },
+      {
+        "path": "/Users/maheit/Documents/Shaurya-research/2026-08-26-surface-alpha/normalized/surface-states-2026-08-27.npz",
+        "sha256": "0df438ffc594c66d4d98d313a33fe76714e174403eb735f825a48ebfc33bcc86"
+      }
+    ],
+    "reduced_future_tapes": [
+      {
+        "path": "/Users/maheit/Documents/Shaurya-research/parity-maker-2026-09-02/future-tapes/future-2026-08-26.npz",
+        "sha256": "23ae495a4b85f1414bd40f78806aa32921830ad4cd0a18c6d5ce44cc17f632c0"
+      },
+      {
+        "path": "/Users/maheit/Documents/Shaurya-research/parity-maker-2026-09-02/future-tapes/future-2026-08-27.npz",
+        "sha256": "25b2318deaac289f8d2ebff7929c21905d5c8c226cb3ac23eb0024d0feafbc24"
+      }
+    ]
+  },
+  "model": "frozen baseline_plus_far_parity_delta_60s",
+  "ridge_alpha_selected_on_validation": 100.0,
+  "prediction_threshold": 5.887791725829495e-05,
+  "holding_seconds_from_signal": 30,
+  "order_size_units": 65,
+  "signal_counts": {
+    "2026-08-26": 61,
+    "2026-08-27": 142
+  },
+  "headline_full_queue_250ms_ttl5_fee0.5bps": [
+    {
+      "session": "2026-08-26",
+      "latency_ms": 250,
+      "ttl_seconds": 5,
+      "queue_model": "full_displayed",
+      "fee_bps": 0.5,
+      "signals": 61,
+      "fills": 8,
+      "fill_rate": 0.13114754098360656,
+      "mean_net_bps_per_fill": -1.0627355003638224,
+      "mean_net_bps_per_signal": -0.139375147588698,
+      "total_net_bps": -8.501884002910579,
+      "win_rate_fills": 0.25,
+      "mean_adverse_1s_bps": 0.05113971289733212,
+      "mean_adverse_5s_bps": 0.10230502305741837
+    },
+    {
+      "session": "2026-08-27",
+      "latency_ms": 250,
+      "ttl_seconds": 5,
+      "queue_model": "full_displayed",
+      "fee_bps": 0.5,
+      "signals": 142,
+      "fills": 25,
+      "fill_rate": 0.176056338028169,
+      "mean_net_bps_per_fill": -0.05577723905300376,
+      "mean_net_bps_per_signal": -0.00981993645299362,
+      "total_net_bps": -1.394430976325094,
+      "win_rate_fills": 0.32,
+      "mean_adverse_1s_bps": 0.03950285640883309,
+      "mean_adverse_5s_bps": -0.009915362311677035
+    }
+  ],
+  "optimistic_touch_250ms_ttl5_fee0.5bps": [
+    {
+      "session": "2026-08-26",
+      "latency_ms": 250,
+      "ttl_seconds": 5,
+      "queue_model": "touch",
+      "fee_bps": 0.5,
+      "signals": 61,
+      "fills": 24,
+      "fill_rate": 0.39344262295081966,
+      "mean_net_bps_per_fill": -0.6756931502962304,
+      "mean_net_bps_per_signal": -0.2658464853624513,
+      "total_net_bps": -16.21663560710953,
+      "win_rate_fills": 0.3333333333333333,
+      "mean_adverse_1s_bps": 0.02045837207769575,
+      "mean_adverse_5s_bps": 0.2975327422445175
+    },
+    {
+      "session": "2026-08-27",
+      "latency_ms": 250,
+      "ttl_seconds": 5,
+      "queue_model": "touch",
+      "fee_bps": 0.5,
+      "signals": 142,
+      "fills": 69,
+      "fill_rate": 0.4859154929577465,
+      "mean_net_bps_per_fill": 0.05278776482310278,
+      "mean_net_bps_per_signal": 0.025650392766155578,
+      "total_net_bps": 3.642355772794092,
+      "win_rate_fills": 0.42028985507246375,
+      "mean_adverse_1s_bps": 0.054472538711668725,
+      "mean_adverse_5s_bps": 0.24139036677750164
+    }
+  ],
+  "pooled_headline": {
+    "latency_ms": 250,
+    "ttl_seconds": 5,
+    "queue_model": "full_displayed",
+    "fee_bps": 0.5,
+    "signals": 203,
+    "fills": 33,
+    "fill_rate": 0.1625615763546798,
+    "mean_net_bps_per_fill": -0.2998883327041112,
+    "mean_net_bps_per_signal": -0.04875032009475699,
+    "total_net_bps": -9.896314979235669,
+    "win_rate_fills": 0.30303030303030304,
+    "break_even_fee_bps_per_fill": 0.20011166729588875
+  },
+  "pooled_optimistic_touch": {
+    "latency_ms": 250,
+    "ttl_seconds": 5,
+    "queue_model": "touch",
+    "fee_bps": 0.5,
+    "signals": 203,
+    "fills": 93,
+    "fill_rate": 0.458128078817734,
+    "mean_net_bps_per_fill": -0.13520731004640257,
+    "mean_net_bps_per_signal": -0.06194226519367212,
+    "total_net_bps": -12.57427983431544,
+    "win_rate_fills": 0.3978494623655914,
+    "break_even_fee_bps_per_fill": 0.3647926899535974
+  },
+  "headline_opportunity_bootstrap": {
+    "mean_bps_per_signal": -0.04875032009475701,
+    "ci_lo": -0.13162646868642247,
+    "ci_hi": 0.029570016504672034,
+    "probability_mean_positive": 0.11422
+  },
+  "touch_opportunity_bootstrap": {
+    "mean_bps_per_signal": -0.0619422651936721,
+    "ci_lo": -0.19294484311662027,
+    "ci_hi": 0.06669003755716624,
+    "probability_mean_positive": 0.17178
+  },
+  "fee0.5_grid_robustness": {
+    "configurations": 18,
+    "positive_on_both_sessions": 0,
+    "positive_when_pooled": 0
+  },
+  "limitations": [
+    "Cumulative-volume changes are assigned to the recorded last price; aggressor-side data are not native.",
+    "Displayed queue depletion counts executions only and ignores cancellations, making the full-queue model conservative.",
+    "A fill caused by the market moving through the limit is assumed at the limit price.",
+    "Exit is a marketable order at the recorded best quote 30 seconds after the original signal.",
+    "Fees are a sensitivity ladder, not a reconstructed broker bill."
+  ]
+}

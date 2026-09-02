@@ -67,3 +67,27 @@ and must not be retuned on these same days.
 Do not cross the spread using this signal. It may later be evaluated as one
 input to a broader model or a passive/maker study, but neither has trade or
 deployment authority from this result.
+
+## 2026-09-02 — Far-parity passive-maker audit
+
+**Status: rejected; neither taker nor maker execution converts the midpoint
+association into a profitable strategy.**
+
+The frozen 30-second far-parity signal was replayed against raw Aug 26 and Aug
+27 NIFTY futures books. The raw reduction retained 16,303 and 27,526 valid
+books with actual best prices, displayed quantities and cumulative volume.
+The headline maker places one 65-unit order after 250 ms at the same-side best,
+requires the full displayed queue plus the order to execute within five
+seconds, then crosses the spread to exit at the original 30-second horizon.
+
+The headline filled 8/61 Aug-26 signals and 25/142 Aug-27 signals. After a
+0.5 bp fee reserve it lost 1.063 and 0.056 bps per fill respectively. Pooled
+P&L was -9.896 bps across 203 opportunities, or -0.049 bps per signal; gross
+break-even cost was only 0.200 bps per fill. An optimistic first-touch fill
+model also lost -12.574 bps pooled and broke even at only 0.365 bps per fill.
+
+None of the 18 latency/TTL/queue configurations was profitable at 0.5 bp both
+by session or pooled. Bootstrap probability of a positive opportunity mean was
+11.42% for the headline and 17.18% for optimistic touch. Do not tune the same
+days to rescue the result. Artifacts are under
+`research/parity_maker_audit_2026-09-02/`.
