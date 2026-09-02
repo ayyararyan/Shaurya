@@ -249,3 +249,33 @@ prospective observation exists yet.
 
 The hash-locked configuration, scoring code, protocol and baseline are stored
 under `research/nsgvc_prospective_2026-09-02/`.
+
+## 2026-09-02 — NSGVC historical stability matrix
+
+**Status: encouraging recurring effect, but still statistically inconclusive
+and unsuitable for an alpha claim.**
+
+The Office Mac evaluated eight fixed training starts, seven expanding-origin
+quarterly blocks, and strict expiry-by-expiry expanding and rolling-252-session
+walk-forward variants. All tests retained the IV-only model family, q <= 0.70,
+RR400 60th-percentile calibration rule, 500-point width, first qualifying date
+per expiry and six-point cost. Walk-forward training admitted only labels from
+already-matured prior expiries.
+
+Six of eight starts were positive in 2025 and all eight were positive in the
+partial-2026 block, but alternative starts generally reduced partial-2026 mean
+P&L from +32.16 to +11.19 points. Quarterly expanding evaluation had three
+positive blocks, three negative blocks and one no-trade block; its 37 trades
+averaged +16.42 points with p=0.283 and bootstrap interval `[-39.00,+71.01]`.
+
+Strict expanding-history expiry walk-forward generated 47 trades averaging
++15.82 points, but lost 28.63 points/trade in 2024; aggregate p=0.250 and the
+bootstrap interval was `[-29.50,+60.93]`. Rolling-252 expiry walk-forward was
+stronger: 52 trades, +26.60 points/trade after six points, 57.69% wins,
+positive annual means in 2024, 2025 and partial 2026, and +22.60 points/trade
+even at ten-point cost. Its p-value was still 0.101 and bootstrap interval
+`[-13.53,+66.36]`, so zero remains plausible. Because the rolling-252 variant
+was chosen after inspecting these histories, it is exploratory and does not
+replace the already-frozen prospective rule.
+
+Artifacts are under `research/nsgvc_historical_stability_2026-09-02/`.
