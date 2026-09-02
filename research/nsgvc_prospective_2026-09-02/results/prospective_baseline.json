@@ -1,0 +1,12 @@
+{
+  "strategy_version": "1.0.0-prospective-freeze-2026-09-02",
+  "prospective_start_date": "2026-09-03",
+  "config_sha256": "e2a3b7c77e29db3dfc15ff82a0a9a2ecfc79736d82da7feb7001a9a59b5de70f",
+  "panel_sha256": "4d00762af456b8dbc86b49bdd5171d34c87939ab08719c7a21254eaaf5673e2a",
+  "eligible_input_rows": 0,
+  "signal_count": 0,
+  "signal_dates": [],
+  "status": "awaiting_post_freeze_data",
+  "matured_structure_rows": 0,
+  "matured_expiries": 0
+}

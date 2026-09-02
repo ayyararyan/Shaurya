@@ -1,0 +1,39 @@
+{
+  "strategy_name": "NIFTY Smile-Gated Variance Carry",
+  "short_name": "NSGVC",
+  "version": "1.0.0-prospective-freeze-2026-09-02",
+  "frozen_on": "2026-09-02",
+  "prospective_start_date": "2026-09-03",
+  "invalid_or_excluded_dates": ["2026-09-02"],
+  "snapshot_time_ist": "09:20",
+  "model": {
+    "training_window": "2023-01-23 through 2025-12-31",
+    "training_rows": 726,
+    "intercept": -1.4844407354182412,
+    "coef_log_iv_int": 0.8215772820234087,
+    "coef_logT": 0.08981823810775376
+  },
+  "gates": {
+    "pred_ratio_max": 0.7,
+    "rr400_max_decimal": 0.027081006247852195
+  },
+  "selection": {
+    "expiry": "nearest weekly",
+    "one_position_per_expiry": true,
+    "choose": "first chronological row passing both gates"
+  },
+  "structure": {
+    "preferred_width_points": 500,
+    "fallback_width_points": 400,
+    "exit": "hold to expiry",
+    "completed_structure_cost_points": 6.0
+  },
+  "risk": {
+    "max_defined_loss_fraction_of_current_equity": 0.2,
+    "maximum_lots": 1,
+    "live_lot_size_required": true,
+    "live_broker_basket_margin_required": true
+  },
+  "research_reference_lot_size": 65,
+  "retuning_policy": "No parameter, threshold, feature, timing, width, cost, or exclusion changes during the prospective evaluation."
+}

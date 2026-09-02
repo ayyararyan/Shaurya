@@ -227,3 +227,25 @@ Committed audit artifacts live under
 `research/nsgvc_raw_rebuild_2026-09-02/`; large reconstructed intermediate
 panels remain on the Office Mac under
 `/Users/maheit/Documents/Shaurya-research/NSGVC-raw-rebuild-2026-09-02/`.
+
+## 2026-09-02 — NSGVC prospective shadow freeze
+
+**Status: frozen and verified; awaiting the first valid post-freeze option
+session.**
+
+NSGVC v1.0 is frozen for prospective evaluation starting 2026-09-03. The
+invalid 2026-09-02 capture is explicitly excluded. The model coefficients,
+q threshold, RR400 threshold, 09:20 snapshot, first-signal-per-expiry rule,
+500/400 risk hierarchy, hold-to-expiry exit and six-point research cost cannot
+be changed in response to prospective outcomes. Any revision must receive a
+new version and a new future evaluation start date.
+
+The standalone scorer was verified on the 89 archived 2026 rows: its maximum
+absolute difference from the package's frozen prediction ratios is
+`3.99e-13`. The current historical option panel ends 2026-05-14, so the initial
+post-freeze baseline correctly reports zero eligible rows and zero signals with
+status `awaiting_post_freeze_data`. This is not a failed trade result; no valid
+prospective observation exists yet.
+
+The hash-locked configuration, scoring code, protocol and baseline are stored
+under `research/nsgvc_prospective_2026-09-02/`.
