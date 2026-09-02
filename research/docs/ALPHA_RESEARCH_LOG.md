@@ -67,3 +67,43 @@ and must not be retuned on these same days.
 Do not cross the spread using this signal. It may later be evaluated as one
 input to a broader model or a passive/maker study, but neither has trade or
 deployment authority from this result.
+
+## 2026-09-02 — Five-year 500-point short-volatility butterfly request
+
+**Status: blocked for an exact backtest by the supplied archive schema; do not
+substitute a rolling-series proxy without calling it synthetic.**
+
+### Requested strategy
+
+The intended position is a weekly 500-point-wide short iron butterfly: sell
+the entry ATM call and put, buy the call 500 points above and the put 500
+points below, then compare fixed hold-to-expiry with daily/dynamic risk
+management based on an entry-time volatility forecast.
+
+### Archive preflight
+
+The requested five-year source is:
+`/Volumes/Aryan/NSE/NIFTY_OPTIONS_1MIN_OHLCV_2021-2026.zip`, covering
+2021-01-01 through 2026-05-14. It has one-minute OHLCV only, and files are
+named `WEEK1` plus `ATM±N`. The archive README states that these are *rolling
+ATM-relative series*, rather than fixed-contract continuous series. It has no
+contract identifier, exact strike, expiry, implied volatility, bid/ask, or
+option-chain snapshot fields.
+
+### Why an exact result is impossible from this source
+
+Holding an entry ATM leg to expiry requires preserving its original strike and
+expiry. In this archive, `ATM` and `ATM±10` may change the underlying contract
+as spot moves or the nearest weekly contract rolls. Consequently, treating
+`ATM±10` as a 500-point wing and marking it until expiry would invent leg rolls
+and cannot measure real butterfly P&L. IV-versus-realised-volatility selection
+also cannot be reconstructed defensibly without the entry contract's strike,
+time to expiry and executable quote.
+
+### Required data to run the requested comparison
+
+At every entry and daily/dynamic rebalance point: contract symbol or ID, strike,
+expiry, CE/PE, bid/ask or reliable executable prices, and the NIFTY future or
+spot. With that, run fixed contracts through expiry and pre-register daily or
+forecast-triggered exits/rolls. The August state tapes can support a short
+intraday exercise but cannot supply five years of fixed weekly contracts.
