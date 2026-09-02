@@ -279,3 +279,32 @@ was chosen after inspecting these histories, it is exploratory and does not
 replace the already-frozen prospective rule.
 
 Artifacts are under `research/nsgvc_historical_stability_2026-09-02/`.
+
+## 2026-09-02 — Rolling-252 NSGVC falsification audit
+
+**Status: six of seven stress criteria passed, but uncertainty and
+concentration prevent promotion.**
+
+Raw option minutes were used to reconstruct delayed execution. At a ten-point
+deduction, 09:20-close and 09:21-open entries still averaged +22.93 and +22.65
+points across the same 52 expiry trades; even 20 points of cost left means near
++12.7. Annual means were positive in 2024, 2025 and partial 2026. The 09:20-open
+reconstruction matched the audited ledger within `2.84e-14` points.
+
+Across 125 nearby lookback/q/RR cells, 115 had at least 20 trades: 65.22% were
+positive, the median cell averaged +10.86 points and the primary cell ranked at
+the 87.83rd percentile. Cell means ranged from -16.42 to +51.97, so the surface
+is favorable more often than not but far from uniformly stable.
+
+Gate attribution supports an interaction: ungated entries averaged -16.15,
+RR-only -16.74, q-only +7.60 and both gates +26.60 points after six-point cost.
+However, removing the five best trades reduced the primary mean from +26.60 to
++2.90 points. The primary one-sided p-value remains 0.101; iid and four-expiry
+block-bootstrap intervals were `[-13.53,+66.36]` and `[-9.87,+62.56]`.
+
+The sequential Rs 1 lakh risk simulation used 51 500-point structures and one
+400-point fallback, ending at Rs 189,729.25 with a 30.51% maximum drawdown.
+Because the block-bootstrap lower bound did not exceed zero, the strict overall
+falsification gate failed. Rolling-252 remains an exploratory candidate and
+does not replace the existing prospective freeze. Artifacts are under
+`research/nsgvc_rolling252_falsification_2026-09-02/`.

@@ -1,0 +1,55 @@
+{
+  "definitions": {
+    "lookback": 252,
+    "q_max": 0.7,
+    "rr_quantile": 0.6,
+    "width": 500,
+    "base_cost": 6
+  },
+  "execution_reconstruction_max_abs_pnl_diff": 2.842170943040401e-14,
+  "primary": {
+    "n": 52,
+    "mean": 26.59903846153845,
+    "median": 52.525,
+    "win_rate": 0.5769230769230769,
+    "total": 1383.1499999999994,
+    "p_one_sided": 0.10129066088506783,
+    "iid_ci_lo": -13.534687499999853,
+    "iid_ci_hi": 66.35983173076905,
+    "block4_ci_lo": -9.874062500000061,
+    "block4_ci_hi": 62.56444711538453,
+    "worst": -257.8,
+    "best": 272.35000000000076
+  },
+  "parameter_neighborhood": {
+    "variants": 125,
+    "eligible_variants_n_ge_20": 115,
+    "share_positive": 0.6521739130434783,
+    "median_mean_points": 10.85500000000014,
+    "worst_mean_points": -16.41707317073171,
+    "best_mean_points": 51.96904761904772,
+    "primary_mean_percentile": 0.8782608695652174
+  },
+  "capital_path": {
+    "starting_equity": 100000.0,
+    "ending_equity": 189729.24999999994,
+    "net_profit": 89729.24999999994,
+    "trades": 52,
+    "skipped_for_risk": 0,
+    "width_counts": {
+      "500": 51,
+      "400": 1
+    },
+    "max_drawdown_fraction": 0.3051266068212215
+  },
+  "criteria": {
+    "09:20_close_positive_at_cost10": true,
+    "09:21_open_positive_at_cost10": true,
+    "positive_after_removing_best5": true,
+    "at_least_60pct_neighborhood_positive": true,
+    "block_bootstrap_lower_bound_positive": false,
+    "positive_mean_each_year": true,
+    "capital_path_profitable": true
+  },
+  "passed_all_criteria": false
+}
