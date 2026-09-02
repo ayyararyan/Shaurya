@@ -155,3 +155,33 @@ and does not survive the latest subperiod.
 Office Mac artifacts:
 `/Users/maheit/Documents/Shaurya-research/2026-09-02-butterfly-dynamic.json`
 and the corresponding `.csv` trade ledger.
+
+## 2026-09-02 — NSGVC v1.0.0 package audit
+
+**Status: historically reproduced; statistically inconclusive and not
+execution-confirmed.**
+
+The coworker package
+`NSGVC_Reproducible_Research_Package_v1.0.0_2026-09-02.zip` has SHA-256
+`5ba9f58cd21a335c95cd8f7582e8e73f616becd222d50603cf6792b6f5e1cc54`.
+All 263 package-manifest entries passed size and SHA-256 verification. A clean
+Python 3.12 environment on the Office Mac reproduced the frozen model, RR400
+cutoff and all 56 entry keys. Maximum prediction-ratio difference was
+`6.81e-13`. The NIFTY index ZIP hash matches the package receipt; the available
+combined option ZIP cannot be byte-compared directly with the package's six
+separate yearly ZIP hashes.
+
+At the six-option-point structure cost, the fixed-500 ledger produces +21.85
+points/trade and Rs 79,524 total under the reference 65-unit lot. The stated
+approximately Rs 77,870 result is also correct for the capital-aware mix that
+falls back to 400-point wings when the 500-point defined loss breaches Rs
+20,000: 56 trades, Rs 77,869.97 total, Rs 1,390.54 mean, 58.93% wins, Rs
+13,858.35 mean defined risk and Rs 18,973.50 maximum admitted risk.
+
+Independent inference on the fixed-500 cost-6 ledger gives a one-sided t-test
+`p=0.1465` and an iid 100,000-resample bootstrap 95% interval for mean points of
+`[-18.08, +61.60]`. Development, 2025 validation and researcher-exposed 2026
+intervals all include zero. Threshold and structure selection examined several
+q cutoffs, RR400 quantiles and wing widths, and 2026 was seen during exploratory
+work. Therefore reproduction upgrades the claim from unaudited to reproducible
+historical evidence, but does not establish statistical or executable alpha.
