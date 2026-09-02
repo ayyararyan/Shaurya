@@ -19,7 +19,9 @@ import json
 import sys
 import time
 from collections import Counter
+from collections.abc import Mapping
 from contextlib import suppress
+from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -40,6 +42,43 @@ from shaurya.data.universe import select_chain_universe
 
 UNDERLYING_INDEX_SECURITY_ID: dict[str, int] = {"NIFTY": 13, "BANKNIFTY": 25}
 DEFAULT_MINIMUM_COVERAGE_FRACTION = 0.95
+
+
+@dataclass(frozen=True, slots=True)
+class ChainCaptureSpec:
+    """One independently resolved chain carried on the shared Standard/Full socket."""
+
+    underlying: str
+    spot: float
+    expiries: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        normalized = self.underlying.strip().upper()
+        if normalized not in UNDERLYING_INDEX_SECURITY_ID:
+            raise ValueError(f"unknown chain-spec underlying {self.underlying!r}")
+        if self.spot <= 0:
+            raise ValueError("chain-spec spot must be positive")
+        if not self.expiries:
+            raise ValueError("chain-spec requires at least one expiry")
+        parsed = tuple(sorted({date.fromisoformat(value).isoformat() for value in self.expiries}))
+        object.__setattr__(self, "underlying", normalized)
+        object.__setattr__(self, "expiries", parsed)
+
+    @classmethod
+    def parse(cls, value: str) -> ChainCaptureSpec:
+        """Parse ``UNDERLYING:SPOT:EXPIRY[,EXPIRY...]`` from the production launcher."""
+
+        try:
+            underlying, spot_text, expiry_text = value.split(":", maxsplit=2)
+            expiries = tuple(item.strip() for item in expiry_text.split(",") if item.strip())
+            return cls(underlying=underlying, spot=float(spot_text), expiries=expiries)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                "chain-spec must be UNDERLYING:SPOT:EXPIRY[,EXPIRY...]"
+            ) from exc
+
+    def to_cli(self) -> str:
+        return f"{self.underlying}:{self.spot}:{','.join(self.expiries)}"
 
 
 def resolve_live_spot_and_expiries(
@@ -80,6 +119,8 @@ def coverage_failure_reason(
     covered_count: int,
     minimum_coverage_fraction: float,
     stream_error_type: str | None = None,
+    stream_error_reason_code: int | None = None,
+    coverage_by_underlying: Mapping[str, tuple[int, int]] | None = None,
 ) -> str | None:
     """Return the terminal invalidation reason for a chain capture, if any.
 
@@ -95,7 +136,23 @@ def coverage_failure_reason(
     if not 0 <= covered_count <= requested_count:
         raise ValueError("covered_count must lie between zero and requested_count")
     if stream_error_type is not None:
-        return f"stream failed: {stream_error_type}"
+        suffix = (
+            f" (reason_code={stream_error_reason_code})"
+            if stream_error_reason_code is not None
+            else ""
+        )
+        return f"stream failed: {stream_error_type}{suffix}"
+    for underlying, (underlying_requested, underlying_covered) in (
+        coverage_by_underlying or {}
+    ).items():
+        if underlying_requested <= 0 or not 0 <= underlying_covered <= underlying_requested:
+            raise ValueError(f"invalid {underlying} coverage counts")
+        underlying_fraction = underlying_covered / underlying_requested
+        if underlying_fraction < minimum_coverage_fraction:
+            return (
+                f"{underlying} instrument coverage {underlying_covered}/{underlying_requested} "
+                f"({underlying_fraction:.2%}) below required {minimum_coverage_fraction:.2%}"
+            )
     coverage_fraction = covered_count / requested_count
     if coverage_fraction < minimum_coverage_fraction:
         return (
@@ -103,6 +160,42 @@ def coverage_failure_reason(
             f"({coverage_fraction:.2%}) below required {minimum_coverage_fraction:.2%}"
         )
     return None
+
+
+def resolve_capture_specs(
+    args: argparse.Namespace, client: DhanClient
+) -> tuple[ChainCaptureSpec, ...]:
+    """Resolve every requested underlying independently for one shared stream."""
+
+    if args.chain_spec:
+        if args.underlying or args.spot is not None or args.expiry:
+            raise ValueError("--chain-spec cannot be combined with --underlying/--spot/--expiry")
+        specs = tuple(ChainCaptureSpec.parse(value) for value in args.chain_spec)
+    else:
+        underlyings = tuple(value.strip().upper() for value in (args.underlying or ["NIFTY"]))
+        if len(set(underlyings)) != len(underlyings):
+            raise ValueError("underlyings must be unique")
+        if len(underlyings) > 1 and (args.spot is not None or args.expiry):
+            raise ValueError(
+                "--spot/--expiry are single-underlying options; use --chain-spec or omit them "
+                "to resolve each repeated --underlying independently"
+            )
+        resolved: list[ChainCaptureSpec] = []
+        for underlying in underlyings:
+            spot = args.spot
+            expiry_values = args.expiry
+            if spot is None or not expiry_values:
+                live_spot, live_expiries = resolve_live_spot_and_expiries(
+                    client, underlying, expiry_count=args.expiry_count
+                )
+                spot = spot if spot is not None else live_spot
+                expiry_values = expiry_values or live_expiries
+            resolved.append(ChainCaptureSpec(underlying, spot, tuple(expiry_values)))
+        specs = tuple(resolved)
+    spec_underlyings = [spec.underlying for spec in specs]
+    if len(set(spec_underlyings)) != len(spec_underlyings):
+        raise ValueError("chain-spec underlyings must be unique")
+    return specs
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -114,6 +207,15 @@ def _parser() -> argparse.ArgumentParser:
         action="append",
         default=None,
         help="Repeat to probe a universe wider than one underlying can supply.",
+    )
+    parser.add_argument(
+        "--chain-spec",
+        action="append",
+        default=None,
+        help=(
+            "Pinned UNDERLYING:SPOT:EXPIRY[,EXPIRY...] specification; repeat to carry "
+            "multiple independently resolved chains on one Standard/Full socket."
+        ),
     )
     parser.add_argument(
         "--expiry",
@@ -182,33 +284,23 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     if not 0 < args.minimum_coverage_fraction <= 1:
         raise ValueError("minimum-coverage-fraction must lie in (0, 1]")
     master = DhanInstrumentMaster(args.security_master)
-    underlyings = args.underlying or ["NIFTY"]
     mappings = list(master.mappings())
     credentials = DhanCredentials.from_env_file(args.credentials)
-    spot = args.spot
-    expiry_values = args.expiry
-    if spot is None or not expiry_values:
-        if len(underlyings) != 1:
-            raise ValueError(
-                "--spot and --expiry must both be given explicitly when --underlying is "
-                "repeated; live auto-resolution only covers one underlying at a time"
-            )
-        resolved_spot, resolved_expiries = resolve_live_spot_and_expiries(
-            DhanClient(credentials), underlyings[0], expiry_count=args.expiry_count
-        )
-        spot = spot if spot is not None else resolved_spot
-        expiry_values = expiry_values or resolved_expiries
+    specs = resolve_capture_specs(args, DhanClient(credentials))
     universes = [
         select_chain_universe(
             mappings,
-            underlying=underlying,
-            expiries=[date.fromisoformat(value) for value in expiry_values],
-            spot_reference=spot,
+            underlying=spec.underlying,
+            expiries=[date.fromisoformat(value) for value in spec.expiries],
+            spot_reference=spec.spot,
             strike_window_fraction=args.strike_window_fraction,
             max_options=args.max_options,
         )
-        for underlying in underlyings
+        for spec in specs
     ]
+    empty_underlyings = [universe.underlying for universe in universes if not universe.instruments]
+    if empty_underlyings:
+        raise ValueError(f"the requested universe selected no instruments for {empty_underlyings}")
     instruments: list[Any] = []
     seen_ids: set[str] = set()
     for universe in universes:
@@ -293,11 +385,25 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     silent = [name for name in requested if seen[name] == 0]
     coverage_fraction = len(covered) / len(requested)
     stream_error_type = type(stream_error).__name__ if stream_error else None
+    stream_error_reason_code = getattr(stream_error, "reason_code", None)
+    coverage_by_underlying: dict[str, tuple[int, int]] = {}
+    underlying_coverage_report: dict[str, dict[str, float | int]] = {}
+    for universe in universes:
+        universe_ids = [mapping.instrument.canonical for mapping in universe.instruments]
+        universe_covered = sum(seen[name] > 0 for name in universe_ids)
+        coverage_by_underlying[universe.underlying] = (len(universe_ids), universe_covered)
+        underlying_coverage_report[universe.underlying] = {
+            "requested_instruments": len(universe_ids),
+            "instruments_with_packets": universe_covered,
+            "coverage_fraction": universe_covered / len(universe_ids),
+        }
     reason = coverage_failure_reason(
         requested_count=len(requested),
         covered_count=len(covered),
         minimum_coverage_fraction=args.minimum_coverage_fraction,
         stream_error_type=stream_error_type,
+        stream_error_reason_code=stream_error_reason_code,
+        coverage_by_underlying=coverage_by_underlying,
     )
     report: dict[str, Any] = {
         "run_id": str(manifest.run_id),
@@ -305,6 +411,7 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         "generated_at": datetime.now(tz=IST).isoformat(),
         "channel": "standard_quote_full_request_code_21",
         "subscription_batch_size": 100,
+        "standard_websocket_connections": 1,
         "elapsed_seconds": elapsed,
         "universes": [item.to_dict() for item in universes],
         "requested_instruments": len(requested),
@@ -313,15 +420,18 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         "coverage_fraction": coverage_fraction,
         "minimum_coverage_fraction": args.minimum_coverage_fraction,
         "coverage_ok": reason is None,
+        "coverage_by_underlying": underlying_coverage_report,
         "first_silent_request_index": (requested.index(silent[0]) if silent else None),
         "silent_instruments": silent,
         "rows": metrics.rows,
         "reconnect_attempts": dict(metrics.reconnect_attempts),
         "connections": dict(metrics.connections),
         "heartbeat_timeouts": dict(metrics.heartbeat_timeouts),
+        "disconnect_reason_codes": dict(metrics.disconnect_reason_codes),
         "packets_per_instrument": dict(seen),
         "first_packet_ist_per_instrument": first_seen,
         "stream_error": stream_error_type,
+        "stream_error_reason_code": stream_error_reason_code,
         "dataset_directory": str(writer.dataset_dir),
     }
     manifest.write_record("chain_coverage", report)

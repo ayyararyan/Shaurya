@@ -46,6 +46,17 @@ class DhanProtocolError(RuntimeError):
 class DhanFatalStreamError(RuntimeError):
     """A non-retryable, sanitized stream rejection."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        channel: str | None = None,
+        reason_code: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.channel = channel
+        self.reason_code = reason_code
+
 
 class HeartbeatTimeout(TimeoutError):
     pass
@@ -319,6 +330,7 @@ class StreamMetrics:
     reconnect_attempts: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     reconnect_error_types: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     reconnect_close_codes: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    disconnect_reason_codes: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     heartbeats_sent: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     heartbeats_ok: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     heartbeat_timeouts: dict[str, int] = field(default_factory=lambda: defaultdict(int))
@@ -393,6 +405,7 @@ class StreamMetrics:
             "reconnect_attempts": dict(self.reconnect_attempts),
             "reconnect_error_types": dict(self.reconnect_error_types),
             "reconnect_close_codes": dict(self.reconnect_close_codes),
+            "disconnect_reason_codes": dict(self.disconnect_reason_codes),
             "heartbeats_sent": dict(self.heartbeats_sent),
             "heartbeats_ok": dict(self.heartbeats_ok),
             "heartbeat_timeouts": dict(self.heartbeat_timeouts),
@@ -446,7 +459,10 @@ class DhanLiveStream:
     STANDARD_URL = "wss://api-feed.dhan.co"
     DEPTH20_URL = "wss://depth-api-feed.dhan.co/twentydepth"
     DEPTH200_URL = "wss://full-depth-api.dhan.co/"
-    FATAL_REASONS = {806, 807, 808, 809}
+    # 805 is Dhan's connection-budget eviction. Retrying it immediately opens a new socket,
+    # evicts another existing socket, and can create an account-wide reconnect loop. It must
+    # fail closed until the operator frees a connection or the caller consolidates subscriptions.
+    FATAL_REASONS = {805, 806, 807, 808, 809}
 
     def __init__(
         self,
@@ -763,11 +779,13 @@ class DhanLiveStream:
                         self._raise_disconnect(channel, deep_packet)
                     self._emit_deep(deep_packet, received_at, channel=channel)
 
-    @classmethod
-    def _raise_disconnect(cls, channel: str, packet: ParsedDisconnect) -> NoReturn:
-        if packet.reason_code in cls.FATAL_REASONS:
+    def _raise_disconnect(self, channel: str, packet: ParsedDisconnect) -> NoReturn:
+        self.metrics.disconnect_reason_codes[f"{channel}:{packet.reason_code}"] += 1
+        if packet.reason_code in self.FATAL_REASONS:
             raise DhanFatalStreamError(
-                f"Dhan {channel} rejected the stream; reason_code={packet.reason_code}"
+                f"Dhan {channel} rejected the stream; reason_code={packet.reason_code}",
+                channel=channel,
+                reason_code=packet.reason_code,
             )
         raise ConnectionError(f"Dhan {channel} disconnected; reason_code={packet.reason_code}")
 
