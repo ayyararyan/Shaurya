@@ -185,3 +185,45 @@ intervals all include zero. Threshold and structure selection examined several
 q cutoffs, RR400 quantiles and wing widths, and 2026 was seen during exploratory
 work. Therefore reproduction upgrades the claim from unaudited to reproducible
 historical evidence, but does not establish statistical or executable alpha.
+
+## 2026-09-02 — NSGVC independent rebuild from consolidated raw ZIPs
+
+**Status: exact raw-data reproduction over the frozen research window; a new
+training-window sensitivity materially weakens confidence in robustness.**
+
+The complete iron-fly and smile pipeline was rerun on the Office Mac from
+`NIFTY_1MIN_OHLC_2021-2026.zip` and the independently available consolidated
+`NIFTY_OPTIONS_1MIN_OHLCV_2021-2026.zip`. The adapter preserves the package's
+declared option/training start of 2023-01-23, its 09:20 option-open convention,
+15:29 expiry spot proxy, Black-76 inversions, model splits, q gate and RR400
+calibration rule.
+
+The rebuild produced 815 daily smile rows and 6,511 defined-risk structure
+rows. Both sets have zero missing or extra keyed rows against the package.
+Market quantities and trade economics agree to floating-point precision:
+maximum absolute differences are about `1.22e-14` for ATM IV, `9.86e-13` for
+RR400, `1.28e-14` for prediction ratio and `1.14e-13` option points for max
+loss. The frozen refit again has 726 observations, intercept
+`-1.4844407354182474`, coefficients `[0.8215772820234082,
+0.08981823810775358]`, and RR400 cutoff `0.0270810062478522`.
+
+All 56 final fixed-500 trade keys match with zero additions or omissions. At a
+six-point cost the independently rebuilt ledger has +21.847314 option points
+per trade, 58.93% wins and Rs 79,524.224 at the normalized 65-unit lot. This is
+an exact raw reconstruction of the package's fixed-500 historical result.
+
+Important sensitivity: the consolidated ZIP also contains 15 valid sessions
+from 2023-01-02 through 2023-01-20 that are absent from the coworker's separate
+2023 archive and outside the frozen configuration. Including only those extra
+old observations—not tuning any gate—changes the 2023-25 fit from 726 to 741
+rows, moves the RR400 cutoff from 2.7081 to 2.6121 vol points, selects 63 trades
+with only 49 of the original 56 keys, and reduces the fixed-500 cost-6 total to
+Rs 32,418.672 with 53.97% wins. The published result is therefore reproducible
+for its declared sample, but materially sensitive to the seemingly innocuous
+choice of training-window start. Treat that as a robustness warning, alongside
+the already inconclusive confidence interval and lack of executable quotes.
+
+Committed audit artifacts live under
+`research/nsgvc_raw_rebuild_2026-09-02/`; large reconstructed intermediate
+panels remain on the Office Mac under
+`/Users/maheit/Documents/Shaurya-research/NSGVC-raw-rebuild-2026-09-02/`.
