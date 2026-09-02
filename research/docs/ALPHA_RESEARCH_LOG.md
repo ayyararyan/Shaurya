@@ -131,3 +131,27 @@ the final result was -18.12. The IV filter was also effectively zero in the
 is promoted. The remaining legitimate experiment is a frozen daily/dynamic
 exit or recentering rule, evaluated chronologically rather than fitted to the
 full sample.
+
+### Daily management comparison
+
+The frozen comparison marked the original fixed butterfly daily using a flat
+ATM-IV Black model, scaled to its observed entry credit. This model mark is
+necessary when a fixed 500-point wing leaves the archive's `ATM±10` window; it
+is not an observed executable quote. The dynamic exit closes when current ATM
+IV no longer exceeds the trailing realised-volatility forecast. Daily
+recentring closes the old structure and opens a new ATM ±500 structure only
+while that volatility condition remains true.
+
+Gross means over 257 reconstructed weeks were -0.25 points for expiry hold,
++6.45 for forecast exit, and +20.78 for daily recentering. In the untouched
+2025--May-2026 period, they were +1.72, +6.83 and +30.94 respectively. Daily
+recentring remained +25.99/+18.55/+6.17 points at assumed 2/5/10-point costs
+per entry or roll. But partial 2026 remained negative: -24.42 points even at
+the two-point ladder, versus -47.64 for hold. Therefore daily recentering is a
+research lead, not a promoted alpha: it improves the loss profile and survives
+coarse cost stress over combined 2025--2026, but depends on model-imputed marks
+and does not survive the latest subperiod.
+
+Office Mac artifacts:
+`/Users/maheit/Documents/Shaurya-research/2026-09-02-butterfly-dynamic.json`
+and the corresponding `.csv` trade ledger.
