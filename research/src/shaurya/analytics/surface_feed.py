@@ -285,10 +285,11 @@ class SurfaceEngine:
     expiries: tuple[date, ...]
     log_moneyness_grid: tuple[float, ...]
     policy: StalenessPolicy = field(default_factory=StalenessPolicy)
-    fit_interval_seconds: float = 5.0
+    fit_interval_seconds: float = 3.0
     risk_free_rate: float = 0.0
     min_quotes_per_slice: int = 5
     include_atm_strikes: bool = False
+    underlying: str | None = None
     history_limit: int = 720
     health_sample_limit: int = 3600
     wall_clock: bool = True
@@ -306,6 +307,8 @@ class SurfaceEngine:
     _max_connection_epoch: int = field(default=0, init=False)
     _sequence: int = field(default=0, init=False)
     _last_fit_timestamp: datetime | None = field(default=None, init=False)
+    _last_ingested_sequence: int = field(default=0, init=False)
+    _last_fit_input_sequence: int = field(default=0, init=False)
     _health_samples: deque[FeedHealth] = field(default_factory=deque, init=False, repr=False)
     _previous_surface: ESSVISurface | None = field(default=None, init=False, repr=False)
     _mispricing_detector: SurfaceMispricingDetector = field(init=False, repr=False)
@@ -317,6 +320,11 @@ class SurfaceEngine:
             raise ValueError("the log-moneyness grid needs at least two points")
         if self.fit_interval_seconds <= 0:
             raise ValueError("fit_interval_seconds must be positive")
+        if self.underlying is not None:
+            normalized_underlying = self.underlying.strip().upper()
+            if not normalized_underlying:
+                raise ValueError("underlying cannot be blank")
+            self.underlying = normalized_underlying
         self.expiries = tuple(sorted(set(self.expiries)))
         self._mispricing_detector = SurfaceMispricingDetector(
             policy=self.mispricing_policy,
@@ -373,7 +381,15 @@ class SurfaceEngine:
     def ingest(self, row: TapeRow) -> None:
         """Absorb one tape row. Only two-sided option and future books matter here."""
 
+        parts = row.instrument_id.split(":")
+        if self.underlying is not None and (
+            len(parts) < 3 or parts[2].upper() != self.underlying
+        ):
+            return
         self._rows_total += 1
+        self._last_ingested_sequence = max(
+            self._last_ingested_sequence, row.receive_sequence
+        )
         receive = row.receive_ts.astimezone(IST)
         if self._last_row_timestamp is None or receive > self._last_row_timestamp:
             self._last_row_timestamp = receive
@@ -431,6 +447,8 @@ class SurfaceEngine:
         )
 
     def due_for_fit(self, now: datetime) -> bool:
+        if self._last_ingested_sequence <= self._last_fit_input_sequence:
+            return False
         if self._last_fit_timestamp is None:
             return True
         return (now - self._last_fit_timestamp).total_seconds() >= self.fit_interval_seconds
@@ -593,6 +611,7 @@ class SurfaceEngine:
 
         started = time.monotonic()
         self._last_fit_timestamp = now
+        self._last_fit_input_sequence = self._last_ingested_sequence
         self._sequence += 1
         health = self.health(now)
         maturities = self._maturities(now)

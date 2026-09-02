@@ -37,6 +37,7 @@ from shaurya.data.access import (
 )
 from shaurya.data.dhan_client import DhanClient, DhanCredentials
 from shaurya.data.dhan_stream import DhanLiveStream, DhanStreamConfig, StreamMetrics
+from shaurya.data.live_stream import LiveRowPublisher, live_stream_endpoint_path
 from shaurya.data.storage import resolve_data_catalog, resolve_raw_capture_root
 from shaurya.data.universe import select_chain_universe
 
@@ -343,11 +344,17 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     args._active_session = session
     manifest = session.manifest
     writer = session.writer
+    live_publisher = LiveRowPublisher(
+        dataset_id=session.dataset_id,
+        endpoint_path=live_stream_endpoint_path(session.handle),
+        max_instruments=len(instruments),
+    )
     seen: Counter[str] = Counter()
     first_seen: dict[str, str] = {}
 
     def consume(row: TapeRow) -> None:
         session.write(row)
+        live_publisher.publish(row)
         seen[row.instrument_id] += 1
         first_seen.setdefault(row.instrument_id, row.receive_ts.astimezone(IST).isoformat())
 
@@ -366,20 +373,27 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         config=config,
         metrics=metrics,
     )
+    live_endpoint = await live_publisher.start()
     started = time.monotonic()
+    elapsed = 0.0
     stream_error: BaseException | None = None
-    task = asyncio.create_task(stream.run())
-    done, _ = await asyncio.wait({task}, timeout=args.duration_seconds)
-    elapsed = time.monotonic() - started
-    if task not in done:
-        task.cancel()
-        await asyncio.gather(task, return_exceptions=True)
-    else:
-        try:
-            task.result()
-            stream_error = RuntimeError("Dhan stream ended unexpectedly")
-        except BaseException as exc:  # noqa: BLE001 - recorded, then reported
-            stream_error = exc
+    live_stream_metrics: dict[str, int] = {}
+    try:
+        task = asyncio.create_task(stream.run())
+        done, _ = await asyncio.wait({task}, timeout=args.duration_seconds)
+        elapsed = time.monotonic() - started
+        if task not in done:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+        else:
+            try:
+                task.result()
+                stream_error = RuntimeError("Dhan stream ended unexpectedly")
+            except BaseException as exc:  # noqa: BLE001 - recorded, then reported
+                stream_error = exc
+    finally:
+        live_stream_metrics = live_publisher.metrics()
+        await live_publisher.close()
     requested = [mapping.instrument.canonical for mapping in instruments]
     covered = [name for name in requested if seen[name] > 0]
     silent = [name for name in requested if seen[name] == 0]
@@ -432,6 +446,12 @@ async def _capture(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         "first_packet_ist_per_instrument": first_seen,
         "stream_error": stream_error_type,
         "stream_error_reason_code": stream_error_reason_code,
+        "live_stream": {
+            "schema_version": live_endpoint.schema_version,
+            "host": live_endpoint.host,
+            "port": live_endpoint.port,
+            **live_stream_metrics,
+        },
         "dataset_directory": str(writer.dataset_dir),
     }
     manifest.write_record("chain_coverage", report)

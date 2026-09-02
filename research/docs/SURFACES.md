@@ -95,8 +95,12 @@ least two frames contribute materially.
 `SurfaceFrame.surface_age_seconds` is the decision time minus the oldest quote timestamp used in
 the latest cross-sectional fit. The consuming strategy supplies `staleness_threshold_seconds`;
 Shaurya only computes `is_stale = age > threshold`. Raw surfaces are allowed for research but
-`SurfaceUse.QUOTING` rejects them. The D19 dashboard remains a read-only ANL consumer and adds no
-low-latency or C++ fitting requirement.
+`SurfaceUse.QUOTING` rejects them. The D19 dashboard remains a read-only ANL consumer. Its live
+mode consumes DAT's bounded local canonical-row fan-out, never a broker connection or an open
+Parquet fragment. Raw eSSVI fitting is data-driven on a three-second clock: no new receive
+sequence means no new fit. Durable replay and recovery remain anchored to published Parquet and
+catalogue state; the operational live stream is not evidence. No C++ fitting requirement is
+introduced.
 
 ## Explicit exclusions
 

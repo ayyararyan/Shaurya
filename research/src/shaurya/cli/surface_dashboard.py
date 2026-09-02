@@ -1,12 +1,15 @@
 """ANL-03: serve the live implied-volatility surface dashboard.
 
-Two drive modes over one engine and one dashboard:
+Three drive modes over one engine and one dashboard:
 
 * ``replay`` — DAT-05 replay of a completed DAT dataset. Fits run in tape time, so a ten-minute
   tape reproduces a ten-minute session deterministically.
 * ``follow`` — read-only follow of an active DAT dataset. DAT owns the sole Dhan connection.
+  It intentionally sees only closed immutable segments and is suitable for durable monitoring.
+* ``live`` / ``stream`` — DAT's authenticated, bounded localhost row stream. It receives
+  canonical rows without waiting for Parquet publication and still opens no broker connection.
 
-The process is read-only in both modes: it requests a `CON-10` handle from DAT, ingests canonical
+The process is read-only in every mode: it requests a `CON-10` handle from DAT, ingests canonical
 rows, fits, and serves HTTP. It imports no broker adapter, credential, socket, capture manifest or
 order path (D43).
 """
@@ -36,6 +39,7 @@ from shaurya.data import (
     DataAccess,
     DataCatalog,
     LegacySourceState,
+    LiveStreamUnavailableError,
     resolve_data_catalog,
     select_chain_universe,
 )
@@ -56,14 +60,14 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--mode",
-        choices=("replay", "follow", "live"),
+        choices=("replay", "follow", "stream", "live"),
         required=True,
-        help="'live' is retained as an alias for DAT-owned 'follow'; it never opens Dhan",
+        help="'live' aliases DAT's low-latency 'stream'; neither mode opens Dhan",
     )
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--expiry", action="append", required=True)
-    parser.add_argument("--fit-interval-seconds", type=float, default=5.0)
+    parser.add_argument("--fit-interval-seconds", type=float, default=3.0)
     parser.add_argument(
         "--surface-staleness-seconds",
         type=float,
@@ -83,21 +87,14 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--feed-slow-seconds",
         type=float,
-        default=35.0,
-        help="The standard capture transport (SegmentedParquetWriter) rotates roughly "
-        "every 30s, and DAT-follow only sees a segment once it closes and is published "
-        "to the catalogue, so feed age routinely oscillates 0-30s+ even when healthy. "
-        "35s/90s (see --feed-dead-seconds) replace the 1s/2s defaults tuned for the old "
-        "always-live tick feed, which live-verified 2026-09-01 as reporting DEAD on a "
-        "feed that was actually fine.",
+        default=None,
+        help="Override the mode-aware default: 1s for stream/live, 35s for DAT-follow",
     )
     parser.add_argument(
         "--feed-dead-seconds",
         type=float,
-        default=90.0,
-        help="3x the ~30s segment-rotation interval, to comfortably absorb catalogue-"
-        "publish jitter that grows with instrument count (observed up to ~55s with 180 "
-        "tracked instruments live 2026-09-01) without still false-reporting DEAD.",
+        default=None,
+        help="Override the mode-aware default: 2s for stream/live, 90s for DAT-follow",
     )
     parser.add_argument("--moneyness-half-width", type=float, default=0.08)
     parser.add_argument("--moneyness-points", type=int, default=33)
@@ -202,6 +199,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--strike-window-fraction", type=float, default=0.06)
     parser.add_argument("--max-options", type=int, default=120)
     parser.add_argument("--follow-poll-seconds", type=float, default=0.2)
+    parser.add_argument("--live-connect-timeout-seconds", type=float, default=15.0)
     return parser
 
 
@@ -225,13 +223,18 @@ def _metadata_from_mappings(
     return result
 
 
-def _instrument_expiries(instrument_ids: Iterable[str]) -> tuple[date, ...]:
+def _instrument_expiries(
+    instrument_ids: Iterable[str], *, underlying: str | None = None
+) -> tuple[date, ...]:
     """Distinct expiry dates carried by canonical option/future instrument IDs."""
 
     expiries: set[date] = set()
+    normalized_underlying = underlying.strip().upper() if underlying is not None else None
     for instrument_id in instrument_ids:
         parts = instrument_id.split(":")
         if len(parts) < 5 or parts[3].lower() not in {"option", "future"}:
+            continue
+        if normalized_underlying is not None and parts[2].upper() != normalized_underlying:
             continue
         try:
             expiries.add(date.fromisoformat(parts[4]))
@@ -287,9 +290,20 @@ def _engine(
     fit_expiries: tuple[date, ...],
     instrument_metadata: dict[str, InstrumentMetadata] | None = None,
 ) -> SurfaceEngine:
+    low_latency = args.mode in {"live", "stream"}
+    feed_slow_seconds = (
+        args.feed_slow_seconds
+        if args.feed_slow_seconds is not None
+        else (1.0 if low_latency else 35.0)
+    )
+    feed_dead_seconds = (
+        args.feed_dead_seconds
+        if args.feed_dead_seconds is not None
+        else (2.0 if low_latency else 90.0)
+    )
     policy = StalenessPolicy(
-        feed_slow_seconds=args.feed_slow_seconds,
-        feed_dead_seconds=args.feed_dead_seconds,
+        feed_slow_seconds=feed_slow_seconds,
+        feed_dead_seconds=feed_dead_seconds,
         surface_staleness_seconds=args.surface_staleness_seconds,
         fit_stale_seconds=args.fit_stale_seconds,
     )
@@ -305,6 +319,7 @@ def _engine(
         risk_free_rate=args.risk_free_rate,
         min_quotes_per_slice=args.min_quotes_per_slice,
         include_atm_strikes=args.use_atm_strikes,
+        underlying=args.underlying,
         wall_clock=source == "live",
         smoothing_enabled=args.enable_temporal_smoothing,
         mispricing_policy=MispricingPolicy(
@@ -468,7 +483,12 @@ def _run_replay(
         args,
         run_id=handle.dataset_id,
         source="replay",
-        fit_expiries=_fit_expiries(args, available=_instrument_expiries(handle.instrument_ids)),
+        fit_expiries=_fit_expiries(
+            args,
+            available=_instrument_expiries(
+                handle.instrument_ids, underlying=args.underlying
+            ),
+        ),
         instrument_metadata=replay_metadata,
     )
     state = DashboardState(
@@ -521,7 +541,12 @@ def _run_follow(
         args,
         run_id=handle.dataset_id,
         source="live",
-        fit_expiries=_fit_expiries(args, available=_instrument_expiries(handle.instrument_ids)),
+        fit_expiries=_fit_expiries(
+            args,
+            available=_instrument_expiries(
+                handle.instrument_ids, underlying=args.underlying
+            ),
+        ),
         instrument_metadata=metadata,
     )
     state = DashboardState(
@@ -574,14 +599,126 @@ def _run_follow(
     return summary
 
 
+def _terminal_handle_after_stream_close(
+    access: DataAccess,
+    dataset_id: str,
+    *,
+    timeout_seconds: float = 15.0,
+) -> DatasetHandle | None:
+    """Allow capture a short interval to publish its terminal catalogue state."""
+
+    deadline = time.monotonic() + timeout_seconds
+    while True:
+        latest = access.handle(dataset_id)
+        if latest.status is not DatasetStatus.ACTIVE:
+            return latest
+        if time.monotonic() >= deadline:
+            return None
+        time.sleep(0.05)
+
+
+def _run_stream(
+    args: argparse.Namespace,
+    access: DataAccess,
+    handle: DatasetHandle,
+    metadata: dict[str, InstrumentMetadata],
+) -> dict[str, Any]:
+    """Drive ANL-03 from DAT's bounded canonical-row stream, not storage rotation."""
+
+    if handle.status is not DatasetStatus.ACTIVE:
+        raise ValueError("stream/live mode requires an active DAT dataset")
+    if args.follow_poll_seconds <= 0 or args.live_connect_timeout_seconds <= 0:
+        raise ValueError("live stream polling and connect timeouts must be positive")
+    engine = _engine(
+        args,
+        run_id=handle.dataset_id,
+        source="live",
+        fit_expiries=_fit_expiries(
+            args,
+            available=_instrument_expiries(
+                handle.instrument_ids, underlying=args.underlying
+            ),
+        ),
+        instrument_metadata=metadata,
+    )
+    state = DashboardState(
+        engine,
+        title="Shaurya ANL-03 — implied volatility surface (DAT LIVE STREAM)",
+        source=f"DAT live {handle.dataset_id} · {len(handle.instrument_ids)} instruments",
+    )
+    server, _ = serve_in_background(state, host=args.host, port=args.port)
+    print(f"ANL-03 dashboard serving at http://{args.host}:{args.port}/", flush=True)
+    started = time.monotonic()
+    error: BaseException | None = None
+    source_rows = 0
+    source_sequence = 0
+    coalesced_rows = 0
+    try:
+        with access.live(
+            handle,
+            connect_timeout_seconds=args.live_connect_timeout_seconds,
+        ) as stream:
+            while args.serve_seconds == 0 or time.monotonic() - started < args.serve_seconds:
+                try:
+                    batch = stream.poll(timeout_seconds=args.follow_poll_seconds)
+                except LiveStreamUnavailableError as exc:
+                    terminal = _terminal_handle_after_stream_close(
+                        access, handle.dataset_id
+                    )
+                    if terminal is None:
+                        error = exc
+                    else:
+                        handle = terminal
+                    break
+                for row in batch.rows:
+                    engine.ingest(row)
+                source_rows = batch.source_rows
+                source_sequence = batch.source_sequence
+                coalesced_rows += batch.coalesced_rows
+                now = datetime.now(tz=IST)
+                if engine.due_for_fit(now):
+                    engine.fit(now)
+    except BaseException as exc:  # noqa: BLE001 - reported in the summary
+        error = exc
+    finally:
+        if args.post_stream_seconds > 0:
+            print(
+                "DAT live stream stopped; serving for "
+                f"{args.post_stream_seconds:.0f}s so feed death is observable",
+                flush=True,
+            )
+            time.sleep(args.post_stream_seconds)
+            summary_health = engine.sample_health(datetime.now(tz=IST))
+            print(json.dumps({"post_stream_health": summary_health.to_dict()}), flush=True)
+        server.shutdown()
+    summary = _summarise(engine)
+    summary.update(
+        {
+            "dataset_id": handle.dataset_id,
+            "dataset_status": str(handle.status),
+            "storage_format": str(handle.storage_format or "legacy_jsonl"),
+            "dataset_digest": handle.dataset_digest or handle.tape_sha256,
+            "transport": "dat_live_stream_v1",
+            "transport_source_rows": source_rows,
+            "transport_source_sequence": source_sequence,
+            "transport_coalesced_rows": coalesced_rows,
+            "transport_error": type(error).__name__ if error else None,
+        }
+    )
+    if error is not None:
+        raise error
+    return summary
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     access, handle, metadata = _resolve_dataset(args)
-    summary = (
-        _run_replay(args, access, handle, metadata)
-        if args.mode == "replay"
-        else _run_follow(args, access, handle, metadata)
-    )
+    if args.mode == "replay":
+        summary = _run_replay(args, access, handle, metadata)
+    elif args.mode == "follow":
+        summary = _run_follow(args, access, handle, metadata)
+    else:
+        summary = _run_stream(args, access, handle, metadata)
     json.dump(summary, sys.stdout, indent=2, sort_keys=True, default=str)
     sys.stdout.write("\n")
     return 0 if summary["fits_ok"] else 1

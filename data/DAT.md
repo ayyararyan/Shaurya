@@ -23,7 +23,8 @@ integrity, migration/rollback, benchmark evidence, and the production directory 
 
 Own the complete Dhan-only market-data access plane: acquisition, broker-neutral identity,
 historical bars, option-chain validation, data-quality accounting, permanent lossless raw-tape
-storage, catalogue registration, integrity/indexing, deterministic replay and live follow. DAT
+storage, catalogue registration, integrity/indexing, deterministic replay, immutable-segment
+follow, and bounded low-latency local row fan-out. DAT
 supplies the canonical observed input to SIG, BKT, SUR, GRK, VOL, and ANL; it never places orders
 (D7, D17, D18, D43).
 
@@ -76,7 +77,8 @@ Every tape row retains its `CON-06` category and data-quality flags. Missing pro
    compatible live claim raises `DatasetAlreadyActiveError` with the existing handle instead of
    opening another broker connection.
 4. DAT publishes an active `DatasetHandle` before the first row for consumers using
-   `DataAccess.follow`, then publishes a terminal handle with actual coverage, row and byte counts,
+   `DataAccess.follow` or `DataAccess.live`. Live consumers attach to an authenticated localhost
+   stream and never read open storage; DAT then publishes a terminal handle with coverage, counts,
    locations, and hashes for `DataAccess.rows`.
 
 An unsatisfied request raises `DatasetUnavailableError`; consumers cannot bypass it by opening
@@ -115,7 +117,7 @@ execution authority.
 | REQ-DAT-19 | Implement lossless permanent raw storage with a stable Arrow schema, immutable segmented Parquet/Zstandard, per-segment and dataset digests, predicate pruning, catalogue-visible physical locations, explicit lifecycle state, and read-only JSONL compatibility for preserved legacy evidence. Storage optimisation must preserve the raw level-by-level book needed by SIG-18 and SIG-21; lossy feature-only substitution requires explicit change control. | DAT-19, DAT-05, DAT-09, D12, D28, D42, D43 | `src/shaurya/data/parquet.py`; `src/shaurya/data/catalog.py`; `src/shaurya/data/access.py` | Schema/rotation/recovery/hash/filter/follow/legacy-equivalence tests; immutable catalogue fragments; synthetic benchmark with stated limits |
 | REQ-DAT-20 | Pre-register and test whether depth200 cadence gaps represent quiet-book intervals or feed loss by simultaneous single-clock Full, depth20 and depth200 capture; compare cross-tier containment, price-keyed change intensity, duration-matched skip windows and actual occupancy/span. Preserve residual phase-versus-content differences as not discriminated where exchange time/source sequence is unavailable, and do not infer rare-event predictability from feed observability. | DAT-20, D22, D27, D28 | `src/shaurya/data/depth_thinning_analysis.py`; `scripts/dat20_thinning_vs_loss_analysis.py` | `tests/test_depth_thinning_analysis.py`; `docs/live-evidence/DAT-20-2026-08-19.md`; retained three-tier tapes and result artifacts |
 | REQ-DAT-21 | Provide a protocol-locked, read-only full-session capture of the same-day NIFTY front-month future on Standard/Full, depth20 and depth200; use the date-versioned NSE F&O clock, prove actual per-channel timestamp coverage rather than requested duration, retain immutable identity/hashes, and keep OFI outcome permission distinct from SIG-21 calibration eligibility. | DAT-21, D27, D33, D36 | `src/shaurya/cli/capture_dhan.py`; full-session controller | Capture-profile and coverage-boundary tests; retained run manifest/metrics/quality/acceptance receipt |
-| REQ-DAT-22 | Expose the single DAT gateway for `CON-10` requests. Resolve compatible active/completed dataset supersets from one append-only catalogue; claim new capture under a cross-process lock; return immutable handles; expose validated indexed replay, complete-line live follow and legacy-tape adoption; and reject duplicate compatible acquisition. No downstream module may receive credentials or broker objects. | DAT-22, D43 | `src/shaurya/data/access.py`; `src/shaurya/cli/capture_dhan.py`; `src/shaurya/cli/capture_chain.py` | Contract/catalogue/claim/race/replay/follow/adoption tests; architecture import-boundary test; shared SUR/SIG request integration |
+| REQ-DAT-22 | Expose the single DAT gateway for `CON-10` requests. Resolve compatible active/completed dataset supersets from one append-only catalogue; claim new capture under a cross-process lock; return immutable handles; expose validated indexed replay, immutable-segment follow, authenticated bounded localhost live rows and legacy-tape adoption; and reject duplicate compatible acquisition. The live lane publishes canonical accepted rows, bootstraps latest state per instrument, coalesces slow clients, and never replaces durable Parquet authority. No downstream module may receive credentials or broker objects. | DAT-22, D43 | `src/shaurya/data/access.py`; `src/shaurya/data/live_stream.py`; `src/shaurya/data_cli/capture_chain.py` | Contract/catalogue/claim/race/replay/follow/live/adoption tests; authentication, bounds and bootstrap tests; architecture import-boundary test; shared SUR/SIG request integration |
 
 Dropped task DAT-08 has no requirement: Kotak market-data reception is excluded by D18.
 

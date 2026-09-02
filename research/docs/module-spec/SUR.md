@@ -19,7 +19,7 @@ No surface fit identifies an unobserved true volatility process. Sparse or unsup
 ## Architecture and contracts
 
 - Consumes `CON-03` surface frames and `CON-07` time semantics.
-- Consumes option-chain rows only through the DAT `CON-10` request/handle/replay-follow boundary.
+- Consumes option-chain rows only through the DAT `CON-10` request/handle/replay-follow-live boundary.
   SUR never imports Dhan adapters, opens a socket, reads a credential, writes a raw tape or owns a
   capture manifest (D43).
 - Produces versioned `CON-03` frames for GRK, VOL, SIG, ANL, and live controls.
@@ -38,7 +38,7 @@ No surface fit identifies an unobserved true volatility process. Sparse or unsup
 | REQ-SUR-06 | Report weighted R², residuals by moneyness bucket, and parameter stability across consecutive frames. | SUR-06 | `src/shaurya/surfaces/essvi.py` | Diagnostic fixture and surface report |
 | REQ-SUR-07 | Expose surface age and staleness as measurements; let each strategy supply its threshold; require smoothed rather than tick-synchronous raw surfaces for quoting. | SUR-07, CON-07 | `src/shaurya/surfaces/state.py` | Age/threshold/causality tests; staleness fields |
 | REQ-SUR-08 | Declare and test strike/maturity interpolation and extrapolation rather than inheriting fitter defaults. | SUR-08 | `src/shaurya/surfaces/interpolation.py` | Boundary/support tests; policy metadata |
-| REQ-SUR-09 | Request the required Standard/Full option-chain dataset from DAT and ingest canonical rows by DAT replay/follow. The same active dataset may feed SUR and other consumers; surface fitting cannot trigger a second Dhan acquisition. | SUR-09, D43, CON-10, DAT-22 | `src/shaurya/cli/surface_dashboard.py`; DAT public access API | No-Dhan-import architecture test; replay/follow parity; shared-handle integration test |
+| REQ-SUR-09 | Request the required Standard/Full option-chain dataset from DAT and ingest canonical rows by DAT replay/follow/live. Live rows come from DAT's bounded operational fan-out; durable replay remains Parquet-authoritative. The same active dataset may feed SUR and other consumers; surface fitting cannot trigger a second Dhan acquisition, and a shared multi-underlying dataset must be filtered to one underlying before calibration. | SUR-09, D43, CON-10, DAT-22 | `src/shaurya/cli/surface_dashboard.py`; DAT public access API | No-Dhan-import architecture test; replay/follow/live parity; input-sequence fit gate; shared-handle underlying-isolation test |
 
 ## Outputs and acceptance tests
 

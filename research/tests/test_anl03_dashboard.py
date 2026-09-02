@@ -32,6 +32,7 @@ from shaurya.analytics.surface_feed import (
     expiry_timestamp,
 )
 from shaurya.analytics.universe import select_chain_universe
+from shaurya.cli.surface_dashboard import _engine as cli_surface_engine
 from shaurya.cli.surface_dashboard import _fit_expiries, _instrument_expiries
 from shaurya.cli.surface_dashboard import _parser as surface_dashboard_parser
 from shaurya.surfaces.essvi import ESSVISurface, black76_price
@@ -55,18 +56,30 @@ def test_surface_dashboard_cli_uses_owner_amendment_five_smoothing_defaults() ->
     assert not hasattr(args, "mispricing_reference_max_iv_range_points")
 
 
-def test_surface_dashboard_cli_defaults_match_the_segmented_parquet_transport() -> None:
-    """Confirmed live 2026-09-01: the 1s/2s feed thresholds tuned for the old always-live
-    tick feed reported DEAD against a feed that was actually fine, worsening as tracked
-    instrument count grew (up to ~55s of jitter with 180 instruments). Temporal smoothing
-    is off by default too, so the display shows each fit's own current state."""
+def test_surface_dashboard_cli_defaults_are_mode_aware() -> None:
+    """Live uses DAT's row stream; follow retains immutable-segment health thresholds."""
 
-    args = surface_dashboard_parser().parse_args(
-        ["--mode", "replay", "--expiry", NEAR.isoformat()]
+    parser = surface_dashboard_parser()
+    live_args = parser.parse_args(["--mode", "live", "--expiry", NEAR.isoformat()])
+    follow_args = parser.parse_args(["--mode", "follow", "--expiry", NEAR.isoformat()])
+    live = cli_surface_engine(
+        live_args,
+        "live-run",
+        "live",
+        fit_expiries=(NEAR,),
     )
-    assert args.feed_slow_seconds == 35.0
-    assert args.feed_dead_seconds == 90.0
-    assert args.enable_temporal_smoothing is False
+    follow = cli_surface_engine(
+        follow_args,
+        "follow-run",
+        "live",
+        fit_expiries=(NEAR,),
+    )
+    assert live_args.fit_interval_seconds == 3.0
+    assert live.policy.feed_slow_seconds == 1.0
+    assert live.policy.feed_dead_seconds == 2.0
+    assert follow.policy.feed_slow_seconds == 35.0
+    assert follow.policy.feed_dead_seconds == 90.0
+    assert live_args.enable_temporal_smoothing is False
 
 
 def test_fit_expiries_drops_0dte_by_default() -> None:
@@ -174,6 +187,16 @@ def test_instrument_expiries_reads_both_option_and_future_ids() -> None:
     ) == (date(2026, 9, 8), date(2026, 9, 29))
 
 
+def test_instrument_expiries_can_filter_a_shared_multi_underlying_dataset() -> None:
+    assert _instrument_expiries(
+        [
+            "NSE:NSE_FNO:NIFTY:option:2026-09-08:24050:CE",
+            "NSE:NSE_FNO:BANKNIFTY:option:2026-09-09:54000:CE",
+        ],
+        underlying="NIFTY",
+    ) == (date(2026, 9, 8),)
+
+
 def test_expiry_close_is_date_versioned_at_the_2026_extension_boundary() -> None:
     assert expiry_timestamp(date(2026, 8, 2)) == datetime(2026, 8, 2, 15, 30, tzinfo=IST)
     assert expiry_timestamp(date(2026, 8, 3)) == datetime(2026, 8, 3, 15, 40, tzinfo=IST)
@@ -279,6 +302,58 @@ def _maturities(valuation: datetime) -> dict[date, float]:
         expiry: (expiry_timestamp(expiry) - valuation).total_seconds() / SECONDS_PER_YEAR
         for expiry in FORWARDS
     }
+
+
+def test_fit_schedule_requires_both_new_input_and_elapsed_cadence() -> None:
+    engine = _engine()
+    assert not engine.due_for_fit(VALUATION)
+    first_row = _chain()[0]
+    engine.ingest(first_row)
+    assert engine.due_for_fit(VALUATION)
+    engine.fit(VALUATION)
+    assert not engine.due_for_fit(VALUATION + timedelta(seconds=30))
+
+    later = _row(
+        instrument_id=first_row.instrument_id,
+        bid=first_row.bids[0].price,
+        ask=first_row.asks[0].price,
+        sequence=first_row.receive_sequence + 10_000,
+        receive_ts=first_row.receive_ts + timedelta(seconds=1),
+    )
+    engine.ingest(later)
+    assert not engine.due_for_fit(VALUATION + timedelta(seconds=4))
+    assert engine.due_for_fit(VALUATION + timedelta(seconds=5))
+
+
+def test_surface_engine_ignores_the_other_chain_in_a_shared_dataset() -> None:
+    engine = SurfaceEngine(
+        run_id="sha-20260819T053000.000000Z-anl03test",
+        surface_id="anl03-nifty-only",
+        expiries=(NEAR, FAR),
+        log_moneyness_grid=default_log_moneyness_grid(half_width=0.06, points=13),
+        underlying="NIFTY",
+    )
+    bank_row = _row(
+        instrument_id=f"NSE:NSE_FNO:BANKNIFTY:future:{NEAR.isoformat()}",
+        bid=54_000.0,
+        ask=54_001.0,
+        sequence=1,
+        receive_ts=VALUATION,
+    )
+    engine.ingest(bank_row)
+    assert not engine.due_for_fit(VALUATION)
+    assert engine.health(VALUATION).tracked_instrument_count == 0
+
+    nifty_row = _row(
+        instrument_id=f"NSE:NSE_FNO:NIFTY:future:{NEAR.isoformat()}",
+        bid=24_000.0,
+        ask=24_001.0,
+        sequence=2,
+        receive_ts=VALUATION,
+    )
+    engine.ingest(nifty_row)
+    assert engine.due_for_fit(VALUATION)
+    assert engine.health(VALUATION).tracked_instrument_count == 1
 
 
 def test_traded_future_is_preferred_and_labelled_with_its_construction() -> None:

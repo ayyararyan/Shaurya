@@ -96,6 +96,24 @@ uncompressed data. Row groups default to 10,000 rows. The writer closes and vali
 metadata. Active readers see only published closed segments. File presence never implies a
 completed dataset: only the catalogue `completed` lifecycle event does.
 
+### Low-latency active consumers
+
+Option-chain capture also publishes every canonical row through DAT's authenticated localhost
+live stream after the durable session accepts it. This is an operational fan-out, not a second
+source of record: segmented Parquet and the catalogue remain authoritative for replay, recovery,
+and audit.
+
+The capture atomically writes a mode-0600 `live-stream.json` descriptor in the dataset's
+operational directory. Consumers attach through `DataAccess.live(handle)`. Each connection first
+receives the latest accepted row per instrument, then coalesced update batches and heartbeats.
+Pending state is bounded by the claimed instrument universe, so a disconnected or slow dashboard
+cannot backpressure market-data collection. Messages retain `receive_sequence`, `connection_epoch`,
+dataset identity, source watermarks, and coalescing counters. The listener binds only to localhost
+and uses a per-run authentication token; it is removed when capture ends.
+
+`DataAccess.follow(handle)` deliberately keeps the immutable-segment behavior. Use `live` for
+low-latency observation and `follow` when catalogue publication boundaries are the desired input.
+
 On restart, `inventory_recovery(dataset_dir, published_segments)` identifies partials for
 quarantine and final-but-unpublished orphan files for operator review. Do not put either into
 service without footer/schema/count/hash verification and an explicit catalogue event. Failed,

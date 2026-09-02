@@ -36,6 +36,7 @@ from .catalog import (
 from .catalog import (
     DatasetUnavailableError as DatasetUnavailableError,
 )
+from .live_stream import LiveRowSubscriber
 from .metadata import ParquetCaptureManifest, decode_mapping_fields
 from .parquet import (
     ROW_SCHEMA_VERSION,
@@ -654,6 +655,22 @@ class DataAccess:
 
     def follow(self, handle: DatasetHandle) -> DatasetFollower:
         return DatasetFollower(self.catalog, handle)
+
+    def live(
+        self,
+        handle: DatasetHandle,
+        *,
+        connect_timeout_seconds: float = 15.0,
+    ) -> LiveRowSubscriber:
+        """Attach to DAT's bounded localhost stream for an active canonical dataset."""
+
+        canonical = self.catalog.get(handle.dataset_id)
+        if canonical.status is not DatasetStatus.ACTIVE:
+            raise ValueError("low-latency live streaming requires an active DAT dataset")
+        return LiveRowSubscriber(
+            canonical,
+            connect_timeout_seconds=connect_timeout_seconds,
+        )
 
     def operational_record(self, handle: DatasetHandle, kind: str) -> dict[str, Any]:
         """Read one Data-owned operational artifact without exposing its physical format."""

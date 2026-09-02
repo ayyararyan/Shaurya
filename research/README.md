@@ -49,6 +49,23 @@ including `shaurya-ofi-dashboard`, `shaurya-surface-dashboard`,
 `shaurya-live-ofi-studies`, `shaurya-rolling-c8`, and
 `shaurya-feature-selection-experiment`; use each command's `--help` for its exact inputs.
 
+For the evolving eSSVI surface, attach to an active option-chain dataset with the true DAT live
+transport:
+
+```bash
+uv run shaurya-surface-dashboard \
+  --mode live \
+  --dataset-id sha-... \
+  --underlying NIFTY \
+  --expiry 2026-09-08 \
+  --expiry 2026-09-29
+```
+
+`live` (also spelled `stream`) consumes DAT's authenticated localhost row fan-out and fits only
+when new input has arrived, on a three-second default clock. `follow` remains available for
+closed-segment monitoring and therefore advances in storage-publication batches. A shared
+NIFTY/BANKNIFTY dataset is filtered by `--underlying` before forward selection or calibration.
+
 Curated research provenance lives under `docs/results/`. Large or local generated artifacts must
 remain outside Git.
 
