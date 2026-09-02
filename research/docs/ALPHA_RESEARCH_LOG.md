@@ -107,3 +107,27 @@ expiry, CE/PE, bid/ask or reliable executable prices, and the NIFTY future or
 spot. With that, run fixed contracts through expiry and pre-register daily or
 forecast-triggered exits/rolls. The August state tapes can support a short
 intraday exercise but cannot supply five years of fixed weekly contracts.
+
+### Correction and reconstructed close-price pilot
+
+The earlier "blocked" conclusion above was too strong. A fixed strike can be
+reconstructed from the rolling labels by mapping the entry ATM to the 50-point
+strike grid and changing the `ATM±N` lookup as spot moves, while retaining the
+original strike and inferred weekly expiry. This remains a close-price proxy,
+not an executable bid/ask backtest.
+
+The first hold-to-expiry reconstruction produced 257 clean Monday-to-expiry
+500-point iron butterflies. All weeks averaged -0.25 NIFTY points. Requiring
+entry ATM IV to exceed trailing-20-session realised volatility selected 213
+weeks, averaging +0.27 points with a 53.5% win rate before costs: economically
+zero.
+
+A second causal audit forecast the butterfly's actual capped expiry payoff,
+`min(abs(settlement - strike), 500)`, from past weeks only. The 52-week expected
+payoff filter was +20.28 points/trade in 2024 validation but -16.12 in the
+2025--May-2026 final period; partial 2026 was -58.84. At a two-point cost reserve
+the final result was -18.12. The IV filter was also effectively zero in the
+2025--2026 final period before costs and -77.97 in partial 2026. No entry filter
+is promoted. The remaining legitimate experiment is a frozen daily/dynamic
+exit or recentering rule, evaluated chronologically rather than fitted to the
+full sample.
