@@ -1,0 +1,2816 @@
+{
+  "status": "frozen_jepa_embargo_audit_complete",
+  "claim_boundary": "Retrospective forecast diagnostic; no execution or PnL claim.",
+  "bundle": "/Users/maheit/Documents/Shaurya-research/2026-08-28-market-jepa-outer-freeze",
+  "device": "mps",
+  "results": [
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.022675004000759277,
+      "minimum_spearman_rho": 0.012393870302869746,
+      "maximum_spearman_rho": 0.029124802353348897,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2581,
+          "spearman_rho": 0.027898741067195643
+        },
+        {
+          "seed": 7,
+          "samples": 2581,
+          "spearman_rho": 0.012393870302869746
+        },
+        {
+          "seed": 23,
+          "samples": 2581,
+          "spearman_rho": 0.017301596067919298
+        },
+        {
+          "seed": 42,
+          "samples": 2581,
+          "spearman_rho": 0.029124802353348897
+        },
+        {
+          "seed": 101,
+          "samples": 2581,
+          "spearman_rho": 0.022675004000759277
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": -0.011418843712047298,
+      "minimum_spearman_rho": -0.03909340638882331,
+      "maximum_spearman_rho": -0.004310735185171233,
+      "positive_seeds": 0,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2581,
+          "spearman_rho": -0.004577894267482532
+        },
+        {
+          "seed": 7,
+          "samples": 2581,
+          "spearman_rho": -0.011418843712047298
+        },
+        {
+          "seed": 23,
+          "samples": 2581,
+          "spearman_rho": -0.004310735185171233
+        },
+        {
+          "seed": 42,
+          "samples": 2581,
+          "spearman_rho": -0.038575654846953765
+        },
+        {
+          "seed": 101,
+          "samples": 2581,
+          "spearman_rho": -0.03909340638882331
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.18347938278499232,
+      "minimum_spearman_rho": 0.1646791856763124,
+      "maximum_spearman_rho": 0.19369357471869417,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1477,
+          "spearman_rho": 0.18347938278499232
+        },
+        {
+          "seed": 7,
+          "samples": 1477,
+          "spearman_rho": 0.19369357471869417
+        },
+        {
+          "seed": 23,
+          "samples": 1477,
+          "spearman_rho": 0.16479937126153688
+        },
+        {
+          "seed": 42,
+          "samples": 1477,
+          "spearman_rho": 0.19227214396224246
+        },
+        {
+          "seed": 101,
+          "samples": 1477,
+          "spearman_rho": 0.1646791856763124
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": -0.00827645781953407,
+      "minimum_spearman_rho": -0.025830426547047865,
+      "maximum_spearman_rho": -0.007080922024892465,
+      "positive_seeds": 0,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1477,
+          "spearman_rho": -0.02213415647269892
+        },
+        {
+          "seed": 7,
+          "samples": 1477,
+          "spearman_rho": -0.007080922024892465
+        },
+        {
+          "seed": 23,
+          "samples": 1477,
+          "spearman_rho": -0.008116579072791199
+        },
+        {
+          "seed": 42,
+          "samples": 1477,
+          "spearman_rho": -0.025830426547047865
+        },
+        {
+          "seed": 101,
+          "samples": 1477,
+          "spearman_rho": -0.00827645781953407
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.18987729167468803,
+      "minimum_spearman_rho": 0.18760879683604478,
+      "maximum_spearman_rho": 0.19872808802664146,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2480,
+          "spearman_rho": 0.19221065956649264
+        },
+        {
+          "seed": 7,
+          "samples": 2480,
+          "spearman_rho": 0.18929884061180421
+        },
+        {
+          "seed": 23,
+          "samples": 2480,
+          "spearman_rho": 0.19872808802664146
+        },
+        {
+          "seed": 42,
+          "samples": 2480,
+          "spearman_rho": 0.18760879683604478
+        },
+        {
+          "seed": 101,
+          "samples": 2480,
+          "spearman_rho": 0.18987729167468803
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.12122404402537192,
+      "minimum_spearman_rho": 0.11712521356627319,
+      "maximum_spearman_rho": 0.130433057504251,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2480,
+          "spearman_rho": 0.12606784031505783
+        },
+        {
+          "seed": 7,
+          "samples": 2480,
+          "spearman_rho": 0.11712521356627319
+        },
+        {
+          "seed": 23,
+          "samples": 2480,
+          "spearman_rho": 0.130433057504251
+        },
+        {
+          "seed": 42,
+          "samples": 2480,
+          "spearman_rho": 0.12122404402537192
+        },
+        {
+          "seed": 101,
+          "samples": 2480,
+          "spearman_rho": 0.12095930628349595
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.18882495792293227,
+      "minimum_spearman_rho": 0.18355126929516338,
+      "maximum_spearman_rho": 0.19356391942118634,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4523,
+          "spearman_rho": 0.18882495792293227
+        },
+        {
+          "seed": 7,
+          "samples": 4523,
+          "spearman_rho": 0.18355126929516338
+        },
+        {
+          "seed": 23,
+          "samples": 4523,
+          "spearman_rho": 0.19295558861475368
+        },
+        {
+          "seed": 42,
+          "samples": 4523,
+          "spearman_rho": 0.1865935284539191
+        },
+        {
+          "seed": 101,
+          "samples": 4523,
+          "spearman_rho": 0.19356391942118634
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.15674865498455712,
+      "minimum_spearman_rho": 0.14888738798350487,
+      "maximum_spearman_rho": 0.16125433726418337,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4523,
+          "spearman_rho": 0.14888738798350487
+        },
+        {
+          "seed": 7,
+          "samples": 4523,
+          "spearman_rho": 0.1512979569713034
+        },
+        {
+          "seed": 23,
+          "samples": 4523,
+          "spearman_rho": 0.15674865498455712
+        },
+        {
+          "seed": 42,
+          "samples": 4523,
+          "spearman_rho": 0.16056126902204992
+        },
+        {
+          "seed": 101,
+          "samples": 4523,
+          "spearman_rho": 0.16125433726418337
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.03554878458429418,
+      "minimum_spearman_rho": 0.01655571855464139,
+      "maximum_spearman_rho": 0.04439895914276631,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2576,
+          "spearman_rho": 0.043948243699085364
+        },
+        {
+          "seed": 7,
+          "samples": 2576,
+          "spearman_rho": 0.022042251637562828
+        },
+        {
+          "seed": 23,
+          "samples": 2576,
+          "spearman_rho": 0.01655571855464139
+        },
+        {
+          "seed": 42,
+          "samples": 2576,
+          "spearman_rho": 0.04439895914276631
+        },
+        {
+          "seed": 101,
+          "samples": 2576,
+          "spearman_rho": 0.03554878458429418
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.016944502051589715,
+      "minimum_spearman_rho": -0.022931463866733028,
+      "maximum_spearman_rho": 0.031297216357482865,
+      "positive_seeds": 4,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2576,
+          "spearman_rho": 0.02258399910182082
+        },
+        {
+          "seed": 7,
+          "samples": 2576,
+          "spearman_rho": 0.016944502051589715
+        },
+        {
+          "seed": 23,
+          "samples": 2576,
+          "spearman_rho": 0.031297216357482865
+        },
+        {
+          "seed": 42,
+          "samples": 2576,
+          "spearman_rho": 0.0006459074198034638
+        },
+        {
+          "seed": 101,
+          "samples": 2576,
+          "spearman_rho": -0.022931463866733028
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.17130239351630264,
+      "minimum_spearman_rho": 0.16095230584174589,
+      "maximum_spearman_rho": 0.2072323886830504,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1472,
+          "spearman_rho": 0.2072323886830504
+        },
+        {
+          "seed": 7,
+          "samples": 1472,
+          "spearman_rho": 0.17130239351630264
+        },
+        {
+          "seed": 23,
+          "samples": 1472,
+          "spearman_rho": 0.1645563263803889
+        },
+        {
+          "seed": 42,
+          "samples": 1472,
+          "spearman_rho": 0.16095230584174589
+        },
+        {
+          "seed": 101,
+          "samples": 1472,
+          "spearman_rho": 0.17897263427534896
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": -0.0005912742787481201,
+      "minimum_spearman_rho": -0.02567297297089352,
+      "maximum_spearman_rho": 0.027767913393028913,
+      "positive_seeds": 2,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1472,
+          "spearman_rho": -0.02567297297089352
+        },
+        {
+          "seed": 7,
+          "samples": 1472,
+          "spearman_rho": 0.0006336062453757668
+        },
+        {
+          "seed": 23,
+          "samples": 1472,
+          "spearman_rho": 0.027767913393028913
+        },
+        {
+          "seed": 42,
+          "samples": 1472,
+          "spearman_rho": -0.0005912742787481201
+        },
+        {
+          "seed": 101,
+          "samples": 1472,
+          "spearman_rho": -0.011876179341868227
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.19120414417511736,
+      "minimum_spearman_rho": 0.18929637960485887,
+      "maximum_spearman_rho": 0.20323316441877762,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2465,
+          "spearman_rho": 0.20323316441877762
+        },
+        {
+          "seed": 7,
+          "samples": 2465,
+          "spearman_rho": 0.19090062242776892
+        },
+        {
+          "seed": 23,
+          "samples": 2465,
+          "spearman_rho": 0.20248389530399716
+        },
+        {
+          "seed": 42,
+          "samples": 2465,
+          "spearman_rho": 0.19120414417511736
+        },
+        {
+          "seed": 101,
+          "samples": 2465,
+          "spearman_rho": 0.18929637960485887
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.1385979491020305,
+      "minimum_spearman_rho": 0.1338486032472968,
+      "maximum_spearman_rho": 0.15270050785132,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2465,
+          "spearman_rho": 0.15270050785132
+        },
+        {
+          "seed": 7,
+          "samples": 2465,
+          "spearman_rho": 0.1385979491020305
+        },
+        {
+          "seed": 23,
+          "samples": 2465,
+          "spearman_rho": 0.14096774824613972
+        },
+        {
+          "seed": 42,
+          "samples": 2465,
+          "spearman_rho": 0.1376943012546866
+        },
+        {
+          "seed": 101,
+          "samples": 2465,
+          "spearman_rho": 0.1338486032472968
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.17026213364675186,
+      "minimum_spearman_rho": 0.16069110584053029,
+      "maximum_spearman_rho": 0.17944761029900066,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4518,
+          "spearman_rho": 0.16069110584053029
+        },
+        {
+          "seed": 7,
+          "samples": 4518,
+          "spearman_rho": 0.16732821692512773
+        },
+        {
+          "seed": 23,
+          "samples": 4518,
+          "spearman_rho": 0.17944761029900066
+        },
+        {
+          "seed": 42,
+          "samples": 4518,
+          "spearman_rho": 0.17484090903802288
+        },
+        {
+          "seed": 101,
+          "samples": 4518,
+          "spearman_rho": 0.17026213364675186
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.13730027530531028,
+      "minimum_spearman_rho": 0.12207128356712676,
+      "maximum_spearman_rho": 0.13814572721458127,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4518,
+          "spearman_rho": 0.12207128356712676
+        },
+        {
+          "seed": 7,
+          "samples": 4518,
+          "spearman_rho": 0.13717403896793462
+        },
+        {
+          "seed": 23,
+          "samples": 4518,
+          "spearman_rho": 0.13730027530531028
+        },
+        {
+          "seed": 42,
+          "samples": 4518,
+          "spearman_rho": 0.13779190116118395
+        },
+        {
+          "seed": 101,
+          "samples": 4518,
+          "spearman_rho": 0.13814572721458127
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.04540129419782413,
+      "minimum_spearman_rho": 0.012405741326625929,
+      "maximum_spearman_rho": 0.052668981303957155,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2570,
+          "spearman_rho": 0.04540129419782413
+        },
+        {
+          "seed": 7,
+          "samples": 2570,
+          "spearman_rho": 0.035762076999933834
+        },
+        {
+          "seed": 23,
+          "samples": 2570,
+          "spearman_rho": 0.012405741326625929
+        },
+        {
+          "seed": 42,
+          "samples": 2570,
+          "spearman_rho": 0.046504269617302335
+        },
+        {
+          "seed": 101,
+          "samples": 2570,
+          "spearman_rho": 0.052668981303957155
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.013936463029290379,
+      "minimum_spearman_rho": -0.02947500961623946,
+      "maximum_spearman_rho": 0.022157407960752457,
+      "positive_seeds": 3,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2570,
+          "spearman_rho": 0.013936463029290379
+        },
+        {
+          "seed": 7,
+          "samples": 2570,
+          "spearman_rho": 0.020716619606888705
+        },
+        {
+          "seed": 23,
+          "samples": 2570,
+          "spearman_rho": 0.022157407960752457
+        },
+        {
+          "seed": 42,
+          "samples": 2570,
+          "spearman_rho": -0.024655210103728235
+        },
+        {
+          "seed": 101,
+          "samples": 2570,
+          "spearman_rho": -0.02947500961623946
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.16552197647729966,
+      "minimum_spearman_rho": 0.14353158305121871,
+      "maximum_spearman_rho": 0.18442999217659461,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1466,
+          "spearman_rho": 0.17918094926378358
+        },
+        {
+          "seed": 7,
+          "samples": 1466,
+          "spearman_rho": 0.18442999217659461
+        },
+        {
+          "seed": 23,
+          "samples": 1466,
+          "spearman_rho": 0.14353158305121871
+        },
+        {
+          "seed": 42,
+          "samples": 1466,
+          "spearman_rho": 0.16552197647729966
+        },
+        {
+          "seed": 101,
+          "samples": 1466,
+          "spearman_rho": 0.1479358928093961
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.02205494197022364,
+      "minimum_spearman_rho": -0.0022337920666616337,
+      "maximum_spearman_rho": 0.02688152122461007,
+      "positive_seeds": 4,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1466,
+          "spearman_rho": -0.0022337920666616337
+        },
+        {
+          "seed": 7,
+          "samples": 1466,
+          "spearman_rho": 0.02688152122461007
+        },
+        {
+          "seed": 23,
+          "samples": 1466,
+          "spearman_rho": 0.02205494197022364
+        },
+        {
+          "seed": 42,
+          "samples": 1466,
+          "spearman_rho": 0.003484373372023269
+        },
+        {
+          "seed": 101,
+          "samples": 1466,
+          "spearman_rho": 0.023459058666676955
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.1915813931047242,
+      "minimum_spearman_rho": 0.1817704273899439,
+      "maximum_spearman_rho": 0.19678628001932372,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2447,
+          "spearman_rho": 0.1817704273899439
+        },
+        {
+          "seed": 7,
+          "samples": 2447,
+          "spearman_rho": 0.19678628001932372
+        },
+        {
+          "seed": 23,
+          "samples": 2447,
+          "spearman_rho": 0.1932486534747311
+        },
+        {
+          "seed": 42,
+          "samples": 2447,
+          "spearman_rho": 0.18422834709733774
+        },
+        {
+          "seed": 101,
+          "samples": 2447,
+          "spearman_rho": 0.1915813931047242
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.12749527153243348,
+      "minimum_spearman_rho": 0.12514419172570934,
+      "maximum_spearman_rho": 0.1355775856865492,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2447,
+          "spearman_rho": 0.12514419172570934
+        },
+        {
+          "seed": 7,
+          "samples": 2447,
+          "spearman_rho": 0.1355775856865492
+        },
+        {
+          "seed": 23,
+          "samples": 2447,
+          "spearman_rho": 0.1342142682239757
+        },
+        {
+          "seed": 42,
+          "samples": 2447,
+          "spearman_rho": 0.12749527153243348
+        },
+        {
+          "seed": 101,
+          "samples": 2447,
+          "spearman_rho": 0.12604135804570415
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.18308968671337902,
+      "minimum_spearman_rho": 0.1755172554607902,
+      "maximum_spearman_rho": 0.19652889175181124,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4512,
+          "spearman_rho": 0.1755172554607902
+        },
+        {
+          "seed": 7,
+          "samples": 4512,
+          "spearman_rho": 0.17745724973487814
+        },
+        {
+          "seed": 23,
+          "samples": 4512,
+          "spearman_rho": 0.1887724479271858
+        },
+        {
+          "seed": 42,
+          "samples": 4512,
+          "spearman_rho": 0.18308968671337902
+        },
+        {
+          "seed": 101,
+          "samples": 4512,
+          "spearman_rho": 0.19652889175181124
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 0,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.13970330774706924,
+      "minimum_spearman_rho": 0.13316595246935248,
+      "maximum_spearman_rho": 0.14433393769259714,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4512,
+          "spearman_rho": 0.13316595246935248
+        },
+        {
+          "seed": 7,
+          "samples": 4512,
+          "spearman_rho": 0.1383453027408711
+        },
+        {
+          "seed": 23,
+          "samples": 4512,
+          "spearman_rho": 0.14094970226987397
+        },
+        {
+          "seed": 42,
+          "samples": 4512,
+          "spearman_rho": 0.13970330774706924
+        },
+        {
+          "seed": 101,
+          "samples": 4512,
+          "spearman_rho": 0.14433393769259714
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": -0.011611568440855114,
+      "minimum_spearman_rho": -0.016124396780399005,
+      "maximum_spearman_rho": -0.01008935563270562,
+      "positive_seeds": 0,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2580,
+          "spearman_rho": -0.010327466778190991
+        },
+        {
+          "seed": 7,
+          "samples": 2580,
+          "spearman_rho": -0.016124396780399005
+        },
+        {
+          "seed": 23,
+          "samples": 2580,
+          "spearman_rho": -0.015785345520834146
+        },
+        {
+          "seed": 42,
+          "samples": 2580,
+          "spearman_rho": -0.011611568440855114
+        },
+        {
+          "seed": 101,
+          "samples": 2580,
+          "spearman_rho": -0.01008935563270562
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": -0.018163866506971948,
+      "minimum_spearman_rho": -0.05515381699873247,
+      "maximum_spearman_rho": 0.007523543144323707,
+      "positive_seeds": 1,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2580,
+          "spearman_rho": -0.018041747959974416
+        },
+        {
+          "seed": 7,
+          "samples": 2580,
+          "spearman_rho": -0.018163866506971948
+        },
+        {
+          "seed": 23,
+          "samples": 2580,
+          "spearman_rho": 0.007523543144323707
+        },
+        {
+          "seed": 42,
+          "samples": 2580,
+          "spearman_rho": -0.027606673877641316
+        },
+        {
+          "seed": 101,
+          "samples": 2580,
+          "spearman_rho": -0.05515381699873247
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.141728374882179,
+      "minimum_spearman_rho": 0.10895133305325916,
+      "maximum_spearman_rho": 0.16494792364927885,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1476,
+          "spearman_rho": 0.141728374882179
+        },
+        {
+          "seed": 7,
+          "samples": 1476,
+          "spearman_rho": 0.16494792364927885
+        },
+        {
+          "seed": 23,
+          "samples": 1476,
+          "spearman_rho": 0.10973479438385035
+        },
+        {
+          "seed": 42,
+          "samples": 1476,
+          "spearman_rho": 0.14384627304955908
+        },
+        {
+          "seed": 101,
+          "samples": 1476,
+          "spearman_rho": 0.10895133305325916
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": -0.03028019667775485,
+      "minimum_spearman_rho": -0.052251088760387115,
+      "maximum_spearman_rho": -0.015728964098996278,
+      "positive_seeds": 0,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1476,
+          "spearman_rho": -0.04320519280294442
+        },
+        {
+          "seed": 7,
+          "samples": 1476,
+          "spearman_rho": -0.015728964098996278
+        },
+        {
+          "seed": 23,
+          "samples": 1476,
+          "spearman_rho": -0.03028019667775485
+        },
+        {
+          "seed": 42,
+          "samples": 1476,
+          "spearman_rho": -0.052251088760387115
+        },
+        {
+          "seed": 101,
+          "samples": 1476,
+          "spearman_rho": -0.026310140507394587
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.0573026016004902,
+      "minimum_spearman_rho": 0.04367862974356866,
+      "maximum_spearman_rho": 0.06408756884041028,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2477,
+          "spearman_rho": 0.06408756884041028
+        },
+        {
+          "seed": 7,
+          "samples": 2477,
+          "spearman_rho": 0.04367862974356866
+        },
+        {
+          "seed": 23,
+          "samples": 2477,
+          "spearman_rho": 0.05463054067228435
+        },
+        {
+          "seed": 42,
+          "samples": 2477,
+          "spearman_rho": 0.0573026016004902
+        },
+        {
+          "seed": 101,
+          "samples": 2477,
+          "spearman_rho": 0.05834298514725481
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.0022944242528655096,
+      "minimum_spearman_rho": -0.011939749436265575,
+      "maximum_spearman_rho": 0.010343265793687353,
+      "positive_seeds": 3,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2477,
+          "spearman_rho": 0.010343265793687353
+        },
+        {
+          "seed": 7,
+          "samples": 2477,
+          "spearman_rho": -0.011939749436265575
+        },
+        {
+          "seed": 23,
+          "samples": 2477,
+          "spearman_rho": -0.010473305446383294
+        },
+        {
+          "seed": 42,
+          "samples": 2477,
+          "spearman_rho": 0.0044056874038182064
+        },
+        {
+          "seed": 101,
+          "samples": 2477,
+          "spearman_rho": 0.0022944242528655096
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.053152749720906306,
+      "minimum_spearman_rho": 0.04455122890445763,
+      "maximum_spearman_rho": 0.06014992568698449,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4522,
+          "spearman_rho": 0.05034090675715681
+        },
+        {
+          "seed": 7,
+          "samples": 4522,
+          "spearman_rho": 0.04455122890445763
+        },
+        {
+          "seed": 23,
+          "samples": 4522,
+          "spearman_rho": 0.06014992568698449
+        },
+        {
+          "seed": 42,
+          "samples": 4522,
+          "spearman_rho": 0.05845713427725299
+        },
+        {
+          "seed": 101,
+          "samples": 4522,
+          "spearman_rho": 0.053152749720906306
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.025369558813877518,
+      "minimum_spearman_rho": 0.016507213564467237,
+      "maximum_spearman_rho": 0.03626925610161211,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4522,
+          "spearman_rho": 0.016507213564467237
+        },
+        {
+          "seed": 7,
+          "samples": 4522,
+          "spearman_rho": 0.024446988292240044
+        },
+        {
+          "seed": 23,
+          "samples": 4522,
+          "spearman_rho": 0.027387138269179573
+        },
+        {
+          "seed": 42,
+          "samples": 4522,
+          "spearman_rho": 0.03626925610161211
+        },
+        {
+          "seed": 101,
+          "samples": 4522,
+          "spearman_rho": 0.025369558813877518
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": -0.018245541569728987,
+      "minimum_spearman_rho": -0.03276939256044363,
+      "maximum_spearman_rho": -0.01284036281714627,
+      "positive_seeds": 0,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2575,
+          "spearman_rho": -0.014627462730037654
+        },
+        {
+          "seed": 7,
+          "samples": 2575,
+          "spearman_rho": -0.03276939256044363
+        },
+        {
+          "seed": 23,
+          "samples": 2575,
+          "spearman_rho": -0.031173289915375182
+        },
+        {
+          "seed": 42,
+          "samples": 2575,
+          "spearman_rho": -0.01284036281714627
+        },
+        {
+          "seed": 101,
+          "samples": 2575,
+          "spearman_rho": -0.018245541569728987
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.007405246777291689,
+      "minimum_spearman_rho": -0.011346165536530055,
+      "maximum_spearman_rho": 0.04038179175157616,
+      "positive_seeds": 3,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2575,
+          "spearman_rho": 0.01450553644360427
+        },
+        {
+          "seed": 7,
+          "samples": 2575,
+          "spearman_rho": 0.007405246777291689
+        },
+        {
+          "seed": 23,
+          "samples": 2575,
+          "spearman_rho": 0.04038179175157616
+        },
+        {
+          "seed": 42,
+          "samples": 2575,
+          "spearman_rho": -0.007062482039547734
+        },
+        {
+          "seed": 101,
+          "samples": 2575,
+          "spearman_rho": -0.011346165536530055
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.13529257526614816,
+      "minimum_spearman_rho": 0.13228565034620826,
+      "maximum_spearman_rho": 0.17051451924428326,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1471,
+          "spearman_rho": 0.1496671903473061
+        },
+        {
+          "seed": 7,
+          "samples": 1471,
+          "spearman_rho": 0.17051451924428326
+        },
+        {
+          "seed": 23,
+          "samples": 1471,
+          "spearman_rho": 0.13269161719900324
+        },
+        {
+          "seed": 42,
+          "samples": 1471,
+          "spearman_rho": 0.13228565034620826
+        },
+        {
+          "seed": 101,
+          "samples": 1471,
+          "spearman_rho": 0.13529257526614816
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": -0.01116621296227031,
+      "minimum_spearman_rho": -0.027267509653390476,
+      "maximum_spearman_rho": -0.0006232028382731896,
+      "positive_seeds": 0,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1471,
+          "spearman_rho": -0.027267509653390476
+        },
+        {
+          "seed": 7,
+          "samples": 1471,
+          "spearman_rho": -0.01116621296227031
+        },
+        {
+          "seed": 23,
+          "samples": 1471,
+          "spearman_rho": -0.0006232028382731896
+        },
+        {
+          "seed": 42,
+          "samples": 1471,
+          "spearman_rho": -0.008027867068823292
+        },
+        {
+          "seed": 101,
+          "samples": 1471,
+          "spearman_rho": -0.023654558069197307
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.0820292415341974,
+      "minimum_spearman_rho": 0.07585537886599653,
+      "maximum_spearman_rho": 0.09468130038387385,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2462,
+          "spearman_rho": 0.09468130038387385
+        },
+        {
+          "seed": 7,
+          "samples": 2462,
+          "spearman_rho": 0.0820292415341974
+        },
+        {
+          "seed": 23,
+          "samples": 2462,
+          "spearman_rho": 0.0767012198743672
+        },
+        {
+          "seed": 42,
+          "samples": 2462,
+          "spearman_rho": 0.08387109007608078
+        },
+        {
+          "seed": 101,
+          "samples": 2462,
+          "spearman_rho": 0.07585537886599653
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.04066168326123615,
+      "minimum_spearman_rho": 0.029065130683419108,
+      "maximum_spearman_rho": 0.051168083539760524,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2462,
+          "spearman_rho": 0.051168083539760524
+        },
+        {
+          "seed": 7,
+          "samples": 2462,
+          "spearman_rho": 0.04066168326123615
+        },
+        {
+          "seed": 23,
+          "samples": 2462,
+          "spearman_rho": 0.030714365577512885
+        },
+        {
+          "seed": 42,
+          "samples": 2462,
+          "spearman_rho": 0.04227945762982785
+        },
+        {
+          "seed": 101,
+          "samples": 2462,
+          "spearman_rho": 0.029065130683419108
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.040768241266333834,
+      "minimum_spearman_rho": 0.033557253460365,
+      "maximum_spearman_rho": 0.048552594185805945,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4517,
+          "spearman_rho": 0.040768241266333834
+        },
+        {
+          "seed": 7,
+          "samples": 4517,
+          "spearman_rho": 0.033557253460365
+        },
+        {
+          "seed": 23,
+          "samples": 4517,
+          "spearman_rho": 0.041883284170685896
+        },
+        {
+          "seed": 42,
+          "samples": 4517,
+          "spearman_rho": 0.048552594185805945
+        },
+        {
+          "seed": 101,
+          "samples": 4517,
+          "spearman_rho": 0.038084306431060595
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.0033076875227194807,
+      "minimum_spearman_rho": 0.0007794578388498883,
+      "maximum_spearman_rho": 0.015707079858650348,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4517,
+          "spearman_rho": 0.0033076875227194807
+        },
+        {
+          "seed": 7,
+          "samples": 4517,
+          "spearman_rho": 0.0007794578388498883
+        },
+        {
+          "seed": 23,
+          "samples": 4517,
+          "spearman_rho": 0.003267734918519695
+        },
+        {
+          "seed": 42,
+          "samples": 4517,
+          "spearman_rho": 0.015707079858650348
+        },
+        {
+          "seed": 101,
+          "samples": 4517,
+          "spearman_rho": 0.007056233289304448
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.0019052980602387453,
+      "minimum_spearman_rho": -0.014339876699716786,
+      "maximum_spearman_rho": 0.010056817806220237,
+      "positive_seeds": 3,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2569,
+          "spearman_rho": -0.001151140624654301
+        },
+        {
+          "seed": 7,
+          "samples": 2569,
+          "spearman_rho": 0.0019052980602387453
+        },
+        {
+          "seed": 23,
+          "samples": 2569,
+          "spearman_rho": -0.014339876699716786
+        },
+        {
+          "seed": 42,
+          "samples": 2569,
+          "spearman_rho": 0.010056817806220237
+        },
+        {
+          "seed": 101,
+          "samples": 2569,
+          "spearman_rho": 0.009080987707384131
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": -0.02218573704933084,
+      "minimum_spearman_rho": -0.045032860906280815,
+      "maximum_spearman_rho": 0.009778758305320172,
+      "positive_seeds": 1,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2569,
+          "spearman_rho": -0.02218573704933084
+        },
+        {
+          "seed": 7,
+          "samples": 2569,
+          "spearman_rho": -0.017298623098137657
+        },
+        {
+          "seed": 23,
+          "samples": 2569,
+          "spearman_rho": 0.009778758305320172
+        },
+        {
+          "seed": 42,
+          "samples": 2569,
+          "spearman_rho": -0.04284907434015091
+        },
+        {
+          "seed": 101,
+          "samples": 2569,
+          "spearman_rho": -0.045032860906280815
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.12839623571158304,
+      "minimum_spearman_rho": 0.1176216131262342,
+      "maximum_spearman_rho": 0.1619400913325938,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1465,
+          "spearman_rho": 0.1176216131262342
+        },
+        {
+          "seed": 7,
+          "samples": 1465,
+          "spearman_rho": 0.1619400913325938
+        },
+        {
+          "seed": 23,
+          "samples": 1465,
+          "spearman_rho": 0.12179554487402362
+        },
+        {
+          "seed": 42,
+          "samples": 1465,
+          "spearman_rho": 0.13728885148351155
+        },
+        {
+          "seed": 101,
+          "samples": 1465,
+          "spearman_rho": 0.12839623571158304
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": -0.026095773425780948,
+      "minimum_spearman_rho": -0.05043634801784282,
+      "maximum_spearman_rho": -0.013427011172319323,
+      "positive_seeds": 0,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1465,
+          "spearman_rho": -0.013427011172319323
+        },
+        {
+          "seed": 7,
+          "samples": 1465,
+          "spearman_rho": -0.05043634801784282
+        },
+        {
+          "seed": 23,
+          "samples": 1465,
+          "spearman_rho": -0.024951768828183906
+        },
+        {
+          "seed": 42,
+          "samples": 1465,
+          "spearman_rho": -0.02864872797933196
+        },
+        {
+          "seed": 101,
+          "samples": 1465,
+          "spearman_rho": -0.026095773425780948
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.08573721160555305,
+      "minimum_spearman_rho": 0.08070116598460769,
+      "maximum_spearman_rho": 0.0996851323240069,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2444,
+          "spearman_rho": 0.08381255138622953
+        },
+        {
+          "seed": 7,
+          "samples": 2444,
+          "spearman_rho": 0.08070116598460769
+        },
+        {
+          "seed": 23,
+          "samples": 2444,
+          "spearman_rho": 0.0996851323240069
+        },
+        {
+          "seed": 42,
+          "samples": 2444,
+          "spearman_rho": 0.0972235245504874
+        },
+        {
+          "seed": 101,
+          "samples": 2444,
+          "spearman_rho": 0.08573721160555305
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.026454497491931638,
+      "minimum_spearman_rho": 0.021219895893942804,
+      "maximum_spearman_rho": 0.03590899243747821,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2444,
+          "spearman_rho": 0.026454497491931638
+        },
+        {
+          "seed": 7,
+          "samples": 2444,
+          "spearman_rho": 0.021219895893942804
+        },
+        {
+          "seed": 23,
+          "samples": 2444,
+          "spearman_rho": 0.03590899243747821
+        },
+        {
+          "seed": 42,
+          "samples": 2444,
+          "spearman_rho": 0.031344627914785074
+        },
+        {
+          "seed": 101,
+          "samples": 2444,
+          "spearman_rho": 0.0233673330582573
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.05273875391659752,
+      "minimum_spearman_rho": 0.04187920736536345,
+      "maximum_spearman_rho": 0.06166066495504528,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4511,
+          "spearman_rho": 0.05273875391659752
+        },
+        {
+          "seed": 7,
+          "samples": 4511,
+          "spearman_rho": 0.04187920736536345
+        },
+        {
+          "seed": 23,
+          "samples": 4511,
+          "spearman_rho": 0.06166066495504528
+        },
+        {
+          "seed": 42,
+          "samples": 4511,
+          "spearman_rho": 0.05238780414807343
+        },
+        {
+          "seed": 101,
+          "samples": 4511,
+          "spearman_rho": 0.05667464466279726
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 5,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.011698863884694292,
+      "minimum_spearman_rho": 0.007441198983324934,
+      "maximum_spearman_rho": 0.012640433258855699,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4511,
+          "spearman_rho": 0.011332908573369918
+        },
+        {
+          "seed": 7,
+          "samples": 4511,
+          "spearman_rho": 0.007441198983324934
+        },
+        {
+          "seed": 23,
+          "samples": 4511,
+          "spearman_rho": 0.011714858698295243
+        },
+        {
+          "seed": 42,
+          "samples": 4511,
+          "spearman_rho": 0.011698863884694292
+        },
+        {
+          "seed": 101,
+          "samples": 4511,
+          "spearman_rho": 0.012640433258855699
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": -0.01596561764590187,
+      "minimum_spearman_rho": -0.02620003074862421,
+      "maximum_spearman_rho": -0.011785572551604073,
+      "positive_seeds": 0,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2579,
+          "spearman_rho": -0.020549552362110868
+        },
+        {
+          "seed": 7,
+          "samples": 2579,
+          "spearman_rho": -0.01596561764590187
+        },
+        {
+          "seed": 23,
+          "samples": 2579,
+          "spearman_rho": -0.02620003074862421
+        },
+        {
+          "seed": 42,
+          "samples": 2579,
+          "spearman_rho": -0.011785572551604073
+        },
+        {
+          "seed": 101,
+          "samples": 2579,
+          "spearman_rho": -0.015208341306902438
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": -0.0005131209061166171,
+      "minimum_spearman_rho": -0.04394269523445691,
+      "maximum_spearman_rho": 0.014637939897300962,
+      "positive_seeds": 2,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2579,
+          "spearman_rho": -0.0005131209061166171
+        },
+        {
+          "seed": 7,
+          "samples": 2579,
+          "spearman_rho": 0.0009478955707337689
+        },
+        {
+          "seed": 23,
+          "samples": 2579,
+          "spearman_rho": 0.014637939897300962
+        },
+        {
+          "seed": 42,
+          "samples": 2579,
+          "spearman_rho": -0.01855792325640061
+        },
+        {
+          "seed": 101,
+          "samples": 2579,
+          "spearman_rho": -0.04394269523445691
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.09234574618358467,
+      "minimum_spearman_rho": 0.08025075868356363,
+      "maximum_spearman_rho": 0.1342442808693202,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1475,
+          "spearman_rho": 0.09234574618358467
+        },
+        {
+          "seed": 7,
+          "samples": 1475,
+          "spearman_rho": 0.1342442808693202
+        },
+        {
+          "seed": 23,
+          "samples": 1475,
+          "spearman_rho": 0.08025075868356363
+        },
+        {
+          "seed": 42,
+          "samples": 1475,
+          "spearman_rho": 0.08627319638419574
+        },
+        {
+          "seed": 101,
+          "samples": 1475,
+          "spearman_rho": 0.10367852944679434
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": -0.010377845172067478,
+      "minimum_spearman_rho": -0.018869364879063707,
+      "maximum_spearman_rho": 0.013233013904069547,
+      "positive_seeds": 1,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1475,
+          "spearman_rho": -0.011443715424939598
+        },
+        {
+          "seed": 7,
+          "samples": 1475,
+          "spearman_rho": -0.010377845172067478
+        },
+        {
+          "seed": 23,
+          "samples": 1475,
+          "spearman_rho": -0.018869364879063707
+        },
+        {
+          "seed": 42,
+          "samples": 1475,
+          "spearman_rho": -0.008807774506472622
+        },
+        {
+          "seed": 101,
+          "samples": 1475,
+          "spearman_rho": 0.013233013904069547
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.06426997442395757,
+      "minimum_spearman_rho": 0.05186016573120169,
+      "maximum_spearman_rho": 0.07954999930510383,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2474,
+          "spearman_rho": 0.06426997442395757
+        },
+        {
+          "seed": 7,
+          "samples": 2474,
+          "spearman_rho": 0.05186016573120169
+        },
+        {
+          "seed": 23,
+          "samples": 2474,
+          "spearman_rho": 0.05800728522609232
+        },
+        {
+          "seed": 42,
+          "samples": 2474,
+          "spearman_rho": 0.07954999930510383
+        },
+        {
+          "seed": 101,
+          "samples": 2474,
+          "spearman_rho": 0.07082705631094847
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.01815919518650376,
+      "minimum_spearman_rho": 0.010409444817032616,
+      "maximum_spearman_rho": 0.04403700780900069,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2474,
+          "spearman_rho": 0.036255813462005605
+        },
+        {
+          "seed": 7,
+          "samples": 2474,
+          "spearman_rho": 0.016338350473596764
+        },
+        {
+          "seed": 23,
+          "samples": 2474,
+          "spearman_rho": 0.010409444817032616
+        },
+        {
+          "seed": 42,
+          "samples": 2474,
+          "spearman_rho": 0.04403700780900069
+        },
+        {
+          "seed": 101,
+          "samples": 2474,
+          "spearman_rho": 0.01815919518650376
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.05006937665156679,
+      "minimum_spearman_rho": 0.0422556253584821,
+      "maximum_spearman_rho": 0.053600718717691224,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4521,
+          "spearman_rho": 0.0422556253584821
+        },
+        {
+          "seed": 7,
+          "samples": 4521,
+          "spearman_rho": 0.047652495753483626
+        },
+        {
+          "seed": 23,
+          "samples": 4521,
+          "spearman_rho": 0.053600718717691224
+        },
+        {
+          "seed": 42,
+          "samples": 4521,
+          "spearman_rho": 0.05006937665156679
+        },
+        {
+          "seed": 101,
+          "samples": 4521,
+          "spearman_rho": 0.05099432053960156
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 5,
+      "median_spearman_rho": 0.025967447494800105,
+      "minimum_spearman_rho": 0.022287799896358665,
+      "maximum_spearman_rho": 0.029482327899468905,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4521,
+          "spearman_rho": 0.022287799896358665
+        },
+        {
+          "seed": 7,
+          "samples": 4521,
+          "spearman_rho": 0.024583749704281826
+        },
+        {
+          "seed": 23,
+          "samples": 4521,
+          "spearman_rho": 0.025967447494800105
+        },
+        {
+          "seed": 42,
+          "samples": 4521,
+          "spearman_rho": 0.02660424853587517
+        },
+        {
+          "seed": 101,
+          "samples": 4521,
+          "spearman_rho": 0.029482327899468905
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": -0.011472555633540318,
+      "minimum_spearman_rho": -0.03026500303435165,
+      "maximum_spearman_rho": -0.004456660718287243,
+      "positive_seeds": 0,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2574,
+          "spearman_rho": -0.008473906752747139
+        },
+        {
+          "seed": 7,
+          "samples": 2574,
+          "spearman_rho": -0.023167425802104825
+        },
+        {
+          "seed": 23,
+          "samples": 2574,
+          "spearman_rho": -0.03026500303435165
+        },
+        {
+          "seed": 42,
+          "samples": 2574,
+          "spearman_rho": -0.004456660718287243
+        },
+        {
+          "seed": 101,
+          "samples": 2574,
+          "spearman_rho": -0.011472555633540318
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": -7.758286225111212e-05,
+      "minimum_spearman_rho": -0.04533266460890599,
+      "maximum_spearman_rho": 0.030935581590833438,
+      "positive_seeds": 2,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2574,
+          "spearman_rho": -7.758286225111212e-05
+        },
+        {
+          "seed": 7,
+          "samples": 2574,
+          "spearman_rho": 0.007567593997931664
+        },
+        {
+          "seed": 23,
+          "samples": 2574,
+          "spearman_rho": 0.030935581590833438
+        },
+        {
+          "seed": 42,
+          "samples": 2574,
+          "spearman_rho": -0.018683113968423013
+        },
+        {
+          "seed": 101,
+          "samples": 2574,
+          "spearman_rho": -0.04533266460890599
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.11854959157163338,
+      "minimum_spearman_rho": 0.11133947075749868,
+      "maximum_spearman_rho": 0.14644912102956847,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1470,
+          "spearman_rho": 0.12624970119437534
+        },
+        {
+          "seed": 7,
+          "samples": 1470,
+          "spearman_rho": 0.14644912102956847
+        },
+        {
+          "seed": 23,
+          "samples": 1470,
+          "spearman_rho": 0.11133947075749868
+        },
+        {
+          "seed": 42,
+          "samples": 1470,
+          "spearman_rho": 0.11667569273487657
+        },
+        {
+          "seed": 101,
+          "samples": 1470,
+          "spearman_rho": 0.11854959157163338
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.007149480965263418,
+      "minimum_spearman_rho": -0.00300371396825112,
+      "maximum_spearman_rho": 0.03264743084534451,
+      "positive_seeds": 4,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1470,
+          "spearman_rho": -0.00300371396825112
+        },
+        {
+          "seed": 7,
+          "samples": 1470,
+          "spearman_rho": 0.03196592310173251
+        },
+        {
+          "seed": 23,
+          "samples": 1470,
+          "spearman_rho": 0.007149480965263418
+        },
+        {
+          "seed": 42,
+          "samples": 1470,
+          "spearman_rho": 0.03264743084534451
+        },
+        {
+          "seed": 101,
+          "samples": 1470,
+          "spearman_rho": 0.002410181703476586
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.07259119414921007,
+      "minimum_spearman_rho": 0.0551845947192897,
+      "maximum_spearman_rho": 0.07567301828940425,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2459,
+          "spearman_rho": 0.07259119414921007
+        },
+        {
+          "seed": 7,
+          "samples": 2459,
+          "spearman_rho": 0.0551845947192897
+        },
+        {
+          "seed": 23,
+          "samples": 2459,
+          "spearman_rho": 0.07475654212988303
+        },
+        {
+          "seed": 42,
+          "samples": 2459,
+          "spearman_rho": 0.06432008425446367
+        },
+        {
+          "seed": 101,
+          "samples": 2459,
+          "spearman_rho": 0.07567301828940425
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.0342514755540961,
+      "minimum_spearman_rho": 0.020547769113039738,
+      "maximum_spearman_rho": 0.049365607018650864,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2459,
+          "spearman_rho": 0.049365607018650864
+        },
+        {
+          "seed": 7,
+          "samples": 2459,
+          "spearman_rho": 0.020547769113039738
+        },
+        {
+          "seed": 23,
+          "samples": 2459,
+          "spearman_rho": 0.03415118747483609
+        },
+        {
+          "seed": 42,
+          "samples": 2459,
+          "spearman_rho": 0.03621918144357387
+        },
+        {
+          "seed": 101,
+          "samples": 2459,
+          "spearman_rho": 0.0342514755540961
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.03792051926351611,
+      "minimum_spearman_rho": 0.0315443987513878,
+      "maximum_spearman_rho": 0.052978091555277405,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4516,
+          "spearman_rho": 0.03768878568667771
+        },
+        {
+          "seed": 7,
+          "samples": 4516,
+          "spearman_rho": 0.0315443987513878
+        },
+        {
+          "seed": 23,
+          "samples": 4516,
+          "spearman_rho": 0.052978091555277405
+        },
+        {
+          "seed": 42,
+          "samples": 4516,
+          "spearman_rho": 0.05069446871459221
+        },
+        {
+          "seed": 101,
+          "samples": 4516,
+          "spearman_rho": 0.03792051926351611
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 30,
+      "median_spearman_rho": 0.005941700642444592,
+      "minimum_spearman_rho": -0.0017780121824091221,
+      "maximum_spearman_rho": 0.008922669284952956,
+      "positive_seeds": 4,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4516,
+          "spearman_rho": -0.0017780121824091221
+        },
+        {
+          "seed": 7,
+          "samples": 4516,
+          "spearman_rho": 0.004434881776580711
+        },
+        {
+          "seed": 23,
+          "samples": 4516,
+          "spearman_rho": 0.008922669284952956
+        },
+        {
+          "seed": 42,
+          "samples": 4516,
+          "spearman_rho": 0.005941700642444592
+        },
+        {
+          "seed": 101,
+          "samples": 4516,
+          "spearman_rho": 0.007632575405708854
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": -0.014656794286842533,
+      "minimum_spearman_rho": -0.024836973491208524,
+      "maximum_spearman_rho": 0.0001404613606609761,
+      "positive_seeds": 1,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2568,
+          "spearman_rho": 0.0001404613606609761
+        },
+        {
+          "seed": 7,
+          "samples": 2568,
+          "spearman_rho": -0.01508568448403478
+        },
+        {
+          "seed": 23,
+          "samples": 2568,
+          "spearman_rho": -0.014656794286842533
+        },
+        {
+          "seed": 42,
+          "samples": 2568,
+          "spearman_rho": -0.0070088770607749495
+        },
+        {
+          "seed": 101,
+          "samples": 2568,
+          "spearman_rho": -0.024836973491208524
+        }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "role": "discovery",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": -0.011996603914726341,
+      "minimum_spearman_rho": -0.06045171493113932,
+      "maximum_spearman_rho": 0.010940707207335905,
+      "positive_seeds": 1,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2568,
+          "spearman_rho": -0.011996603914726341
+        },
+        {
+          "seed": 7,
+          "samples": 2568,
+          "spearman_rho": -0.006685079263796933
+        },
+        {
+          "seed": 23,
+          "samples": 2568,
+          "spearman_rho": 0.010940707207335905
+        },
+        {
+          "seed": 42,
+          "samples": 2568,
+          "spearman_rho": -0.0363787146800485
+        },
+        {
+          "seed": 101,
+          "samples": 2568,
+          "spearman_rho": -0.06045171493113932
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.11560167872364747,
+      "minimum_spearman_rho": 0.09903974266067045,
+      "maximum_spearman_rho": 0.1564862421308634,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1464,
+          "spearman_rho": 0.11104415260110269
+        },
+        {
+          "seed": 7,
+          "samples": 1464,
+          "spearman_rho": 0.1564862421308634
+        },
+        {
+          "seed": 23,
+          "samples": 1464,
+          "spearman_rho": 0.09903974266067045
+        },
+        {
+          "seed": 42,
+          "samples": 1464,
+          "spearman_rho": 0.11560167872364747
+        },
+        {
+          "seed": 101,
+          "samples": 1464,
+          "spearman_rho": 0.12791439670472143
+        }
+      ]
+    },
+    {
+      "date": "2026-08-21",
+      "role": "validation",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.021903038328880072,
+      "minimum_spearman_rho": 0.005182871339098576,
+      "maximum_spearman_rho": 0.04553690715929629,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 1464,
+          "spearman_rho": 0.005182871339098576
+        },
+        {
+          "seed": 7,
+          "samples": 1464,
+          "spearman_rho": 0.021903038328880072
+        },
+        {
+          "seed": 23,
+          "samples": 1464,
+          "spearman_rho": 0.026133538140812148
+        },
+        {
+          "seed": 42,
+          "samples": 1464,
+          "spearman_rho": 0.021575860917020278
+        },
+        {
+          "seed": 101,
+          "samples": 1464,
+          "spearman_rho": 0.04553690715929629
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.0789102952117304,
+      "minimum_spearman_rho": 0.06558628395922975,
+      "maximum_spearman_rho": 0.0856059631131659,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2441,
+          "spearman_rho": 0.07854249480967905
+        },
+        {
+          "seed": 7,
+          "samples": 2441,
+          "spearman_rho": 0.06558628395922975
+        },
+        {
+          "seed": 23,
+          "samples": 2441,
+          "spearman_rho": 0.08164865473748557
+        },
+        {
+          "seed": 42,
+          "samples": 2441,
+          "spearman_rho": 0.0856059631131659
+        },
+        {
+          "seed": 101,
+          "samples": 2441,
+          "spearman_rho": 0.0789102952117304
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "role": "diagnostic_1",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.03144570012655068,
+      "minimum_spearman_rho": 0.01735531592096743,
+      "maximum_spearman_rho": 0.03472321585077248,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 2441,
+          "spearman_rho": 0.03472321585077248
+        },
+        {
+          "seed": 7,
+          "samples": 2441,
+          "spearman_rho": 0.01735531592096743
+        },
+        {
+          "seed": 23,
+          "samples": 2441,
+          "spearman_rho": 0.030353495201761466
+        },
+        {
+          "seed": 42,
+          "samples": 2441,
+          "spearman_rho": 0.03324746865262603
+        },
+        {
+          "seed": 101,
+          "samples": 2441,
+          "spearman_rho": 0.03144570012655068
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "surface_displacement",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": 0.008827464638019672,
+      "minimum_spearman_rho": 0.0013938887214757628,
+      "maximum_spearman_rho": 0.01561279157912699,
+      "positive_seeds": 5,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4510,
+          "spearman_rho": 0.006890759454515052
+        },
+        {
+          "seed": 7,
+          "samples": 4510,
+          "spearman_rho": 0.0013938887214757628
+        },
+        {
+          "seed": 23,
+          "samples": 4510,
+          "spearman_rho": 0.01561279157912699
+        },
+        {
+          "seed": 42,
+          "samples": 4510,
+          "spearman_rho": 0.011841272415393731
+        },
+        {
+          "seed": 101,
+          "samples": 4510,
+          "spearman_rho": 0.008827464638019672
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "role": "diagnostic_2",
+      "target": "absolute_atm_iv_change",
+      "target_horizon_seconds": 30,
+      "target_start_embargo_seconds": 10,
+      "velocity_window_seconds": 60,
+      "median_spearman_rho": -0.008018024472575132,
+      "minimum_spearman_rho": -0.012029478697382833,
+      "maximum_spearman_rho": -0.003662643254489128,
+      "positive_seeds": 0,
+      "seed_results": [
+        {
+          "seed": 1,
+          "samples": 4510,
+          "spearman_rho": -0.009112709083095276
+        },
+        {
+          "seed": 7,
+          "samples": 4510,
+          "spearman_rho": -0.008018024472575132
+        },
+        {
+          "seed": 23,
+          "samples": 4510,
+          "spearman_rho": -0.003662643254489128
+        },
+        {
+          "seed": 42,
+          "samples": 4510,
+          "spearman_rho": -0.00624734245888385
+        },
+        {
+          "seed": 101,
+          "samples": 4510,
+          "spearman_rho": -0.012029478697382833
+        }
+      ]
+    }
+  ]
+}

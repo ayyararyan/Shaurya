@@ -91,3 +91,28 @@ by session or pooled. Bootstrap probability of a positive opportunity mean was
 11.42% for the headline and 17.18% for optimistic touch. Do not tune the same
 days to rescue the result. Artifacts are under
 `research/parity_maker_audit_2026-09-02/`.
+
+## 2026-09-02 — Full strategy reuse and delayed-target audit
+
+**Status: three forecast features retained; no profitable strategy claim.**
+
+Every implemented family was inventoried: JEPA, OpenEvolve, paper replications,
+formula mining, sparse phase, regime/jump, directional baselines, historical
+option predictors, real-tape mining, gap rules, relative value, parity and
+delta-hedged volatility carry.
+
+The reusable results are: trailing 30-second futures volatility for 5–30-second
+future volatility; trailing 10-second futures volume as an incremental
+30-second volatility feature; and the option/surface state block for the
+absolute five-minute rolling-ATM straddle move. With a five-second target
+embargo, the latter added +12.61 and +6.40 percentage points of MAE skill over
+the futures-state baseline on Aug 26 and Aug 27.
+
+ATM call-minus-put movement and L1 futures imbalance are retained only as
+execution-state features. Both predict very small midpoint changes, but neither
+supports crossing the spread. JEPA velocity and apparent IV/term mean reversion
+were downgraded because their headline effects collapsed when the outcome began
+five or ten seconds later.
+
+Full definitions, evidence ledger, research mapping and machine output are in
+`research/docs/results/strategy-signal-audit-2026-09-02/`.
