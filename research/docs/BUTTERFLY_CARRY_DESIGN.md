@@ -1,25 +1,38 @@
-# Short iron butterfly dashboard — frozen implementation scope, 2026-09-09
+# VolARP dashboard — frozen implementation scope, 2026-09-09
 
-Authority: Aryan specified short iron butterflies, 400/500 points, recentering if
-moved too far, and explicitly authorized reasonable assumptions and implementation.
-This supersedes the earlier open-choice proposal. Read-only; no order execution.
+Authority: Aryan's latest voice instruction supersedes `iron-carry-v1`: use one
+ATM short iron butterfly with 500-point wings, and decide only at 10:00 IST from
+the predicted RV / ATM IV volatility ratio. Read-only; no order execution.
 
-## Model and assumptions (version iron-carry-v1)
+## Model and assumptions (version volarp-v1)
 
-- NIFTY nearest fitted expiry only. Wings **400 or 500 points each side** (800/1000
-  total span). Buy lower put and upper call; sell central put and call, one lot each.
-  Enumerate quoted 50-point centres within half a wing-width of the current forward.
+- **Decision rule:** calculate `predicted annualized RV / ATM eSSVI IV`. At
+  10:00 IST, a new position satisfies the entry condition only when the ratio
+  is strictly below `0.70`. The page displays the condition at all times, but
+  it is a 10:00 IST manual check — never an automatic order gate.
+- **Position:** one NIFTY nearest-expiry ATM short iron butterfly: buy one put
+  at `ATM − 500`, sell one ATM put, sell one ATM call, buy one call at
+  `ATM + 500`; the centre is the nearest 50-point strike to the surface
+  forward. No 400-point wing or alternative-centre ranking is part of VolARP.
+- **Continuation/recentre:** at each following 10:00 IST check before expiry,
+  continue only when RV / IV remains below `0.70`. If it continues and the
+  surface forward is **more than** 250 points from the held centre, recenter to
+  the nearest ATM 50-point centre. Aryan has not specified the action when the
+  continuation condition fails; the dashboard says so rather than inventing an
+  exit rule.
+- **Displayed objects:** (1) predicted RV / ATM IV, (2) fitted ATM IV and
+  forecast annualized RV, (3) the arbitrage-checked eSSVI surface, and (4) the
+  exact ATM butterfly's executable credit and terminal payoff if settlement is
+  at its centre. The terminal-at-centre figure is not a live P&L forecast.
+
+## Retained pricing and data safeguards
+
 - Current leg IV and model price from accepted eSSVI, inside observed support only.
   Executable credit uses short bids minus long asks. Show market mid/model value
   separately. Require known equal lot sizes and at least one lot at each entry BBO,
   positive/noncrossed complete books, no crossed/invalid/stale/partial quality flags,
   quote age <=3s, no future rows. Informational flags such as source sequence
   unavailable are retained, not treated as invalid BBO (matching the DAT/SUR boundary).
-- Hold continuously, including nights/weekends/holidays, to cash settlement at expiry.
-  Recenter check at 15:15 IST on exchange trading days strictly after valuation,
-  never on expiry day. If |forward-centre| >= width/2, close all four old legs and
-  open same-width butterfly centred on nearest 50-point strike. No futures hedge.
-  Compare unchanged hold. No beneficial hindsight or optimizing threshold on paths.
 - Forward is the existing surface's forward (not observed spot). Scenario assumes
   driftless lognormal forward, frozen RV forecast and variance proportional to calendar
   elapsed time. Nontrading time thus carries variance; this is NOT a separately fitted
@@ -48,27 +61,23 @@ This supersedes the earlier open-choice proposal. Read-only; no order execution.
   and do NOT bound losses over multiple recenterings. No finite after-exercise-tax bound
   claimed on an unbounded underlying. Show static max loss before exercise tax, Monte
   Carlo p05 / lower-tail mean, probability of loss, and stress outcomes separately.
-- Ranking: baseline net recentered mean / static option risk, with MC standard error,
-  mean hold P&L, overnight mark-to-market after estimated close costs, mean total friction,
-  expected recenter count and worst stress mean. Positive scenario mean is not a trading
-  recommendation; flag when mean <=2 standard errors or a stress mean is negative.
-  User may sort by net carry, carry/risk, local gamma-theta or cost; no hidden score.
-- Current-position centre tracker is a browser-local what-if, not broker positions or
-  persistent strategy execution. Live/historical/stale state and source timestamp visible.
+- Conditional simulations and detailed risk diagnostics remain API/research objects,
+  but do not rank or select a VolARP trade on the simple page. Current-position
+  centre tracking is browser-local, not broker positions or persistent execution.
 
 ## Requirements / acceptance
 
 | ID | Required | Verification |
 |---|---|---|
-| BFLY-01 | Signed legs, strikes, expiry, actual lot metadata, 400/500 each side | Exact payoff and identity fixtures |
+| BFLY-01 | Signed 500-point ATM legs, expiry, actual lot metadata | Exact payoff and identity fixtures |
 | BFLY-02 | Causal, fresh, supported, liquid entry BBO; explicit rejects | Stale/missing/crossed/depth tests |
 | BFLY-03 | Model/mid/BBO, spread/slip/fees separated, settlement costs | Sign and fee fixtures |
 | BFLY-04 | Signed Greeks, theta/gamma carry | Scalar pricing / finite differences |
 | BFLY-05 | Next-open and expiry full nonlinear P&L | Terminal identity / deterministic paths |
-| BFLY-06 | Daily recenter vs hold, holiday timing, fixed threshold | Schedule/threshold/no-lookahead tests |
+| BFLY-06 | 10:00 IST continuation/recenter, holiday timing, strict >250 trigger | Schedule/threshold/no-lookahead tests |
 | BFLY-07 | RV/IV/cost/gap stress and uncertainty | All scenarios present, cost monotonicity |
-| BFLY-08 | Explicit rankings and risk/cost comparison per lot | Sort and output identities |
-| BFLY-09 | Simple dashboard, selectable leg detail, centre what-if | Browser desktop/mobile/history |
+| BFLY-08 | Exact position payoff/credit per lot; no candidate ranking | Output identities |
+| BFLY-09 | Four-value VolARP dashboard, leg detail, centre what-if | Browser desktop/mobile/history |
 | BFLY-10 | Preserve RV/eSSVI/reference, unavailable/stale behavior | Existing tests and live snapshot checks |
 
 ## Sources checked 2026-09-09
@@ -84,7 +93,7 @@ This supersedes the earlier open-choice proposal. Read-only; no order execution.
 Forecast calibration not changed or independently revalidated by this task. Future liquidity,
 actual margin, overnight variance allocation and future smile are not observed quantities.
 
-## User-authorized presentation revision — essentials view, 2026-09-09
+## Superseded presentation notes
 
 Latest instruction: simplify substantially and remove unnecessary information. BFLY-09
 now presents RV/IV, three candidates ranked by the unchanged carry/static-risk ratio,
@@ -102,6 +111,5 @@ Yes/No, new centre (current centre marked unchanged if No), and next scheduled
 check formatted as `10 Sep, 3:15 PM IST`. Freshness stays in the existing page notices.
 No remaining check before expiry means no recenter and current centre unchanged.
 
-Latest correction: q is a major required ratio. Restore the Q ratio hero alongside
-RV and IV, using the existing q_ratio value (forecast realized / implied variance).
-This supersedes the earlier removal of the q hero; no formula change.
+The former q hero, 400/500 filter and candidate ranking are superseded by the
+VolARP RV/IV volatility ratio, fixed 500-point wings and exact ATM position.

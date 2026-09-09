@@ -168,11 +168,11 @@ def test_schedule_honours_weekend_holiday_expiry_and_daily_cap():
     assert date(2026, 9, 14) in HOLIDAYS
     friday = datetime(2026, 9, 11, 15, 20, tzinfo=IST)
     times, opening = schedule(friday, expiry_timestamp(EXP))
-    assert opening == datetime(2026, 9, 15, 9, 15, tzinfo=IST)
+    assert opening == datetime(2026, 9, 15, 10, 0, tzinfo=IST)
     assert all(x.date() == EXP for x in times)
     times, _ = schedule(NOW, expiry_timestamp(EXP))
-    checks = [x for x in times if x.time() == time(15, 15)]
-    assert [x.date() for x in checks] == [date(2026, 9, 9), date(2026, 9, 10), date(2026, 9, 11)]
+    checks = [x for x in times if x.time() == time(10, 0)]
+    assert [x.date() for x in checks] == [date(2026, 9, 10), date(2026, 9, 11)]
     assert len({x.date() for x in checks}) == len(checks)
 
 
@@ -235,7 +235,7 @@ def test_signed_greeks_at_symmetric_center():
     ] * 24000**2 * 0.12**2 / 365.25 == pytest.approx(0, abs=0.03)
 
 
-def test_engine_produces_both_widths_all_scenarios_and_historical_snapshot():
+def test_engine_produces_one_atm_500_point_position_and_historical_snapshot():
     rows, meta = chain()
     engine = SurfaceEngine(
         "test",
@@ -253,9 +253,11 @@ def test_engine_produces_both_widths_all_scenarios_and_historical_snapshot():
     assert snap.fit_ok
     b = snap.butterflies
     assert b["status"] == "ok"
-    assert {c["width"] for c in b["candidates"]} == {400, 500}
-    assert len(b["candidates"]) == 20
-    assert b["candidates"][0]["carry_risk_ratio"] >= b["candidates"][-1]["carry_risk_ratio"]
+    assert {c["width"] for c in b["candidates"]} == {500}
+    assert len(b["candidates"]) == 1
+    assert b["candidates"][0]["center"] == 24000
+    assert b["strategy_signal"]["threshold"] == 0.70
+    assert b["strategy_signal"]["condition_met"] is False
     for c in b["candidates"]:
         assert len(c["scenarios"]) == 5
         assert c["scenarios"]["base"]["mean_recenters"] <= len(b["recenter_checks"])

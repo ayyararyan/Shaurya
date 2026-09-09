@@ -71,7 +71,7 @@ header h1 { font-size:17px; letter-spacing:0; }
 header .stamp { font-size:10px; }
 #sourceLabel { display:none; }
 .rv-forecast { padding:22px 24px 16px; }
-.rv-context { font-size:13px; color:var(--ink-2); margin-bottom:14px; }
+.rv-context { font-size:13px; color:var(--ink-2); margin-bottom:14px; overflow-wrap:anywhere; }
 .rv-cards { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
 .rv-card { padding:22px; border:1px solid var(--rule); border-radius:10px;
   background:var(--panel); min-width:0; }
@@ -92,12 +92,16 @@ summary { cursor:pointer; padding:14px 18px; font-size:13px; font-weight:600; }
 .aside section + section { margin-top:0; }
 .mispricing-panel { height:auto; min-height:0; max-height:500px; }
 .atm { flex-wrap:wrap; }
-@media(max-width:650px) {
-  header { padding:12px 16px; } header .stamp { display:none; }
-  .rv-forecast { padding:16px; } .rv-cards { grid-template-columns:1fr 1fr; gap:10px; }
+@media(max-width:900px) {
+  html, body { width:100%; max-width:100%; overflow-x:hidden; }
+  header { padding:12px 16px; box-sizing:border-box; } header .stamp { display:none; }
+  .rv-forecast { width:100%; max-width:100%; box-sizing:border-box; padding:16px; }
+  .rv-cards { grid-template-columns:minmax(0,1fr); gap:10px; }
   .rv-card { padding:16px; } .rv-card.primary { grid-column:auto; }
   .rv-value { font-size:34px; } .rv-card.primary .rv-value { font-size:34px; }
-  .rv-card h2 { font-size:13px; } details { margin:10px 16px; }
+  .rv-card h2 { font-size:13px; }
+  details { width:calc(100% - 32px); max-width:calc(100% - 32px);
+    box-sizing:border-box; margin:10px 16px; }
   .aside { display:block; } .aside section + section { margin-top:20px; }
   #surfaceChart { height:380px; } .viewmodes { margin-left:0; }
 }
@@ -113,7 +117,7 @@ function renderRvForecast(payload) {
   document.getElementById('ivValue').textContent =
     f.status === 'ok' ? number(f.atm_iv, 100, 2) + '%' : '—';
   document.getElementById('qValue').textContent =
-    f.status === 'ok' ? number(f.q_ratio, 1, 3) : '—';
+    f.status === 'ok' ? number(f.rv_iv_vol_ratio, 1, 3) : '—';
   document.getElementById('rvContext').textContent = f.status === 'ok'
     ? 'Nearest expiry · ' + f.expiry + ' · ' + number(f.maturity_days, 1, 2) + ' days remaining'
     : 'Nearest-expiry forecast unavailable';
@@ -161,7 +165,7 @@ def _forecast_cards(payload: dict[str, Any]) -> str:
     return f"""<section class="rv-forecast" id="rvForecastBand" aria-label="Volatility overview">
 <div class="rv-context" id="rvContext">{html_lib.escape(context)}</div>
 <div class="rv-cards">
-<article class="rv-card primary"><h2>RV forecast</h2>
+<article class="rv-card primary"><h2>ATM RV forecast</h2>
 <div class="rv-value" id="rvValue">
 {value("forecast_annualized_realized_volatility", 100, 2, "%")}</div>
 <p>Expected realized volatility · annualized</p></article>
@@ -169,9 +173,9 @@ def _forecast_cards(payload: dict[str, Any]) -> str:
 <div class="rv-value" id="ivValue">{value("atm_iv", 100, 2, "%")}</div>
 <p>From the fitted option surface · annualized</p></article>
 
-<article class="rv-card"><h2>Q ratio</h2>
-<div class="rv-value" id="qValue">{value("q_ratio", 1, 3)}</div>
-<p>Forecast realized variance ÷ implied variance</p></article>
+<article class="rv-card"><h2>Predicted RV ÷ ATM IV</h2>
+<div class="rv-value" id="qValue">{value("rv_iv_vol_ratio", 1, 3)}</div>
+<p>Volatility ratio used by VolARP · enter condition &lt; 0.70</p></article>
 </div><p class="rv-status" id="rvStatus">{html_lib.escape(status)}</p>
 <noscript>Live updates require JavaScript. These are the values at page load.</noscript>
 </section>"""
@@ -203,12 +207,18 @@ def render_html(payload: dict[str, Any], *, refresh_ms: int = 1000) -> str:
         count=1,
         flags=re.S,
     )
+    arbitrage = (payload.get("snapshot") or {}).get("arbitrage") or {}
+    surface_summary = (
+        "View arbitrage-checked eSSVI surface"
+        if arbitrage.get("passed") is True
+        else "View eSSVI surface — arbitrage check failed"
+    )
     html = html.replace(
         "<main>",
         '<details id="surfaceDetails" ontoggle="if(this.open &amp;&amp; '
         "typeof Plotly !== &quot;undefined&quot;) "
         'renderSurface(stabiliseAxes(lastPayload),true)">'
-        "<summary>View eSSVI surface</summary><main>",
+        f"<summary>{surface_summary}</summary><main>",
         1,
     )
     html = html.replace("</main>", "</main></details>", 1)

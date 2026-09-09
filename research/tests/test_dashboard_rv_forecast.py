@@ -27,7 +27,9 @@ def test_dashboard_rv_forecast_uses_front_atm_and_exact_maturity_basis() -> None
 def test_dashboard_html_contains_live_rv_forecast_band() -> None:
     html = render_html({"title": "test", "rv_forecast": {"status": "unavailable"}})
     assert 'id="rvForecastBand"' in html
-    assert "RV forecast" in html
+    assert "ATM RV forecast" in html
+    assert "Predicted RV ÷ ATM IV" in html
+    assert "View eSSVI surface — arbitrage check failed" in html
     assert "renderRvForecast" in html
 
 

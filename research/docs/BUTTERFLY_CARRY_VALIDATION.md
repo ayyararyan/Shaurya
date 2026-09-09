@@ -1,12 +1,36 @@
-# Butterfly dashboard acceptance — 2026-09-09
+# VolARP dashboard acceptance — 2026-09-09
 
 ## Owner summary
-Implemented the authorized nearest-weekly NIFTY short iron butterfly dashboard with
-400/500-point wings each side. Prices are indicative current BBO; carry/P&L rankings
-are conditional simulations, not empirically validated forecasts of strategy returns.
-No orders or futures hedges. Original RV coefficients and eSSVI/reference policy unchanged.
+Implemented the authorized nearest-weekly NIFTY **VolARP** dashboard: a single
+500-point ATM short iron butterfly, 10:00 IST RV/IV decision rule and a strict
+greater-than-250-point recenter trigger. The page now shows only predicted RV/IV,
+ATM IV, forecast ATM RV, an arbitrage-status-labelled eSSVI surface, and the
+ATM butterfly's current executable credit plus terminal-at-centre payoff. No
+orders, Dhan credential use, futures hedges or position tracking.
 
-Canonical scope: BUTTERFLY_CARRY_DESIGN.md (iron-carry-v1).
+Canonical scope: `BUTTERFLY_CARRY_DESIGN.md` (`volarp-v1`). The older
+`iron-carry-v1` ranking, wing choices, 15:15 checks and conditional P&L cards
+are superseded, not silently retained.
+
+## Post-change verification
+
+- `40 passed` — exact payoff, BBO, schedule, 10:00 IST, 500-point-only,
+  threshold-payload and forecast/dashboard tests.
+- Ruff passed on all changed analytics and test files.
+- Headless Chrome desktop verification at 1440×1100 confirmed the rendered
+  saved view contains RV 8.65%, ATM IV 10.02%, RV/IV 0.863, the failed
+  `<0.70` condition, a 23,300-centre 500-point-wing butterfly and its
+  Rs17,394 terminal-at-centre payoff. The eSSVI disclosure is labelled
+  "arbitrage-checked" only when the fitted snapshot reports a passing check.
+- This is a saved 15:35 IST intraday snapshot, explicitly stale after market
+  close. It verifies UI/data wiring, not a current trading signal or a live
+  10:00 execution check.
+
+The dashboard deliberately reports no action for a failed continuation test:
+Aryan specified when to continue, but not whether a failed condition exits or
+holds an existing position. No exit convention was invented.
+
+## Superseded iron-carry-v1 evidence
 
 ## Specification traceability
 

@@ -18,8 +18,11 @@ from shaurya.analytics.mispricing import InstrumentMetadata
 from shaurya.analytics.variance_carry import realized_volatility_forecast
 from shaurya.surfaces.essvi import ESSVISlice, ESSVISurface, black76_price
 
-VERSION = "iron-carry-v1"
+VERSION = "volarp-v1"
 PATHS = 1024
+WING_POINTS = 500.0
+RECENTER_POINTS = WING_POINTS / 2.0
+RV_IV_VOL_THRESHOLD = 0.70
 HOLIDAYS = {
     date.fromisoformat(x)
     for x in (
@@ -65,8 +68,8 @@ def schedule(now: datetime, expiry: datetime) -> tuple[list[datetime], datetime]
     day = now.astimezone(IST).date()
     while day <= expiry.date():
         if trading_day(day):
-            check = datetime.combine(day, time(15, 15), IST)
-            opening = datetime.combine(day, time(9, 15), IST)
+            check = datetime.combine(day, time(10, 0), IST)
+            opening = check
             if now < check < expiry and day != expiry.date():
                 checks.append(check)
             if now < opening <= expiry:
@@ -379,7 +382,7 @@ def build_butterflies(
     checks = {
         i
         for i, x in enumerate(times)
-        if x.time() == time(15, 15) and x.date() != expiry_time.date()
+        if x.time() == time(10, 0) and x.date() != expiry_time.date()
     }
     quote_map: dict[tuple[float, str], TapeRow] = {}
     for row in rows:
@@ -398,16 +401,16 @@ def build_butterflies(
         return {"status": "unavailable", "reason": "nearest_weekly_nifty_only"}
     candidates = []
     rejected: Counter[str] = Counter()
-    for width in (400.0, 500.0):
-        for center in sorted({k[0] for k in quote_map}):
-            if abs(center - front.forward) > width / 2:
-                continue
-            try:
-                candidates.append(
-                    candidate(center, width, front, quote_map, metadata, now, risk_free_rate)
-                )
-            except ValueError as error:
-                rejected[str(error)] += 1
+    # VolARP has one defined position, not a candidate-ranking exercise: the
+    # nearest tradable ATM centre and 500-point wings.  Refuse the snapshot if
+    # its complete four-leg BBO cannot support that exact position.
+    center = float(rounded_center(front.forward))
+    try:
+        candidates.append(
+            candidate(center, WING_POINTS, front, quote_map, metadata, now, risk_free_rate)
+        )
+    except ValueError as error:
+        rejected[str(error)] += 1
     common = []
     for name, rv_mult, iv_mult, friction, gap in SCENARIOS:
         path = scenario_paths(
@@ -468,6 +471,16 @@ def build_butterflies(
         "forward": front.forward,
         "forecast_rv": forecast.forecast_annualized_realized_volatility,
         "atm_iv": forecast.atm_iv,
+        "rv_iv_vol_ratio": forecast.rv_iv_vol_ratio,
+        "strategy_signal": {
+            "ratio": forecast.rv_iv_vol_ratio,
+            "threshold": RV_IV_VOL_THRESHOLD,
+            "condition_met": forecast.rv_iv_vol_ratio < RV_IV_VOL_THRESHOLD,
+            "check_time_ist": "10:00",
+            "entry_rule": "enter_only_if_ratio_below_threshold_at_10_ist",
+            "continuation_rule": "continue_only_if_ratio_below_threshold_at_10_ist",
+            "failed_continuation_action": "not_specified_by_strategy_owner",
+        },
         "next_open": next_open.isoformat(),
         "recenter_checks": [times[i].isoformat() for i in sorted(checks)],
         "path_count": PATHS,

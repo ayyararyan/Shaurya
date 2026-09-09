@@ -532,8 +532,8 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert 'id="qValue"' in html
     assert 'id="bflySort"' not in html
     assert 'id="surfaceDetails"' in html
-    assert "Estimated net profit" in html
-    assert "not maximum loss" in html
+    assert "Current payoff if expiry is at the centre" in html
+    assert "500-point wings" in html
 
 
 def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> None:

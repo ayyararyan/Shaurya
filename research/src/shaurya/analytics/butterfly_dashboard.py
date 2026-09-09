@@ -1,36 +1,32 @@
 # ruff: noqa: E501
-"""Essential butterfly presentation; calculations remain server-side."""
+"""Minimal VolARP presentation; calculations remain server-side and read-only."""
 
 STYLE = r"""
 .bfly {margin:8px 24px 20px;padding:22px;background:var(--panel);border:1px solid var(--rule);border-radius:12px}
 .bfly h2 {font-size:20px;letter-spacing:0;margin:0 0 8px}.bfly p,.bfly small {font-size:12px;color:var(--ink-2);line-height:1.6}
 .bfly-tools {display:flex;gap:12px;align-items:center;margin:16px 0}.bfly select,.bfly input {font:inherit;padding:8px;border:1px solid var(--rule);border-radius:6px;background:var(--bg);color:var(--ink);max-width:160px}
-.bfly-grid {display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.bfly-choice {border:1px solid var(--rule);border-radius:8px;padding:16px}.bfly-choice.selected {border-color:var(--slate)}
+.bfly-grid {display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.bfly-choice {border:1px solid var(--rule);border-radius:8px;padding:16px;min-width:0;overflow-wrap:anywhere}.bfly-choice.selected {border-color:var(--slate)}
 .bfly-choice small {display:block;margin-bottom:5px}
-.bfly-choice h3 {font-size:17px;margin:0 0 5px}.bfly-choice strong {display:block;font-size:26px;margin:4px 0 12px}.bfly-choice button {margin-top:12px;text-transform:none;letter-spacing:0}
+.bfly-choice h3 {font-size:17px;margin:0 0 5px}.bfly-choice strong {display:block;font-size:26px;margin:4px 0 12px}
 .bfly .bad {color:var(--brick)}.bfly details {margin:16px 0 0}.bfly-detail {padding:0 16px 16px}.bfly-legs {display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0;font-size:14px}.bfly-detail p {margin:8px 0}
 .bfly-check {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:12px 0}.bfly-check dt {font-size:12px;color:var(--ink-2);margin-bottom:6px}.bfly-check dd {margin:0;font-size:16px;font-weight:600}
-@media(max-width:650px){.bfly {margin:8px 16px;padding:16px}.bfly-grid {grid-template-columns:1fr}.bfly-choice strong {font-size:24px}.bfly-tools {flex-wrap:wrap}.bfly-check {grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.bfly {width:calc(100% - 32px);max-width:calc(100% - 32px);box-sizing:border-box;margin:8px 16px;padding:16px}.bfly-grid {grid-template-columns:minmax(0,1fr)}.bfly-choice strong {font-size:clamp(18px,6vw,24px);overflow-wrap:anywhere}.bfly-tools {flex-wrap:wrap}.bfly-check {grid-template-columns:1fr 1fr}}
 """
 
 PANEL = r"""
-<section class="bfly" id="butterflyPanel" aria-label="Short iron butterfly shortlist">
-<h2>Butterfly shortlist</h2>
-<p>One lot · daily recentering until expiry · all amounts in rupees</p>
+<section class="bfly" id="butterflyPanel" aria-label="VolARP short iron butterfly">
+<h2>VolARP · ATM short iron butterfly</h2>
+<p>One lot · 500-point wings · read-only decision aid · all amounts in rupees</p>
 <p id="bflyStatus">Waiting for prices…</p>
-<div class="bfly-tools"><label>Wing width <select id="bflyWidth" onchange="renderButterflies(bflyPayload)"><option value="all">400 &amp; 500</option><option value="400">400 each side</option><option value="500">500 each side</option></select></label></div>
 <div class="bfly-grid" id="bflyRows"></div>
-<p>Top three by estimated profit relative to static risk. <b>Net profit is after costs, not the entry credit.</b><br>
-Downside is the 5th percentile: 5% of simulated outcomes are worse. It is not maximum loss.</p>
-<details id="bflyDetails"><summary>Selected butterfly · legs &amp; costs</summary><div class="bfly-detail" id="bflyDetailBody"></div></details>
+<details id="bflyDetails"><summary>Four legs and costs</summary><div class="bfly-detail" id="bflyDetailBody"></div></details>
 <details><summary>Check whether to recenter my butterfly</summary><div class="bfly-detail">
-<div class="bfly-tools"><label>Current centre <input id="bflyHeldCenter" type="number" step="50" placeholder="e.g. 24000" oninput="renderButterflyTracker()"></label><label>Wings <select id="bflyHeldWidth" onchange="renderButterflyTracker()"><option value="400">400 each side</option><option value="500">500 each side</option></select></label></div><div id="bflyTracker" aria-live="polite"></div></div></details>
+<div class="bfly-tools"><label>Current centre <input id="bflyHeldCenter" type="number" step="50" placeholder="e.g. 24000" oninput="renderButterflyTracker()"></label></div><div id="bflyTracker" aria-live="polite"></div></div></details>
 </section>
 """
 
 SCRIPT = r"""
 let bflyPayload=lastPayload;
-let bflySelected=null;
 const bfNum=(x,d=0)=>typeof x==='number' && Number.isFinite(x) ? x.toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d}) : '—';
 const bfMoney=x=>'₹'+bfNum(x);
 function renderButterflies(payload) {
@@ -45,39 +41,41 @@ function renderButterflies(payload) {
   document.getElementById('bflyDetailBody').textContent='Waiting for a valid four-leg quote.';
   renderButterflyTracker();return;
  }
- note.textContent=(historical?'Saved snapshot':stale?'Stale prices — do not use for entry':'Indicative prices')+' · expiry '+b.expiry;
- const width=document.getElementById('bflyWidth').value;
- const shown=b.candidates.filter(x=>width==='all'||x.width===Number(width)).sort((a,c)=>c.carry_risk_ratio-a.carry_risk_ratio).slice(0,3);
- if(!shown.some(x=>x.id===bflySelected))bflySelected=shown.length?shown[0].id:null;
- document.getElementById('bflyRows').innerHTML=shown.map(x=>{
-  const s=x.scenarios.base.recenter;
-  const flag=x.signal_label==='no_positive_scenario_edge'?'No positive estimated edge':x.signal_label==='within_monte_carlo_noise'?'Edge within simulation noise':x.signal_label==='stress_sensitive'?'Can lose under stress':'Positive in tested scenarios';
-  return '<article class="bfly-choice '+(x.id===bflySelected?'selected':'')+'"><h3>'+bfNum(x.center)+' centre</h3><p>'+x.width+'-point wings each side</p><small>Estimated net profit · to expiry</small><strong>'+bfMoney(s.mean)+'</strong><small>Downside scenario</small><b class="bad">'+bfMoney(s.p05)+'</b><p>'+flag+'</p><button onclick="selectButterfly(\''+x.id+'\')">View four legs</button></article>';
- }).join('') || '<p>No eligible prices for this width.</p>';
- renderButterflyDetail(shown.find(x=>x.id===bflySelected),b);renderButterflyTracker();
+  note.textContent=(historical?'Saved snapshot':stale?'Stale prices — do not use for entry':'Indicative 10:00 IST check')+' · expiry '+b.expiry;
+ const x=b.candidates.find(c=>c.width===500), forecast=payload.rv_forecast || {};
+ const ratio=typeof (b.strategy_signal||{}).ratio==='number' ? b.strategy_signal.ratio : forecast.rv_iv_vol_ratio;
+ const threshold=typeof (b.strategy_signal||{}).threshold==='number' ? b.strategy_signal.threshold : 0.70;
+ const condition=typeof (b.strategy_signal||{}).condition_met==='boolean' ? b.strategy_signal.condition_met : ratio < threshold;
+ if(!x){ document.getElementById('bflyRows').textContent='No eligible ATM four-leg price.'; return; }
+ const state=condition ? 'RV / IV is below 0.70' : 'RV / IV is not below 0.70';
+ const payoff=x.max_profit_before_exercise_tax;
+ document.getElementById('bflyRows').innerHTML='<article class="bfly-choice selected"><h3>'+bfNum(x.center)+' ATM centre</h3><p>Short put + short call; long '+bfNum(x.width)+'-point wings</p><small>10:00 IST condition</small><strong class="'+(condition?'':'bad')+'">'+escapeHtml(state)+'</strong><small>Current payoff if expiry is at the centre</small><strong>'+bfMoney(payoff)+'</strong><p>Executable credit now: '+bfMoney(x.credit_rupees)+' before costs.</p></article>';
+ renderButterflyDetail(x,b);renderButterflyTracker();
 }
-function selectButterfly(id){bflySelected=id;renderButterflies(bflyPayload);document.getElementById('bflyDetails').open=true;document.getElementById('bflyDetails').scrollIntoView({behavior:'smooth',block:'nearest'});}
 function renderButterflyDetail(x,b){
  const el=document.getElementById('bflyDetailBody');if(!x){el.textContent='No eligible butterfly selected.';return;}
  const s=x.scenarios.base;
  el.innerHTML='<p><b>'+bfNum(x.center)+' centre · '+x.width+' wings · '+x.lot_size+' units per leg</b></p><div class="bfly-legs">'+x.legs.map(l=>'<div>'+escapeHtml(l.side)+' '+bfNum(l.strike)+' '+escapeHtml(l.type)+'</div>').join('')+'</div>'+
  '<p>Cash received at entry: <b>'+bfMoney(x.credit_rupees)+'</b> before costs. This is not profit: the options still have a payout liability.</p>'+
- '<p>Estimated total trading costs: <b>'+bfMoney(s.mean_total_cost)+'</b>, already deducted from net profit.</p>'+
- '<p>If held without recentering: estimated net profit '+bfMoney(s.hold.mean)+'. Static maximum loss '+bfMoney(x.static_max_loss_before_exercise_tax)+' before exercise tax; repeated recentering can lose more.</p>'+
- '<p><b>Recenter rule:</b> check at 15:15 IST, once per trading day except expiry day. If the forward moves '+x.width/2+' points from the centre, close all four legs and reopen at the nearest 50-point centre.</p>';
+ '<p>Entry costs: <b>'+bfMoney(x.entry_cost_rupees)+'</b>. If expiry is at the centre, the displayed payoff is net entry credit; static maximum loss is '+bfMoney(x.static_max_loss_before_exercise_tax)+' before exercise tax.</p>'+
+ '<p><b>Recenter rule:</b> check at 10:00 IST on trading days before expiry. Continue only while RV / IV remains below 0.70; if the forward has moved <b>more than</b> 250 points, close all four legs and reopen at the nearest 50-point centre. The action when the continuation condition fails is not yet specified.</p>';
 }
 function renderButterflyTracker() {
   const b=(bflyPayload.snapshot || {}).butterflies || {};
   const center=Number(document.getElementById('bflyHeldCenter').value);
-  const width=Number(document.getElementById('bflyHeldWidth').value);
+  const width=500;
   const holder=document.getElementById('bflyTracker');
   if(!Number.isFinite(center) || center<=0 || !Number.isFinite(b.forward)) {
     holder.textContent='Enter your current centre.'; return;
   }
   const drift=b.forward-center, target=Math.floor(b.forward/50+.5)*50;
-  const next=(b.recenter_checks || [])[0];
-  const recenter=!!next && Math.abs(drift)>=width/2;
-  const nextDate=next ? new Date(next) : null;
+  const rawNext=(b.recenter_checks || [])[0];
+  // Saved pre-VolARP snapshots retain their old intraday timestamp. Their
+  // trading-day sequence remains valid, but this strategy's check is 10:00.
+  const next=rawNext ? new Date(rawNext) : null;
+  if(next && Number.isFinite(next.getTime())) next.setUTCHours(4,30,0,0);
+  const recenter=!!next && Math.abs(drift)>width/2;
+  const nextDate=next;
   const nextTime=nextDate && Number.isFinite(nextDate.getTime())
     ? nextDate.toLocaleDateString('en-GB',{timeZone:'Asia/Kolkata',day:'numeric',month:'short'})+
       ', '+nextDate.toLocaleTimeString('en-US',{timeZone:'Asia/Kolkata',hour:'numeric',minute:'2-digit'})+' IST'
