@@ -38,9 +38,9 @@ def test_duration_seconds_to_close_rejects_a_finished_session() -> None:
         duration_seconds_to_close(trading_date, now=now)
 
 
-def test_build_capture_command_omits_spot_and_expiry_without_preflight() -> None:
+def test_build_capture_command_combines_underlyings_without_preflight() -> None:
     command = build_capture_command(
-        "NIFTY",
+        ("NIFTY", "BANKNIFTY"),
         credentials=Path("/secrets/dhan.env"),
         security_master=Path("/masters/dhan.csv"),
         duration_seconds=1234.0,
@@ -56,6 +56,8 @@ def test_build_capture_command_omits_spot_and_expiry_without_preflight() -> None
         "/masters/dhan.csv",
         "--underlying",
         "NIFTY",
+        "--underlying",
+        "BANKNIFTY",
         "--expiry-count",
         "2",
         "--strike-window-fraction",
@@ -73,21 +75,39 @@ def test_build_capture_command_omits_spot_and_expiry_without_preflight() -> None
     assert "--output-root" not in command
 
 
-def test_build_capture_command_pins_preflight_spot_and_expiries() -> None:
+def test_build_capture_command_pins_each_preflight_chain_independently() -> None:
+    preflight = {
+        "NIFTY": ChainPreflight(
+            underlying="NIFTY",
+            spot=24405.0,
+            expiries=("2026-09-01", "2026-09-29"),
+            option_count=120,
+            future_count=1,
+        ),
+        "BANKNIFTY": ChainPreflight(
+            underlying="BANKNIFTY",
+            spot=54210.0,
+            expiries=("2026-09-02", "2026-09-30"),
+            option_count=120,
+            future_count=1,
+        ),
+    }
     command = build_capture_command(
-        "NIFTY",
+        ("NIFTY", "BANKNIFTY"),
         credentials=Path("/secrets/dhan.env"),
         security_master=Path("/masters/dhan.csv"),
         duration_seconds=1234.0,
         expiry_count=2,
         strike_window_fraction=0.06,
         max_options=120,
-        spot=24405.0,
-        expiries=("2026-09-01", "2026-09-29"),
+        preflight=preflight,
     )
-    assert command[command.index("--spot") + 1] == "24405.0"
-    expiry_positions = [index for index, value in enumerate(command) if value == "--expiry"]
-    assert [command[index + 1] for index in expiry_positions] == ["2026-09-01", "2026-09-29"]
+    positions = [index for index, value in enumerate(command) if value == "--chain-spec"]
+    assert [command[index + 1] for index in positions] == [
+        "NIFTY:24405.0:2026-09-01,2026-09-29",
+        "BANKNIFTY:54210.0:2026-09-02,2026-09-30",
+    ]
+    assert "--underlying" not in command
 
 
 def test_build_capture_command_forwards_an_explicit_output_root() -> None:
@@ -125,7 +145,9 @@ def test_preflight_fails_before_network_when_credentials_are_missing(tmp_path: P
 
 
 def test_require_launch_tools_names_missing_runtime_tool(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(launcher.shutil, "which", lambda name: None if name == "tmux" else "/bin/tool")
+    monkeypatch.setattr(
+        launcher.shutil, "which", lambda name: None if name == "tmux" else "/bin/tool"
+    )
     with pytest.raises(FileNotFoundError, match="tmux"):
         require_launch_tools()
 
@@ -168,6 +190,8 @@ def test_run_defaults_to_both_underlyings_without_launching(
     out = capsys.readouterr().out
     assert "--underlying NIFTY" in out
     assert "--underlying BANKNIFTY" in out
+    assert out.count("shaurya-chain-capture") == 1
+    assert "planned_standard_websockets=1" in out
     assert "tmux" not in out
 
 
@@ -191,7 +215,14 @@ def test_run_launches_only_after_preflight_and_pins_resolved_chain(
                 expiries=("2026-09-01", "2026-09-29"),
                 option_count=120,
                 future_count=1,
-            )
+            ),
+            "BANKNIFTY": ChainPreflight(
+                underlying="BANKNIFTY",
+                spot=54210.0,
+                expiries=("2026-09-02", "2026-09-30"),
+                option_count=120,
+                future_count=1,
+            ),
         },
     )
     args = _parser().parse_args(
@@ -200,8 +231,6 @@ def test_run_launches_only_after_preflight_and_pins_resolved_chain(
             "/secrets/dhan.env",
             "--security-master",
             "/masters/dhan.csv",
-            "--underlying",
-            "NIFTY",
             "--launch",
         ]
     )
@@ -209,17 +238,18 @@ def test_run_launches_only_after_preflight_and_pins_resolved_chain(
     assert code == 0
     assert len(calls) == 1
     assert calls[0][:5] == ["tmux", "new-session", "-d", "-s", "shaurya-dat-chain-2026-08-28"]
-    assert "-n" in calls[0] and "nifty" in calls[0]
+    assert "-n" in calls[0] and "chains" in calls[0]
     # The real shaurya-chain-capture invocation is watchdog-wrapped (see
     # _watchdog_wrapped_command), so its flags now live inside one quoted zsh -c script
     # rather than as separate argv elements.
     assert calls[0][-2:-1] == ["-c"]
     script = calls[0][-1]
-    assert "--spot 24405.0" in script
-    assert script.count("--expiry ") == 2
+    assert "--chain-spec NIFTY:24405.0:2026-09-01,2026-09-29" in script
+    assert "--chain-spec BANKNIFTY:54210.0:2026-09-02,2026-09-30" in script
+    assert script.count("shaurya-chain-capture") == 1
 
 
-def test_launch_tmux_reuses_the_session_for_later_underlyings(
+def test_launch_tmux_starts_exactly_one_combined_capture_child(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[list[str]] = []
@@ -231,12 +261,19 @@ def test_launch_tmux_reuses_the_session_for_later_underlyings(
     _launch_tmux(
         "shaurya-dat-chain-2026-08-28",
         [
-            ("NIFTY", ["shaurya-chain-capture", "--duration-seconds", "20580"]),
-            ("BANKNIFTY", ["shaurya-chain-capture", "--duration-seconds", "20580"]),
+            "shaurya-chain-capture",
+            "--underlying",
+            "NIFTY",
+            "--underlying",
+            "BANKNIFTY",
+            "--duration-seconds",
+            "20580",
         ],
     )
+    assert len(calls) == 1
     assert calls[0][1] == "new-session"
-    assert calls[1][1] == "new-window"
+    assert "new-window" not in calls[0]
+    assert "chains" in calls[0]
 
 
 def test_watchdog_wrapped_command_grace_period_is_duration_plus_buffer() -> None:

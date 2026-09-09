@@ -398,6 +398,7 @@ def test_only_dat_boundary_imports_dhan_adapters() -> None:
     permitted = {
         root / "data_cli" / "capture_dhan.py",
         root / "data_cli" / "capture_chain.py",
+        root / "data_cli" / "daily_chain_launch.py",
     }
     forbidden_prefixes = ("shaurya.data.dhan_client", "shaurya.data.dhan_stream")
     violations: list[str] = []

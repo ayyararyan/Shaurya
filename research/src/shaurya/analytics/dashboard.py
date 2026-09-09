@@ -416,7 +416,7 @@ function renderSurface(payload, force) {
     return;
   }
   // The page polls every second (health/feed-age need that granularity) but a new fit
-  // only lands roughly every --fit-interval-seconds (5s by default). Re-drawing the 3D
+  // only lands roughly every --fit-interval-seconds (3s by default). Re-drawing the 3D
   // chart on every poll interrupted in-progress zoom/pan/rotate before the viewer could
   // finish it, even with the camera correctly restored afterwards — confirmed live
   // 2026-09-01. Redraw only when the fit actually advanced, or a caller (theme toggle,

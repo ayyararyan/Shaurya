@@ -1,7 +1,8 @@
 """Canonical daily launcher for production option-chain capture.
 
 Computes today's remaining session duration and prints (or, with `--launch`, starts in
-tmux) the `shaurya-chain-capture` invocation needed for each configured underlying.
+tmux) one `shaurya-chain-capture` invocation carrying every configured underlying on a
+single Dhan Standard/Full WebSocket.
 `--preflight` performs the live checks that matter before the open: credentials and the dated
 security master must exist, the production archive must be mounted and writable, Dhan must resolve
 spot and expiries, and the selected research chain must contain options for every requested expiry.
@@ -18,7 +19,7 @@ import argparse
 import shlex
 import shutil
 import subprocess
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -30,6 +31,7 @@ from shaurya.data.storage import resolve_raw_capture_root
 from shaurya.data.universe import select_chain_universe
 from shaurya.data_cli.capture_chain import (
     DEFAULT_MINIMUM_COVERAGE_FRACTION,
+    ChainCaptureSpec,
     resolve_live_spot_and_expiries,
 )
 
@@ -150,7 +152,7 @@ def preflight_capture(
 
 
 def build_capture_command(
-    underlying: str,
+    underlyings: str | Sequence[str],
     *,
     credentials: Path,
     security_master: Path,
@@ -159,24 +161,30 @@ def build_capture_command(
     strike_window_fraction: float,
     max_options: int,
     minimum_coverage_fraction: float = DEFAULT_MINIMUM_COVERAGE_FRACTION,
-    spot: float | None = None,
-    expiries: Sequence[str] | None = None,
+    preflight: Mapping[str, ChainPreflight] | None = None,
     output_root: Path | None = None,
 ) -> list[str]:
+    normalized = (
+        (underlyings.strip().upper(),)
+        if isinstance(underlyings, str)
+        else tuple(value.strip().upper() for value in underlyings)
+    )
+    if not normalized or len(set(normalized)) != len(normalized):
+        raise ValueError("underlyings must be non-empty and unique")
     command = [
         "shaurya-chain-capture",
         "--credentials",
         str(credentials),
         "--security-master",
         str(security_master),
-        "--underlying",
-        underlying,
     ]
-    if spot is not None:
-        command += ["--spot", str(spot)]
-    if expiries:
-        for expiry in expiries:
-            command += ["--expiry", expiry]
+    for underlying in normalized:
+        resolved = preflight.get(underlying) if preflight is not None else None
+        if resolved is None:
+            command += ["--underlying", underlying]
+        else:
+            spec = ChainCaptureSpec(underlying, resolved.spot, resolved.expiries)
+            command += ["--chain-spec", spec.to_cli()]
     command += [
         "--expiry-count",
         str(expiry_count),
@@ -229,22 +237,16 @@ def _watchdog_wrapped_command(command: Sequence[str], *, grace_buffer_seconds: f
     return ["zsh", "-c", script]
 
 
-def _launch_tmux(session: str, commands: Sequence[tuple[str, list[str]]]) -> None:
-    for index, (underlying, command) in enumerate(commands):
-        window = underlying.lower()
-        watchdog_command = _watchdog_wrapped_command(
-            command, grace_buffer_seconds=WATCHDOG_GRACE_BUFFER_SECONDS
-        )
-        if index == 0:
-            subprocess.run(
-                ["tmux", "new-session", "-d", "-s", session, "-n", window, *watchdog_command],
-                check=True,
-            )
-        else:
-            subprocess.run(
-                ["tmux", "new-window", "-t", session, "-n", window, *watchdog_command],
-                check=True,
-            )
+def _launch_tmux(session: str, command: Sequence[str]) -> None:
+    """Launch exactly one capture child, preserving one Dhan socket for all chains."""
+
+    watchdog_command = _watchdog_wrapped_command(
+        command, grace_buffer_seconds=WATCHDOG_GRACE_BUFFER_SECONDS
+    )
+    subprocess.run(
+        ["tmux", "new-session", "-d", "-s", session, "-n", "chains", *watchdog_command],
+        check=True,
+    )
 
 
 def run(args: argparse.Namespace, *, now: datetime | None = None) -> int:
@@ -282,29 +284,27 @@ def run(args: argparse.Namespace, *, now: datetime | None = None) -> int:
                 f"total={result.total_instruments}"
             )
 
-    commands: list[tuple[str, list[str]]] = []
-    for underlying in underlyings:
-        resolved = preflight.get(underlying.strip().upper())
-        command = build_capture_command(
-            underlying,
-            credentials=credentials,
-            security_master=security_master,
-            duration_seconds=duration_seconds,
-            expiry_count=args.expiries,
-            strike_window_fraction=args.strike_window_fraction,
-            max_options=args.max_options,
-            minimum_coverage_fraction=args.minimum_coverage_fraction,
-            spot=resolved.spot if resolved is not None else None,
-            expiries=resolved.expiries if resolved is not None else None,
-            output_root=args.output_root,
-        )
-        commands.append((underlying, command))
-        print(shlex.join(command))
+    command = build_capture_command(
+        underlyings,
+        credentials=credentials,
+        security_master=security_master,
+        duration_seconds=duration_seconds,
+        expiry_count=args.expiries,
+        strike_window_fraction=args.strike_window_fraction,
+        max_options=args.max_options,
+        minimum_coverage_fraction=args.minimum_coverage_fraction,
+        preflight=preflight or None,
+        output_root=args.output_root,
+    )
+    print(shlex.join(command))
+    print(f"planned_standard_websockets=1 underlyings={','.join(underlyings)}")
     if args.launch:
         tmux_session = args.tmux_session or f"shaurya-dat-chain-{trading_date.isoformat()}"
-        _launch_tmux(tmux_session, commands)
-        windows = [underlying.lower() for underlying, _ in commands]
-        print(f"launched tmux session {tmux_session!r} with windows {windows}")
+        _launch_tmux(tmux_session, command)
+        print(
+            f"launched tmux session {tmux_session!r} with window ['chains'] "
+            "and one Dhan Standard/Full WebSocket"
+        )
     return 0
 
 
@@ -372,9 +372,9 @@ def _parser() -> argparse.ArgumentParser:
         "--launch",
         action="store_true",
         help=(
-            "Run the production preflight, then start each resolved capture in its own tmux "
-            "window. Without --preflight or --launch, the command only prints auto-resolving "
-            "child commands."
+            "Run the production preflight, then start one combined capture in a tmux window. "
+            "Without --preflight or --launch, the command only prints the auto-resolving child "
+            "command."
         ),
     )
     return parser

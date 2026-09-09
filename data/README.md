@@ -96,6 +96,24 @@ uncompressed data. Row groups default to 10,000 rows. The writer closes and vali
 metadata. Active readers see only published closed segments. File presence never implies a
 completed dataset: only the catalogue `completed` lifecycle event does.
 
+### Low-latency active consumers
+
+Option-chain capture also publishes every canonical row through DAT's authenticated localhost
+live stream after the durable session accepts it. This is an operational fan-out, not a second
+source of record: segmented Parquet and the catalogue remain authoritative for replay, recovery,
+and audit.
+
+The capture atomically writes a mode-0600 `live-stream.json` descriptor in the dataset's
+operational directory. Consumers attach through `DataAccess.live(handle)`. Each connection first
+receives the latest accepted row per instrument, then coalesced update batches and heartbeats.
+Pending state is bounded by the claimed instrument universe, so a disconnected or slow dashboard
+cannot backpressure market-data collection. Messages retain `receive_sequence`, `connection_epoch`,
+dataset identity, source watermarks, and coalescing counters. The listener binds only to localhost
+and uses a per-run authentication token; it is removed when capture ends.
+
+`DataAccess.follow(handle)` deliberately keeps the immutable-segment behavior. Use `live` for
+low-latency observation and `follow` when catalogue publication boundaries are the desired input.
+
 On restart, `inventory_recovery(dataset_dir, published_segments)` identifies partials for
 quarantine and final-but-unpublished orphan files for operator review. Do not put either into
 service without footer/schema/count/hash verification and an explicit catalogue event. Failed,
@@ -143,10 +161,12 @@ datasets. Rollback disables new acquisition; it does not rewrite either represen
 
 Credential and security-master files must live outside this repository.
 
-**Daily production capture records the configured NIFTY and BANKNIFTY research chains.** The
-canonical entry point is `shaurya-daily-chain-launch`. The default chain is the nearest two live
-expiries, strikes within 6% of live spot, and up to 120 options per underlying; it is intentionally
-not every exchange-listed strike.
+**Daily production capture records the configured NIFTY and BANKNIFTY research chains on one
+Dhan Standard/Full WebSocket.** The canonical entry point is `shaurya-daily-chain-launch`. The
+default chain is the nearest two live expiries, strikes within 6% of live spot, and up to 120
+options per underlying; it is intentionally not every exchange-listed strike. Consolidating both
+chains on one socket prevents the second chain from consuming another connection slot and evicting
+an older capture with Dhan reason code `805`.
 
 Before the session, run the production preflight:
 
@@ -165,11 +185,13 @@ Launch production capture with:
 uv run shaurya-daily-chain-launch --launch
 ```
 
-`--launch` always reruns the same preflight before creating any tmux window and pins the checked
-spot/expiries into each child capture. The child capture also enforces a default 95% instrument
-coverage floor: falling below that floor, or ending with a stream error, invalidates the dataset and
-returns nonzero instead of silently publishing a plausible-looking partial chain. Override the floor
-only deliberately with `--minimum-coverage-fraction`.
+`--launch` always reruns the same preflight before creating its `chains` tmux window and pins each
+underlying's checked spot/expiries into one combined child capture. The child enforces the default
+95% instrument coverage floor separately for each underlying: falling below that floor, or ending
+with a stream error, invalidates the dataset and returns nonzero instead of silently publishing a
+plausible-looking partial chain. Dhan disconnect reason `805` is terminal and recorded rather than
+retried, because reconnecting would only evict another account socket. Override the floor only
+deliberately with `--minimum-coverage-fraction`.
 
 `--credentials` and `--security-master` both default to this machine's live operational paths and
 only need overriding on another host or for a controlled test:

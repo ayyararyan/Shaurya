@@ -148,7 +148,10 @@ def test_ofi_full_session_replication_accepts_all_three_channels_and_records_lim
     _validate_depth_tier_scope(args, mapping())
     assert _ofi_full_session_protocol_metadata(args) == {
         "protocol_id": "R-OFI-FULLSESSION-2026-08-20",
-        "source_spec": "research/docs/live-evidence/OFI-FULL-SESSION-REPLICATION-SPEC-2026-08-20.md",
+        "source_spec": (
+            "research/docs/live-evidence/"
+            "OFI-FULL-SESSION-REPLICATION-SPEC-2026-08-20.md"
+        ),
         "source_amendment": (
             "research/docs/live-evidence/OFI-FULL-SESSION-REPLICATION-SPEC-AMENDMENT-1-2026-08-19.md"
         ),

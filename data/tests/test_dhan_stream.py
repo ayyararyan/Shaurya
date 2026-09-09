@@ -27,6 +27,7 @@ from shaurya.data.dhan_stream import (
     DhanStreamConfig,
     HeartbeatTimeout,
     ParsedDeepPacket,
+    ParsedDisconnect,
     ParsedMarketPacket,
     SequenceGapDetector,
     StreamMetrics,
@@ -328,6 +329,30 @@ async def test_supervisor_reconnects_after_transient_failure() -> None:
     assert stream.calls == 2
     assert stream.metrics.reconnect_attempts["standard"] == 1
     assert QualityFlag.CONNECTION_GAP in stream._pending_flags["standard"]
+
+
+@pytest.mark.asyncio
+async def test_connection_budget_805_is_recorded_and_never_retried() -> None:
+    class BudgetRejectedStream(DhanLiveStream):
+        calls = 0
+
+        async def _connection_once(self, channel: str) -> None:
+            self.calls += 1
+            self._raise_disconnect(channel, ParsedDisconnect(reason_code=805, raw_size=10))
+
+    stream = BudgetRejectedStream(
+        DhanCredentials("client", "token"),
+        [_mapping()],
+        lambda row: None,
+        run_id="sha-20260902T053000.000000Z-805805aa",
+    )
+    with pytest.raises(DhanFatalStreamError) as caught:
+        await stream._supervise("standard")
+    assert caught.value.reason_code == 805
+    assert caught.value.channel == "standard"
+    assert stream.calls == 1
+    assert stream.metrics.reconnect_attempts["standard"] == 0
+    assert stream.metrics.disconnect_reason_codes == {"standard:805": 1}
 
 
 def test_bid_then_ask_side_packets_emit_partial_then_complete_book() -> None:

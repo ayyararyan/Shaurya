@@ -6,7 +6,13 @@ from typing import Any
 import pytest
 
 from shaurya.data.dhan_client import DhanClient, DhanCredentials
-from shaurya.data_cli.capture_chain import coverage_failure_reason, resolve_live_spot_and_expiries
+from shaurya.data_cli.capture_chain import (
+    ChainCaptureSpec,
+    _parser,
+    coverage_failure_reason,
+    resolve_capture_specs,
+    resolve_live_spot_and_expiries,
+)
 
 
 class FakeSDK:
@@ -61,6 +67,59 @@ def test_resolve_live_spot_and_expiries_rejects_nonpositive_count() -> None:
         resolve_live_spot_and_expiries(client, "NIFTY", expiry_count=0)
 
 
+def test_chain_capture_spec_round_trips_pinned_underlying_values() -> None:
+    value = "NIFTY:24405:2026-09-29,2026-09-01"
+    spec = ChainCaptureSpec.parse(value)
+    assert spec == ChainCaptureSpec(
+        underlying="NIFTY",
+        spot=24405.0,
+        expiries=("2026-09-01", "2026-09-29"),
+    )
+    assert spec.to_cli() == "NIFTY:24405.0:2026-09-01,2026-09-29"
+
+
+def test_repeated_underlyings_resolve_independent_spots_and_expiries() -> None:
+    class MultiUnderlyingSDK:
+        def expiry_list(
+            self, *, under_security_id: int, under_exchange_segment: str
+        ) -> dict[str, Any]:
+            values = {
+                13: ["2026-09-01", "2026-09-29"],
+                25: ["2026-09-02", "2026-09-30"],
+            }
+            return {"status": "success", "data": {"data": values[under_security_id]}}
+
+        def option_chain(
+            self, *, expiry: str, under_security_id: int, under_exchange_segment: str
+        ) -> dict[str, Any]:
+            spots = {13: 24405.0, 25: 54210.0}
+            return {
+                "status": "success",
+                "data": {"data": {"last_price": spots[under_security_id], "oc": {}}},
+            }
+
+    args = _parser().parse_args(
+        [
+            "--credentials",
+            "/secrets/dhan.env",
+            "--security-master",
+            "/masters/dhan.csv",
+            "--underlying",
+            "NIFTY",
+            "--underlying",
+            "BANKNIFTY",
+        ]
+    )
+    client = DhanClient(
+        DhanCredentials("client", "token"),
+        sdk=MultiUnderlyingSDK(),
+    )
+    assert resolve_capture_specs(args, client) == (
+        ChainCaptureSpec("NIFTY", 24405.0, ("2026-09-01", "2026-09-29")),
+        ChainCaptureSpec("BANKNIFTY", 54210.0, ("2026-09-02", "2026-09-30")),
+    )
+
+
 def test_coverage_gate_accepts_capture_at_threshold() -> None:
     assert (
         coverage_failure_reason(
@@ -90,6 +149,27 @@ def test_coverage_gate_rejects_stream_error_even_with_full_coverage() -> None:
         minimum_coverage_fraction=0.95,
         stream_error_type="DhanFatalStreamError",
     ) == "stream failed: DhanFatalStreamError"
+
+
+def test_coverage_gate_preserves_dhan_disconnect_reason_code() -> None:
+    assert coverage_failure_reason(
+        requested_count=240,
+        covered_count=240,
+        minimum_coverage_fraction=0.95,
+        stream_error_type="DhanFatalStreamError",
+        stream_error_reason_code=805,
+    ) == "stream failed: DhanFatalStreamError (reason_code=805)"
+
+
+def test_coverage_gate_requires_each_underlying_to_clear_the_floor() -> None:
+    reason = coverage_failure_reason(
+        requested_count=240,
+        covered_count=228,
+        minimum_coverage_fraction=0.95,
+        coverage_by_underlying={"NIFTY": (120, 108), "BANKNIFTY": (120, 120)},
+    )
+    assert reason is not None
+    assert reason.startswith("NIFTY instrument coverage 108/120")
 
 
 def test_coverage_gate_rejects_invalid_threshold() -> None:
