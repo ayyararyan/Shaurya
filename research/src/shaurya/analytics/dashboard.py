@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html as html_lib
+import math
 from typing import Any
 
 from shaurya.analytics import dashboard_base as _base
@@ -65,79 +67,129 @@ def build_history_payload(engine: SurfaceEngine, index: int) -> dict[str, Any]:
 
 
 _RV_STYLE = """
-.rv-forecast {
-  display:flex; align-items:center; gap:24px; flex:none;
-  padding:10px 18px 11px; border-bottom:1px solid var(--rule); background:var(--panel);
+body { height:auto; min-height:100vh; overflow:auto; }
+header { flex-wrap:wrap; padding:16px 24px; }
+header h1 { font-size:17px; letter-spacing:0; }
+header .stamp { font-size:10px; }
+#sourceLabel { display:none; }
+.rv-forecast { padding:22px 24px 16px; }
+.rv-context { font-size:13px; color:var(--ink-2); margin-bottom:14px; }
+.rv-cards { display:grid; grid-template-columns:1.35fr 1fr 1fr; gap:16px; }
+.rv-card { padding:22px; border:1px solid var(--rule); border-radius:10px;
+  background:var(--panel); min-width:0; }
+.rv-card.primary { border:2px solid var(--slate); }
+.rv-card h2 { margin:0 0 12px; font-size:15px; font-weight:600; color:var(--ink); }
+.rv-value { font-size:48px; line-height:1.2; letter-spacing:-2px; }
+.rv-card.primary .rv-value { font-size:56px; font-weight:600; }
+.rv-card p { margin:8px 0 0; color:var(--ink-2); font-size:12px; }
+.rv-status { margin:14px 0 0; color:var(--ink-2); font-size:12px; }
+main { display:block; flex:none; }
+.stage { border-right:0; }
+#surfaceChart { height:480px; min-height:360px; }
+.controls { flex-wrap:wrap; font-size:11px; }
+.notes, .banner { padding-left:24px; font-size:12px; }
+details { margin:12px 24px; border:1px solid var(--rule); border-radius:8px; }
+summary { cursor:pointer; padding:14px 18px; font-size:13px; font-weight:600; }
+.aside { overflow:visible; display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+.aside section + section { margin-top:0; }
+.mispricing-panel { height:auto; min-height:0; max-height:500px; }
+.atm { flex-wrap:wrap; }
+@media(max-width:650px) {
+  header { padding:12px 16px; } header .stamp { display:none; }
+  .rv-forecast { padding:16px; } .rv-cards { grid-template-columns:1fr 1fr; gap:10px; }
+  .rv-card { padding:16px; } .rv-card.primary { grid-column:1/-1; }
+  .rv-value { font-size:34px; } .rv-card.primary .rv-value { font-size:48px; }
+  .rv-card h2 { font-size:13px; } details { margin:10px 16px; }
+  .aside { display:block; } .aside section + section { margin-top:20px; }
+  #surfaceChart { height:380px; } .viewmodes { margin-left:0; }
 }
-.rv-head {
-  font-size:9px; letter-spacing:.17em; text-transform:uppercase; color:var(--ink-3);
-  display:flex; flex-direction:column; gap:2px; white-space:nowrap;
-}
-.rv-head span { letter-spacing:.08em; text-transform:none; opacity:.78; }
-.rv-hero {
-  font-size:34px; line-height:1; letter-spacing:-.01em; white-space:nowrap;
-  font-variant-numeric:tabular-nums;
-}
-.rv-hero em { font-size:13px; font-style:normal; color:var(--ink-3); margin-left:4px; }
-.rv-stats { display:flex; flex-wrap:wrap; gap:7px 24px; }
-.rv-stat { display:flex; flex-direction:column; gap:1px; white-space:nowrap; }
-.rv-stat i { font-style:normal; font-size:8.5px; letter-spacing:.13em;
-  text-transform:uppercase; color:var(--ink-3); }
-.rv-stat b { font-size:13px; font-weight:400; color:var(--ink-2); }
-.rv-note { margin-left:auto; max-width:430px; font-size:9.5px; color:var(--ink-3); }
 """
-
 
 _RV_SCRIPT = r"""
 function renderRvForecast(payload) {
-  const band = document.getElementById('rvForecastBand');
-  if (!band) return;
-  const f = payload.rv_forecast || {status: 'unavailable'};
-  const pct = (value) => (value === null || value === undefined || Number.isNaN(Number(value)))
-    ? '\u2014' : (Number(value) * 100).toFixed(3);
-  if (f.status !== 'ok') {
-    band.innerHTML = '<div class="rv-head">FORECAST RV' +
-      '<span>nearest-weekly NSGVC model</span></div>' +
-      '<div class="rv-hero">\u2014<em>%</em></div>' +
-      '<div class="rv-note">' + escapeHtml(f.reason || 'forecast unavailable') + '</div>';
-    return;
-  }
-  const qState = f.q_below_reference ? 'below 0.70' : 'above 0.70';
-  band.innerHTML =
-    '<div class="rv-head">FORECAST RV<span>annualized realized volatility</span></div>' +
-    '<div class="rv-hero" title="' + f.forecast_annualized_realized_volatility + '">' +
-      pct(f.forecast_annualized_realized_volatility) + '<em>%</em></div>' +
-    '<div class="rv-stats">' +
-      '<div class="rv-stat"><i>ATM IV</i><b>' + pct(f.atm_iv) + '%</b></div>' +
-      '<div class="rv-stat"><i>q = RVint / IVint</i><b>' + fmt(f.q_ratio, 4) +
-        ' \u00b7 ' + qState + '</b></div>' +
-      '<div class="rv-stat"><i>horizon</i><b>' + fmt(f.maturity_days, 2) + ' d</b></div>' +
-      '<div class="rv-stat"><i>expiry</i><b>' + escapeHtml(f.expiry) + '</b></div>' +
-    '</div>' +
-    '<div class="rv-note">IV-only forecast of forward integrated realized variance; ' +
-      'annualized RV = sqrt(predicted integrated RV / T). Model: ' +
-      escapeHtml(f.model_version) + '.</div>';
+  const f = payload.rv_forecast || {};
+  const number = (v, scale, digits) => typeof v === 'number' && Number.isFinite(v)
+    ? (v * scale).toFixed(digits) : '—';
+  document.getElementById('rvValue').textContent =
+    f.status === 'ok' ? number(f.forecast_annualized_realized_volatility, 100, 2) + '%' : '—';
+  document.getElementById('ivValue').textContent =
+    f.status === 'ok' ? number(f.atm_iv, 100, 2) + '%' : '—';
+  document.getElementById('qValue').textContent =
+    f.status === 'ok' ? number(f.q_ratio, 1, 3) : '—';
+  document.getElementById('rvContext').textContent = f.status === 'ok'
+    ? 'Nearest expiry · ' + f.expiry + ' · ' + number(f.maturity_days, 1, 2) + ' days remaining'
+    : 'Nearest-expiry forecast unavailable';
+  const stamp = payload.snapshot ? payload.snapshot.fit_timestamp : '';
+  const historical = !document.getElementById('liveToggle').checked;
+  const stale = (payload.health_verdict || {}).surface_is_stale;
+  document.getElementById('rvStatus').textContent = f.status !== 'ok'
+    ? 'Forecast unavailable: ' + (f.reason || 'waiting for a valid surface')
+    : (historical ? 'Historical frame' : stale ? 'Stale source fit — not a fresh forecast' :
+      'Forecast from the displayed fit') + (stamp ? ' · ' + stamp : '');
 }
-
 const _renderWithRvBase = render;
 render = function(payload, forceSurfaceRedraw) {
-  _renderWithRvBase(payload, forceSurfaceRedraw);
   renderRvForecast(payload);
+  _renderWithRvBase(payload, forceSurfaceRedraw);
 };
 renderRvForecast(lastPayload);
 """
 
 
-def render_html(payload: dict[str, Any], *, refresh_ms: int = 1000) -> str:
-    """Render the base dashboard and add a live RV-forecast band below ATM IV."""
+def _forecast_cards(payload: dict[str, Any]) -> str:
+    """Render the first values on the server: visible even if chart JavaScript fails."""
+    f = payload.get("rv_forecast") or {}
 
-    html = _base.render_html(payload, refresh_ms=refresh_ms)
-    html = html.replace(
-        '<div class="atm" id="atmBand"></div>',
-        '<div class="atm" id="atmBand"></div>\n'
-        '<div class="rv-forecast" id="rvForecastBand"></div>',
-        1,
+    def value(key: str, scale: float, digits: int, suffix: str = "") -> str:
+        raw = f.get(key)
+        if f.get("status") != "ok" or not isinstance(raw, (int, float)) or not math.isfinite(raw):
+            return "—"
+        return f"{raw * scale:.{digits}f}{suffix}"
+
+    context = (
+        f"Nearest expiry · {f.get('expiry', '')} · "
+        f"{value('maturity_days', 1, 2)} days remaining"
+        if f.get("status") == "ok" else "Nearest-expiry forecast unavailable"
     )
-    html = html.replace("</style>", _RV_STYLE + "\n</style>", 1)
-    html = html.replace("</body>", "<script>\n" + _RV_SCRIPT + "\n</script>\n</body>", 1)
+    stamp = (payload.get("snapshot") or {}).get("fit_timestamp", "")
+    status = f"Page-load snapshot · {stamp} · waiting for live refresh"
+    return f"""<section class="rv-forecast" id="rvForecastBand" aria-label="Volatility overview">
+<div class="rv-context" id="rvContext">{html_lib.escape(context)}</div>
+<div class="rv-cards">
+<article class="rv-card primary"><h2>RV forecast</h2>
+<div class="rv-value" id="rvValue">
+{value('forecast_annualized_realized_volatility',100,2,'%')}</div>
+<p>Expected realized volatility · annualized</p></article>
+<article class="rv-card"><h2>ATM implied volatility</h2>
+<div class="rv-value" id="ivValue">{value('atm_iv',100,2,'%')}</div>
+<p>From the fitted option surface · annualized</p></article>
+<article class="rv-card"><h2>Variance ratio · q</h2>
+<div class="rv-value" id="qValue">{value('q_ratio',1,3)}</div>
+<p>Forecast realized variance ÷ implied variance</p></article>
+</div><p class="rv-status" id="rvStatus">{html_lib.escape(status)}</p>
+<noscript>Live updates require JavaScript. These are the values at page load.</noscript>
+</section>"""
+
+
+def render_html(payload: dict[str, Any], *, refresh_ms: int = 1000) -> str:
+    """Forecast-first layout; all original diagnostics remain in expandable details."""
+    html = _base.render_html(payload, refresh_ms=refresh_ms)
+    # Keep every existing element ID for history, health and diagnostic rendering.
+    rail = '<div class="rail" id="healthStrip"></div>'
+    atm = '<div class="atm" id="atmBand"></div>'
+    html = html.replace(rail, _forecast_cards(payload), 1).replace(atm, '', 1)
+    start = html.index('  <div class="aside">')
+    end = html.index('</main>', start)
+    aside = html[start:end]
+    html = html[:start] + html[end:]
+    html = html.replace('</main>', '</main><details><summary>Surface &amp; feed details</summary>'
+                        + rail + atm + aside + '</details>', 1)
+    html = html.replace('<section class="mispricing-panel"',
+                        '<details><summary>Mispricing research monitor</summary>'
+                        '<section class="mispricing-panel"', 1)
+    html = html.replace('</section>\n<script>', '</section></details>\n<script>', 1)
+    html = html.replace('<h1>' + str(payload['title']) + '</h1>',
+                        '<h1>Shaurya · Volatility</h1>', 1)
+    html = html.replace('</style>', _RV_STYLE + '\n</style>', 1)
+    html = html.replace('</body>', '<script>\n' + _RV_SCRIPT + '\n</script>\n</body>', 1)
     return html

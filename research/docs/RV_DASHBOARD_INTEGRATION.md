@@ -1,5 +1,15 @@
 # RV dashboard integration — 2026-09-09
 
+## Forecast-first presentation amendment
+
+User requested a simpler dashboard because RV was not visible. Presentation-only scope:
+RV-UI-01 prominent RV/ATM IV/q cards above the chart, responsive on narrow screens;
+RV-UI-02 preserve full diagnostics and mispricing monitor in closed expandable sections;
+RV-UI-03 server-render initial forecast values and keep updates alive when Plotly is missing;
+RV-UI-04 verify desktop/mobile rendering and deployed live API. No model changes.
+Server currently returns RV correctly; exact cause of the user's missing panel is unconfirmed.
+An old open page retains its old HTML even though its polling fetches new JSON.
+
 Authorized: pull Aryan's `shaurya_02-09-2026` forecaster and integrate the dashboard.
 Source: `13c83b8`, merged into isolated `integration/rv-dashboard-20260909` from
 main `c3bd026`. Original worktree and collector remain untouched.
@@ -46,3 +56,12 @@ Evidence: /Users/maheit/.openclaw/workspace/overnight-runs/shaurya-essvi-2026090
 rv-preview.png, rv-preview-state{,-2}.json, rv-live-{1,2}.json,
 rv-live-history.json, rv-dashboard.log. No new predictive-performance claim,
 model re-estimation, trading authorization or close-finalization verification.
+
+### Forecast-first verification (supersedes presentation state above)
+All four RV-UI requirements verified. 57 dashboard/forecast tests, Ruff and targeted
+strict mypy passed. Chrome at 1440x1000 and 390x844: RV visible near top, no horizontal
+overflow; details expansion, historical forecast playback, dark theme and simulated
+missing Plotly checked. Live screenshots: simple-live-{desktop,mobile}.png in evidence
+directory. Dashboard now tmux shaurya-simple-dashboard-20260909 / PID 93848; collector
+83560 unchanged. Model code and coefficients untouched. User's exact earlier visibility
+failure remains unconfirmed; old-tab HTML retention is a possible explanation.

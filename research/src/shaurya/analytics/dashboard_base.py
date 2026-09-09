@@ -683,7 +683,12 @@ function render(payload, forceSurfaceRedraw) {
   document.getElementById('sourceLabel').textContent = payload.source;
   renderHealth(payload);
   renderAtm(payload);
-  renderSurface(payload, forceSurfaceRedraw);
+  if (typeof Plotly !== 'undefined') {
+    renderSurface(payload, forceSurfaceRedraw);
+  } else {
+    document.getElementById('surfaceChart').textContent =
+      'Surface chart could not load. Forecast values and live updates remain available.';
+  }
   renderArbitrage(payload);
   renderDiagnostics(payload);
   renderMispricing(payload);
