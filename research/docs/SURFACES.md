@@ -59,6 +59,13 @@ All requested maturities are calibrated in one SLSQP problem. The constrained la
 - nondecreasing `theta` across expiry;
 - nondecreasing total variance on synchronized log-moneyness grids for every adjacent expiry.
 
+The solver uses dimensionless theta/rho/psi coordinates and a single common positive
+objective multiplier to avoid false convergence on short-dated, low-total-variance chains.
+This is numerical conditioning only: observation weights, relative maturity weights,
+parameter bounds, constraints and the mathematical objective are unchanged. Published
+objective/RMSE diagnostics remain in original total-variance units. Regression fixtures
+cover wing-only short-dated smiles whose skew differs substantially from the initial guess.
+
 The constraints drive calibration. A separate diagnostic pass then evaluates the
 Gatheral-Jacquier implied-density factor and adjacent-expiry total-variance spreads on denser
 grids. A fitted surface that fails this independent pass is rejected.
@@ -106,3 +113,25 @@ introduced.
 
 SVI (`SUR-03`) and SABR (`SUR-04`) remain blocked under D8 until a concrete data-led need is
 approved. This implementation does not add either model or a C++ fitting path.
+
+## Approved ATM display correction — 2026-09-09
+
+Aryan requested online calibration research and implementation of the resulting repair.
+ATM-DISPLAY-01: the dashboard fits all quality-valid OTM BBO mids, including near-forward
+ATM quotes, by default. Retain the existing inverse variance-spread weights, joint
+objective, forward construction, expiry selection, smoothing setting and arbitrage gates.
+ATM-REF-02: the held-out mispricing reference retains its separate exclusion policy;
+display inclusion must never implicitly change reference inclusion.
+ATM-DIAG-03: expose nearest-forward quote IV and fitted IV at the SAME strike, signed
+IV-point residual, fitted forward-ATM IV and per-expiry quote support in diagnostics.
+These are in-sample fit diagnostics, not independent fair-value or profitability evidence.
+ATM-VAL-04: test CLI policy independence, synthetic ATM recovery and real saved-quote
+comparison; restart only the surface consumer and verify advancing live output.
+
+Research: Corbetta et al., Robust calibration and arbitrage-free interpolation of SSVI
+slices (https://arxiv.org/abs/1804.04924), and Pasquazzi, eSSVI Surface Calibration,
+§2 (https://arxiv.org/html/2304.02106v2). Their near-forward anchoring motivates restoring
+central information; this implementation retains weighted joint calibration, not their
+sequential anchored algorithm. A single exact anchor can transmit quote noise. No new
+anchor penalty, synthetic quote, estimator family or reference-policy change is introduced.
+Comparison uses the same expiry forward and Black-76 convention, not broker screen IV.

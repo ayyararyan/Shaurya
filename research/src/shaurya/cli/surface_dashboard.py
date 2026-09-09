@@ -102,20 +102,23 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--risk-free-rate", type=float, default=0.0)
     parser.add_argument(
         "--use-atm-strikes",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Include near-forward ATM quotes in the displayed fit (default). "
+        "--no-use-atm-strikes restores the wing-only display diagnostic. "
+        "This does not change the held-out mispricing reference.",
+    )
+    parser.add_argument(
+        "--mispricing-use-atm-strikes",
         action="store_true",
-        help="Let at-the-money quotes enter eSSVI calibration (both the displayed surface "
-        "and the mispricing reference fits). Off by default: an ATM contract's own quote "
-        "would otherwise both calibrate the curve and be priced off it.",
+        help="Separately include ATM quotes in strike-held-out reference fits; default off.",
     )
     parser.add_argument(
         "--include-0dte-expiries",
         action="store_true",
-        help="Fit and display an expiry that falls on --trading-date (0DTE). Off by "
-        "default: with ATM strikes excluded from calibration (see --use-atm-strikes), a "
-        "0DTE fit is left calibrating on OTM strikes whose prices are pinned to the "
-        "exchange tick floor rather than carrying real time value — confirmed live "
-        "2026-09-01, where this produced a ~47-49%% displayed ATM IV against a true level "
-        "near 15%%. Pass this flag only to inspect that failure mode deliberately.",
+        help="Fit and display an expiry on --trading-date (0DTE). Off by default: "
+        "same-day expiry needs separate tick-floor and time-to-expiry validation; "
+        "restoring ATM quotes does not by itself establish 0DTE readiness.",
     )
     parser.add_argument(
         "--disable-mispricing",
@@ -266,9 +269,7 @@ def _fit_expiries(
     fittable = tuple(expiry for expiry in requested if expiry != args.trading_date)
     if len(fittable) < len(requested) and len(fittable) < 2:
         extra = sorted(
-            expiry
-            for expiry in available
-            if expiry not in fittable and expiry != args.trading_date
+            expiry for expiry in available if expiry not in fittable and expiry != args.trading_date
         )
         fittable = tuple(sorted(fittable + tuple(extra[: 2 - len(fittable)])))
     if not fittable:
@@ -324,7 +325,7 @@ def _engine(
         smoothing_enabled=args.enable_temporal_smoothing,
         mispricing_policy=MispricingPolicy(
             enabled=not args.disable_mispricing,
-            include_atm_strikes=args.use_atm_strikes,
+            include_atm_strikes=args.mispricing_use_atm_strikes,
             cross_fit_folds=args.mispricing_cross_fit_folds,
             quote_max_age_seconds=args.mispricing_quote_max_age_seconds,
             fit_max_age_seconds=args.mispricing_fit_max_age_seconds,
@@ -485,9 +486,7 @@ def _run_replay(
         source="replay",
         fit_expiries=_fit_expiries(
             args,
-            available=_instrument_expiries(
-                handle.instrument_ids, underlying=args.underlying
-            ),
+            available=_instrument_expiries(handle.instrument_ids, underlying=args.underlying),
         ),
         instrument_metadata=replay_metadata,
     )
@@ -543,9 +542,7 @@ def _run_follow(
         source="live",
         fit_expiries=_fit_expiries(
             args,
-            available=_instrument_expiries(
-                handle.instrument_ids, underlying=args.underlying
-            ),
+            available=_instrument_expiries(handle.instrument_ids, underlying=args.underlying),
         ),
         instrument_metadata=metadata,
     )
@@ -635,9 +632,7 @@ def _run_stream(
         source="live",
         fit_expiries=_fit_expiries(
             args,
-            available=_instrument_expiries(
-                handle.instrument_ids, underlying=args.underlying
-            ),
+            available=_instrument_expiries(handle.instrument_ids, underlying=args.underlying),
         ),
         instrument_metadata=metadata,
     )
@@ -662,9 +657,7 @@ def _run_stream(
                 try:
                     batch = stream.poll(timeout_seconds=args.follow_poll_seconds)
                 except LiveStreamUnavailableError as exc:
-                    terminal = _terminal_handle_after_stream_close(
-                        access, handle.dataset_id
-                    )
+                    terminal = _terminal_handle_after_stream_close(access, handle.dataset_id)
                     if terminal is None:
                         error = exc
                     else:

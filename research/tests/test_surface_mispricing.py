@@ -346,7 +346,10 @@ def test_reference_jump_is_rejected_by_current_raw_smoothed_agreement_gate() -> 
         _chain(
             jump_time,
             target_prices=(4.98, 5.00),
-            peer_price_multiplier=1.20,
+            # A 20% price jump does not imply >0.50 IV points at every
+            # strike once the optimizer is properly conditioned. Use a
+            # decisive shock, retaining the same production agreement gate.
+            peer_price_multiplier=1.50,
         ),
     )
     assert jumped["outside_band_count"] == 0
@@ -594,9 +597,7 @@ def test_iv_convergence_can_correct_while_absolute_option_price_falls() -> None:
 
 
 def test_monitor_source_has_no_order_or_execution_dependency() -> None:
-    source = (
-        Path(__file__).parents[1] / "src/shaurya/analytics/mispricing.py"
-    ).read_text()
+    source = (Path(__file__).parents[1] / "src/shaurya/analytics/mispricing.py").read_text()
     forbidden = (
         "shaurya.execution",
         "kotak",

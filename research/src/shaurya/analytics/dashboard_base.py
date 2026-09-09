@@ -95,6 +95,7 @@ def _diagnostics_summary(snapshot: SurfaceSnapshot) -> dict[str, object]:
         "optimizer": optimizer,
         "support": support,
         "input": diagnostics.get("input"),
+        "atm_quote_agreement": diagnostics.get("atm_quote_agreement"),
         "interpolation_policy": diagnostics.get("interpolation_policy"),
     }
 

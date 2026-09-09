@@ -103,6 +103,60 @@ def _diagnostics(surface: ESSVISurface) -> dict[str, object]:
     return {item.name: item.value for item in surface.diagnostics}
 
 
+@pytest.mark.parametrize("theta", [0.00015, 0.0006])
+def test_short_dated_wing_only_fit_recovers_skew_not_initial_guess(theta: float) -> None:
+    """Small variance units must not cause false convergence near rho=-0.30."""
+    expiry = date(2026, 8, 24)
+    expiry_time = datetime(2026, 8, 24, 15, 40, tzinfo=IST)
+    maturity = (expiry_time - VALUATION).total_seconds() / (365.25 * 86400)
+    forward = 23500.0
+    rho, psi = -0.65, math.sqrt(theta) * 0.5
+    template = _synthetic_chain()[0]
+    rows = []
+    for sequence, k in enumerate((-0.035, -0.030, -0.027, 0.027, 0.030, 0.035), 1):
+        strike = forward * math.exp(k)
+        call = k > 0
+        variance = ESSVISurface.total_variance(k, theta=theta, rho=rho, psi=psi)
+        price = black76_price(
+            forward=forward,
+            strike=strike,
+            maturity_years=maturity,
+            volatility=math.sqrt(variance / maturity),
+            risk_free_rate=0,
+            is_call=call,
+        )
+        rows.append(
+            replace(
+                template,
+                receive_sequence=sequence,
+                instrument_id=f"NSE:NSE_FNO:NIFTY:option:{expiry}:{strike:.8f}:"
+                + ("CE" if call else "PE"),
+                bids=(DepthLevel(price * 0.999, 100, 1),),
+                asks=(DepthLevel(price * 1.001, 100, 1),),
+            )
+        )
+    surface = ESSVISurface.fit(
+        SurfaceFitRequest(
+            tape_rows=tuple(rows),
+            valuation_timestamp=VALUATION,
+            forward_by_expiry={expiry: forward},
+            expiry_timestamp_by_expiry={expiry: expiry_time},
+            include_atm_strikes=False,
+        )
+    )
+    fitted = surface.slices[0]
+    assert fitted.quote_count == 6
+    assert fitted.theta == pytest.approx(theta, rel=0.001)
+    assert fitted.rho == pytest.approx(rho, abs=0.001)
+    assert fitted.psi == pytest.approx(psi, rel=0.001)
+    assert surface.arb_check().passed
+    diagnostics = _diagnostics(surface)
+    # The published objective retains total-variance units, not solver-scaled units.
+    assert diagnostics["optimizer"]["objective"] == pytest.approx(
+        diagnostics["weighted_rmse_total_variance"] ** 2, abs=1e-24
+    )
+
+
 def test_joint_essvi_fit_recovers_synthetic_surface_and_passes_arb_gates() -> None:
     surface = ESSVISurface.fit(_request())
     diagnostics = _diagnostics(surface)
@@ -284,11 +338,13 @@ def test_smoother_uses_decision_clock_when_oldest_quote_timestamp_is_unchanged()
     assert second.is_temporally_smoothed
     diagnostics = _diagnostics(second)["smoothing"]
     assert diagnostics["component_count"] == 2
-    assert diagnostics["component_surface_timestamps"][0] == (
-        diagnostics["component_surface_timestamps"][1]
+    assert (
+        diagnostics["component_surface_timestamps"][0]
+        == (diagnostics["component_surface_timestamps"][1])
     )
-    assert diagnostics["component_observation_timestamps"][0] != (
-        diagnostics["component_observation_timestamps"][1]
+    assert (
+        diagnostics["component_observation_timestamps"][0]
+        != (diagnostics["component_observation_timestamps"][1])
     )
 
 
@@ -296,3 +352,20 @@ def test_staleness_boundary_is_entirely_caller_supplied() -> None:
     assert staleness_measurement(age_seconds=3.0, threshold_seconds=3.0) is False
     assert staleness_measurement(age_seconds=3.0001, threshold_seconds=3.0) is True
     assert staleness_measurement(age_seconds=3.0, threshold_seconds=10.0) is False
+
+
+def test_atm_agreement_reports_same_strike_iv_and_recovers_known_atm() -> None:
+    surface = ESSVISurface.fit(_request())
+    diagnostics = _diagnostics(surface)["atm_quote_agreement"]
+    for fitted_slice in surface.slices:
+        row = diagnostics[fitted_slice.expiry.isoformat()]
+        assert row["central_quote_included"]
+        assert abs(row["fit_minus_quote_iv_points"]) < 0.05
+        expected_iv = math.sqrt(PARAMETERS[fitted_slice.expiry][0] / fitted_slice.maturity_years)
+        assert row["fitted_forward_atm_iv"] == pytest.approx(expected_iv, abs=0.001)
+        assert row["fit_minus_quote_iv_points"] == pytest.approx(
+            100 * (row["fitted_iv_at_quote"] - row["quote_implied_volatility"])
+        )
+    wing_surface = ESSVISurface.fit(_request(include_atm_strikes=False))
+    for row in _diagnostics(wing_surface)["atm_quote_agreement"].values():
+        assert not row["central_quote_included"]

@@ -152,9 +152,10 @@ def _extract_observations(
         ):
             excluded["in_the_money_quote"] += 1
             continue
-        if not request.include_atm_strikes and abs(
-            math.log(identity.strike / forward)
-        ) <= ATM_LOG_MONEYNESS_BAND:
+        if (
+            not request.include_atm_strikes
+            and abs(math.log(identity.strike / forward)) <= ATM_LOG_MONEYNESS_BAND
+        ):
             excluded["atm_strike_excluded_by_policy"] += 1
             continue
         expiry_timestamp = request.expiry_timestamp_by_expiry[identity.expiry]
@@ -353,17 +354,35 @@ class ESSVISurface(VolatilitySurface):
             return np.asarray(margins, dtype=np.float64)
 
         bounds = [bound for _ in expiries for bound in ((1e-8, 5.0), (-0.999, 0.999), (1e-8, 4.0))]
+        # Theta/psi are tiny beside rho on short-dated index chains. Optimizing
+        # their raw units lets SLSQP stop with rho essentially at its initial
+        # value despite a materially inferior fit. Use dimensionless coordinates
+        # and ONE common objective multiplier: the weights, relative maturity
+        # contributions, constraints and minimizer are otherwise unchanged.
+        parameter_scale = np.asarray(
+            [
+                max(abs(value), 1e-4) if index % 3 != 1 else 1.0
+                for index, value in enumerate(initial)
+            ],
+            dtype=np.float64,
+        )
+        objective_scale = float(np.mean(initial[::3])) ** 2
         result: Any = minimize(
-            objective,
-            initial,
+            lambda values: objective(values * parameter_scale) / objective_scale,
+            initial / parameter_scale,
             method="SLSQP",
-            bounds=bounds,
-            constraints=({"type": "ineq", "fun": constraints},),
+            bounds=[
+                (lower / scale, upper / scale)
+                for (lower, upper), scale in zip(bounds, parameter_scale, strict=True)
+            ],
+            constraints=(
+                {"type": "ineq", "fun": lambda values: constraints(values * parameter_scale)},
+            ),
             options={"maxiter": 2000, "ftol": 1e-14, "disp": False},
         )
         if not bool(result.success):
             raise SurfaceCalibrationError(f"eSSVI constrained calibration failed: {result.message}")
-        fitted_values = np.asarray(result.x, dtype=np.float64)
+        fitted_values = np.asarray(result.x, dtype=np.float64) * parameter_scale
         minimum_margin = float(np.min(constraints(fitted_values)))
         if minimum_margin < -_PARAMETER_TOLERANCE:
             raise SurfaceCalibrationError(
@@ -393,7 +412,7 @@ class ESSVISurface(VolatilitySurface):
             observations=observations,
             previous_surface=request.previous_surface,
             excluded=excluded,
-            objective_value=float(result.fun),
+            objective_value=objective(fitted_values),
             iterations=int(result.nit),
             minimum_constraint_margin=minimum_margin,
         )
@@ -468,6 +487,32 @@ class ESSVISurface(VolatilitySurface):
                 ),
             }
 
+        atm_diagnostics: dict[str, object] = {}
+        for fitted_slice in slices:
+            near = min(
+                (item for item in observations if item.expiry == fitted_slice.expiry),
+                key=lambda item: abs(item.log_moneyness),
+            )
+            quote_iv = math.sqrt(near.total_variance / near.maturity_years)
+            fitted_iv = math.sqrt(
+                fitted_slice.total_variance(near.log_moneyness) / near.maturity_years
+            )
+            atm_diagnostics[fitted_slice.expiry.isoformat()] = {
+                "quote_count": fitted_slice.quote_count,
+                "instrument_id": near.instrument_id,
+                "nearest_log_moneyness": near.log_moneyness,
+                "quote_implied_volatility": quote_iv,
+                "fitted_iv_at_quote": fitted_iv,
+                "fit_minus_quote_iv_points": 100.0 * (fitted_iv - quote_iv),
+                "fitted_forward_atm_iv": (
+                    math.sqrt(fitted_slice.theta / fitted_slice.maturity_years)
+                    if fitted_slice.min_log_moneyness <= 0 <= fitted_slice.max_log_moneyness
+                    else None
+                ),
+                "central_quote_included": abs(near.log_moneyness) <= ATM_LOG_MONEYNESS_BAND,
+                "interpretation": "in_sample_fit_diagnostic_not_independent_fair_value",
+            }
+
         stability: dict[str, object]
         if isinstance(previous_surface, ESSVISurface):
             previous = {item.expiry: item for item in previous_surface._slices}
@@ -502,6 +547,7 @@ class ESSVISurface(VolatilitySurface):
             "weighted_r_squared": weighted_r_squared,
             "weighted_rmse_total_variance": weighted_rmse,
             "residuals_by_moneyness": residual_diagnostics,
+            "atm_quote_agreement": atm_diagnostics,
             "parameter_stability": stability,
             "optimizer": {
                 "method": "SLSQP",

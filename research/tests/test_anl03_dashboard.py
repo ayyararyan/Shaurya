@@ -46,9 +46,7 @@ SECONDS_PER_YEAR = 365.0 * 24.0 * 3600.0
 
 
 def test_surface_dashboard_cli_uses_owner_amendment_five_smoothing_defaults() -> None:
-    args = surface_dashboard_parser().parse_args(
-        ["--mode", "replay", "--expiry", NEAR.isoformat()]
-    )
+    args = surface_dashboard_parser().parse_args(["--mode", "replay", "--expiry", NEAR.isoformat()])
     assert args.mispricing_reference_half_life_seconds == 120.0
     assert args.mispricing_reference_min_frames == 6
     assert args.mispricing_reference_max_raw_smoothed_iv_gap_points == 0.50
@@ -909,3 +907,25 @@ def test_the_surface_chart_only_redraws_when_the_fit_actually_advances() -> None
     assert "let lastSurfaceSequence" in html
     assert "render(lastPayload, true)" in html  # theme toggle forces a redraw
     assert "renderSurface(stabiliseAxes(lastPayload), true)" in html  # drag-mode, RESET VIEW
+
+
+@pytest.mark.parametrize(
+    ("flags", "display_atm", "reference_atm"),
+    [
+        ([], True, False),
+        (["--use-atm-strikes"], True, False),
+        (["--no-use-atm-strikes"], False, False),
+        (["--mispricing-use-atm-strikes"], True, True),
+    ],
+)
+def test_display_atm_policy_is_independent_of_held_out_reference(
+    flags: list[str],
+    display_atm: bool,
+    reference_atm: bool,
+) -> None:
+    args = surface_dashboard_parser().parse_args(
+        ["--mode", "replay", "--expiry", NEAR.isoformat(), *flags]
+    )
+    engine = cli_surface_engine(args, "atm-policy-test", "replay", fit_expiries=(NEAR,))
+    assert engine.include_atm_strikes is display_atm
+    assert engine.mispricing_policy.include_atm_strikes is reference_atm

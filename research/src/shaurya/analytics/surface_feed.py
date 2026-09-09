@@ -288,7 +288,7 @@ class SurfaceEngine:
     fit_interval_seconds: float = 3.0
     risk_free_rate: float = 0.0
     min_quotes_per_slice: int = 5
-    include_atm_strikes: bool = False
+    include_atm_strikes: bool = True
     underlying: str | None = None
     history_limit: int = 720
     health_sample_limit: int = 3600

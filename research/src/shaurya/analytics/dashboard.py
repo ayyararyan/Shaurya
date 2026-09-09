@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from shaurya.analytics import dashboard_base as _base
-from shaurya.analytics.variance_carry import realized_volatility_forecast
 from shaurya.analytics.surface_feed import SurfaceEngine
+from shaurya.analytics.variance_carry import realized_volatility_forecast
 
 PLOTLY_CDN = _base.PLOTLY_CDN
 
@@ -96,7 +96,8 @@ function renderRvForecast(payload) {
   const pct = (value) => (value === null || value === undefined || Number.isNaN(Number(value)))
     ? '\u2014' : (Number(value) * 100).toFixed(3);
   if (f.status !== 'ok') {
-    band.innerHTML = '<div class="rv-head">FORECAST RV<span>nearest-weekly NSGVC model</span></div>' +
+    band.innerHTML = '<div class="rv-head">FORECAST RV' +
+      '<span>nearest-weekly NSGVC model</span></div>' +
       '<div class="rv-hero">\u2014<em>%</em></div>' +
       '<div class="rv-note">' + escapeHtml(f.reason || 'forecast unavailable') + '</div>';
     return;
