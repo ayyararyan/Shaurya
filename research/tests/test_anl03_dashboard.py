@@ -529,7 +529,7 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert 'id="rvValue"' in html and 'id="ivValue"' in html
     assert 'id="mispricingPanel"' not in html
     assert 'id="diagBody"' not in html
-    assert 'id="qValue"' not in html
+    assert 'id="qValue"' in html
     assert 'id="bflySort"' not in html
     assert 'id="surfaceDetails"' in html
     assert "Estimated net profit" in html

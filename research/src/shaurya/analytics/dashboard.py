@@ -72,7 +72,7 @@ header .stamp { font-size:10px; }
 #sourceLabel { display:none; }
 .rv-forecast { padding:22px 24px 16px; }
 .rv-context { font-size:13px; color:var(--ink-2); margin-bottom:14px; }
-.rv-cards { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.rv-cards { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
 .rv-card { padding:22px; border:1px solid var(--rule); border-radius:10px;
   background:var(--panel); min-width:0; }
 .rv-card.primary { border:2px solid var(--slate); }
@@ -112,6 +112,8 @@ function renderRvForecast(payload) {
     f.status === 'ok' ? number(f.forecast_annualized_realized_volatility, 100, 2) + '%' : '—';
   document.getElementById('ivValue').textContent =
     f.status === 'ok' ? number(f.atm_iv, 100, 2) + '%' : '—';
+  document.getElementById('qValue').textContent =
+    f.status === 'ok' ? number(f.q_ratio, 1, 3) : '—';
   document.getElementById('rvContext').textContent = f.status === 'ok'
     ? 'Nearest expiry · ' + f.expiry + ' · ' + number(f.maturity_days, 1, 2) + ' days remaining'
     : 'Nearest-expiry forecast unavailable';
@@ -167,6 +169,9 @@ def _forecast_cards(payload: dict[str, Any]) -> str:
 <div class="rv-value" id="ivValue">{value("atm_iv", 100, 2, "%")}</div>
 <p>From the fitted option surface · annualized</p></article>
 
+<article class="rv-card"><h2>Q ratio</h2>
+<div class="rv-value" id="qValue">{value("q_ratio", 1, 3)}</div>
+<p>Forecast realized variance ÷ implied variance</p></article>
 </div><p class="rv-status" id="rvStatus">{html_lib.escape(status)}</p>
 <noscript>Live updates require JavaScript. These are the values at page load.</noscript>
 </section>"""

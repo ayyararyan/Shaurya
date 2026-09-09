@@ -9,7 +9,8 @@ STYLE = r"""
 .bfly-choice small {display:block;margin-bottom:5px}
 .bfly-choice h3 {font-size:17px;margin:0 0 5px}.bfly-choice strong {display:block;font-size:26px;margin:4px 0 12px}.bfly-choice button {margin-top:12px;text-transform:none;letter-spacing:0}
 .bfly .bad {color:var(--brick)}.bfly details {margin:16px 0 0}.bfly-detail {padding:0 16px 16px}.bfly-legs {display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0;font-size:14px}.bfly-detail p {margin:8px 0}
-@media(max-width:650px){.bfly {margin:8px 16px;padding:16px}.bfly-grid {grid-template-columns:1fr}.bfly-choice strong {font-size:24px}.bfly-tools {flex-wrap:wrap}}
+.bfly-check {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:12px 0}.bfly-check dt {font-size:12px;color:var(--ink-2);margin-bottom:6px}.bfly-check dd {margin:0;font-size:16px;font-weight:600}
+@media(max-width:650px){.bfly {margin:8px 16px;padding:16px}.bfly-grid {grid-template-columns:1fr}.bfly-choice strong {font-size:24px}.bfly-tools {flex-wrap:wrap}.bfly-check {grid-template-columns:1fr 1fr}}
 """
 
 PANEL = r"""
@@ -23,7 +24,7 @@ PANEL = r"""
 Downside is the 5th percentile: 5% of simulated outcomes are worse. It is not maximum loss.</p>
 <details id="bflyDetails"><summary>Selected butterfly · legs &amp; costs</summary><div class="bfly-detail" id="bflyDetailBody"></div></details>
 <details><summary>Check whether to recenter my butterfly</summary><div class="bfly-detail">
-<div class="bfly-tools"><label>Current centre <input id="bflyHeldCenter" type="number" step="50" placeholder="e.g. 24000" oninput="renderButterflyTracker()"></label><label>Wings <select id="bflyHeldWidth" onchange="renderButterflyTracker()"><option value="400">400 each side</option><option value="500">500 each side</option></select></label></div><p id="bflyTracker"></p></div></details>
+<div class="bfly-tools"><label>Current centre <input id="bflyHeldCenter" type="number" step="50" placeholder="e.g. 24000" oninput="renderButterflyTracker()"></label><label>Wings <select id="bflyHeldWidth" onchange="renderButterflyTracker()"><option value="400">400 each side</option><option value="500">500 each side</option></select></label></div><div id="bflyTracker" aria-live="polite"></div></div></details>
 <p>Simulation, not a promised return. Assumes forecast RV, constant future ATM IV and ₹0 API brokerage.
 Prices are indicative; no orders are placed.</p>
 </section>
@@ -72,14 +73,24 @@ function renderButterflyTracker() {
   const center=Number(document.getElementById('bflyHeldCenter').value);
   const width=Number(document.getElementById('bflyHeldWidth').value);
   const holder=document.getElementById('bflyTracker');
-  if(!center || !b.forward) {holder.textContent='Enter the centre of an existing butterfly to inspect drift.'; return;}
-  const drift=b.forward-center, trigger=width/2, target=Math.floor(b.forward/50+.5)*50;
-  const stale=(bflyPayload.health_verdict || {}).surface_is_stale;
-  const historical=!document.getElementById('liveToggle').checked;
-  holder.textContent=(historical ? 'HISTORICAL WHAT-IF · ' : stale ? 'STALE SNAPSHOT · ' : '')+'Forward drift '+bfNum(drift,1)+' points · threshold '+
-    trigger+' · '+(Math.abs(drift)>=trigger ? 'threshold breached; target centre '+bfNum(target) :
-    'inside threshold; keep centre')+'. Evaluate only at the scheduled daily check. '+
-    'Next check: '+((b.recenter_checks || [])[0] || 'none before expiry')+'. No orders sent.';
+  if(!Number.isFinite(center) || center<=0 || !Number.isFinite(b.forward)) {
+    holder.textContent='Enter your current centre.'; return;
+  }
+  const drift=b.forward-center, target=Math.floor(b.forward/50+.5)*50;
+  const next=(b.recenter_checks || [])[0];
+  const recenter=!!next && Math.abs(drift)>=width/2;
+  const nextDate=next ? new Date(next) : null;
+  const nextTime=nextDate && Number.isFinite(nextDate.getTime())
+    ? nextDate.toLocaleDateString('en-GB',{timeZone:'Asia/Kolkata',day:'numeric',month:'short'})+
+      ', '+nextDate.toLocaleTimeString('en-US',{timeZone:'Asia/Kolkata',hour:'numeric',minute:'2-digit'})+' IST'
+    : 'None before expiry';
+  const fields=[['Forward drift',(drift>0?'+':'')+bfNum(drift,1)+' pts'],
+    ['Recenter?',recenter?'Yes':'No'],
+    ['New centre',bfNum(recenter?target:center)+(recenter?'':' (unchanged)')],
+    ['Next check',nextTime]];
+  holder.innerHTML='<dl class="bfly-check">'+fields.map(([label,value])=>
+    '<div><dt>'+label+'</dt><dd>'+escapeHtml(value)+'</dd></div>').join('')+'</dl>';
+
 }
 
 const _renderBeforeButterflies=render;

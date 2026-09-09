@@ -96,3 +96,12 @@ feed diagnostics and held-out monitor from the page. All full model outputs rema
 the API; no pricing, sampling, forecasting, simulation, cost or reference-policy change.
 Freshness, unavailable and arbitrage-failure notices must remain visible. A saved
 after-session snapshot must be labelled historical, never live or session-close data.
+
+BFLY-09 tracker clarification: four fields only — signed forward drift, Recenter?
+Yes/No, new centre (current centre marked unchanged if No), and next scheduled
+check formatted as `10 Sep, 3:15 PM IST`. Freshness stays in the existing page notices.
+No remaining check before expiry means no recenter and current centre unchanged.
+
+Latest correction: q is a major required ratio. Restore the Q ratio hero alongside
+RV and IV, using the existing q_ratio value (forecast realized / implied variance).
+This supersedes the earlier removal of the q hero; no formula change.

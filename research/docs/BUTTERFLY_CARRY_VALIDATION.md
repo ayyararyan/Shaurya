@@ -94,3 +94,14 @@ q hero and alternate sorts are removed from the page. Model files are unchanged.
 
 Coverage: 10/10 retained under authorized presentation revision; no model changes,
 no orders, no revalidation claim for forecast calibration or strategy returns.
+
+## Tracker and q clarification — 2026-09-09
+
+Restored Q ratio hero per explicit user correction; frozen q formula unchanged.
+Tracker now shows four fields: signed drift, Yes/No, new/unchanged centre and
+human-readable IST check date/time. Existing page-level saved/stale notices retained.
+No remaining scheduled checks yields No / unchanged / None before expiry.
+57 focused dashboard tests and Ruff passed. Saved-view server PID3045 replaces2194.
+Browser verified q=0.745 matches payload; drift +41.2 -> No/unchanged;
++/-200 boundary -> Yes/new centre; no remaining checks -> No/unchanged.
+Mobile no overflow, surface renders, zero JS exceptions. Tracker screenshots saved.
