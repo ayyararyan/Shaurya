@@ -25,8 +25,6 @@ Downside is the 5th percentile: 5% of simulated outcomes are worse. It is not ma
 <details id="bflyDetails"><summary>Selected butterfly · legs &amp; costs</summary><div class="bfly-detail" id="bflyDetailBody"></div></details>
 <details><summary>Check whether to recenter my butterfly</summary><div class="bfly-detail">
 <div class="bfly-tools"><label>Current centre <input id="bflyHeldCenter" type="number" step="50" placeholder="e.g. 24000" oninput="renderButterflyTracker()"></label><label>Wings <select id="bflyHeldWidth" onchange="renderButterflyTracker()"><option value="400">400 each side</option><option value="500">500 each side</option></select></label></div><div id="bflyTracker" aria-live="polite"></div></div></details>
-<p>Simulation, not a promised return. Assumes forecast RV, constant future ATM IV and ₹0 API brokerage.
-Prices are indicative; no orders are placed.</p>
 </section>
 """
 
