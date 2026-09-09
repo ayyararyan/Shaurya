@@ -83,3 +83,16 @@ This supersedes the earlier open-choice proposal. Read-only; no order execution.
 
 Forecast calibration not changed or independently revalidated by this task. Future liquidity,
 actual margin, overnight variance allocation and future smile are not observed quantities.
+
+## User-authorized presentation revision — essentials view, 2026-09-09
+
+Latest instruction: simplify substantially and remove unnecessary information. BFLY-09
+now presents RV/IV, three candidates ranked by the unchanged carry/static-risk ratio,
+net recentered expiry profit and p05 downside. Selected detail retains legs, initial
+credit clearly distinguished from profit, total cost, unchanged-hold comparison, static
+loss caveat and daily recenter rule. Centre what-if retained. Surface is optional.
+Remove q hero, alternative sorts, show-all, Greek/stress/MC tables, duplicate ATM,
+feed diagnostics and held-out monitor from the page. All full model outputs remain in
+the API; no pricing, sampling, forecasting, simulation, cost or reference-policy change.
+Freshness, unavailable and arbitrage-failure notices must remain visible. A saved
+after-session snapshot must be labelled historical, never live or session-close data.

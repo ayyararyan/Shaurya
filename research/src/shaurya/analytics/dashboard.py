@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html as html_lib
 import math
+import re
 from typing import Any
 
 from shaurya.analytics import butterfly_dashboard as _butterfly_ui
@@ -71,13 +72,13 @@ header .stamp { font-size:10px; }
 #sourceLabel { display:none; }
 .rv-forecast { padding:22px 24px 16px; }
 .rv-context { font-size:13px; color:var(--ink-2); margin-bottom:14px; }
-.rv-cards { display:grid; grid-template-columns:1.35fr 1fr 1fr; gap:16px; }
+.rv-cards { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 .rv-card { padding:22px; border:1px solid var(--rule); border-radius:10px;
   background:var(--panel); min-width:0; }
 .rv-card.primary { border:2px solid var(--slate); }
 .rv-card h2 { margin:0 0 12px; font-size:15px; font-weight:600; color:var(--ink); }
-.rv-value { font-size:48px; line-height:1.2; letter-spacing:-2px; }
-.rv-card.primary .rv-value { font-size:56px; font-weight:600; }
+.rv-value { font-size:40px; line-height:1.2; letter-spacing:-2px; }
+.rv-card.primary .rv-value { font-size:40px; font-weight:600; }
 .rv-card p { margin:8px 0 0; color:var(--ink-2); font-size:12px; }
 .rv-status { margin:14px 0 0; color:var(--ink-2); font-size:12px; }
 main { display:block; flex:none; }
@@ -94,8 +95,8 @@ summary { cursor:pointer; padding:14px 18px; font-size:13px; font-weight:600; }
 @media(max-width:650px) {
   header { padding:12px 16px; } header .stamp { display:none; }
   .rv-forecast { padding:16px; } .rv-cards { grid-template-columns:1fr 1fr; gap:10px; }
-  .rv-card { padding:16px; } .rv-card.primary { grid-column:1/-1; }
-  .rv-value { font-size:34px; } .rv-card.primary .rv-value { font-size:48px; }
+  .rv-card { padding:16px; } .rv-card.primary { grid-column:auto; }
+  .rv-value { font-size:34px; } .rv-card.primary .rv-value { font-size:34px; }
   .rv-card h2 { font-size:13px; } details { margin:10px 16px; }
   .aside { display:block; } .aside section + section { margin-top:20px; }
   #surfaceChart { height:380px; } .viewmodes { margin-left:0; }
@@ -111,18 +112,23 @@ function renderRvForecast(payload) {
     f.status === 'ok' ? number(f.forecast_annualized_realized_volatility, 100, 2) + '%' : '—';
   document.getElementById('ivValue').textContent =
     f.status === 'ok' ? number(f.atm_iv, 100, 2) + '%' : '—';
-  document.getElementById('qValue').textContent =
-    f.status === 'ok' ? number(f.q_ratio, 1, 3) : '—';
   document.getElementById('rvContext').textContent = f.status === 'ok'
     ? 'Nearest expiry · ' + f.expiry + ' · ' + number(f.maturity_days, 1, 2) + ' days remaining'
     : 'Nearest-expiry forecast unavailable';
+  const arb = (payload.snapshot || {}).arbitrage;
+  document.getElementById('arbBanner').textContent = arb && !arb.passed
+    ? 'Surface arbitrage check failed — do not use these prices for entry.' : '';
   const stamp = payload.snapshot ? payload.snapshot.fit_timestamp : '';
-  const historical = !document.getElementById('liveToggle').checked;
+  const historical = !document.getElementById('liveToggle').checked
+    || payload.view_mode === 'saved_snapshot';
   const stale = (payload.health_verdict || {}).surface_is_stale;
   document.getElementById('rvStatus').textContent = f.status !== 'ok'
     ? 'Forecast unavailable: ' + (f.reason || 'waiting for a valid surface')
-    : (historical ? 'Historical frame' : stale ? 'Stale source fit — not a fresh forecast' :
-      'Forecast from the displayed fit') + (stamp ? ' · ' + stamp : '');
+    : (historical ? 'Saved / historical snapshot — not live prices'
+      : stale ? 'Stale source fit — not a fresh forecast' :
+      'Forecast from the displayed fit') + (stamp ? ' · ' + new Date(stamp).toLocaleString('en-IN',
+      {timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})
+      + ' IST' : '');
 }
 const _renderWithRvBase = render;
 render = function(payload, forceSurfaceRedraw) {
@@ -160,45 +166,52 @@ def _forecast_cards(payload: dict[str, Any]) -> str:
 <article class="rv-card"><h2>ATM implied volatility</h2>
 <div class="rv-value" id="ivValue">{value("atm_iv", 100, 2, "%")}</div>
 <p>From the fitted option surface · annualized</p></article>
-<article class="rv-card"><h2>Variance ratio · q</h2>
-<div class="rv-value" id="qValue">{value("q_ratio", 1, 3)}</div>
-<p>Forecast realized variance ÷ implied variance</p></article>
+
 </div><p class="rv-status" id="rvStatus">{html_lib.escape(status)}</p>
 <noscript>Live updates require JavaScript. These are the values at page load.</noscript>
 </section>"""
 
 
 def render_html(payload: dict[str, Any], *, refresh_ms: int = 1000) -> str:
-    """Forecast-first layout; all original diagnostics remain in expandable details."""
+    """Forecast-first layout; research diagnostics remain in the API, not the page."""
     html = _base.render_html(payload, refresh_ms=refresh_ms)
-    # Keep every existing element ID for history, health and diagnostic rendering.
-    rail = '<div class="rail" id="healthStrip"></div>'
-    atm = '<div class="atm" id="atmBand"></div>'
-    html = html.replace(rail, _forecast_cards(payload), 1).replace(atm, "", 1)
+    html = html.replace('<div class="rail" id="healthStrip"></div>', _forecast_cards(payload), 1)
+    html = html.replace('<div class="atm" id="atmBand"></div>', "", 1)
     start = html.index('  <div class="aside">')
     end = html.index("</main>", start)
-    aside = html[start:end]
     html = html[:start] + html[end:]
+    start = html.index('<section class="mispricing-panel"')
+    end = html.index("<script>", start)
+    html = html[:start] + html[end:]
+    for renderer in (
+        "renderHealth",
+        "renderAtm",
+        "renderArbitrage",
+        "renderDiagnostics",
+        "renderMispricing",
+    ):
+        html = html.replace("  " + renderer + "(payload);", "")
+    html = re.sub(
+        r'<span class="stamp"><b>READ-ONLY</b>.*?</span>',
+        '<span class="stamp">READ-ONLY</span>',
+        html,
+        count=1,
+        flags=re.S,
+    )
     html = html.replace(
-        "</main>",
-        "</main><details><summary>Surface &amp; feed details</summary>"
-        + rail
-        + atm
-        + aside
-        + "</details>",
+        "<main>",
+        '<details id="surfaceDetails" ontoggle="if(this.open &amp;&amp; '
+        "typeof Plotly !== &quot;undefined&quot;) "
+        'renderSurface(stabiliseAxes(lastPayload),true)">'
+        "<summary>View eSSVI surface</summary><main>",
         1,
     )
-    html = html.replace(
-        '<section class="mispricing-panel"',
-        '<details><summary>Mispricing research monitor</summary><section class="mispricing-panel"',
-        1,
-    )
-    html = html.replace("</section>\n<script>", "</section></details>\n<script>", 1)
-    html = html.replace(
-        "<h1>" + str(payload["title"]) + "</h1>", "<h1>Shaurya · Volatility</h1>", 1
-    )
+    html = html.replace("</main>", "</main></details>", 1)
+    html = html.replace("<h1>" + str(payload["title"]) + "</h1>", "<h1>Shaurya · NIFTY</h1>", 1)
     html = html.replace("</style>", _RV_STYLE + _butterfly_ui.STYLE + "\n</style>", 1)
     html = html.replace("</body>", "<script>\n" + _RV_SCRIPT + "\n</script>\n</body>", 1)
-    html = html.replace("<main>", _butterfly_ui.PANEL + "<main>", 1)
+    html = html.replace(
+        '<details id="surfaceDetails"', _butterfly_ui.PANEL + '<details id="surfaceDetails"', 1
+    )
     html = html.replace("</body>", "<script>\n" + _butterfly_ui.SCRIPT + "\n</script></body>", 1)
     return html

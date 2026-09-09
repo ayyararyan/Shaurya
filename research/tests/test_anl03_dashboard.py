@@ -525,30 +525,15 @@ def test_rendered_html_is_self_contained_and_declares_itself_read_only() -> None
     assert "type: 'surface'" in html
     assert "uirevision" in html
     assert "READ-ONLY" in html
-    assert "SUR-05 ARBITRAGE" in html
-    assert "SUR-06 DIAGNOSTICS" in html
-    assert "Smoothed held-out executable-IV dislocations" in html
-    assert "mispricingActiveBody" in html
-    assert "mispricingRecentBody" in html
-    assert "exact confirmed" in html
-    assert "reference warming" in html
-    assert "reference rejected" in html
-    assert "entry market" in html
-    assert "entry fair" in html
-    assert "entry mkt-fair" in html
-    assert "current market" in html
-    assert "current fair" in html
-    assert "exit market" in html
-    assert "exit fair" in html
-    assert "exit mkt-fair" in html
-    assert "\u0394 market" in html
-    assert "\u0394 fair" in html
-    assert "smoothing half-life" in html
-    assert "stability window" in html
-    assert "raw/exact tolerance" in html
-    assert "no rolling stability-window gate" in html
-    assert "grid-template-columns:1fr; gap:14px" in html
-    assert "min-width:1120px" in html
+    assert 'id="bflyRows"' in html
+    assert 'id="rvValue"' in html and 'id="ivValue"' in html
+    assert 'id="mispricingPanel"' not in html
+    assert 'id="diagBody"' not in html
+    assert 'id="qValue"' not in html
+    assert 'id="bflySort"' not in html
+    assert 'id="surfaceDetails"' in html
+    assert "Estimated net profit" in html
+    assert "not maximum loss" in html
 
 
 def test_payload_carries_read_only_mispricing_policy_and_lifecycle_tables() -> None:
@@ -870,13 +855,9 @@ def test_the_atm_change_is_matched_by_expiry_and_is_null_on_the_first_fit() -> N
 
 def test_the_shell_shows_atm_big_and_states_what_it_is() -> None:
     html = _rendered_shell()
-    assert 'id="atmBand"' in html and "renderAtm" in html
-    assert "font-size:44px" in html  # the hero, not another table row
-    assert "k = 0" in html
-    assert "fitted, not observed" in html  # it is estimated; the shell says so
-    assert "change_since_previous_fit" in html
-    # Direction is a glyph, never a status hue: a rising ATM vol is not "good".
-    assert "\\u25B2" in html and "\\u25BC" in html
+    assert 'id="ivValue"' in html and "ATM implied volatility" in html
+    assert "From the fitted option surface" in html
+    assert 'id="atmBand"' not in html  # duplicate ATM band removed
 
 
 def test_the_camera_survives_a_refresh_and_the_view_can_be_driven() -> None:

@@ -68,3 +68,29 @@ no claim that pre-existing catalogue-inventory failures are resolved.
 Artifacts under /Users/maheit/.openclaw/workspace/overnight-runs/shaurya-essvi-20260909:
 bfly-live-{1,2}.json; bfly-{desktop,mobile,details}.png; butterfly-dashboard.log;
 bfly-preview2-state.json. Browser harness: /tmp/check_bfly_ui.py.
+
+## Essentials presentation acceptance — 2026-09-09, after session
+
+Supersedes the earlier dense UI per Aryan's explicit simplification request. BFLY-08
+now exposes the unchanged default carry/static-risk ranking only; alternative metrics
+remain in JSON. BFLY-09 shows two volatility values, three butterfly cards, optional
+legs/cost detail and current-centre what-if; the surface is collapsed. Research tables,
+q hero and alternate sorts are removed from the page. Model files are unchanged.
+
+- 118 focused tests passed; superseded presentation assertions updated. Ruff and
+  targeted strict mypy passed; git diff whitespace checks passed.
+- Chrome desktop 1440x1100 and mobile 390x844: exactly three cards, no horizontal
+  page overflow; width filtering, four-leg selection, tracker and history verified.
+  Optional surface renders; butterfly cards survive unavailable Plotly; zero JS errors.
+- Current URL http://100.65.47.57:8767/?view=essentials serves the saved 15:35 IST
+  intraday snapshot, NOT live quotes or an official close. Original session processes
+  had exited before this task's deployment. Data collector was not changed/restarted.
+- Read-only saved-view owner: tmux shaurya-essentials-saved-20260909, PID 2194.
+  Runner: workspace overnight-runs/shaurya-essvi-20260909/serve_saved_dashboard.py;
+  source bfly-live-2.json, sequence 27. API explicitly sets saved_snapshot and stale.
+- Artifacts: essentials-{desktop,mobile,details}.png in the same artifact directory.
+  Fresh market-data refresh on this new UI remains unverified after market hours;
+  saved snapshot HTTP refresh and existing live/history computation tests passed.
+
+Coverage: 10/10 retained under authorized presentation revision; no model changes,
+no orders, no revalidation claim for forecast calibration or strategy returns.
