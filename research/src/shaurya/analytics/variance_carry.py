@@ -26,6 +26,27 @@ NIFTY_STRIKE_STEP = 50.0
 RR400_WING_POINTS = 400.0
 
 
+@dataclass(frozen=True, slots=True)
+class RealizedVolatilityForecast:
+    """Frozen nearest-weekly RV forecast expressed in both variance and vol units."""
+
+    atm_iv: float
+    maturity_years: float
+    implied_integrated_variance: float
+    forecast_integrated_realized_variance: float
+    forecast_annualized_realized_variance: float
+    forecast_annualized_realized_volatility: float
+    q_ratio: float
+    rv_iv_vol_ratio: float
+    q_reference_threshold: float
+    q_below_reference: bool
+    model_version: str = NSGVC_Q_MODEL_VERSION
+    model_scope: str = NSGVC_Q_MODEL_SCOPE
+
+    def to_dict(self) -> dict[str, object]:
+        return asdict(self)
+
+
 def nearest_strike(value: float, *, step: float = NIFTY_STRIKE_STEP) -> float:
     """Round to the nearest NIFTY strike with deterministic half-up ties."""
 
@@ -37,7 +58,11 @@ def nearest_strike(value: float, *, step: float = NIFTY_STRIKE_STEP) -> float:
 def forecast_integrated_realized_variance(
     *, implied_integrated_variance: float, maturity_years: float
 ) -> float:
-    """Frozen NSGVC IV-only mapping for the nearest-weekly horizon."""
+    """Frozen NSGVC IV-only mapping for the nearest-weekly horizon.
+
+    The model target is forward integrated realized variance. Its two predictors
+    are current ATM implied integrated variance and time remaining to expiry.
+    """
 
     if (
         not math.isfinite(implied_integrated_variance)
@@ -52,6 +77,45 @@ def forecast_integrated_realized_variance(
         + NSGVC_LOG_T_COEF * math.log(maturity_years)
     )
     return math.exp(log_prediction)
+
+
+def realized_volatility_forecast(
+    *, atm_iv: float, maturity_years: float
+) -> RealizedVolatilityForecast:
+    """Convert an ATM IV observation into the frozen NSGVC RV forecast.
+
+    ``IV_int = ATM_IV**2 * T`` and the fitted model forecasts ``RV_int``.
+    The annualized realized-volatility forecast displayed to a human is
+    ``sqrt(RV_int / T)``. Equivalently it is ``ATM_IV * sqrt(q)``.
+    """
+
+    if (
+        not math.isfinite(atm_iv)
+        or not math.isfinite(maturity_years)
+        or atm_iv <= 0.0
+        or maturity_years <= 0.0
+    ):
+        raise ValueError("ATM IV and maturity must be finite and positive")
+    implied_integrated = (atm_iv**2) * maturity_years
+    forecast_integrated = forecast_integrated_realized_variance(
+        implied_integrated_variance=implied_integrated,
+        maturity_years=maturity_years,
+    )
+    annualized_variance = forecast_integrated / maturity_years
+    annualized_volatility = math.sqrt(annualized_variance)
+    ratio = forecast_integrated / implied_integrated
+    return RealizedVolatilityForecast(
+        atm_iv=atm_iv,
+        maturity_years=maturity_years,
+        implied_integrated_variance=implied_integrated,
+        forecast_integrated_realized_variance=forecast_integrated,
+        forecast_annualized_realized_variance=annualized_variance,
+        forecast_annualized_realized_volatility=annualized_volatility,
+        q_ratio=ratio,
+        rv_iv_vol_ratio=math.sqrt(ratio),
+        q_reference_threshold=NSGVC_Q_THRESHOLD,
+        q_below_reference=ratio <= NSGVC_Q_THRESHOLD,
+    )
 
 
 def q_ratio(*, implied_integrated_variance: float, maturity_years: float) -> float:
@@ -90,6 +154,7 @@ class VarianceCarryState:
     atm_iv: float
     implied_integrated_variance: float
     forecast_integrated_realized_variance: float
+    forecast_annualized_realized_variance: float
     forecast_annualized_rv: float
     q_ratio: float
     rv_iv_vol_ratio: float
@@ -121,14 +186,11 @@ def variance_carry_state_from_slice(slice_: ESSVISlice) -> VarianceCarryState:
     if slice_.maturity_years <= 0.0 or slice_.theta <= 0.0 or slice_.forward <= 0.0:
         raise ValueError("front eSSVI slice must have positive maturity, theta, and forward")
 
-    implied_integrated_variance = slice_.theta
-    atm_iv = math.sqrt(implied_integrated_variance / slice_.maturity_years)
-    forecast_integrated = forecast_integrated_realized_variance(
-        implied_integrated_variance=implied_integrated_variance,
+    atm_iv = math.sqrt(slice_.theta / slice_.maturity_years)
+    forecast = realized_volatility_forecast(
+        atm_iv=atm_iv,
         maturity_years=slice_.maturity_years,
     )
-    ratio = forecast_integrated / implied_integrated_variance
-    forecast_rv = math.sqrt(forecast_integrated / slice_.maturity_years)
 
     strike0 = nearest_strike(slice_.forward)
     put_strike = strike0 - RR400_WING_POINTS
@@ -157,14 +219,15 @@ def variance_carry_state_from_slice(slice_: ESSVISlice) -> VarianceCarryState:
         maturity_days=slice_.maturity_years * 365.25,
         forward=slice_.forward,
         atm_strike=strike0,
-        atm_iv=atm_iv,
-        implied_integrated_variance=implied_integrated_variance,
-        forecast_integrated_realized_variance=forecast_integrated,
-        forecast_annualized_rv=forecast_rv,
-        q_ratio=ratio,
-        rv_iv_vol_ratio=math.sqrt(ratio),
-        q_reference_threshold=NSGVC_Q_THRESHOLD,
-        q_below_reference=ratio <= NSGVC_Q_THRESHOLD,
+        atm_iv=forecast.atm_iv,
+        implied_integrated_variance=forecast.implied_integrated_variance,
+        forecast_integrated_realized_variance=forecast.forecast_integrated_realized_variance,
+        forecast_annualized_realized_variance=forecast.forecast_annualized_realized_variance,
+        forecast_annualized_rv=forecast.forecast_annualized_realized_volatility,
+        q_ratio=forecast.q_ratio,
+        rv_iv_vol_ratio=forecast.rv_iv_vol_ratio,
+        q_reference_threshold=forecast.q_reference_threshold,
+        q_below_reference=forecast.q_below_reference,
         put_400_iv=put_iv,
         call_400_iv=call_iv,
         rr400=rr400_value,

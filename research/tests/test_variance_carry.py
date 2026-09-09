@@ -13,6 +13,7 @@ from shaurya.analytics.variance_carry import (
     NSGVC_RR400_THRESHOLD,
     forecast_integrated_realized_variance,
     nearest_strike,
+    realized_volatility_forecast,
     variance_carry_state_from_slice,
 )
 from shaurya.surfaces.essvi import ESSVISlice
@@ -52,6 +53,25 @@ def test_frozen_q_mapping_is_exactly_reused() -> None:
     assert state.rv_iv_vol_ratio == pytest.approx(math.sqrt(state.q_ratio))
     assert state.q_reference_threshold == NSGVC_Q_THRESHOLD
     assert state.q_below_reference is (state.q_ratio <= NSGVC_Q_THRESHOLD)
+
+
+def test_rv_forecast_annualizes_integrated_variance_and_matches_q_identity() -> None:
+    fitted = _slice()
+    atm_iv = math.sqrt(fitted.theta / fitted.maturity_years)
+    forecast = realized_volatility_forecast(
+        atm_iv=atm_iv,
+        maturity_years=fitted.maturity_years,
+    )
+    assert forecast.implied_integrated_variance == pytest.approx(fitted.theta)
+    assert forecast.forecast_annualized_realized_variance == pytest.approx(
+        forecast.forecast_integrated_realized_variance / fitted.maturity_years
+    )
+    assert forecast.forecast_annualized_realized_volatility == pytest.approx(
+        math.sqrt(forecast.forecast_annualized_realized_variance)
+    )
+    assert forecast.forecast_annualized_realized_volatility == pytest.approx(
+        atm_iv * math.sqrt(forecast.q_ratio)
+    )
 
 
 def test_rr400_uses_tradeable_50_point_atm_and_surface_wings() -> None:
