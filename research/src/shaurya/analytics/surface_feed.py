@@ -24,6 +24,7 @@ from typing import Any
 from shaurya.contracts.tape import TapeRow
 from shaurya.contracts.timing import IST, nse_equity_derivatives_close
 
+from shaurya.analytics.butterflies import build_butterflies
 from shaurya.analytics.forward import ForwardSelection, select_forwards
 from shaurya.analytics.mispricing import (
     InstrumentMetadata,
@@ -224,6 +225,7 @@ class SurfaceSnapshot:
     mispricing: dict[str, object]
     surface_age_seconds: float | None
     surface_is_stale: bool
+    butterflies: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -243,6 +245,7 @@ class SurfaceSnapshot:
             "surface_age_seconds": self.surface_age_seconds,
             "surface_is_stale": self.surface_is_stale,
             "frame": self.frame.model_dump(mode="json") if self.frame else None,
+            "butterflies": self.butterflies,
         }
 
 
@@ -703,6 +706,14 @@ class SurfaceEngine:
             base_fit_age_seconds=0.0,
             base_arbitrage_passed=arbitrage.passed,
         )
+        try:
+            butterflies = build_butterflies(
+                smoothed, rows, self.instrument_metadata, now,
+                expiry_timestamp(min(item.expiry for item in smoothed.slices)),
+                self.risk_free_rate,
+            )
+        except (ValueError, OverflowError) as error:
+            butterflies = {"status": "unavailable", "reason": str(error)}
         return self._record(
             SurfaceSnapshot(
                 sequence=self._sequence,
@@ -719,6 +730,7 @@ class SurfaceEngine:
                 arbitrage=arbitrage.to_dict(),
                 diagnostics=diagnostics,
                 mispricing=mispricing.to_dict(),
+                butterflies=butterflies,
                 surface_age_seconds=surface_age,
                 surface_is_stale=staleness_measurement(
                     age_seconds=surface_age,

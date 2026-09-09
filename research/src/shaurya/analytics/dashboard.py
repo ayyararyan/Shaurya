@@ -6,6 +6,7 @@ import html as html_lib
 import math
 from typing import Any
 
+from shaurya.analytics import butterfly_dashboard as _butterfly_ui
 from shaurya.analytics import dashboard_base as _base
 from shaurya.analytics.surface_feed import SurfaceEngine
 from shaurya.analytics.variance_carry import realized_volatility_forecast
@@ -49,9 +50,7 @@ def build_payload(engine: SurfaceEngine, *, title: str, source: str) -> dict[str
 
     payload = _base.build_payload(engine, title=title, source=source)
     atm = payload.get("atm")
-    payload["rv_forecast"] = _rv_forecast_from_atm_payload(
-        atm if isinstance(atm, dict) else {}
-    )
+    payload["rv_forecast"] = _rv_forecast_from_atm_payload(atm if isinstance(atm, dict) else {})
     return payload
 
 
@@ -60,9 +59,7 @@ def build_history_payload(engine: SurfaceEngine, index: int) -> dict[str, Any]:
 
     payload = _base.build_history_payload(engine, index)
     atm = payload.get("atm")
-    payload["rv_forecast"] = _rv_forecast_from_atm_payload(
-        atm if isinstance(atm, dict) else {}
-    )
+    payload["rv_forecast"] = _rv_forecast_from_atm_payload(atm if isinstance(atm, dict) else {})
     return payload
 
 
@@ -147,9 +144,9 @@ def _forecast_cards(payload: dict[str, Any]) -> str:
         return f"{raw * scale:.{digits}f}{suffix}"
 
     context = (
-        f"Nearest expiry · {f.get('expiry', '')} · "
-        f"{value('maturity_days', 1, 2)} days remaining"
-        if f.get("status") == "ok" else "Nearest-expiry forecast unavailable"
+        f"Nearest expiry · {f.get('expiry', '')} · {value('maturity_days', 1, 2)} days remaining"
+        if f.get("status") == "ok"
+        else "Nearest-expiry forecast unavailable"
     )
     stamp = (payload.get("snapshot") or {}).get("fit_timestamp", "")
     status = f"Page-load snapshot · {stamp} · waiting for live refresh"
@@ -158,13 +155,13 @@ def _forecast_cards(payload: dict[str, Any]) -> str:
 <div class="rv-cards">
 <article class="rv-card primary"><h2>RV forecast</h2>
 <div class="rv-value" id="rvValue">
-{value('forecast_annualized_realized_volatility',100,2,'%')}</div>
+{value("forecast_annualized_realized_volatility", 100, 2, "%")}</div>
 <p>Expected realized volatility · annualized</p></article>
 <article class="rv-card"><h2>ATM implied volatility</h2>
-<div class="rv-value" id="ivValue">{value('atm_iv',100,2,'%')}</div>
+<div class="rv-value" id="ivValue">{value("atm_iv", 100, 2, "%")}</div>
 <p>From the fitted option surface · annualized</p></article>
 <article class="rv-card"><h2>Variance ratio · q</h2>
-<div class="rv-value" id="qValue">{value('q_ratio',1,3)}</div>
+<div class="rv-value" id="qValue">{value("q_ratio", 1, 3)}</div>
 <p>Forecast realized variance ÷ implied variance</p></article>
 </div><p class="rv-status" id="rvStatus">{html_lib.escape(status)}</p>
 <noscript>Live updates require JavaScript. These are the values at page load.</noscript>
@@ -177,19 +174,31 @@ def render_html(payload: dict[str, Any], *, refresh_ms: int = 1000) -> str:
     # Keep every existing element ID for history, health and diagnostic rendering.
     rail = '<div class="rail" id="healthStrip"></div>'
     atm = '<div class="atm" id="atmBand"></div>'
-    html = html.replace(rail, _forecast_cards(payload), 1).replace(atm, '', 1)
+    html = html.replace(rail, _forecast_cards(payload), 1).replace(atm, "", 1)
     start = html.index('  <div class="aside">')
-    end = html.index('</main>', start)
+    end = html.index("</main>", start)
     aside = html[start:end]
     html = html[:start] + html[end:]
-    html = html.replace('</main>', '</main><details><summary>Surface &amp; feed details</summary>'
-                        + rail + atm + aside + '</details>', 1)
-    html = html.replace('<section class="mispricing-panel"',
-                        '<details><summary>Mispricing research monitor</summary>'
-                        '<section class="mispricing-panel"', 1)
-    html = html.replace('</section>\n<script>', '</section></details>\n<script>', 1)
-    html = html.replace('<h1>' + str(payload['title']) + '</h1>',
-                        '<h1>Shaurya · Volatility</h1>', 1)
-    html = html.replace('</style>', _RV_STYLE + '\n</style>', 1)
-    html = html.replace('</body>', '<script>\n' + _RV_SCRIPT + '\n</script>\n</body>', 1)
+    html = html.replace(
+        "</main>",
+        "</main><details><summary>Surface &amp; feed details</summary>"
+        + rail
+        + atm
+        + aside
+        + "</details>",
+        1,
+    )
+    html = html.replace(
+        '<section class="mispricing-panel"',
+        '<details><summary>Mispricing research monitor</summary><section class="mispricing-panel"',
+        1,
+    )
+    html = html.replace("</section>\n<script>", "</section></details>\n<script>", 1)
+    html = html.replace(
+        "<h1>" + str(payload["title"]) + "</h1>", "<h1>Shaurya · Volatility</h1>", 1
+    )
+    html = html.replace("</style>", _RV_STYLE + _butterfly_ui.STYLE + "\n</style>", 1)
+    html = html.replace("</body>", "<script>\n" + _RV_SCRIPT + "\n</script>\n</body>", 1)
+    html = html.replace("<main>", _butterfly_ui.PANEL + "<main>", 1)
+    html = html.replace("</body>", "<script>\n" + _butterfly_ui.SCRIPT + "\n</script></body>", 1)
     return html
