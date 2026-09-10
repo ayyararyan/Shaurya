@@ -1,0 +1,19 @@
+{
+  "model_id": "RV-V2-DAY-GAMMA-ESSVI-2026-09-10",
+  "q_definition": "forecast integrated realized variance / eSSVI theta",
+  "selected_q_threshold": 0.825,
+  "sensitivity_band": [0.8, 0.85],
+  "threshold_rule": "enter/continue only when q < 0.825",
+  "butterfly_width_points": 500,
+  "entry_origin": "10:00 IST bar close",
+  "nominal_roundtrip_cost_stress_points": 2.0,
+  "rr400_master_veto": false,
+  "legacy_rr400_reference": 0.0270810062,
+  "rr400_role": "diagnostic/regime state only",
+  "selection_note": "0.75 was the 2023-24 dev-only optimizer but failed 2025 and early 2026. 0.825 is an adaptive robustness selection: it maximizes the worst calendar-year mean return-on-risk across 2023, 2024 and 2025 among the tested stable candidates and remains positive in both 2026 slices. It is frozen operationally, but there is no untouched threshold-selection holdout remaining.",
+  "limitations": [
+    "Frozen RV coefficients were not refit during threshold calibration.",
+    "Rolling ATM-relative archive supports exact 10:00 entry credit and terminal expiry payoff, but not exact fixed-contract interim recenter marks after large drift. Threshold selection therefore uses terminal PnL; recenter remains a management rule and is not used to select q.",
+    "2026 May-August had already been used to choose/freeze the RV architecture on QLIKE before threshold calibration; its option-PnL view is conditional evidence rather than a pristine joint holdout."
+  ]
+}
