@@ -6,6 +6,10 @@
   "holdout_start": "2026-05-29",
   "forecast_origin": "10:00 IST",
   "iv_anchor": "nearest-weekly eSSVI theta",
+  "q_reference_threshold": 0.825,
+  "q_sensitivity_band": [0.80, 0.85],
+  "q_definition": "forecast_integrated_realized_variance / eSSVI_theta",
+  "q_gate": "q < 0.825",
   "day_model": {
     "ridge_alpha": 0.0,
     "intercept_z": -9.648343925288218,
@@ -29,5 +33,7 @@
     "annualized_rv": "sqrt(V_total_hat / T)",
     "q": "V_total_hat / theta"
   },
-  "automatic_refit": false
+  "automatic_refit": false,
+  "rr400_master_veto": false,
+  "rr400_role": "diagnostic/regime state only"
 }
