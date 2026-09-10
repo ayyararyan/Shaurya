@@ -35,6 +35,9 @@ SECONDS_PER_YEAR = 365.25 * 24.0 * 60.0 * 60.0
 MIN_TRAIN = 252
 RIDGE_ALPHAS = (0.01, 0.1, 1.0, 10.0, 100.0, 1000.0)
 EPS = 1e-12
+CURRENT_NSGVC_INTERCEPT = -0.8941884292
+CURRENT_NSGVC_IV_COEF = 0.9083950192
+CURRENT_NSGVC_T_COEF = 0.0481227276
 
 # The local archive only carries WEEK1 ATM +/- 10 strikes. Production can exclude a much wider
 # ATM band because it has a fuller chain; historical backfill cannot. V2 therefore fits a
@@ -227,9 +230,12 @@ def fit_essvi_slice(day: pd.DataFrame, *, expiry: str, clock: str) -> dict[str, 
     if not bool(res.success) or float(np.min(constraints(np.asarray(res.x)))) < -1e-7:
         return None
     theta, rho, psi = map(float, res.x)
+    min_k, max_k = float(np.min(ks)), float(np.max(ks))
 
     def iv_at_strike(K: float) -> float:
         k = math.log(K / F)
+        if k < min_k or k > max_k:
+            return np.nan
         w = float(essvi_w(k, theta, rho, psi))
         return math.sqrt(max(w, EPS) / T)
 
@@ -246,13 +252,21 @@ def fit_essvi_slice(day: pd.DataFrame, *, expiry: str, clock: str) -> dict[str, 
         "essvi_skew_w0": 0.5 * rho * psi,
         "essvi_fit_rmse": math.sqrt(max(float(res.fun), 0.0)),
         "essvi_quote_count": float(len(obs)),
+        "essvi_min_k": min_k,
+        "essvi_max_k": max_k,
     }
     atm_strike = 50.0 * math.floor((F / 50.0) + 0.5)
     for width in (100.0, 200.0, 400.0):
         left = iv_at_strike(atm_strike - width)
         right = iv_at_strike(atm_strike + width)
-        out[f"essvi_rr{int(width)}"] = left - right
-        out[f"essvi_bf{int(width)}"] = 0.5 * (left + right) - atm_iv
+        out[f"essvi_rr{int(width)}"] = (
+            left - right if np.isfinite(left) and np.isfinite(right) else np.nan
+        )
+        out[f"essvi_bf{int(width)}"] = (
+            0.5 * (left + right) - atm_iv
+            if np.isfinite(left) and np.isfinite(right)
+            else np.nan
+        )
         out[f"essvi_left{int(width)}"] = left
         out[f"essvi_right{int(width)}"] = right
     return out
@@ -502,7 +516,10 @@ def _standardize_fit(x: np.ndarray, y: np.ndarray, alpha: float = 0.0) -> Linear
     a = np.column_stack([np.ones(len(z)), z])
     pen = np.eye(a.shape[1]) * alpha
     pen[0, 0] = 0.0
-    beta = np.linalg.solve(a.T @ a + pen, a.T @ y)
+    if alpha == 0.0:
+        beta, *_ = np.linalg.lstsq(a, y, rcond=None)
+    else:
+        beta = np.linalg.solve(a.T @ a + pen, a.T @ y)
     return LinearModel(beta=beta, mu=mu, sd=sd)
 
 
@@ -542,7 +559,8 @@ def choose_ridge_alpha(tr: pd.DataFrame, features: list[str], target: str) -> fl
         yva = val[target].to_numpy(float)
         for alpha in RIDGE_ALPHAS:
             m = _standardize_fit(xtr, ytr, alpha=alpha)
-            pred = np.exp(m.predict(xva))
+            smear = float(np.mean(np.exp(ytr - m.predict(xtr))))
+            pred = np.exp(m.predict(xva)) * smear
             scores[alpha].append(qlike(yva, pred))
     valid = {a: float(np.mean(v)) for a, v in scores.items() if v}
     return min(valid, key=valid.get) if valid else 10.0
@@ -600,12 +618,12 @@ def direct_log_forecast(
     if len(d) < MIN_TRAIN or row[features].isna().to_numpy().any():
         return np.nan
     alpha = choose_ridge_alpha(d, features, target) if ridge else 0.0
-    model = _standardize_fit(
-        d[features].to_numpy(float),
-        np.log(np.clip(d[target].to_numpy(float), EPS, None)),
-        alpha=alpha,
-    )
-    return float(np.exp(model.predict(row[features].to_numpy(float))[0]))
+    xtr = d[features].to_numpy(float)
+    ylog = np.log(np.clip(d[target].to_numpy(float), EPS, None))
+    model = _standardize_fit(xtr, ylog, alpha=alpha)
+    residual = ylog - model.predict(xtr)
+    smear = float(np.mean(np.exp(residual)))
+    return float(np.exp(model.predict(row[features].to_numpy(float))[0]) * smear)
 
 
 def decomposed_forecast(
@@ -649,7 +667,8 @@ def hgb_forecast(tr: pd.DataFrame, row: pd.DataFrame, features: list[str], targe
         random_state=SEED,
     )
     m.fit(x, y)
-    return float(np.exp(m.predict(row[features].to_numpy(float))[0]))
+    smear = float(np.mean(np.exp(y - m.predict(x))))
+    return float(np.exp(m.predict(row[features].to_numpy(float))[0]) * smear)
 
 
 def walk_forward(panel: pd.DataFrame, fast: bool) -> pd.DataFrame:
@@ -681,6 +700,13 @@ def walk_forward(panel: pd.DataFrame, fast: bool) -> pd.DataFrame:
         rate = tr["target_total_var"] / tr["surface_T"].clip(lower=EPS)
         rec["mean_rate"] = float(rate.mean() * float(r["surface_T"]))
         rec["iv_identity"] = float(r["essvi_theta"])
+        rec["current_nsgvc"] = float(
+            math.exp(
+                CURRENT_NSGVC_INTERCEPT
+                + CURRENT_NSGVC_IV_COEF * math.log(max(float(r["essvi_theta"]), EPS))
+                + CURRENT_NSGVC_T_COEF * math.log(max(float(r["surface_T"]), EPS))
+            )
+        )
         rec["iv_only"] = direct_log_forecast(tr, row, BASE, "target_total_var", ridge=False)
         rec["har"] = direct_log_forecast(tr, row, har, "target_total_var", ridge=False)
         rec["har_surface"] = direct_log_forecast(tr, row, har_surface, "target_total_var", ridge=False)
