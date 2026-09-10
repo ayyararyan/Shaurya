@@ -1,9 +1,16 @@
 """Surface-derived NIFTY variance-carry state.
 
-The state deliberately reuses the frozen NSGVC weekly calibration rather than
-refitting a new q model on live data. It is an analytics/read-only object: the
-reference thresholds are exposed for monitoring and research, not as automatic
-order gates.
+Two model generations intentionally coexist here:
+
+* the legacy frozen NSGVC IV-only mapping, retained byte-for-byte for historical
+  reproducibility; and
+* the explicit RV-V2 Day + Gamma-night adapter, which requires the complete
+  causal 10:00 feature state and therefore fails closed when those inputs are not
+  supplied.
+
+Neither object places orders. Trading consumers must choose the model version
+explicitly; the presence of legacy ``NSGVC_Q_THRESHOLD = 0.70`` does not redefine
+RV-V2's calibrated ``q < 0.825`` rule.
 """
 
 from __future__ import annotations
@@ -11,6 +18,12 @@ from __future__ import annotations
 import math
 from dataclasses import asdict, dataclass
 
+from shaurya.analytics.rv_model import (
+    RV_V2_Q_THRESHOLD,
+    FrozenRVFeatures,
+    FrozenRVForecast,
+    forecast_frozen_rv,
+)
 from shaurya.surfaces.essvi import ESSVISlice, ESSVISurface
 
 NSGVC_Q_MODEL_VERSION = "nsgvc_iv_only_2023_2025_v1"
@@ -28,7 +41,7 @@ RR400_WING_POINTS = 400.0
 
 @dataclass(frozen=True, slots=True)
 class RealizedVolatilityForecast:
-    """Frozen nearest-weekly RV forecast expressed in both variance and vol units."""
+    """Legacy NSGVC nearest-weekly RV forecast in variance and vol units."""
 
     atm_iv: float
     maturity_years: float
@@ -58,11 +71,7 @@ def nearest_strike(value: float, *, step: float = NIFTY_STRIKE_STEP) -> float:
 def forecast_integrated_realized_variance(
     *, implied_integrated_variance: float, maturity_years: float
 ) -> float:
-    """Frozen NSGVC IV-only mapping for the nearest-weekly horizon.
-
-    The model target is forward integrated realized variance. Its two predictors
-    are current ATM implied integrated variance and time remaining to expiry.
-    """
+    """Legacy frozen NSGVC IV-only nearest-weekly mapping."""
 
     if (
         not math.isfinite(implied_integrated_variance)
@@ -82,11 +91,11 @@ def forecast_integrated_realized_variance(
 def realized_volatility_forecast(
     *, atm_iv: float, maturity_years: float
 ) -> RealizedVolatilityForecast:
-    """Convert an ATM IV observation into the frozen NSGVC RV forecast.
+    """Evaluate the legacy NSGVC ATM-IV-only forecast.
 
-    ``IV_int = ATM_IV**2 * T`` and the fitted model forecasts ``RV_int``.
-    The annualized realized-volatility forecast displayed to a human is
-    ``sqrt(RV_int / T)``. Equivalently it is ``ATM_IV * sqrt(q)``.
+    New trading code should use ``frozen_rv_v2_forecast_from_slice`` with a
+    complete :class:`FrozenRVFeatures` state. This function remains intentionally
+    unchanged in its economics so old research/tests stay reproducible.
     """
 
     if (
@@ -118,8 +127,43 @@ def realized_volatility_forecast(
     )
 
 
+def frozen_rv_v2_forecast_from_slice(
+    slice_: ESSVISlice,
+    *,
+    features: FrozenRVFeatures,
+) -> FrozenRVForecast:
+    """Evaluate the production-candidate RV-V2 forecast from one front eSSVI slice.
+
+    The eSSVI slice supplies only the frozen IV anchor ``theta`` and maturity.
+    Historical/current-session state is required explicitly. No legacy fallback is
+    permitted because that would silently change the model whenever a feature is
+    unavailable.
+    """
+
+    if slice_.maturity_years <= 0.0 or slice_.theta <= 0.0:
+        raise ValueError("front eSSVI slice must have positive maturity and theta")
+    return forecast_frozen_rv(
+        implied_integrated_variance=slice_.theta,
+        maturity_years=slice_.maturity_years,
+        features=features,
+    )
+
+
+def front_frozen_rv_v2_forecast(
+    surface: ESSVISurface,
+    *,
+    features: FrozenRVFeatures,
+) -> FrozenRVForecast:
+    """Evaluate RV-V2 on the nearest fitted eSSVI expiry."""
+
+    if not surface.slices:
+        raise ValueError("eSSVI surface has no fitted slices")
+    front = min(surface.slices, key=lambda item: item.maturity_years)
+    return frozen_rv_v2_forecast_from_slice(front, features=features)
+
+
 def q_ratio(*, implied_integrated_variance: float, maturity_years: float) -> float:
-    """Forecast RV / IV ratio in integrated-variance units."""
+    """Legacy NSGVC forecast RV / IV ratio in integrated-variance units."""
 
     prediction = forecast_integrated_realized_variance(
         implied_integrated_variance=implied_integrated_variance,
@@ -145,7 +189,7 @@ def _slice_iv_at_strike(slice_: ESSVISlice, strike: float) -> tuple[float | None
 
 @dataclass(frozen=True, slots=True)
 class VarianceCarryState:
-    """Front-expiry q and 400-point risk reversal from one accepted eSSVI slice."""
+    """Legacy front-expiry NSGVC q and 400-point risk reversal state."""
 
     expiry: str
     maturity_days: float
@@ -175,7 +219,7 @@ class VarianceCarryState:
 
 
 def variance_carry_state_from_slice(slice_: ESSVISlice) -> VarianceCarryState:
-    """Build the frozen weekly carry state from the front eSSVI slice.
+    """Build the legacy weekly NSGVC carry state from the front eSSVI slice.
 
     ``q`` uses ATM integrated variance ``theta`` from eSSVI. ``RR400`` is
     ``IV(K_atm-400) - IV(K_atm+400)`` where ``K_atm`` is the nearest 50-point
@@ -240,9 +284,33 @@ def variance_carry_state_from_slice(slice_: ESSVISlice) -> VarianceCarryState:
 
 
 def front_variance_carry_state(surface: ESSVISurface) -> VarianceCarryState:
-    """Return q/RR400 for the nearest fitted expiry of an accepted eSSVI surface."""
+    """Return legacy NSGVC q/RR400 for the nearest fitted expiry."""
 
     if not surface.slices:
         raise ValueError("eSSVI surface has no fitted slices")
     front = min(surface.slices, key=lambda item: item.maturity_years)
     return variance_carry_state_from_slice(front)
+
+
+__all__ = [
+    "NSGVC_Q_MODEL_VERSION",
+    "NSGVC_Q_MODEL_SCOPE",
+    "NSGVC_Q_THRESHOLD",
+    "NSGVC_RR400_THRESHOLD",
+    "NSGVC_LOG_PRED_INTERCEPT",
+    "NSGVC_LOG_IV_INT_COEF",
+    "NSGVC_LOG_T_COEF",
+    "RV_V2_Q_THRESHOLD",
+    "FrozenRVFeatures",
+    "FrozenRVForecast",
+    "forecast_frozen_rv",
+    "frozen_rv_v2_forecast_from_slice",
+    "front_frozen_rv_v2_forecast",
+    "forecast_integrated_realized_variance",
+    "realized_volatility_forecast",
+    "q_ratio",
+    "nearest_strike",
+    "VarianceCarryState",
+    "variance_carry_state_from_slice",
+    "front_variance_carry_state",
+]
