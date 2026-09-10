@@ -1,6 +1,6 @@
 # RV Forecast V2 — pre-registered horse race
 
-**Frozen:** 2026-09-10  
+**Frozen before first result run:** 2026-09-10  
 **Purpose:** replace the current nearest-weekly IV-only RV mapping only if a strictly ex-ante model wins out of sample.  
 **Trading use:** NIFTY butterfly carried overnight. Overnight variance is therefore part of the headline target, not a robustness variant.
 
@@ -30,6 +30,8 @@ Historical WEEK1 files contain ATM +/- 10 strikes rather than the full live chai
 4. fit a constrained one-slice eSSVI (`theta`, `rho`, `psi`) using only that origin's prices;
 5. derive surface skew/curvature features and fixed-width RR/BF states.
 
+No fixed-width surface feature may extrapolate outside the strikes supporting that historical fit.
+
 Because the old archive is too narrow to reproduce the production `include_atm_strikes=false` support rule, the historical fit explicitly uses the near-ATM OTM region. That policy is reported in every result artifact and must not be presented as byte-identical to the live surface. When a wider historical chain is available, this horse race should be rerun with the production surface policy.
 
 ## 3. Predictor information set
@@ -41,8 +43,8 @@ All features are ex ante.
 - eSSVI `theta`, `rho`, `psi`, `phi=psi/theta`
 - ATM annualized IV
 - ATM total-variance skew derivative
-- RR100 / RR200 / RR400
-- BF100 / BF200 / BF400
+- RR100 / RR200 / RR400 when inside fitted support
+- BF100 / BF200 / BF400 when inside fitted support
 - parity forward basis
 - surface fit RMSE / quote count
 - time to expiry and sessions/nights remaining
@@ -81,17 +83,20 @@ These features are not silently synthesized. Historical timestamp provenance is 
 
 ## 4. Pre-registered model race
 
-The first run compares these fixed families:
+The first result run compares these fixed families:
 
 1. **Mean-rate benchmark** — expanding historical mean variance rate, scaled to current horizon.
 2. **IV identity** — eSSVI `theta`; assumes realized integrated variance equals implied integrated variance.
-3. **IV-only log model** — current-model analogue: log integrated RV on log eSSVI theta and log maturity.
-4. **HAR total** — direct log total-RV model using current implied variance plus separate past intraday/overnight HAR states.
-5. **HAR + eSSVI** — adds eSSVI shape features.
-6. **HAR + eSSVI + rich ridge** — adds semivariances, jumps, current-session state, VIX when available, and optional timestamp-audited exogenous features; ridge penalty selected only inside purged training data.
-7. **Day/night decomposition** — predicts future intraday variance rate and future overnight variance per night separately, then sums them.
-8. **Day/night decomposition + ridge** — regularized version of (7).
-9. **Small nonlinear HGB** — conservative histogram gradient boosting on the rich feature set, trained on log integrated variance. It is a contender, not the favored model; complexity must earn its place out of sample.
+3. **Current frozen NSGVC** — the exact current Shaurya coefficients (`-0.8941884292`, `0.9083950192`, `0.0481227276`) applied to historical eSSVI theta and maturity.
+4. **Refit IV-only log model** — expanding/purged log integrated RV on log eSSVI theta and log maturity.
+5. **HAR total** — direct log total-RV model using current implied variance plus separate past intraday/overnight HAR states.
+6. **HAR + eSSVI** — adds eSSVI shape features.
+7. **HAR + eSSVI + rich ridge** — adds semivariances, jumps, current-session state, VIX when available, and optional timestamp-audited exogenous features; ridge penalty selected only inside purged training data.
+8. **Day/night decomposition** — predicts future intraday variance rate and future overnight variance per night separately, then sums them.
+9. **Day/night decomposition + ridge** — regularized version of (8).
+10. **Small nonlinear HGB** — conservative histogram gradient boosting on the rich feature set, trained on log integrated variance. It is a contender, not the favored model; complexity must earn its place out of sample.
+
+Every newly fitted log-variance model uses a **training-only Duan-style smearing factor** when mapping its log forecast back to variance units. This fixes the conditional-median/conditional-mean retransformation problem without touching future data.
 
 No candidate is promoted because of in-sample fit.
 
@@ -126,7 +131,7 @@ The production NSGVC model remains unchanged during this experiment.
 
 A V2 model can be proposed for production only after it:
 
-1. beats IV-only on headline total-variance QLIKE;
+1. beats the **current frozen NSGVC** on headline total-variance QLIKE;
 2. beats or materially improves the mean-rate benchmark on OOS R²/RMSE;
 3. is not dependent on one year or one expiry horizon;
 4. does not obtain its gain by degrading overnight-variance forecasts;
